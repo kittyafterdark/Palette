@@ -1,0 +1,21 @@
+{
+  "name": "palette-spindle-extension",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/frontend.ts --bundle --outfile=dist/frontend.js --platform=browser --format=esm --target=es2022 && esbuild src/backend.ts --bundle --outfile=dist/backend.js --platform=node --format=esm --target=es2022",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "verify": "bun run typecheck && bun run test && bun run build"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.0",
+    "esbuild": "0.27.0",
+    "happy-dom": "20.8.0",
+    "lumiverse-spindle-types": "0.6.19",
+    "typescript": "6.0.2"
+  },
+  "description": "Visual, component-aware theme authoring for Lumiverse.",
+  "license": "MIT"
+}
