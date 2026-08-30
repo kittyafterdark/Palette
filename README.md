@@ -77,7 +77,7 @@ That enables a few important behaviors:
 
 ## Built-in packs
 
-Palette currently ships curated message/composer directions including **Manga**, **Editorial**, **Journal**, and **Visual Novel**. Pack recipes use the same semantic targets, packets, responsive states, groups, and provenance system as normal Design work—there is no separate hidden pack-CSS engine.
+Palette currently ships curated message/composer directions including **Manga**, **Editorial**, **Journal**, and **Visual Novel**. Pack recipes use the same semantic targets, packets, responsive states, groups, and provenance system as normal Design work; there is no separate hidden pack-CSS engine.
 
 <img width="1683" height="437" alt="image" src="https://github.com/user-attachments/assets/2802934c-cd52-4069-97e9-029199402385" />
 
