@@ -4,7 +4,7 @@ import { authoritySelector, compileComponentOverride, compileImageCustomMask, co
 import { validateOverride } from '../compiler/validation'
 import { ElementPicker, type GeometryGuideMode } from '../inspector/picker'
 import { activeNativeThemeBundleId, cloneNativeThemeAssetToBundle, exportLumitheme, getNativeThemeCapabilities, groupNativeComponents, importLumitheme, listNativeComponents, listNativeThemeAssets, listNativeThemeVariables, nativeVariableMap, projectToNativeDraft, refreshMountedComponentParts, sendToLumiverse, uploadNativeThemeAsset } from '../nativeBridge'
-import { COMPOSER_ICON_ACTIONS, MOBILE_BREAKPOINT_PX, STYLE_STATES, createStylePacket, newId, normalizeSvgSource, stateInheritanceSummary, type ComposerIconAction, type ComponentOverride, type DimensionValue, type LayoutGroup, type LayoutGroupContentTarget, type LayoutGroupMember, type LayoutGroupState, type LayoutGroupStyleBucket, type ImageCustomMask, type ImagePacket, type RecipePacketSlot, type PacketType, type ResponsiveScopeName, type StatePacketStacks, type StudioTarget, type StylePacket, type StyleStateName } from '../project/model'
+import { COMPOSER_ICON_ACTIONS, MOBILE_BREAKPOINT_PX, STYLE_STATES, createStylePacket, newId, normalizeSvgSource, stateInheritanceSummary, type BoxSpacing, type ComposerIconAction, type ComponentOverride, type DimensionValue, type LayoutGroup, type LayoutGroupContentTarget, type LayoutGroupMember, type LayoutGroupState, type LayoutGroupStyleBucket, type ImageCustomMask, type ImagePacket, type RecipePacketSlot, type PacketType, type ResponsiveScopeName, type StatePacketStacks, type StudioTarget, type StylePacket, type StyleStateName } from '../project/model'
 import { isMediaElement } from '../project/smart-invert'
 import { reverseEngineerElement } from '../project/reverse-engineer'
 import { ProjectStore } from '../project/store'
@@ -29,6 +29,7 @@ const PACKETS: Array<{ type: PacketType; group: 'Paint' | 'Shape' | 'Layout' | '
   { type: 'media-flow', group: 'Layout', label: 'Media Flow', icon: '▤', hint: 'Natural or full-width media blocks' },
   { type: 'content', group: 'Typography', label: 'Generated Content', icon: '✎', hint: 'Literal label or symbol on a pseudo-surface' },
   { type: 'text', group: 'Typography', label: 'Text Style', icon: 'T◈', hint: 'Fill, gradient, stroke, and glow' },
+  { type: 'text-entry', group: 'Typography', label: 'Text Entry', icon: '⌨', hint: 'Typing inset, metrics, and placeholder' },
   { type: 'border', group: 'Paint', label: 'Border', icon: '□', hint: 'Edge, weight, and color' },
   { type: 'shadow', group: 'Paint', label: 'Shadow', icon: '◒', hint: 'Depth and glow' },
   { type: 'glass', group: 'Paint', label: 'Glass', icon: '◇', hint: 'Blur and translucent depth' },
@@ -36,7 +37,8 @@ const PACKETS: Array<{ type: PacketType; group: 'Paint' | 'Shape' | 'Layout' | '
   { type: 'size', group: 'Shape', label: 'Size', icon: '↔', hint: 'Auto, fit, fill, or fixed' },
   { type: 'spacing', group: 'Shape', label: 'Spacing', icon: '↔', hint: 'Padding, margin, and gap' },
   { type: 'layout', group: 'Layout', label: 'Container', icon: '▦', hint: 'Arrange children' },
-  { type: 'layout-item', group: 'Layout', label: 'Layout Item', icon: '▣', hint: 'How this item fills its parent' },
+  { type: 'placement', group: 'Layout', label: 'Quick Align', icon: '⌗', hint: 'Left, center, right, top, or bottom without CSS trivia' },
+  { type: 'layout-item', group: 'Layout', label: 'Layout Item', icon: '▣', hint: 'Advanced flex/grid item behavior' },
   { type: 'position', group: 'Layout', label: 'Position & Layer', icon: '⌖', hint: 'Flow, anchor, and stacking' },
   { type: 'transform', group: 'Shape', label: 'Transform', icon: '⟳', hint: 'Rotate, scale, and skew' },
   { type: 'typography', group: 'Typography', label: 'Typography', icon: 'Aa', hint: 'Typeface, scale, spacing, and case' },
@@ -95,9 +97,10 @@ function structureNodeLabel(element: Element): string {
   if (spindleMount === 'chat_toolbar') return 'Extension toolbar mount'
   const part = element.getAttribute('data-part')?.trim()
   if (part) return part.replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+  const semantic = element.getAttribute('aria-label') || element.getAttribute('title') || element.getAttribute('name') || element.getAttribute('role')
+  if (semantic && /^(button|a|input|textarea|select|summary)$/.test(tag)) return semantic
   const local = [...element.classList].map(normalizeCssModuleClass).find(Boolean)?.localName
   if (local) return local.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
-  const semantic = element.getAttribute('aria-label') || element.getAttribute('title') || element.getAttribute('name') || element.getAttribute('role')
   if (semantic) return semantic
   if (/^h[1-6]$/.test(tag)) return tag.toUpperCase()
   return tag === 'img' ? 'Image' : tag
@@ -205,6 +208,9 @@ function shuffleIcon(className = ''): string {
 function mobileEdgeIcon(): string {
   return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m0 0-5 5m5-5 5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`
 }
+function minimizeIcon(): string {
+  return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18h14M12 5v9m0 0-4-4m4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+}
 function widgetToolIcon(action: 'pick' | 'guides' | 'zap' | 'code' | 'float'): string {
   if (action === 'pick') return `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`
   if (action === 'guides') return `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M9.3 4v16M14.7 4v16M4 9.3h16M4 14.7h16" stroke="currentColor" stroke-width="1.1" opacity=".85"/></svg>`
@@ -223,6 +229,13 @@ function overrideForSelection(selection: ResolvedSelection | null, overrides: Co
  * Keep exact-scope editing semantics, but surface any authored Palette
  * override whose selector actually matches the mounted element being inspected.
  */
+function shouldLocalizeMatchedMessageOverride(selection: ResolvedSelection | null, override: ComponentOverride, surface: TargetSurface = 'element'): boolean {
+  if (!selection || surface !== 'element') return false
+  const scope = activeScope(selection)
+  if (!scope.messageSide || scope.messageSide === 'both') return false
+  return override.target.selector !== selectorForSurface(scope.selector, surface)
+}
+
 function matchingOverridesForSelection(selection: ResolvedSelection | null, overrides: ComponentOverride[], surface: TargetSurface = 'element'): ComponentOverride[] {
   if (!selection) return []
   const exact = overrideForSelection(selection, overrides, surface)
@@ -321,6 +334,7 @@ export class ThemeStudioUI {
   private editorFloating = false
   private mobileFloatSnap: 'peek' | 'work' | 'full' = 'work'
   private mobileFloatEdge: 'top' | 'bottom' = 'bottom'
+  private mobileInspectorDensity: 100 | 80 | 60 = 100
   private markedElement: Element | null = null
   private structureNodes: Element[] = []
   /** Transient DOM references backing Group's structural target pickers. Rebuilt on every render. */
@@ -406,7 +420,7 @@ export class ThemeStudioUI {
     this.previewResult = this.preview.updateCustom(this.store.activeProject.customCss)
     this.root.innerHTML = `<div class="ts-shell">${this.renderProjectBar()}<nav class="ts-tabbar" aria-label="Palette workspaces">
       ${(['design', 'code', 'themes'] as WorkspaceTab[]).map((tab) => `<button class="ts-tab" type="button" data-workspace="${tab}" aria-selected="${this.workspace === tab}">${tab[0].toUpperCase()}${tab.slice(1)}</button>`).join('')}
-      </nav>${this.workspace === 'design' ? this.renderWorkbar(currentOverride) : ''}<main class="ts-scroll">${this.workspace === 'design' ? this.renderDesign() : this.workspace === 'code' ? this.renderCode(generatedCss) : this.renderThemes()}</main></div>`
+      </nav>${this.workspace === 'design' ? this.renderWorkbar(currentOverride) : ''}<main class="ts-scroll"><div class="ts-inspector-density">${this.workspace === 'design' ? this.renderDesign() : this.workspace === 'code' ? this.renderCode(generatedCss) : this.renderThemes()}</div></main></div>`
     this.bindCommon()
     if (this.workspace === 'design') this.bindDesign()
     if (this.workspace === 'code') this.bindCode()
@@ -481,7 +495,7 @@ export class ThemeStudioUI {
     this.floatingFrame.className = 'ts-floating-editor'
     this.floatingFrame.setAttribute('data-theme-studio-widget', 'editor')
     this.floatingFrame.hidden = true
-    this.floatingFrame.innerHTML = `<div class="ts-mobile-sheet-handle" data-mobile-sheet-drag-handle aria-hidden="true"><i></i></div><header class="ts-floating-editor-head" data-widget-drag-handle><div class="ts-floating-editor-title"><strong>Palette</strong><span data-widget-floating-target>No target selected</span></div><nav class="ts-floating-workspaces" aria-label="Palette workspace">${(['design', 'code', 'themes'] as WorkspaceTab[]).map((tab) => `<button type="button" data-widget-workspace="${tab}" aria-pressed="${this.workspace === tab}" title="${tab[0].toUpperCase()}${tab.slice(1)}" aria-label="${tab[0].toUpperCase()}${tab.slice(1)}">${workspaceIcon(tab)}</button>`).join('')}</nav><div class="ts-floating-editor-actions"><button class="ts-mobile-edge-toggle" type="button" data-widget-action="toggle-mobile-edge" title="Attach editor to top" aria-label="Attach floating editor to top">${mobileEdgeIcon()}</button><button type="button" data-widget-action="dock" title="Return to the Spindle sidebar">Return</button><button type="button" data-widget-action="collapse" title="Return and collapse">×</button></div></header><div class="ts-floating-editor-body"></div>`
+    this.floatingFrame.innerHTML = `<div class="ts-mobile-sheet-handle" data-mobile-sheet-drag-handle aria-hidden="true"><i></i></div><header class="ts-floating-editor-head" data-widget-drag-handle><div class="ts-floating-editor-title"><strong>Palette</strong><span data-widget-floating-target>No target selected</span></div><nav class="ts-floating-workspaces" aria-label="Palette workspace">${(['design', 'code', 'themes'] as WorkspaceTab[]).map((tab) => `<button type="button" data-widget-workspace="${tab}" aria-pressed="${this.workspace === tab}" title="${tab[0].toUpperCase()}${tab.slice(1)}" aria-label="${tab[0].toUpperCase()}${tab.slice(1)}">${workspaceIcon(tab)}</button>`).join('')}</nav><div class="ts-floating-editor-actions" role="toolbar" aria-label="Palette window actions"><button class="ts-mobile-edge-toggle" type="button" data-widget-action="toggle-mobile-edge" title="Attach editor to top" aria-label="Attach floating editor to top">${mobileEdgeIcon()}</button><button class="ts-mobile-density-toggle" type="button" data-widget-action="cycle-density" title="Inspector density 100%" aria-label="Inspector density 100%">100%</button><span class="ts-floating-action-divider" aria-hidden="true"></span><button class="ts-floating-minimize" type="button" data-widget-action="dock" title="Minimize Palette to the sidebar" aria-label="Minimize Palette to the sidebar">${minimizeIcon()}</button><button class="ts-floating-close" type="button" data-widget-action="collapse" title="Close Palette" aria-label="Close Palette">×</button></div></header><div class="ts-floating-editor-body"></div>`
     this.floatingBody = this.floatingFrame.querySelector<HTMLElement>('.ts-floating-editor-body')
 
     this.drawerPlaceholder = document.createElement('div')
@@ -498,20 +512,24 @@ export class ThemeStudioUI {
     try { this.widgetHidden = localStorage.getItem('theme-studio:widget-hidden') === '1' } catch { this.widgetHidden = false }
 
     try {
-      const savedFloat = JSON.parse(localStorage.getItem('theme-studio:floating-editor') ?? 'null') as { left?: string; top?: string; mobileSnap?: 'peek' | 'work' | 'full'; mobileEdge?: 'top' | 'bottom' } | null
+      const savedFloat = JSON.parse(localStorage.getItem('theme-studio:floating-editor') ?? 'null') as { left?: string; top?: string; mobileSnap?: 'peek' | 'work' | 'full'; mobileEdge?: 'top' | 'bottom'; mobileDensity?: 100 | 80 | 60 } | null
       if (savedFloat?.mobileSnap) this.mobileFloatSnap = savedFloat.mobileSnap
       if (savedFloat?.mobileEdge === 'top' || savedFloat?.mobileEdge === 'bottom') this.mobileFloatEdge = savedFloat.mobileEdge
+      if (savedFloat?.mobileDensity === 80 || savedFloat?.mobileDensity === 60 || savedFloat?.mobileDensity === 100) this.mobileInspectorDensity = savedFloat.mobileDensity
       this.floatingFrame.dataset.mobileSnap = this.mobileFloatSnap
       this.floatingFrame.dataset.mobileEdge = this.mobileFloatEdge
+      this.floatingFrame.dataset.mobileDensity = String(this.mobileInspectorDensity)
       if (savedFloat?.left && savedFloat?.top) { this.floatingFrame.style.left = savedFloat.left; this.floatingFrame.style.top = savedFloat.top; this.floatingFrame.style.right = 'auto'; this.floatingFrame.style.bottom = 'auto' }
     } catch { /* local floating-editor state is best-effort */ }
 
     this.floatingFrame.querySelector('[data-widget-action="dock"]')?.addEventListener('click', () => this.dockEditor())
     this.floatingFrame.querySelector('[data-widget-action="collapse"]')?.addEventListener('click', () => { this.dockEditor(); this.widgetExpanded = false; this.renderWidget() })
     this.floatingFrame.querySelector('[data-widget-action="toggle-mobile-edge"]')?.addEventListener('click', () => this.toggleMobileFloatEdge())
+    this.floatingFrame.querySelector('[data-widget-action="cycle-density"]')?.addEventListener('click', () => this.cycleMobileInspectorDensity())
     this.floatingFrame.querySelectorAll<HTMLButtonElement>('[data-widget-workspace]').forEach((button) => button.addEventListener('click', () => { this.clearBoostPreview(); this.workspace = button.dataset.widgetWorkspace as WorkspaceTab; if (this.workspace === 'design') void this.refreshNativeCatalog(false); this.render() }))
     this.drawerPlaceholder.querySelector('[data-widget-action="dock-placeholder"]')?.addEventListener('click', () => this.dockEditor())
     this.syncMobileEdgeControl()
+    this.syncMobileDensityControl()
     this.bindFloatingDrag()
   }
 
@@ -1212,7 +1230,7 @@ export class ThemeStudioUI {
   private saveFloatingState(): void {
     const frame = this.floatingFrame
     if (!frame) return
-    try { localStorage.setItem('theme-studio:floating-editor', JSON.stringify({ left: frame.style.left, top: frame.style.top, mobileSnap: this.mobileFloatSnap, mobileEdge: this.mobileFloatEdge })) } catch { /* best effort */ }
+    try { localStorage.setItem('theme-studio:floating-editor', JSON.stringify({ left: frame.style.left, top: frame.style.top, mobileSnap: this.mobileFloatSnap, mobileEdge: this.mobileFloatEdge, mobileDensity: this.mobileInspectorDensity })) } catch { /* best effort */ }
   }
 
   private syncMobileEdgeControl(): void {
@@ -1223,6 +1241,22 @@ export class ThemeStudioUI {
     const destination = this.mobileFloatEdge === 'bottom' ? 'top' : 'bottom'
     button.title = `Attach editor to ${destination}`
     button.setAttribute('aria-label', `Attach floating editor to ${destination}`)
+  }
+
+  private syncMobileDensityControl(): void {
+    const frame = this.floatingFrame
+    const button = frame?.querySelector<HTMLButtonElement>('[data-widget-action="cycle-density"]')
+    if (!frame || !button) return
+    frame.dataset.mobileDensity = String(this.mobileInspectorDensity)
+    button.textContent = `${this.mobileInspectorDensity}%`
+    button.title = `Inspector density ${this.mobileInspectorDensity}% · tap for ${this.mobileInspectorDensity === 100 ? '80%' : this.mobileInspectorDensity === 80 ? '60%' : '100%'}`
+    button.setAttribute('aria-label', button.title)
+  }
+
+  private cycleMobileInspectorDensity(): void {
+    this.mobileInspectorDensity = this.mobileInspectorDensity === 100 ? 80 : this.mobileInspectorDensity === 80 ? 60 : 100
+    this.syncMobileDensityControl()
+    this.saveFloatingState()
   }
 
   private toggleMobileFloatEdge(): void {
@@ -1925,7 +1959,14 @@ export class ThemeStudioUI {
       const tag = scope.element?.tagName.toLowerCase() ?? ''
       return ['img','picture','figure','video'].includes(tag) || /inlineimage|attachment|:has\(img\)|messagecontent.*(?:img|p)/.test(selector) || /media|image|attachment|photo/.test(label)
     })())
-    const visible = PACKETS.filter((entry) => (!allow || allow.has(entry.type)) && (entry.type !== 'composer-icons' || composerIconsRelevant || used.has('composer-icons')) && (entry.type !== 'media-flow' || mediaFlowRelevant || used.has('media-flow')))
+    const textEntryRelevant = Boolean(this.selection && this.targetSurface === 'element' && (() => {
+      const scope = activeScope(this.selection!)
+      const selector = scope.selector.toLowerCase()
+      const label = `${scope.label ?? ''} ${this.selection!.target.label ?? ''}`.toLowerCase()
+      const tag = scope.element?.tagName.toLowerCase() ?? ''
+      return (tag === 'textarea' && (selector.includes('chat-message') || label.includes('message'))) || selector.includes('textarea[name="chat-message"]') || label.includes('composer textarea') || label.includes('message textarea')
+    })())
+    const visible = PACKETS.filter((entry) => (!allow || allow.has(entry.type)) && (entry.type !== 'composer-icons' || composerIconsRelevant || used.has('composer-icons')) && (entry.type !== 'media-flow' || mediaFlowRelevant || used.has('media-flow')) && (entry.type !== 'text-entry' || textEntryRelevant || used.has('text-entry')))
     return `<div class="ts-card ts-style-menu">${groups.map((group) => { const entries = visible.filter((entry) => entry.group === group); return entries.length ? `<section class="ts-style-group"><div class="ts-group-title">${group}</div><div class="ts-style-grid">${entries.map((entry) => `<button class="ts-style-option" type="button" data-add-packet="${entry.type}" ${used.has(entry.type) ? 'disabled' : ''}><span class="ts-style-icon" aria-hidden="true">${entry.icon}</span><span><strong>${entry.label}</strong><small>${entry.hint}</small></span></button>`).join('')}</div></section>` : '' }).join('')}</div>`
   }
   private packetShell(override: ComponentOverride, packet: StylePacket, title: string, summary: string, body: string): string {
@@ -1947,12 +1988,20 @@ export class ThemeStudioUI {
   private rangeField(label: string, field: string, value: number, min: number, max: number, unit = ''): string {
     return `<div class="ts-field"><label class="ts-label">${label}<span data-range-display="${field}" data-range-unit="${unit}">${value}${unit}</span></label><div class="ts-range-row"><input class="ts-range" type="range" min="${min}" max="${max}" value="${value}" data-packet-field="${field}"><input class="ts-number" type="number" min="${min}" max="${max}" value="${value}" data-packet-field="${field}" aria-label="${label}"></div></div>`
   }
+  private boxSpacingAdvanced(label: 'Padding' | 'Margin', field: 'spacing-padding' | 'spacing-margin', value: BoxSpacing | undefined): string {
+    const current = value ?? { linked: true, top: 0, right: 0, bottom: 0, left: 0, unit: 'px' as const }
+    const min = field === 'spacing-padding' ? 0 : -500
+    const sides = ([['top', 'Top'], ['right', 'Right'], ['bottom', 'Bottom'], ['left', 'Left']] as const)
+      .map(([side, sideLabel]) => `<label class="ts-label">${sideLabel}<input class="ts-number" type="number" min="${min}" max="500" step="1" value="${current[side]}" data-packet-field="${field}-${side}" aria-label="${label} ${sideLabel.toLowerCase()}"></label>`)
+      .join('')
+    return `<details class="ts-advanced ts-spacing-advanced"><summary>Advanced ${label.toLowerCase()}</summary><div class="ts-box-grid">${sides}</div><p class="ts-note">Edit sides independently here. Moving the main ${label.toLowerCase()} slider links all four sides again.</p></details>`
+  }
   private renderRecentColors(field: string): string {
     if (!this.recentColors.length) return ''
     return `<div class="ts-recent"><span>Recent</span><div class="ts-recent-swatches">${this.recentColors.map((color) => `<button type="button" class="ts-recent-swatch" data-recent-color="${escapeHtml(color)}" data-recent-field="${escapeHtml(field)}" style="--ts-recent:${escapeHtml(color)}" title="Use ${escapeHtml(color)}" aria-label="Use recent color ${escapeHtml(color)}"></button>`).join('')}</div></div>`
   }
   private colorField(label: string, field: string, value: string, alpha?: number): string {
-    return `<div class="ts-field"><label class="ts-label">${label}</label><div class="ts-color-row"><input class="ts-color" type="color" value="${escapeHtml(colorInput(value))}" data-packet-field="${field}"><input class="ts-input" type="text" value="${escapeHtml(value)}" data-packet-field="${field}" aria-label="${label} value"></div>${this.renderRecentColors(field)}</div>${alpha === undefined ? '' : this.rangeField(`${label} opacity`, `${field}-alpha`, percent(alpha), 0, 100, '%')}`
+    return `<div class="ts-field"><label class="ts-label">${label}</label><div class="ts-color-row"><label class="ts-color-picker" title="Open color picker"><input class="ts-color" type="color" value="${escapeHtml(colorInput(value))}" data-packet-field="${field}" aria-label="Pick ${label.toLowerCase()} color"><span>Pick</span></label><input class="ts-input" type="text" value="${escapeHtml(value)}" data-packet-field="${field}" aria-label="${label} value"></div>${this.renderRecentColors(field)}</div>${alpha === undefined ? '' : this.rangeField(`${label} opacity`, `${field}-alpha`, percent(alpha), 0, 100, '%')}`
   }
   private dimensionField(label: string, field: string, value: DimensionValue | undefined): string {
     const current = value ?? { mode: 'native' as const }
@@ -2068,15 +2117,17 @@ export class ThemeStudioUI {
         return this.packetShell(override, packet, mediaTarget ? 'Image' : 'Mask', toneBits.length ? toneBits.join(' · ') : (mediaTarget ? 'Natural' : 'Native'), body)
       }
       case 'content': {
-        const summary = packet.value.trim() ? (packet.value.trim().length > 28 ? `${packet.value.trim().slice(0, 28)}…` : packet.value.trim()) : 'Empty generated label'
-        return this.packetShell(override, packet, 'Generated Content', summary, `<div class="ts-field"><label class="ts-label">Label or symbol</label><input class="ts-input" type="text" maxlength="4000" value="${escapeHtml(packet.value)}" data-packet-field="content-value"><p class="ts-note">Designed for Back/Front pseudo-surfaces. Palette safely quotes the literal text; Typography, Text Style, Spacing, Position, and Transform control how it looks.</p></div>`)
+        const source = packet.source ?? 'literal'
+        const summary = source === 'literal' ? (packet.value.trim() ? (packet.value.trim().length > 28 ? `${packet.value.trim().slice(0, 28)}…` : packet.value.trim()) : 'Empty generated label') : source === 'title' ? 'From title' : 'From aria-label'
+        return this.packetShell(override, packet, 'Generated Content', summary, `<div class="ts-field"><label class="ts-label">Source</label><div class="ts-segment ts-segment-three"><button type="button" data-content-source="literal" aria-pressed="${source === 'literal'}">Literal</button><button type="button" data-content-source="title" aria-pressed="${source === 'title'}">Title</button><button type="button" data-content-source="aria-label" aria-pressed="${source === 'aria-label'}">ARIA label</button></div></div>${source === 'literal' ? `<div class="ts-field"><label class="ts-label">Label or symbol</label><input class="ts-input" type="text" maxlength="4000" value="${escapeHtml(packet.value)}" data-packet-field="content-value"></div>` : `<p class="ts-note">Palette mirrors the element’s native ${source === 'title' ? '<code>title</code>' : '<code>aria-label</code>'} into this pseudo-surface. Handy for text-skinned icon controls without hard-coding every button.</p>`}<p class="ts-note">On a normal element, Palette emits this label on its <code>::after</code> skin automatically. If you already selected Back/Front, it stays on that explicit pseudo-surface. Typography, Text Style, Spacing, Position, and Transform control how it looks.</p>`)
       }
       case 'text': {
         const gradientPreview = `linear-gradient(${packet.gradient.angle}deg, ${packet.gradient.stops.map((stop) => `${colorWithAlpha(stop.color, stop.alpha)} ${stop.position}%`).join(', ')})`
         const colorControls = `<div class="ts-label">Fill</div><div class="ts-segment"><button type="button" data-text-mode="solid" aria-pressed="${packet.colorMode === 'solid'}">Solid</button><button type="button" data-text-mode="gradient" aria-pressed="${packet.colorMode === 'gradient'}">Gradient</button></div>${packet.colorMode === 'solid' ? `${this.colorField('Color', 'text-color', packet.solid.color, packet.solid.alpha)}<div class="ts-field"><label class="ts-label">Descendant colors <span>${packet.inkMode === 'force' ? 'locked' : 'respected'}</span></label><div class="ts-segment"><button type="button" data-text-ink-mode="cascade" aria-pressed="${packet.inkMode !== 'force'}">Respect</button><button type="button" data-text-ink-mode="force" aria-pressed="${packet.inkMode === 'force'}">Override</button></div><p class="ts-note">Respect sets the default ink but lets child dialogue/font colors win. Override also owns WebKit text fill for controls that fight normal color.</p></div>` : `<div class="ts-gradient-preview" style="background:${escapeHtml(gradientPreview)}"></div>${this.rangeField('Angle', 'text-gradient-angle', packet.gradient.angle, 0, 359, '°')}${packet.gradient.stops.map((stop, index) => `<div class="ts-stop-block"><div class="ts-stop-head"><div class="ts-label">Stop ${index + 1}</div>${packet.gradient.stops.length > 2 ? `<button class="ts-btn ts-btn-icon ts-stop-remove" type="button" data-gradient-remove="${index}" aria-label="Remove gradient stop ${index + 1}">×</button>` : ''}</div>${this.colorField('Color', `text-gradient-stop-${index}`, stop.color, stop.alpha)}${this.rangeField('Position', `text-gradient-position-${index}`, stop.position, 0, 100, '%')}</div>`).join('')}<div class="ts-gradient-actions"><button class="ts-btn" type="button" data-gradient-add ${packet.gradient.stops.length >= 6 ? 'disabled' : ''}>＋ Add stop</button><span>${packet.gradient.stops.length}/6 stops</span></div>`}`
         const shadow = packet.shadow
-        const summaryBits = [packet.colorMode === 'gradient' ? 'Gradient' : packet.solid.color, (packet.strokeWidth ?? 0) > 0 ? `${packet.strokeWidth}px stroke` : '', shadow ? 'shadow' : ''].filter(Boolean)
-        return this.packetShell(override, packet, 'Text Style', summaryBits.join(' · '), `${colorControls}<section class="ts-magic-effects"><div class="ts-field"><label class="ts-label">Outline <span>${packet.strokeWidth ?? 0}px</span></label>${this.rangeField('Thickness', 'text-stroke-width', packet.strokeWidth ?? 0, 0, 8, 'px')}${(packet.strokeWidth ?? 0) > 0 ? this.colorField('Outline color', 'text-stroke', packet.strokeColor ?? '#000000', packet.strokeAlpha ?? 1) : ''}</div>${this.rangeField('Glow', 'text-glow-strength', shadow && Math.abs(shadow.x) < .001 && Math.abs(shadow.y) < .001 ? shadow.blur : 0, 0, 48, 'px')}</section><details class="ts-advanced"><summary>Shadow & glow · advanced</summary><label class="ts-check"><input type="checkbox" data-packet-field="text-shadow-enabled" ${shadow ? 'checked' : ''}> Add text shadow</label>${shadow ? `${this.rangeField('Horizontal', 'text-shadow-x', shadow.x, -50, 50, 'px')}${this.rangeField('Vertical', 'text-shadow-y', shadow.y, -50, 50, 'px')}${this.rangeField('Blur', 'text-shadow-blur', shadow.blur, 0, 80, 'px')}${this.colorField('Shadow color', 'text-shadow-color', shadow.color, shadow.alpha)}` : '<p class="ts-note">Turn this on for a custom shadow, glow, or halo.</p>'}</details>`)
+        const outlineMode = packet.outlineMode ?? 'edge'
+        const summaryBits = [packet.colorMode === 'gradient' ? 'Gradient' : packet.solid.color, (packet.strokeWidth ?? 0) > 0 ? `${packet.strokeWidth}px ${outlineMode === 'outside' ? 'outside outline' : 'edge outline'}` : '', shadow ? 'shadow' : ''].filter(Boolean)
+        return this.packetShell(override, packet, 'Text Style', summaryBits.join(' · '), `${colorControls}<section class="ts-magic-effects"><div class="ts-field"><label class="ts-label">Outline <span>${packet.strokeWidth ?? 0}px</span></label><div class="ts-segment ts-segment-two"><button type="button" data-text-outline-mode="edge" aria-pressed="${outlineMode === 'edge'}">Edge</button><button type="button" data-text-outline-mode="outside" aria-pressed="${outlineMode === 'outside'}">Outside</button></div><p class="ts-note">Edge uses the browser’s glyph stroke. Outside builds a crisp shadow ring behind the glyph so thicker outlines do not eat into the fill.</p>${this.rangeField('Thickness', 'text-stroke-width', packet.strokeWidth ?? 0, 0, 8, 'px')}${(packet.strokeWidth ?? 0) > 0 ? this.colorField('Outline color', 'text-stroke', packet.strokeColor ?? '#000000', packet.strokeAlpha ?? 1) : ''}</div>${this.rangeField('Glow', 'text-glow-strength', shadow && Math.abs(shadow.x) < .001 && Math.abs(shadow.y) < .001 ? shadow.blur : 0, 0, 48, 'px')}</section><details class="ts-advanced"><summary>Shadow & glow · advanced</summary><label class="ts-check"><input type="checkbox" data-packet-field="text-shadow-enabled" ${shadow ? 'checked' : ''}> Add text shadow</label>${shadow ? `${this.rangeField('Horizontal', 'text-shadow-x', shadow.x, -50, 50, 'px')}${this.rangeField('Vertical', 'text-shadow-y', shadow.y, -50, 50, 'px')}${this.rangeField('Blur', 'text-shadow-blur', shadow.blur, 0, 80, 'px')}${this.colorField('Shadow color', 'text-shadow-color', shadow.color, shadow.alpha)}` : '<p class="ts-note">Turn this on for a custom shadow, glow, or halo.</p>'}</details>`)
       }
       case 'typography': {
         const fontLabel = packet.fontFamily?.trim() || 'Native font'
@@ -2087,17 +2138,35 @@ export class ThemeStudioUI {
         const transform = packet.transform ?? 'none'
         return this.packetShell(override, packet, 'Typography', summary, `<div class="ts-field"><label class="ts-label">Typeface <span>known loaded fonts</span></label>${this.fontSamples('typography', packet.fontFamily)}<details class="ts-advanced"><summary>Custom family</summary><input class="ts-input" type="text" value="${escapeHtml(packet.fontFamily ?? '')}" data-packet-field="typography-family" list="ts-font-families"><datalist id="ts-font-families">${knownTypographyChoices(this.store.activeProject).map((font) => `<option value="${escapeHtml(font)}"></option>`).join('')}</datalist></details></div><div class="ts-field"><label class="ts-label">Scale <span>${size}${unit}</span></label><div class="ts-type-scale-row"><input class="ts-range" type="range" min="${unit === 'rem' ? .5 : 8}" max="${unit === 'rem' ? 6 : 96}" step="${unit === 'rem' ? .05 : 1}" value="${Math.max(unit === 'rem' ? .5 : 8, Math.min(unit === 'rem' ? 6 : 96, size))}" data-packet-field="typography-size" aria-label="Font size slider"><div class="ts-value-unit ts-type-size"><input class="ts-number" type="number" min="0.01" max="500" step="any" value="${size}" data-packet-field="typography-size" aria-label="Font size"><select class="ts-input" data-packet-field="typography-size-unit" aria-label="Font size unit"><option value="px" ${unit === 'px' ? 'selected' : ''}>px</option><option value="rem" ${unit === 'rem' ? 'selected' : ''}>rem</option></select></div></div><p class="ts-note">Drag for quick sizing; exact values stay editable.</p></div><div class="ts-inline-fields"><div class="ts-field"><label class="ts-label">Weight</label><select class="ts-input" data-packet-field="typography-weight">${[300, 400, 500, 600, 700, 800, 900].map((weight) => `<option value="${weight}" ${Number(packet.fontWeight ?? 500) === weight ? 'selected' : ''}>${weight}</option>`).join('')}</select></div><div class="ts-field"><label class="ts-label">Style</label><select class="ts-input" data-packet-field="typography-style"><option value="normal" ${(packet.fontStyle ?? 'normal') === 'normal' ? 'selected' : ''}>Regular</option><option value="italic" ${packet.fontStyle === 'italic' ? 'selected' : ''}>Italic</option></select></div></div><div class="ts-field"><label class="ts-label">Alignment</label><div class="ts-segment ts-segment-four">${(['left','center','right','justify'] as const).map((value) => `<button type="button" data-typography-align="${value}" aria-pressed="${align === value}">${value === 'justify' ? 'Justify' : value[0].toUpperCase() + value.slice(1)}</button>`).join('')}</div></div><details class="ts-advanced"><summary>Spacing & case</summary>${this.rangeField('Line height', 'typography-line-height', Math.round((packet.lineHeight ?? 1.4) * 100), 80, 300, '%')}${this.rangeField('Letter spacing', 'typography-letter-spacing', packet.letterSpacing ?? 0, -5, 20, 'px')}<div class="ts-field"><label class="ts-label">Case</label><select class="ts-input" data-packet-field="typography-transform">${([['none','As typed'],['uppercase','UPPERCASE'],['lowercase','lowercase'],['capitalize','Capitalize']] as const).map(([value,label]) => `<option value="${value}" ${transform === value ? 'selected' : ''}>${label}</option>`).join('')}</select></div></details>`)
       }
+      case 'text-entry': {
+        const size = packet.fontSize ?? 15
+        const unit = packet.fontSizeUnit ?? 'px'
+        const fontLabel = packet.fontFamily?.trim() || 'Native font'
+        const summary = `${packet.insetX}px × ${packet.insetY}px inset · ${fontLabel} ${size}${unit}`
+        return this.packetShell(override, packet, 'Text Entry', summary, `<p class="ts-utility-note">Moves the placeholder and typed text together. Palette also mirrors sizing metrics to Lumiverse’s hidden autosize mirror so the composer keeps measuring itself correctly.</p><div class="ts-inline-fields"><div class="ts-field"><label class="ts-label">Horizontal inset</label><input class="ts-number" type="number" min="0" max="96" step="1" value="${packet.insetX}" data-packet-field="text-entry-inset-x"></div><div class="ts-field"><label class="ts-label">Vertical inset</label><input class="ts-number" type="number" min="0" max="96" step="1" value="${packet.insetY}" data-packet-field="text-entry-inset-y"></div></div><div class="ts-field"><label class="ts-label">Typeface</label><input class="ts-input" type="text" value="${escapeHtml(packet.fontFamily ?? '')}" data-packet-field="text-entry-family" list="ts-text-entry-font-families"><datalist id="ts-text-entry-font-families">${knownTypographyChoices(this.store.activeProject).map((font) => `<option value="${escapeHtml(font)}"></option>`).join('')}</datalist></div><div class="ts-field"><label class="ts-label">Scale <span>${size}${unit}</span></label><div class="ts-type-scale-row"><input class="ts-range" type="range" min="${unit === 'rem' ? .5 : 8}" max="${unit === 'rem' ? 6 : 72}" step="${unit === 'rem' ? .05 : 1}" value="${Math.max(unit === 'rem' ? .5 : 8, Math.min(unit === 'rem' ? 6 : 72, size))}" data-packet-field="text-entry-size" aria-label="Text entry font size"><div class="ts-value-unit ts-type-size"><input class="ts-number" type="number" min="0.01" max="500" step="any" value="${size}" data-packet-field="text-entry-size"><select class="ts-input" data-packet-field="text-entry-size-unit"><option value="px" ${unit === 'px' ? 'selected' : ''}>px</option><option value="rem" ${unit === 'rem' ? 'selected' : ''}>rem</option></select></div></div></div><div class="ts-inline-fields"><div class="ts-field"><label class="ts-label">Weight</label><select class="ts-input" data-packet-field="text-entry-weight">${[300,400,500,600,700,800,900].map((weight) => `<option value="${weight}" ${Number(packet.fontWeight ?? 400) === weight ? 'selected' : ''}>${weight}</option>`).join('')}</select></div><div class="ts-field"><label class="ts-label">Style</label><select class="ts-input" data-packet-field="text-entry-style"><option value="normal" ${(packet.fontStyle ?? 'normal') === 'normal' ? 'selected' : ''}>Regular</option><option value="italic" ${packet.fontStyle === 'italic' ? 'selected' : ''}>Italic</option></select></div></div><div class="ts-field"><label class="ts-label">Placeholder</label>${this.colorField('Ink', 'text-entry-placeholder-color', packet.placeholderColor, packet.placeholderAlpha)}</div><div class="ts-inline-fields"><div class="ts-field"><label class="ts-label">Placeholder style</label><select class="ts-input" data-packet-field="text-entry-placeholder-style"><option value="normal" ${(packet.placeholderStyle ?? 'normal') === 'normal' ? 'selected' : ''}>Regular</option><option value="italic" ${packet.placeholderStyle === 'italic' ? 'selected' : ''}>Italic</option></select></div><div class="ts-field"><label class="ts-label">Placeholder weight</label><select class="ts-input" data-packet-field="text-entry-placeholder-weight">${[300,400,500,600,700,800,900].map((weight) => `<option value="${weight}" ${Number(packet.placeholderWeight ?? 400) === weight ? 'selected' : ''}>${weight}</option>`).join('')}</select></div></div><details class="ts-advanced"><summary>Text metrics</summary>${this.rangeField('Line height', 'text-entry-line-height', Math.round((packet.lineHeight ?? 1.5) * 100), 80, 300, '%')}${this.rangeField('Letter spacing', 'text-entry-letter-spacing', packet.letterSpacing ?? 0, -5, 20, 'px')}<p class="ts-note">These metrics are synchronized to the hidden textarea mirror. Placeholder-only color/style stays on <code>::placeholder</code>.</p></details>`)
+      }
       case 'visibility': {
         const labels = { visible: 'Visible', invisible: 'Hidden but keeps space', gone: 'Removed from layout' } as const
         return this.packetShell(override, packet, 'Visibility', labels[packet.mode], `<div class="ts-field"><label class="ts-label">Visibility</label><div class="ts-visibility-modes">${([['visible','Visible','Normal rendering'],['invisible','Invisible','Keep its space'],['gone','Gone','Remove from layout']] as const).map(([value,label,hint]) => `<button type="button" data-visibility-mode="${value}" aria-pressed="${packet.mode === value}"><strong>${label}</strong><small>${hint}</small></button>`).join('')}</div></div><p class="ts-note">“Gone” is the simple <code>display: none</code> nuke. Remove this packet to return fully to native behavior.</p>`)
       }
       case 'border': return this.packetShell(override, packet, 'Border', `${packet.width}px ${packet.style}`, `${this.rangeField('Width', 'border-width', packet.width, 0, 20, 'px')}<div class="ts-field"><label class="ts-label">Style</label><select class="ts-input" data-packet-field="border-style">${['solid', 'dashed', 'dotted', 'double', 'none'].map((v) => `<option ${packet.style === v ? 'selected' : ''}>${v}</option>`).join('')}</select></div>${this.colorField('Color', 'border-color', packet.color, packet.alpha)}`)
       case 'corners': {
-        const values = [packet.topLeft, packet.topRight, packet.bottomRight, packet.bottomLeft]
-        const controls = packet.linked ? this.rangeField('Radius', 'corners-all', packet.topLeft, 0, 100, 'px') : `<div class="ts-box-grid">${['topLeft', 'topRight', 'bottomRight', 'bottomLeft'].map((key, index) => `<label class="ts-label">${key}<input class="ts-number" type="number" min="0" max="9999" value="${values[index]}" data-packet-field="corners-${key}"></label>`).join('')}</div>`
+        const cornerFields = ([
+          ['topLeft', 'Top left', packet.topLeft, 'tl'],
+          ['topRight', 'Top right', packet.topRight, 'tr'],
+          ['bottomLeft', 'Bottom left', packet.bottomLeft, 'bl'],
+          ['bottomRight', 'Bottom right', packet.bottomRight, 'br'],
+        ] as const)
+        const controls = packet.linked ? this.rangeField('Radius', 'corners-all', packet.topLeft, 0, 100, 'px') : `<div class="ts-corner-grid" aria-label="Independent corner radii">${cornerFields.map(([key, label, value, area]) => `<label class="ts-corner-field ts-corner-${area}"><span>${label}</span><input class="ts-number" type="number" min="0" max="9999" value="${value}" data-packet-field="corners-${key}" aria-label="${label} radius"></label>`).join('')}<span class="ts-corner-diagram" aria-hidden="true"></span></div>`
         return this.packetShell(override, packet, 'Corners', packet.linked ? `${packet.topLeft}px` : 'Independent', `${controls}<label class="ts-check"><input type="checkbox" data-packet-field="corners-linked" ${packet.linked ? 'checked' : ''}> Link corners</label>`)
       }
-      case 'spacing': return this.packetShell(override, packet, 'Spacing', `Padding ${packet.padding?.top ?? 0}px${packet.gap ? ` · gap ${packet.gap}px` : ''}`, `${this.rangeField('Padding', 'spacing-padding', packet.padding?.top ?? 0, 0, 200, 'px')}${this.rangeField('Margin', 'spacing-margin', packet.margin?.top ?? 0, 0, 200, 'px')}${this.rangeField('Gap', 'spacing-gap', packet.gap ?? 0, 0, 200, 'px')}${this.layoutWarning('gap')}`)
+      case 'spacing': {
+        const padding = packet.padding ?? { linked: true, top: 0, right: 0, bottom: 0, left: 0, unit: 'px' as const }
+        const margin = packet.margin ?? { linked: true, top: 0, right: 0, bottom: 0, left: 0, unit: 'px' as const }
+        const paddingSummary = padding.linked || [padding.top, padding.right, padding.bottom, padding.left].every((value) => value === padding.top) ? `${padding.top}px` : 'custom'
+        const marginSummary = margin.linked || [margin.top, margin.right, margin.bottom, margin.left].every((value) => value === margin.top) ? `${margin.top}px` : 'custom'
+        return this.packetShell(override, packet, 'Spacing', `Padding ${paddingSummary} · margin ${marginSummary}${packet.gap ? ` · gap ${packet.gap}px` : ''}`, `${this.rangeField('Padding', 'spacing-padding', padding.top, 0, 200, 'px')}${this.boxSpacingAdvanced('Padding', 'spacing-padding', packet.padding)}${this.rangeField('Margin', 'spacing-margin', margin.top, -200, 200, 'px')}${this.boxSpacingAdvanced('Margin', 'spacing-margin', packet.margin)}${this.rangeField('Gap', 'spacing-gap', packet.gap ?? 0, 0, 200, 'px')}${this.layoutWarning('gap')}`)
+      }
       case 'shadow': {
         const strength = Math.max(0, Math.min(100, Math.round(packet.blur * 2.2)))
         return this.packetShell(override, packet, 'Shadow', `${packet.inset ? 'Pressed' : 'Lifted'} · ${packet.blur}px blur`, `<section class="ts-magic-effects"><div class="ts-segment"><button type="button" data-shadow-trick="lift" aria-pressed="${!packet.inset}">Lift</button><button type="button" data-shadow-trick="press" aria-pressed="${packet.inset}">Press</button></div>${this.rangeField('Strength', 'shadow-magic-strength', strength, 0, 100, '%')}</section><details class="ts-advanced"><summary>Shadow recipe · advanced</summary>${this.rangeField('Horizontal', 'shadow-x', packet.x, -100, 100, 'px')}${this.rangeField('Vertical', 'shadow-y', packet.y, -100, 100, 'px')}${this.rangeField('Blur', 'shadow-blur', packet.blur, 0, 100, 'px')}${this.rangeField('Spread', 'shadow-spread', packet.spread, -100, 100, 'px')}${this.colorField('Color', 'shadow-color', packet.color, packet.alpha)}<label class="ts-check"><input type="checkbox" data-packet-field="shadow-inset" ${packet.inset ? 'checked' : ''}> Inset</label></details>`)
@@ -2111,6 +2180,13 @@ export class ThemeStudioUI {
       case 'layout': {
         const flex = packet.display === 'flex' || packet.display === 'inline-flex', grid = packet.display === 'grid' || packet.display === 'inline-grid', columns = packet.gridColumns ?? { mode: 'auto' as const }
         return this.packetShell(override, packet, 'Container', packet.display === 'normal' ? 'Native layout' : packet.display, `<p class="ts-utility-note">Controls how this element arranges its direct children.</p><div class="ts-field"><label class="ts-label">Layout</label><select class="ts-input" data-packet-field="layout-display">${[['normal', 'Native'], ['block', 'Block'], ['inline', 'Inline'], ['inline-block', 'Inline block'], ['flex', 'Flex row'], ['grid', 'Grid'], ['contents', 'Contents / dissolve wrapper']].map(([value, label]) => `<option value="${value}" ${packet.display === value ? 'selected' : ''}>${label}</option>`).join('')}</select></div>${packet.display === 'normal' ? '<p class="ts-note">Native preserves the target’s existing layout.</p>' : `${flex ? `<div class="ts-inline-fields"><div class="ts-field"><label class="ts-label">Direction</label><select class="ts-input" data-packet-field="layout-direction">${['row', 'column', 'row-reverse', 'column-reverse'].map((value) => `<option ${packet.direction === value ? 'selected' : ''}>${value}</option>`).join('')}</select></div><div class="ts-field"><label class="ts-label">Wrap</label><select class="ts-input" data-packet-field="layout-wrap">${['nowrap', 'wrap', 'wrap-reverse'].map((value) => `<option ${packet.wrap === value ? 'selected' : ''}>${value}</option>`).join('')}</select></div></div>` : ''}${grid ? `<div class="ts-field"><label class="ts-label">Columns</label><select class="ts-input" data-packet-field="layout-grid-mode">${[['auto', 'Auto'], ['count', 'Fixed count'], ['auto-fit', 'Auto fit']].map(([value, label]) => `<option value="${value}" ${columns.mode === value ? 'selected' : ''}>${label}</option>`).join('')}</select></div>${columns.mode === 'count' ? `<div class="ts-field"><label class="ts-label">Column count</label><input class="ts-number" type="number" min="1" max="24" value="${columns.count}" data-packet-field="layout-grid-count"></div>` : columns.mode === 'auto-fit' ? this.dimensionField('Minimum card width', 'layout-grid-min', columns.min) : ''}` : ''}${flex || grid ? `<p class="ts-utility-note">${flex ? 'Direction sets the child flow. Distribute moves items along it; Align moves them across it.' : 'Columns set the tracks. Distribute and Align place content inside the grid.'}</p><div class="ts-inline-fields"><div class="ts-field"><label class="ts-label">Distribute</label><select class="ts-input" data-packet-field="layout-justify">${['start', 'center', 'end', 'space-between', 'space-around', 'space-evenly'].map((value) => `<option ${packet.justify === value ? 'selected' : ''}>${value}</option>`).join('')}</select></div><div class="ts-field"><label class="ts-label">Align</label><select class="ts-input" data-packet-field="layout-align">${['start', 'center', 'end', 'stretch'].map((value) => `<option ${packet.align === value ? 'selected' : ''}>${value}</option>`).join('')}</select></div></div>${this.dimensionField('Gap', 'layout-gap', packet.gap)}` : ''}`}`)
+      }
+      case 'placement': {
+        const horizontalLabel = ({ native: 'Native', start: 'Left', center: 'Center', end: 'Right', stretch: 'Fill' } as const)[packet.horizontal]
+        const verticalLabel = ({ native: 'Native', start: 'Top', center: 'Center', end: 'Bottom', stretch: 'Fill' } as const)[packet.vertical]
+        const summary = packet.horizontal === 'native' && packet.vertical === 'native' ? 'Native placement' : [packet.horizontal !== 'native' ? horizontalLabel : '', packet.vertical !== 'native' ? verticalLabel : ''].filter(Boolean).join(' · ')
+        const context = this.quickAlignContext(packet.vertical)
+        return this.packetShell(override, packet, 'Quick Align', summary, `<p class="ts-utility-note">Tell Palette where this element should sit. It resolves the boring CSS mechanics with logical margins and layout alignment.</p><div class="ts-field"><label class="ts-label">Horizontal</label><div class="ts-quick-align-axis ts-segment ts-segment-five">${([['native','Native'],['start','Left'],['center','Center'],['end','Right'],['stretch','Fill']] as const).map(([value,label]) => `<button type="button" data-placement-horizontal="${value}" aria-pressed="${packet.horizontal === value}">${label}</button>`).join('')}</div></div><div class="ts-field"><label class="ts-label">Vertical <span>when the parent provides free height</span></label><div class="ts-quick-align-axis ts-segment ts-segment-five">${([['native','Native'],['start','Top'],['center','Center'],['end','Bottom'],['stretch','Fill']] as const).map(([value,label]) => `<button type="button" data-placement-vertical="${value}" aria-pressed="${packet.vertical === value}">${label}</button>`).join('')}</div></div>${context}`)
       }
       case 'layout-item': return this.packetShell(override, packet, 'Layout Item', packet.sizeInParent === 'fill' ? 'Fill remaining' : packet.sizeInParent === 'natural' ? 'Natural' : 'Fixed basis', `<p class="ts-note">Controls how this item behaves inside its layout parent.</p><div class="ts-field"><label class="ts-label">Size in parent</label><div class="ts-segment ts-segment-three">${([['natural', 'Natural'], ['fill', 'Fill'], ['fixed', 'Fixed']] as const).map(([value, label]) => `<button type="button" data-layout-item-size="${value}" aria-pressed="${packet.sizeInParent === value}">${label}</button>`).join('')}</div></div>${packet.sizeInParent === 'fixed' ? this.dimensionField('Basis', 'layout-item-basis', packet.basis) : ''}<div class="ts-inline-fields"><div class="ts-field"><label class="ts-label">Align self</label><select class="ts-input" data-packet-field="layout-item-align">${['auto', 'start', 'center', 'end', 'stretch'].map((value) => `<option ${packet.alignSelf === value ? 'selected' : ''}>${value}</option>`).join('')}</select></div><div class="ts-field"><label class="ts-label">Order</label><input class="ts-number" type="number" value="${packet.order ?? 0}" data-packet-field="layout-item-order"></div></div>${this.layoutItemWarning()}`)
       case 'position': {
@@ -2155,7 +2231,19 @@ export class ThemeStudioUI {
     if (!parent?.isConnected) return ''
     const context = inspectLayoutContext(element!, this.components)
     const supported = context.isFlex || context.isGrid
-    return `<div class="ts-layout-parent-context"><div><span class="ts-kicker">Layout parent</span><strong>${escapeHtml(context.parentLabel)}</strong><small>${escapeHtml(context.parentDisplay || 'unknown')}${context.parentSelector ? ` · ${escapeHtml(context.parentSelector)}` : ''}</small></div><button class="ts-btn" type="button" data-action="edit-layout-parent">Edit parent</button></div>${supported ? '' : `<div class="ts-warning">Layout Item usually requires a flex or grid parent. Current parent is <strong>${escapeHtml(context.parentLabel)}</strong> with display <strong>${escapeHtml(context.parentDisplay || 'unknown')}</strong>. Palette will not change it automatically. <button class="ts-btn ts-warning-action" type="button" data-action="edit-layout-parent">Edit parent</button></div>`}`
+    return `<div class="ts-layout-parent-context"><div><span class="ts-kicker">Layout parent</span><strong>${escapeHtml(context.parentLabel)}</strong><small>${escapeHtml(context.parentDisplay || 'unknown')}${context.parentSelector ? ` · ${escapeHtml(context.parentSelector)}` : ''}</small></div><button class="ts-btn" type="button" data-action="edit-layout-parent">Edit parent</button></div>${supported ? '' : `<div class="ts-warning">Layout Item usually requires a flex or grid parent. Current parent is <strong>${escapeHtml(context.parentLabel)}</strong> with display <strong>${escapeHtml(context.parentDisplay || 'unknown')}</strong>. If you only want left / center / right placement, use <strong>Quick Align</strong> instead. <button class="ts-btn ts-warning-action" type="button" data-action="edit-layout-parent">Edit parent</button></div>`}`
+  }
+
+  private quickAlignContext(vertical: 'native' | 'start' | 'center' | 'end' | 'stretch'): string {
+    const element = this.selection ? (activeScope(this.selection).element ?? this.selection.target.element) : undefined
+    if (!element?.isConnected) return '<p class="ts-note">Horizontal placement resolves through logical margins and remains reusable without requiring Flex or Grid.</p>'
+    const context = inspectLayoutContext(element, this.components)
+    const parentDisplay = context.parentDisplay || 'unknown'
+    const horizontal = '<small>Horizontal → logical auto margins + fit-content. Explicit Size still wins.</small>'
+    const verticalWarning = vertical !== 'native' && !context.isFlex && !context.isGrid
+      ? `<div class="ts-warning">Vertical Quick Align may have no free space to distribute because <strong>${escapeHtml(context.parentLabel)}</strong> uses <strong>${escapeHtml(parentDisplay)}</strong>. Horizontal placement still works. Use Position when you need pinned vertical placement.</div>`
+      : ''
+    return `<div class="ts-layout-parent-context ts-quick-align-context"><div><span class="ts-kicker">Resolved inside</span><strong>${escapeHtml(context.parentLabel)}</strong><small>${escapeHtml(parentDisplay)}${context.parentSelector ? ` · ${escapeHtml(context.parentSelector)}` : ''}</small>${horizontal}</div><button class="ts-btn" type="button" data-action="edit-layout-parent">Edit parent</button></div>${verticalWarning}`
   }
 
   private renderResources(): string {
@@ -2400,11 +2488,32 @@ export class ThemeStudioUI {
         if (packet.fontSize) declarations.push(`font-size:${packet.fontSize}${packet.fontSizeUnit ?? 'px'}`)
         if (packet.fontWeight) declarations.push(`font-weight:${packet.fontWeight}`)
       }
+      else if (packet.type === 'text-entry') {
+        declarations.push(`padding:${packet.insetY}px ${packet.insetX}px`)
+        declarations.push('box-sizing:border-box')
+        if (packet.fontFamily) declarations.push(`font-family:${packet.fontFamily.replace(/[;{}]/g, '')}`)
+        if (packet.fontSize) declarations.push(`font-size:${packet.fontSize}${packet.fontSizeUnit ?? 'px'}`)
+        if (packet.fontWeight) declarations.push(`font-weight:${packet.fontWeight}`)
+        if (packet.fontStyle) declarations.push(`font-style:${packet.fontStyle}`)
+        if (packet.lineHeight) declarations.push(`line-height:${packet.lineHeight}`)
+        if (packet.letterSpacing !== undefined) declarations.push(`letter-spacing:${packet.letterSpacing}px`)
+      }
     }
     return declarations.join(';')
   }
 
   private composerPreviewStyle(roleId: KnownPartRoleId): string { return escapeHtml(this.composerPreviewStyleForPackets(this.composerPreviewPackets(roleId))) }
+  private composerPlaceholderPreviewStyle(): string {
+    const direct = this.composerPreviewStyleForPackets(this.composerPreviewPackets('input.placeholder'))
+    const entry = this.composerPreviewPackets('input.textarea').find((packet) => packet.type === 'text-entry')
+    if (!entry || entry.type !== 'text-entry') return escapeHtml(direct)
+    const inherited = [
+      `color:${colorWithAlpha(entry.placeholderColor, entry.placeholderAlpha)}`,
+      entry.placeholderStyle ? `font-style:${entry.placeholderStyle}` : '',
+      entry.placeholderWeight !== undefined ? `font-weight:${entry.placeholderWeight}` : '',
+    ].filter(Boolean).join(';')
+    return escapeHtml([inherited, direct].filter(Boolean).join(';'))
+  }
   private composerActionPreviewStyle(action: ComposerIconAction): string {
     const broad = this.composerPreviewStyleForPackets(this.composerPreviewPackets('input.actionbar.controls'))
     const specific = this.store.activeProject.componentOverrides.find((entry) => entry.target.selector === this.composerActionTarget(action).selector)?.states.normal ?? []
@@ -2426,7 +2535,7 @@ export class ThemeStudioUI {
   private renderComposerWorkshop(): string {
     const sections: Array<{ id: string; label: string; hint: string; roles: Array<[KnownPartRoleId, string]> }> = [
       { id: 'frame', label: 'Frame', hint: 'Physical composer boxes', roles: [['input.shell', 'Shell'], ['input.actionbar', 'Native toolbar'], ['input.extension-toolbar', 'Extension toolbar'], ['input.field', 'Writing field']] },
-      { id: 'controls', label: 'Controls', hint: 'What you press and type into', roles: [['input.actionbar.controls', 'Action buttons'], ['input.attach', 'Attachment'], ['input.textarea', 'Text'], ['input.placeholder', 'Placeholder'], ['input.send', 'Send button'], ['input.send.controls', 'Send icon']] },
+      { id: 'controls', label: 'Controls', hint: 'What you press and type into', roles: [['input.actionbar.controls', 'Action buttons'], ['input.attach', 'Attachment'], ['input.textarea', 'Text entry'], ['input.placeholder', 'Placeholder'], ['input.send.shell', 'Send shell'], ['input.send', 'Send button'], ['input.send.icon', 'Send icon']] },
       { id: 'state', label: 'State', hint: 'Auxiliary composer UI', roles: [['input.status.badges', 'Badges'], ['input.status.selected', 'Selected state'], ['input.popover', 'Popover'], ['input.popover.rows', 'Popover rows'], ['input.popover.secondary', 'Popover labels']] },
     ]
     const activeRole = this.composerWorkshopRole
@@ -2435,7 +2544,7 @@ export class ThemeStudioUI {
     const toolbar = COMPOSER_MOCK_ACTIONS.map((action) => { const icon = this.composerIconPreview(action); return `<button type="button" data-composer-mock-role="input.actionbar" data-composer-mock-action="${action}" aria-label="Edit ${escapeHtml(COMPOSER_ACTION_LABELS[action])} icon" aria-pressed="${activeRole === 'input.actionbar' && this.composerWorkshopAction === action}" style="${this.composerActionPreviewStyle(action)}"><i ${icon ? `class="has-svg" style="--ts-composer-svg:url(${escapeHtml(icon)})"` : ''}></i><span>${escapeHtml(COMPOSER_ACTION_LABELS[action])}</span></button>` }).join('')
     const mountedTextarea = this.mountedElementForKnownRole('input.textarea') as HTMLTextAreaElement | null
     const placeholderText = mountedTextarea?.getAttribute('placeholder') ?? 'Type a message…'
-    const preview = `<div class="ts-composer-workshop-preview" data-composer-mock-role="input.shell" ${activeRole ? `data-active-composer-role="${activeRole}"` : ''} style="${this.composerPreviewStyle('input.shell')}"><div class="ts-composer-workshop-toolbar" data-composer-mock-role="input.actionbar.controls" style="${this.composerPreviewStyle('input.actionbar')}">${toolbar}</div><div class="ts-composer-workshop-input" data-composer-mock-role="input.field" style="${this.composerPreviewStyle('input.field')}"><button type="button" class="ts-composer-mock-attach" data-composer-mock-role="input.attach" aria-label="Edit attachment" style="${this.composerPreviewStyle('input.attach')}"><i></i></button><button type="button" class="ts-composer-mock-text" data-composer-mock-role="input.textarea" aria-label="Edit composer text" style="${this.composerPreviewStyle('input.textarea')}"><span data-composer-mock-role="input.placeholder" style="${this.composerPreviewStyle('input.placeholder')}">${escapeHtml(placeholderText)}</span></button><button type="button" class="ts-composer-mock-send" data-composer-mock-role="input.send" aria-label="Edit send button" style="${this.composerPreviewStyle('input.send')}"><i data-composer-mock-role="input.send.controls" style="${this.composerPreviewStyle('input.send.controls')}"></i></button></div><small class="ts-composer-preview-hint">Live-ish preview · click a part to edit it.</small></div>`
+    const preview = `<div class="ts-composer-workshop-preview" data-composer-mock-role="input.shell" ${activeRole ? `data-active-composer-role="${activeRole}"` : ''} style="${this.composerPreviewStyle('input.shell')}"><div class="ts-composer-workshop-toolbar" data-composer-mock-role="input.actionbar.controls" style="${this.composerPreviewStyle('input.actionbar')}">${toolbar}</div><div class="ts-composer-workshop-input" data-composer-mock-role="input.field" style="${this.composerPreviewStyle('input.field')}"><button type="button" class="ts-composer-mock-attach" data-composer-mock-role="input.attach" aria-label="Edit attachment" style="${this.composerPreviewStyle('input.attach')}"><i></i></button><button type="button" class="ts-composer-mock-text" data-composer-mock-role="input.textarea" aria-label="Edit composer text" style="${this.composerPreviewStyle('input.textarea')}"><span data-composer-mock-role="input.placeholder" style="${this.composerPlaceholderPreviewStyle()}">${escapeHtml(placeholderText)}</span></button><span class="ts-composer-mock-send-shell" data-composer-mock-role="input.send.shell" style="${this.composerPreviewStyle('input.send.shell')}"><button type="button" class="ts-composer-mock-send" data-composer-mock-role="input.send" aria-label="Edit send button" style="${this.composerPreviewStyle('input.send')}"><i data-composer-mock-role="input.send.icon" style="${this.composerPreviewStyle('input.send.icon')}"></i></button></span></div><small class="ts-composer-preview-hint">Live-ish preview · click a part to edit it.</small></div>`
     const exactComposerOverride = activeRole === 'input.actionbar' ? overrideForSelection(this.selection, this.store.activeProject.componentOverrides, this.targetSurface) : null
     const hasIconWardrobe = Boolean(exactComposerOverride && (responsiveStacksFor(exactComposerOverride, this.editingScope)[this.editingState] ?? []).some((packet) => packet.type === 'composer-icons'))
     const sidecar = activeRole ? `<aside class="ts-composer-workshop-sidecar"><header class="ts-composer-sidecar-head"><button class="ts-btn ts-btn-icon ts-composer-sidecar-back" type="button" data-composer-workshop-back aria-label="Back to composer anatomy">←</button><div><span class="ts-kicker">Composer Composer</span><strong>${escapeHtml(activeLabel)}</strong><small>${activeRole === 'input.actionbar' ? `${escapeHtml(COMPOSER_ACTION_LABELS[this.composerWorkshopAction])} · ${escapeHtml(KNOWN_PART_ROLES[activeRole]?.label ?? activeLabel)}` : escapeHtml(KNOWN_PART_ROLES[activeRole]?.label ?? activeLabel)}</small></div><div class="ts-composer-sidecar-actions">${activeRole === 'input.actionbar' && !hasIconWardrobe ? '<button class="ts-btn ts-btn-primary" type="button" data-composer-workshop-add-icons>＋ Icon wardrobe</button>' : ''}<button class="ts-btn" type="button" data-composer-workshop-full-design>Open full Design ↗</button></div></header><div class="ts-composer-sidecar-scroll">${this.renderDesign({ sidecar: true })}</div></aside>` : ''
@@ -2544,7 +2653,7 @@ export class ThemeStudioUI {
 
   private renderQuickPalette(): string {
     const swatches = this.recentColors.slice(0, 8).map((color) => `<button type="button" class="ts-recent-swatch" data-quick-recent="${escapeHtml(color)}" style="--ts-recent:${escapeHtml(color)}" title="Use ${escapeHtml(color)}"></button>`).join('')
-    return `<div class="ts-quick-builder"><div class="ts-quick-builder-head"><div><strong>Recipe palette</strong><span>Choose once, then browse and Apply without leaving Themes.</span></div><span class="ts-chip">Build-a-Bear</span></div><div class="ts-quick-builder-grid"><label><span>Accent</span><div class="ts-color-row"><input class="ts-color" type="color" value="${escapeHtml(colorInput(this.quickAccent, '#9370db'))}" data-quick-color="accent"><input class="ts-input" value="${escapeHtml(this.quickAccent)}" data-quick-color="accent"></div></label><label><span>Text</span><div class="ts-color-row"><input class="ts-color" type="color" value="${escapeHtml(colorInput(this.quickText, '#f4eef8'))}" data-quick-color="text"><input class="ts-input" value="${escapeHtml(this.quickText)}" data-quick-color="text"></div></label></div><div class="ts-field ts-quick-intensity"><label class="ts-label">Intensity <span data-quick-intensity-value>${this.quickIntensity}%</span></label><div class="ts-range-row"><input class="ts-range" type="range" min="0" max="100" value="${this.quickIntensity}" data-quick-intensity><input class="ts-number" type="number" min="0" max="100" value="${this.quickIntensity}" data-quick-intensity-number></div></div>${swatches ? `<div class="ts-recent"><span>Recent accent</span><div class="ts-recent-swatches">${swatches}</div></div>` : ''}</div>`
+    return `<div class="ts-quick-builder"><div class="ts-quick-builder-head"><div><strong>Recipe palette</strong><span>Choose once, then browse and Apply without leaving Themes.</span></div><span class="ts-chip">Build-a-Bear</span></div><div class="ts-quick-builder-grid"><label><span>Accent</span><div class="ts-color-row"><label class="ts-color-picker" title="Open color picker"><input class="ts-color" type="color" value="${escapeHtml(colorInput(this.quickAccent, '#9370db'))}" data-quick-color="accent" aria-label="Pick recipe accent color"><span>Pick</span></label><input class="ts-input" value="${escapeHtml(this.quickAccent)}" data-quick-color="accent"></div></label><label><span>Text</span><div class="ts-color-row"><label class="ts-color-picker" title="Open color picker"><input class="ts-color" type="color" value="${escapeHtml(colorInput(this.quickText, '#f4eef8'))}" data-quick-color="text" aria-label="Pick recipe text color"><span>Pick</span></label><input class="ts-input" value="${escapeHtml(this.quickText)}" data-quick-color="text"></div></label></div><div class="ts-field ts-quick-intensity"><label class="ts-label">Intensity <span data-quick-intensity-value>${this.quickIntensity}%</span></label><div class="ts-range-row"><input class="ts-range" type="range" min="0" max="100" value="${this.quickIntensity}" data-quick-intensity><input class="ts-number" type="number" min="0" max="100" value="${this.quickIntensity}" data-quick-intensity-number></div></div>${swatches ? `<div class="ts-recent"><span>Recent accent</span><div class="ts-recent-swatches">${swatches}</div></div>` : ''}</div>`
   }
 
   private renderPresetCards(items: CommonPartPreset[], options: { compact?: boolean; library?: boolean; packId?: string; selectedPresetIds?: Set<string>; packLayout?: PackWorkbenchLayout } = {}): string {
@@ -2552,6 +2661,9 @@ export class ThemeStudioUI {
     return `<div class="ts-preset-grid${options.compact ? ' ts-preset-grid-compact' : ''}">${items.map((preset) => {
       const roles = presetRoles(preset)
       const labels = [...new Set(roles.map((role) => role.label))]
+      const components = [...new Set(roles.map((role) => role.component).filter(Boolean))]
+      const componentSummary = components.length > 2 ? `${components.slice(0, 2).join(' + ')} +${components.length - 2}` : components.join(' + ')
+      const affectsSummary = labels.length > 3 ? `${labels.slice(0, 2).join(' + ')} + ${labels.length - 2} more` : labels.join(' + ')
       const applied = this.commonPresetApplied(preset.id)
       const meta = recipeMetaForId(preset.id)
       const support = meta?.supports ?? ['bubble']
@@ -2564,7 +2676,7 @@ export class ThemeStudioUI {
       const packCompatible = !options.packId || !options.packLayout || options.packLayout === 'all' || support.includes(options.packLayout)
       const packChosen = Boolean(options.packId && packCompatible && options.selectedPresetIds?.has(preset.id))
       const workbenchToggle = options.packId ? `<button class="ts-pack-card-select" type="button" data-pack-select-preset="${escapeHtml(preset.id)}" data-pack-id="${escapeHtml(options.packId)}" aria-pressed="${packChosen}" ${packCompatible ? '' : 'disabled'}><span aria-hidden="true">${packChosen ? '✓' : '+'}</span>${packCompatible ? (packChosen ? 'Chosen' : 'Choose') : 'Other layout'}</button>` : ''
-      return `<article class="ts-preset-card${options.compact ? ' ts-preset-card-compact' : ''}${options.packId ? ' ts-pack-recipe-card' : ''}${packChosen ? ' is-pack-chosen' : ''}${!packCompatible ? ' is-pack-incompatible' : ''}" data-library-card="${escapeHtml(preset.id)}" data-library-kind="recipe" data-library-search="${escapeHtml(meta ? styleLibrarySearchText(meta) : `${preset.name} ${preset.description}`.toLowerCase())}" data-preset-applied="${applied}">${this.renderPresetPreview(preset.preview)}${workbenchToggle}<div class="ts-preset-card-copy"><div class="ts-preset-card-title"><strong>${escapeHtml(preset.name)}</strong>${applied ? '<span class="ts-chip">Applied</span>' : ''}</div>${options.library ? `<div class="ts-library-badges">${familyBadge}${layoutBadges}${scaleBadge}</div>` : `<span title="${escapeHtml(labels.join(' + '))}">Affects · ${escapeHtml(labels.length > 3 ? `${labels.slice(0, 2).join(' + ')} + ${labels.length - 2} more` : labels.join(' + '))}</span>`}</div><div class="ts-preset-card-actions${options.library ? ' ts-library-card-actions' : ''}"><button class="ts-btn ts-btn-primary" type="button" data-apply-common-preset="${escapeHtml(preset.id)}" ${packCompatible ? '' : 'disabled'}>Apply</button><button class="ts-btn ts-btn-icon" type="button" data-edit-common-preset="${escapeHtml(preset.id)}" title="Apply and edit in Design" aria-label="Apply ${escapeHtml(preset.name)} and edit" ${packCompatible ? '' : 'disabled'}>${pencil}</button>${options.library ? `<button class="ts-btn ts-btn-icon" type="button" data-library-favorite="${favoriteKey}" aria-label="${favorite ? 'Remove' : 'Add'} ${escapeHtml(preset.name)} ${favorite ? 'from' : 'to'} favorites" aria-pressed="${favorite}">${favorite ? '★' : '☆'}</button>` : ''}${options.library || applied ? `<button class="ts-btn ts-btn-icon ts-preset-reset" type="button" data-reset-common-preset="${escapeHtml(preset.id)}" title="Reset this recipe footprint" aria-label="Reset ${escapeHtml(preset.name)}" ${applied ? '' : 'disabled'}>↺</button>` : ''}</div></article>`
+      return `<article class="ts-preset-card${options.compact ? ' ts-preset-card-compact' : ''}${options.packId ? ' ts-pack-recipe-card' : ''}${packChosen ? ' is-pack-chosen' : ''}${!packCompatible ? ' is-pack-incompatible' : ''}" data-library-card="${escapeHtml(preset.id)}" data-library-kind="recipe" data-library-search="${escapeHtml(meta ? styleLibrarySearchText(meta) : `${preset.name} ${preset.description}`.toLowerCase())}" data-preset-applied="${applied}">${this.renderPresetPreview(preset.preview)}${workbenchToggle}<div class="ts-preset-card-copy"><div class="ts-preset-card-title"><strong>${escapeHtml(preset.name)}</strong>${applied ? '<span class="ts-chip">Applied</span>' : ''}</div>${options.library ? `<div class="ts-library-targets" title="${escapeHtml(labels.join(' + '))}"><span><b>Component</b> · ${escapeHtml(componentSummary || 'DOM')}</span><span><b>Affects</b> · ${escapeHtml(affectsSummary)}</span></div><div class="ts-library-badges">${familyBadge}${layoutBadges}${scaleBadge}</div>` : `<span title="${escapeHtml(labels.join(' + '))}">Affects · ${escapeHtml(affectsSummary)}</span>`}</div><div class="ts-preset-card-actions${options.library ? ' ts-library-card-actions' : ''}"><button class="ts-btn ts-btn-primary" type="button" data-apply-common-preset="${escapeHtml(preset.id)}" ${packCompatible ? '' : 'disabled'}>Apply</button><button class="ts-btn ts-btn-icon" type="button" data-edit-common-preset="${escapeHtml(preset.id)}" title="Apply and edit in Design" aria-label="Apply ${escapeHtml(preset.name)} and edit" ${packCompatible ? '' : 'disabled'}>${pencil}</button>${options.library ? `<button class="ts-btn ts-btn-icon" type="button" data-library-favorite="${favoriteKey}" aria-label="${favorite ? 'Remove' : 'Add'} ${escapeHtml(preset.name)} ${favorite ? 'from' : 'to'} favorites" aria-pressed="${favorite}">${favorite ? '★' : '☆'}</button>` : ''}${options.library || applied ? `<button class="ts-btn ts-btn-icon ts-preset-reset" type="button" data-reset-common-preset="${escapeHtml(preset.id)}" title="Reset this recipe footprint" aria-label="Reset ${escapeHtml(preset.name)}" ${applied ? '' : 'disabled'}>↺</button>` : ''}</div></article>`
     }).join('')}</div>`
   }
 
@@ -2573,7 +2685,7 @@ export class ThemeStudioUI {
     const ids = component === 'InputArea'
       ? ['input-glass-dock', 'input-compact', 'global-buttons-soft', 'global-textareas-glass']
       : component === 'MinimalMessage'
-        ? ['manga-margin-speaker', 'manga-ink-frame', 'manga-sticker-portrait']
+        ? ['manga-margin-speaker', 'manga-minimal-ink-frame', 'manga-minimal-sticker-portrait']
         : component === 'BubbleMessage' || component === 'MessageContent'
           ? ['avatar-soft-fade', 'bubble-glass-card', 'prose-headings-editorial', 'actions-quiet-pill']
           : ['avatar-soft-fade', 'prose-headings-editorial', 'input-glass-dock', 'global-buttons-soft']
@@ -2583,10 +2695,7 @@ export class ThemeStudioUI {
   private renderCommonParts(): string {
     const recommended = this.recommendedStylePresets()
     const context = this.selection?.nativeContext?.component.label
-    const minimalNote = context === 'MinimalMessage'
-      ? `<div class="ts-library-context-note"><strong>MinimalMessage has its first real adapters.</strong><span>Manga includes a Minimal-specific speaker layout plus shared frame/avatar treatments; older Bubble-only looks stay honestly labeled.</span></div>`
-      : ''
-    return `<section class="ts-section ts-preset-library ts-quick-front" style="--ts-quick-accent:${escapeHtml(this.quickAccent)};--ts-quick-text:${escapeHtml(this.quickText)};--ts-quick-intensity:${this.quickIntensity / 100}"><div class="ts-section-heading ts-quick-front-head"><div><p class="ts-kicker">Quick styles</p><p class="ts-note">A few useful looks up front. The full library lives in its own workspace now.</p></div><button class="ts-btn ts-btn-primary ts-browse-styles" type="button" data-action="open-style-library">Browse styles</button></div><details class="ts-quick-palette-fold"><summary><div><strong>Recipe palette</strong><span><i style="--swatch:${escapeHtml(this.quickAccent)}"></i><i style="--swatch:${escapeHtml(this.quickText)}"></i>${this.quickIntensity}%</span></div><b aria-hidden="true">⌄</b></summary><div class="ts-quick-palette-fold-body">${this.renderQuickPalette()}</div></details>${minimalNote}<div class="ts-preset-category-copy"><strong>${context ? `For ${escapeHtml(context)}` : 'Quick looks'}</strong><span>${recommended.length ? 'Apply stays here; the pencil opens the result in Design.' : 'No layout-safe presets are being guessed for this component yet.'}</span></div>${recommended.length ? this.renderPresetCards(recommended, { compact: true }) : `<button class="ts-library-empty-cta" type="button" data-action="open-style-library">Open the library to browse all existing looks</button>`}</section>`
+    return `<section class="ts-section ts-preset-library ts-quick-front" style="--ts-quick-accent:${escapeHtml(this.quickAccent)};--ts-quick-text:${escapeHtml(this.quickText)};--ts-quick-intensity:${this.quickIntensity / 100}"><div class="ts-section-heading ts-quick-front-head"><div><p class="ts-kicker">Quick styles</p><p class="ts-note">A few useful looks up front. The full library lives in its own workspace now.</p></div><button class="ts-btn ts-btn-primary ts-browse-styles" type="button" data-action="open-style-library">Browse styles</button></div><details class="ts-quick-palette-fold"><summary><div><strong>Recipe palette</strong><span><i style="--swatch:${escapeHtml(this.quickAccent)}"></i><i style="--swatch:${escapeHtml(this.quickText)}"></i>${this.quickIntensity}%</span></div><b aria-hidden="true">⌄</b></summary><div class="ts-quick-palette-fold-body">${this.renderQuickPalette()}</div></details><div class="ts-preset-category-copy"><strong>${context ? `For ${escapeHtml(context)}` : 'Quick looks'}</strong><span>${recommended.length ? 'Apply stays here; the pencil opens the result in Design.' : 'No layout-safe presets are being guessed for this component yet.'}</span></div>${recommended.length ? this.renderPresetCards(recommended, { compact: true }) : `<button class="ts-library-empty-cta" type="button" data-action="open-style-library">Open the library to browse all existing looks</button>`}</section>`
   }
 
   private applyCommonPreset(presetId: string, openEditor = false, renderAfter = true, recordRecent = true): void {
@@ -2699,7 +2808,7 @@ export class ThemeStudioUI {
     const slider = (label: string, field: 'contrast' | 'brightness' | 'originalSaturation', value: number, min: number, max: number) => `<div class="ts-field"><label class="ts-label">${label}<span data-boost-value="${field}">${Math.round(value * 100)}%</span></label><input class="ts-range" type="range" min="${min}" max="${max}" value="${Math.round(value * 100)}" data-boost-param="${field}"></div>`
     const boostRecent = (key: 'primary' | 'secondary') => this.recentColors.length ? `<div class="ts-recent"><span>Recent</span><div class="ts-recent-swatches">${this.recentColors.map((color) => `<button type="button" class="ts-recent-swatch" data-boost-recent="${key}" data-recent-color="${escapeHtml(color)}" style="--ts-recent:${escapeHtml(color)}" title="Use ${escapeHtml(color)}"></button>`).join('')}</div></div>` : ''
     const colorsBody = boost.colorsEnabled ? `<div class="ts-segment"><button type="button" data-boost-mode="recolor" aria-pressed="${boost.mode === 'recolor'}">Recolor</button><button type="button" data-boost-mode="smart-invert" aria-pressed="${boost.mode === 'smart-invert'}">Smart Invert</button></div>
-      ${(['primary', 'secondary'] as const).map((key) => { const value = key === 'primary' ? boost.primary.color : boost.secondary?.color ?? boost.primary.color; return `<div class="ts-field"><label class="ts-label">${key === 'primary' ? 'Primary' : 'Secondary'} anchor</label><div class="ts-color-row"><input class="ts-color" type="color" value="${escapeHtml(colorInput(value, '#9370db'))}" data-boost-color="${key}"><input class="ts-input" value="${escapeHtml(value)}" data-boost-color="${key}"></div>${boostRecent(key)}</div>` }).join('')}
+      ${(['primary', 'secondary'] as const).map((key) => { const value = key === 'primary' ? boost.primary.color : boost.secondary?.color ?? boost.primary.color; return `<div class="ts-field"><label class="ts-label">${key === 'primary' ? 'Primary' : 'Secondary'} anchor</label><div class="ts-color-row"><label class="ts-color-picker" title="Open color picker"><input class="ts-color" type="color" value="${escapeHtml(colorInput(value, '#9370db'))}" data-boost-color="${key}" aria-label="Pick ${key} Boost color"><span>Pick</span></label><input class="ts-input" value="${escapeHtml(value)}" data-boost-color="${key}"></div>${boostRecent(key)}</div>` }).join('')}
       ${slider('Contrast', 'contrast', boost.contrast, -100, 100)}${slider('Brightness', 'brightness', boost.brightness, -100, 100)}${slider('Original saturation', 'originalSaturation', boost.originalSaturation, 0, 100)}
       <label class="ts-check ts-boost-protect"><input type="checkbox" data-boost-protect-controls ${boost.protectControls ? 'checked' : ''}> <span><strong>Protect controls</strong><small>Keep native button/primary text readable after recoloring.</small></span></label>
       ${boost.legacyPalette && Object.keys(boost.legacyPalette).length ? `<p class="ts-note">${Object.keys(boost.legacyPalette).length} migrated palette role${Object.keys(boost.legacyPalette).length === 1 ? '' : 's'} remain as compatibility overrides after the transform.</p>` : ''}
@@ -2892,7 +3001,21 @@ export class ThemeStudioUI {
       this.observedRead = null; this.clearPreviewMarker(); this.targetSurface = 'element'; this.selection.activeScopeId = next.id; this.render(); this.applyPreviewMarker()
     }))
     root.querySelectorAll<HTMLButtonElement>('[data-target-surface]').forEach((button) => button.addEventListener('click', () => { this.observedRead = null; this.targetSurface = (button.dataset.targetSurface as TargetSurface) ?? 'element'; this.render(); this.applyPreviewMarker() }))
-    root.querySelectorAll<HTMLButtonElement>('[data-action="use-generic-scope"]').forEach((button) => button.addEventListener('click', () => { if (!this.selection || !button.dataset.scopeId) return; this.observedRead = null; this.clearPreviewMarker(); this.targetSurface = 'element'; this.activateScopePreservingMessageSide(button.dataset.scopeId); this.render(); this.applyPreviewMarker() }))
+    root.querySelectorAll<HTMLButtonElement>('[data-action="use-generic-scope"]').forEach((button) => button.addEventListener('click', () => {
+      if (!this.selection || !button.dataset.scopeId) return
+      // This affordance is deliberately exact. The suggested candidate has
+      // already been filtered to the current mounted element/message side.
+      // Re-running message-family preservation here can resolve straight back
+      // to the aria-label/title-specific instance we are trying to leave.
+      const genericScope = this.selection.scopeCandidates.find((entry) => entry.id === button.dataset.scopeId)
+      if (!genericScope) return
+      this.observedRead = null
+      this.clearPreviewMarker()
+      this.targetSurface = 'element'
+      this.selection.activeScopeId = genericScope.id
+      this.render()
+      this.applyPreviewMarker()
+    }))
     root.querySelectorAll<HTMLButtonElement>('[data-override-strength]').forEach((button) => button.addEventListener('click', () => { const override = overrideForSelection(this.selection, this.store.activeProject.componentOverrides, this.targetSurface); if (override) this.store.setOverrideStrength(override.id, button.dataset.overrideStrength === 'strong' ? 'strong' : 'normal') }))
     root.querySelector('[data-action="toggle-guides"]')?.addEventListener('click', () => { this.guidesEnabled = !this.guidesEnabled; this.render() })
     root.querySelector<HTMLSelectElement>('[data-action="guide-mode"]')?.addEventListener('change', (event) => { this.guideMode = (event.currentTarget as HTMLSelectElement).value as typeof this.guideMode; this.syncSelectionHighlight() })
@@ -2920,6 +3043,8 @@ export class ThemeStudioUI {
     root.querySelectorAll<HTMLButtonElement>('[data-background-image-render]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'background' ? { ...packet, image: { ...packet.image, renderMode: button.dataset.backgroundImageRender === 'mask' ? 'mask' : 'image' } } : packet)))
     root.querySelectorAll<HTMLButtonElement>('[data-text-mode]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'text' ? { ...packet, colorMode: button.dataset.textMode === 'gradient' ? 'gradient' : 'solid' } : packet)))
     root.querySelectorAll<HTMLButtonElement>('[data-text-ink-mode]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'text' ? { ...packet, inkMode: button.dataset.textInkMode === 'force' ? 'force' : 'cascade' } : packet)))
+    root.querySelectorAll<HTMLButtonElement>('[data-text-outline-mode]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'text' ? { ...packet, outlineMode: button.dataset.textOutlineMode === 'outside' ? 'outside' : 'edge' } : packet)))
+    root.querySelectorAll<HTMLButtonElement>('[data-content-source]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'content' ? { ...packet, source: button.dataset.contentSource === 'title' ? 'title' : button.dataset.contentSource === 'aria-label' ? 'aria-label' : 'literal' } : packet)))
     root.querySelectorAll<HTMLButtonElement>('[data-gradient-add]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => {
       if (packet.type !== 'background' && packet.type !== 'text') return packet
       if (packet.gradient.stops.length >= 6) return packet
@@ -2996,6 +3121,8 @@ export class ThemeStudioUI {
     })))
     root.querySelectorAll<HTMLButtonElement>('[data-image-fade]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'image' ? { ...packet, maskMode: 'fade', fade: { ...packet.fade, direction: button.dataset.imageFade as typeof packet.fade.direction } } : packet)))
     root.querySelectorAll<HTMLButtonElement>('[data-image-mask-side]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'image' ? { ...packet, maskMode: 'custom', customMask: { ...(packet.customMask ?? defaultImageCustomMask()), horizontal: { ...(packet.customMask ?? defaultImageCustomMask()).horizontal, side: button.dataset.imageMaskSide === 'left' ? 'left' : 'right' } } } : packet)))
+    root.querySelectorAll<HTMLButtonElement>('[data-placement-horizontal]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'placement' ? { ...packet, horizontal: button.dataset.placementHorizontal as typeof packet.horizontal } : packet)))
+    root.querySelectorAll<HTMLButtonElement>('[data-placement-vertical]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'placement' ? { ...packet, vertical: button.dataset.placementVertical as typeof packet.vertical } : packet)))
     root.querySelectorAll<HTMLButtonElement>('[data-layout-item-size]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'layout-item' ? { ...packet, sizeInParent: button.dataset.layoutItemSize as typeof packet.sizeInParent } : packet)))
     root.querySelectorAll<HTMLButtonElement>('[data-position-mode]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => {
       if (packet.type !== 'position') return packet
@@ -3119,9 +3246,14 @@ export class ThemeStudioUI {
     const before = structuredClone(hydrateSparsePacket(packets[index], observedPacket))
     const updated = this.packetFromField(structuredClone(before), input)
     const changed = packetDiffFields(before, updated)
-    packets[index] = mergeEditedFields(updated, changed)
-    if (this.editingScope === 'mobile') draft.mobileStates = { ...(draft.mobileStates ?? { normal: [] }), [this.editingState]: packets }
-    else draft.states = { ...draft.states, [this.editingState]: packets }
+    if (canonical && shouldLocalizeMatchedMessageOverride(this.selection, canonical, this.targetSurface)) {
+      const localPacket = { ...updated, editedFields: changed } as StylePacket
+      draft = { id: `localized-preview:${canonical.id}`, target: { ...this.targetForSelection(), overrideStrength: 'strong' }, states: this.editingScope === 'base' ? { normal: [], [this.editingState]: [localPacket] } : { normal: [] }, ...(this.editingScope === 'mobile' ? { mobileStates: { normal: [], [this.editingState]: [localPacket] } } : {}) }
+    } else {
+      packets[index] = mergeEditedFields(updated, changed)
+      if (this.editingScope === 'mobile') draft.mobileStates = { ...(draft.mobileStates ?? { normal: [] }), [this.editingState]: packets }
+      else draft.states = { ...draft.states, [this.editingState]: packets }
+    }
     const previewOptions = this.editingState === 'normal' ? { forcedScope: this.editingScope } : { forcedOverrideId: draft.id, forcedState: this.editingState, forcedScope: this.editingScope }
     // This layer contains only the target currently being scrubbed. Boost remains
     // a separate persistent world-state layer and observed Read Style values stay
@@ -3157,9 +3289,14 @@ ${compileComponentOverride(draft, previewOptions)}`)
     const before = structuredClone(hydrateSparsePacket(packets[index], observedPacket))
     const updated = updater(structuredClone(before))
     const changed = packetDiffFields(before, updated)
-    packets[index] = mergeEditedFields(updated, changed)
-    if (this.editingScope === 'mobile') draft.mobileStates = { ...(draft.mobileStates ?? { normal: [] }), [this.editingState]: packets }
-    else draft.states = { ...draft.states, [this.editingState]: packets }
+    if (canonical && shouldLocalizeMatchedMessageOverride(this.selection, canonical, this.targetSurface)) {
+      const localPacket = { ...updated, editedFields: changed } as StylePacket
+      draft = { id: `localized-preview:${canonical.id}`, target: { ...this.targetForSelection(), overrideStrength: 'strong' }, states: this.editingScope === 'base' ? { normal: [], [this.editingState]: [localPacket] } : { normal: [] }, ...(this.editingScope === 'mobile' ? { mobileStates: { normal: [], [this.editingState]: [localPacket] } } : {}) }
+    } else {
+      packets[index] = mergeEditedFields(updated, changed)
+      if (this.editingScope === 'mobile') draft.mobileStates = { ...(draft.mobileStates ?? { normal: [] }), [this.editingState]: packets }
+      else draft.states = { ...draft.states, [this.editingState]: packets }
+    }
     const previewOptions = this.editingState === 'normal' ? { forcedScope: this.editingScope } : { forcedOverrideId: draft.id, forcedState: this.editingState, forcedScope: this.editingScope }
     const previewTargetSelector = draft.target.overrideStrength === 'strong' ? authoritySelector(draft.target.selector) : draft.target.selector
     this.preview.updateTransient(`${previewTargetSelector} { transition: none !important; }\n${compileComponentOverride(draft, previewOptions)}`)
@@ -3260,6 +3397,21 @@ ${compileComponentOverride(draft, previewOptions)}`)
         if (field === 'typography-letter-spacing') return { ...packet, letterSpacing: Math.max(-1000, Math.min(1000, numeric())) }
         if (field === 'typography-transform') return { ...packet, transform: input.value as typeof packet.transform }
       }
+      if (packet.type === 'text-entry') {
+        if (field === 'text-entry-inset-x') return { ...packet, insetX: Math.max(0, Math.min(500, numeric())) }
+        if (field === 'text-entry-inset-y') return { ...packet, insetY: Math.max(0, Math.min(500, numeric())) }
+        if (field === 'text-entry-family') return { ...packet, fontFamily: input.value.trim() || undefined }
+        if (field === 'text-entry-size') return { ...packet, fontSize: Math.max(0.01, Math.min(10000, numeric())) }
+        if (field === 'text-entry-size-unit') return { ...packet, fontSizeUnit: input.value === 'rem' ? 'rem' : 'px' }
+        if (field === 'text-entry-weight') return { ...packet, fontWeight: Math.max(100, Math.min(900, numeric())) }
+        if (field === 'text-entry-style') return { ...packet, fontStyle: input.value === 'italic' ? 'italic' : 'normal' }
+        if (field === 'text-entry-line-height') return { ...packet, lineHeight: Math.max(0.1, Math.min(20, numeric() / 100)) }
+        if (field === 'text-entry-letter-spacing') return { ...packet, letterSpacing: Math.max(-1000, Math.min(1000, numeric())) }
+        if (field === 'text-entry-placeholder-color') return { ...packet, placeholderColor: input.value }
+        if (field === 'text-entry-placeholder-color-alpha') return { ...packet, placeholderAlpha: alpha() }
+        if (field === 'text-entry-placeholder-style') return { ...packet, placeholderStyle: input.value === 'italic' ? 'italic' : 'normal' }
+        if (field === 'text-entry-placeholder-weight') return { ...packet, placeholderWeight: Math.max(100, Math.min(900, numeric())) }
+      }
       if (packet.type === 'visibility' && field === 'visibility-mode') return { ...packet, mode: input.value as typeof packet.mode }
       if (packet.type === 'border') {
         if (field === 'border-width') return { ...packet, width: Math.max(0, Math.min(20, numeric())) }
@@ -3276,6 +3428,10 @@ ${compileComponentOverride(draft, previewOptions)}`)
         const box = (value: number) => ({ linked: true as const, top: value, right: value, bottom: value, left: value, unit: 'px' as const })
         if (field === 'spacing-padding') return { ...packet, padding: box(Math.max(0, Math.min(500, numeric()))) }
         if (field === 'spacing-margin') return { ...packet, margin: box(Math.max(-500, Math.min(500, numeric()))) }
+        const paddingSide = field.match(/^spacing-padding-(top|right|bottom|left)$/)?.[1] as 'top' | 'right' | 'bottom' | 'left' | undefined
+        if (paddingSide) { const current = packet.padding ?? box(0); return { ...packet, padding: { ...current, linked: false, [paddingSide]: Math.max(0, Math.min(500, numeric())) } } }
+        const marginSide = field.match(/^spacing-margin-(top|right|bottom|left)$/)?.[1] as 'top' | 'right' | 'bottom' | 'left' | undefined
+        if (marginSide) { const current = packet.margin ?? box(0); return { ...packet, margin: { ...current, linked: false, [marginSide]: Math.max(-500, Math.min(500, numeric())) } } }
         if (field === 'spacing-gap') return { ...packet, gap: Math.max(0, Math.min(500, numeric())) }
       }
       if (packet.type === 'shadow') {
@@ -3659,9 +3815,9 @@ ${compileComponentOverride(draft, previewOptions)}`)
   private resolvedGuideMode(): GeometryGuideMode {
     if (this.guideMode !== 'smart') return this.guideMode
     switch (this.activeGuidePacketType) {
-      case 'spacing': case 'border': case 'corners': return 'box'
+      case 'spacing': case 'border': case 'corners': case 'text-entry': return 'box'
       case 'size': case 'image': case 'media-flow': case 'position': case 'transform': return 'size'
-      case 'layout': case 'layout-item': case 'alignment': return 'layout'
+      case 'layout': case 'layout-item': case 'placement': case 'alignment': return 'layout'
       default: return 'outline'
     }
   }
@@ -3778,6 +3934,12 @@ ${compileComponentOverride(draft, previewOptions)}`)
       const updated = updater(structuredClone(before))
       const changed = packetDiffFields(before, updated)
       if (!changed.length) return
+      if (shouldLocalizeMatchedMessageOverride(this.selection, override, this.targetSurface)) {
+        const materialized = { ...updated, id: newId('packet'), editedFields: changed } as StylePacket
+        this.store.upsertPacket({ ...this.targetForSelection(), overrideStrength: 'strong' }, materialized, this.editingState, this.editingScope)
+        this.revealStylePacket(materialized.id, false)
+        return
+      }
       this.store.upsertPacket(override.target, mergeEditedFields(updated, changed), this.editingState, this.editingScope)
       return
     }

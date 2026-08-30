@@ -7,7 +7,7 @@ function runtimeContext(readBaseline: () => Record<string, string>) {
   let backendListener: (payload: unknown) => void = () => {}
   let catalogReads = 0
   let baselineReads = 0
-  const info: ThemeInfoDTO = { accent: '#9370db', mode: 'dark', enableGlass: true, radiusScale: 1, fontScale: 1, uiScale: 1 }
+  const info: ThemeInfoDTO = { id: 'test-dark', name: 'Test Dark', accent: { h: 270, s: 50, l: 65 }, mode: 'dark', enableGlass: true, radiusScale: 1, fontScale: 1, uiScale: 1, characterAware: false }
   const ctx = {
     theme: {
       catalog: {

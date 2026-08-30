@@ -2,7 +2,7 @@
 
 > **Visual theme authoring for Lumiverse.** Pick the thing you mean, describe the visual intent, and Palette turns it into scoped, reusable CSS. Generated CSS is output; your semantic Palette project is the source of truth.
 
-**Palette 1.0.0 · schema v39**  
+**Palette 1.0.0 · schema v41**  
 Release history lives in the project changelog; this page is the actual manual.
 
 **Jump to:** [Start here](#palette-guide-start) · [Pick & scope](#palette-guide-pick) · [Style packets](#palette-guide-packets) · [Groups](#palette-guide-groups) · [Read styles](#palette-guide-read) · [Reuse](#palette-guide-reuse) · [Boost](#palette-guide-boost) · [Widget & Code](#palette-guide-code) · [CSS field guide](#palette-guide-css) · [Debugging](#palette-guide-debug)
@@ -51,6 +51,12 @@ Palette separates four things that browsers often blur together:
 **Browse Inside** follows the actual mounted subtree. Use it when the thing you need is deeper, conditional, or too weird to belong in the curated list.
 
 They intentionally do not show the same list.
+
+### Dynamic labels and Use generic
+
+Interactive controls sometimes need their live `aria-label` or `title` to distinguish one mounted button from its siblings. Palette may therefore select something precise such as `button[aria-label="Copy"]`. When the target panel offers **Use generic**, that is an explicit escape hatch to the reusable sibling selector (for example the whole Minimal action-button group). The switch is exact and keeps the current message side; it should not bounce back to the label-specific target.
+
+This is useful when one button taught you the styling recipe but the intent is really “all buttons in this row.” Keep the precise target when the buttons genuinely need different appearances.
 
 ### Stable selectors beat generated hashes
 
@@ -113,12 +119,14 @@ Palette packets describe intent. You should not need to remember the CSS propert
 | **Background** | paint the surface | `background`, gradients, images |
 | **Text Style** | text ink/effects | `color`, gradient text, stroke, shadow |
 | **Typography** | type structure | family, size, weight, line-height, spacing |
+| **Text Entry** | where typing starts + how it measures | textarea inset/metrics + synchronized autosize mirror + placeholder appearance |
 | **Border / Corners** | edge treatment | border longhands, radius |
 | **Spacing** | breathing room | padding + margin |
 | **Shadow / Glass** | depth/material | shadow, blur, backdrop-filter |
 | **Opacity** | fade the entire target | `opacity` |
 | **Container Layout** | arrange direct children | flex/grid, gap, distribute, align |
-| **Layout Item** | behavior inside its parent | grow/shrink, order, self-alignment |
+| **Quick Align** | put this element where you mean | logical auto margins + safe self-alignment |
+| **Layout Item** | advanced behavior inside Flex/Grid | grow/shrink, order, self-alignment |
 | **Size** | fit, fill, or fix the box | width/height/min/max |
 | **Image** | crop and treat pixels | object-fit, object-position, filter, mask |
 | **Media Flow** | make prose/native media behave | natural height, unclipping, full-width flow |
@@ -126,8 +134,52 @@ Palette packets describe intent. You should not need to remember the CSS propert
 | **Transform** | pose it | rotate, scale, skew |
 | **Background Image** | decorative image layer | background-image/position/size |
 | **Visibility** | visible / hidden / gone | visibility/display |
-| **Generated Content** | label a pseudo surface | CSS `content` |
+| **Generated Content** | label a generated surface | CSS `content` on `::after` / explicit pseudo surfaces |
 | **SVG Asset** | reusable icon/ornament | sanitized project SVG stencil |
+
+Color-bearing packets always expose a real **Pick** swatch beside the editable color string. **Recents** are convenience history, not the only way to open a picker; pack-authored colors therefore remain editable even when they were never picked manually in the current project. Independent Corners are arranged spatially as top-left / top-right over bottom-left / bottom-right, matching the box you are actually shaping.
+
+### Text outlines: Edge vs Outside
+
+**Edge** uses the browser glyph stroke and is fast/clean for thin lettering. **Outside** is the "do not eat my fill" option: Palette manufactures a crisp ring of zero-blur text shadows behind the glyph and exposes it through the same Thickness / Color / Opacity controls. Your ordinary directional text shadow can still coexist with that outline.
+
+### Generated Content can mirror native labels
+
+Generated Content can use a literal string, or mirror the owner's existing `title` / `aria-label` through CSS `attr(...)`. If you add it to a normal element, Palette automatically emits the content on that element's `::after` skin because Chromium does not reliably render `content` on ordinary elements. If you explicitly selected Back/Front, Palette keeps that pseudo-surface. This is useful for skins that replace a native icon with text while keeping the actual button as the semantic/layout target.
+
+Pseudo-elements are generated surfaces, not DOM siblings. If several labeled buttons need even distribution, group/style the **real buttons** and use their `::before`/`::after` only as visual skins.
+
+### Quick Align: say where, not how
+
+Use **Quick Align** when your intent is simply “put this on the left / center / right” (or the vertical equivalent). Palette resolves that intent through layout-safe CSS instead of making you memorize when `align-self`, `justify-self`, or auto margins happen to work.
+
+For ordinary horizontal placement, Palette uses logical auto margins and `fit-content`, so it works in normal block flow as well as common Flex/Grid contexts:
+
+```css
+/* Right */
+width: fit-content;
+margin-inline-start: auto;
+margin-inline-end: 0;
+```
+
+An explicit **Size** packet still wins if you deliberately set Width, so Quick Align does not silently undo authored sizing. Vertical placement can use Flex/Grid alignment when that layout exists; Palette warns when a plain block parent has no free vertical space to distribute. Use **Position & Layer** when you need a pinned top/bottom relationship instead.
+
+**Quick Align** is the friendly placement primitive. **Layout Item** remains the advanced control for grow/shrink/order and raw Flex/Grid self-alignment.
+
+### Spacing: simple first, per-side when you need it
+
+Spacing keeps **Padding** and **Margin** as fast linked sliders for normal work. Open **Advanced padding** or **Advanced margin** directly underneath when one side needs a different value; Palette exposes Top / Right / Bottom / Left there and leaves the other sides alone. Moving the main slider afterward deliberately links all four sides again. Negative values are allowed for margin, not padding.
+
+### Text Entry: move the typing origin honestly
+
+Use **Text Entry** on the mounted composer textarea when the intent is simply “typing should begin here.” Horizontal/vertical inset moves entered text and the placeholder together, while font metrics stay synchronized with Lumiverse's hidden textarea mirror so auto-height measurement does not drift.
+
+Palette deliberately keeps two responsibilities separate:
+
+- **Text inset + metrics** belong to the textarea and its hidden autosize mirror.
+- **Placeholder appearance** (ink, opacity, italic/weight) belongs only to `textarea::placeholder`.
+
+That means Palette does **not** fake placeholder placement with transforms or pseudo positioning. If the placeholder is annoyingly glued to the upper-left corner, change Text Entry inset; the real typed text will start in the same honest place.
 
 ### Size: Fit, Fill, Fixed
 
@@ -179,7 +231,7 @@ Use **Full width** or **Unclipped** when native thumbnail chrome is fighting an 
 - Spacing → box model
 - Size → dimensions + containing block
 - Layout → flex/grid geometry
-- Layout Item → target + layout parent
+- Quick Align / Layout Item → target + layout parent
 - Position → placement/anchor relationship
 - Image → crop/focal frame
 - Background/Text/Shadow → lightweight outline
@@ -265,6 +317,10 @@ Applying a My Style merges packet types. If the destination already has Border +
 
 Stable targets do not need to be mounted at apply time to remain reusable.
 
+### Library cards show what they touch
+
+Preview art is only a visual hint. Reusable recipe cards also show their **Component** and **Affects** summaries so you can tell “action row” from “content frame” before Apply, Edit, or Reset. Do not rely on preview silhouettes as semantic names.
+
 ### Packs
 
 Packs are curated compositions built from the same semantic engine as Design: targets, packets, Base/Mobile, groups, media policy, asset slots, and provenance.
@@ -272,6 +328,12 @@ Packs are curated compositions built from the same semantic engine as Design: ta
 **Apply pack** should never mean “paste a giant CSS blob.” After applying a pack, every owned piece remains editable through ordinary Design controls.
 
 **Reset pack** removes the pack's layers and reveals whatever was underneath. Manual styling and other packs remain unless that reset actually owns them.
+
+#### Bubble and Minimal are recipe families, not one selector missile
+
+A pack can support **BubbleMessage**, **MinimalMessage**, or both, but renderer-specific choreography stays renderer-specific. A Minimal portrait/actions/thinking recipe targets Minimal only; its Bubble counterpart targets Bubble only. Choosing/applying **Both** installs both families so switching Lumiverse's message renderer reveals the already-authored matching composition.
+
+Only genuinely renderer-independent targets such as `MessageContent` prose, exact semantic controls, or other shared surfaces should be authored once for both layouts. "Same aesthetic" does not require "same recipe."
 
 ## Boost
 
@@ -330,7 +392,9 @@ Desktop: right-click the collapsed widget for its context menu.
 Touch: long-press it.  
 **Hide mini widget** is reversible from Palette's sidebar/workbar control.
 
-On phones the floating editor can attach to the top or bottom edge; the resize handle follows the anchored edge.
+On phones the floating editor can attach to the top or bottom edge; the resize handle follows the anchored edge. Mobile Float also has a **density** control that cycles **100% → 80% → 60% → 100%**. Density applies only to the scrolling inspector body, so the workspace tabs, Pick/Guides workbar, edge control, Minimize, and Close remain full-size touch targets.
+
+The mobile inspector keeps narrow empty gutters on both sides of its scroll body. Those gutters are intentional touch-safe vertical pan lanes: if a packet is mostly sliders, drag the gutter instead of negotiating with a range thumb. Palette also pins its own mobile control typography/height so the active Lumiverse theme cannot make editor dropdown labels oversized or clipped.
 
 ### Generated CSS vs Custom CSS
 
@@ -416,7 +480,7 @@ If you want siblings to become columns, the important rule usually belongs to th
 }
 ```
 
-A child cannot make its siblings become a grid by itself. This is why Palette's Layout Item warns when the actual parent is not a layout container.
+A child cannot make its siblings become a grid by itself. Layout Item therefore warns when the actual parent is not a layout container. If your actual intent is only left / center / right placement, use Quick Align instead; it is designed to work in ordinary block flow too.
 
 ### 5. `width:100%` only means 100% of the available containing width
 
@@ -542,6 +606,16 @@ Prefer the stable wrappers on current Lumiverse:
 
 The Spindle `chat_toolbar` mount is a separate extension toolbar. Do not confuse it with native composer actions just because they appear beside each other.
 
+The current native typing lane is also intentionally split into stable semantic parts:
+
+```css
+[data-component="InputArea"] textarea[name="chat-message"]
+[data-component="InputArea"] [class*="_textareaMirror_"]
+[data-component="InputArea"] [class*="_sendBtnShell_"]
+```
+
+The textarea mirror is measurement infrastructure, not a second visible text box. Let **Text Entry** synchronize its metrics instead of styling the mirror independently.
+
 ### 12. CSS variables are the app-wide language
 
 Lumiverse theme variables look like:
@@ -635,3 +709,38 @@ A good escalation order is:
 
 Palette drawer icon: **paintbrush by Alum Design (CC BY 3.0)**.  
 Palette is built as a Lumiverse Spindle extension and intentionally keeps its internal `theme_studio` identity stable for persistence/runtime compatibility.
+
+
+### Editorial left proof rail
+
+Reader Correspondence intentionally replaces native Minimal user-side rail distribution with its own left editorial proof rail. The frame owns the real 106px rail reservation and switches to ordinary block flow so the host flex row cannot keep a ghost lane after the avatar/actions are anchored out of flow. The header stays padding-free, while portrait and proofmark actions share the same rail axis.
+
+On mobile the desktop proof rail is released, but the portrait is still anchored against the card so it does not consume a separate row. The compact byline reserves only the portrait width, which keeps name + metadata beside the image while prose and proofmark actions continue in ordinary full-width flow below. Editorial assistant mobile uses the same principle: portrait + byline at the top, actions released to the bottom instead of occupying the native right-side action lane. The generic Minimal actions overlay must materialize before Editorial's Author Rail so the phone-only flow reset wins the pack cascade. SwipeControls use their own button/counter semantic subroles; flatten those native controls directly instead of compensating around the outer pager shell.
+
+### Editorial Contributors kicker
+
+The Contributors masthead uses `chat.roster.bar::before` as a generated publication kicker. The host roster can carry its own pseudo positioning, so Editorial explicitly resets that surface to normal flow, zeros inherited pseudo padding, gives it a compact fixed footprint, and centers it as a non-shrinking flex item before the contributor cards. Do not compensate for overlap by moving the member cards themselves.
+
+
+### Editorial reasoning marginalia
+
+Editorial reasoning deliberately avoids the native full-width outlined lane. Both BubbleMessage and MinimalMessage use the same publication language: a transparent shell, a narrow cool-slate marginal rule/wash, small Georgia italic live duration text, and a restrained serif body when expanded. Desktop reasoning is constrained to the reading column; mobile releases it to full width rather than preserving a percentage lane.
+
+Current Lumiverse mounts `button[data-reasoning-toggle="true"]` as both the reasoning header and the toggle surface. Keep the header responsible for chrome and the toggle role responsible for ink only. If both roles author background/border, the later toggle packet can erase the header treatment even though Palette appears to have styled both correctly.
+
+
+### Visual Novel Minimal: classic dialogue stage, not Editorial-with-neon
+
+Visual Novel deliberately uses two renderer grammars. **BubbleMessage is the active cinematic scene**: large scene choreography, choice windows, route HUD, and more theatrical game chrome belong there. **MinimalMessage is the compact classic VN dialogue stage**: centered landscape portrait, fading character banner, a game-like gradient speaker plate, translucent/double-line patterned dialogue frame, and authored VN furniture. The assistant action group may use stacked text plates while mobile releases it back into compact flow; Greetings can become a narrow status bar below dialogue rather than a generic pill. Do not collapse Minimal back into an Editorial author column or a smaller Bubble card stack.
+
+The Minimal root intentionally owns generated scene decoration. `minimal.decorative-rail.assistant` / `.user` target the message `::before` surface as a fading banner behind the centered portrait and name plate; the side-specific corner-ornament roles use `::after` for restrained VN embellishment. Because that `::before` is authored content, the Visual Novel pack must **not** apply `minimal-native-strip-off`.
+
+Identity lives above the dialogue frame rather than inside an opaque header card. The header itself stays transparent and centered; the speaker name becomes a gradient plate while desktop metadata remains in ordinary header flow so long dialogue cannot drag the pill into the middle of the response. Mobile may deliberately anchor the compact metadata back near the portrait. Greetings is flattened into a narrow status bar below the dialogue frame instead of competing with the portrait.
+
+After mounted QA, the player side now **transposes the same stage geometry** instead of shrinking into a separate card grammar: both sides share the 92% stage, centered landscape portrait, 76% transparent identity lane, and broad double-line dialogue window, with assistant blue/lilac and player rose route families carrying the side distinction. Desktop actions use the same stacked text-command grammar on both sides; mobile releases both into compact wrapped flow.
+
+Reasoning is an **Inner Voice plate** beneath the name and slightly over the dialogue frame. Message actions are text-first VN controls generated over the real native buttons, including dedicated static roles for Edit, Copy, Hide, Anchor, Fork, Prompt, and Delete. Native SVGs are hidden without replacing the click targets. The omitted-action fallback must exclude every named action, including Copy.
+
+Swipe navigation belongs at the **bottom-left** as compact route furniture in normal flow. `minimal.swipes.previous` and `.next` replace native chevrons with maskable built-in arrow SVGs; `minimal.swipes.counter` owns the route count; `minimal.swipes.ornament` supplies a small decorative flower. Keeping the pager in flow prevents long messages from separating the controls from the actual dialogue footer. The long-message toggle is also scoped under Minimal so it cannot inherit Bubble's serif/purple continuation chrome.
+
+Typography remains renderer-specific. Bubble VN keeps its cinematic serif language. Minimal dialogue/body copy uses compact UI sans and mono metadata through `minimal.prose.*`, applied after shared `visual-novel-prose`, so fresh Apply All preserves the renderer split. These VN roles are static DOM anatomy and do not require a schema bump; current project/state schema remains **v41**.

@@ -1,19 +1,19 @@
 # Palette
 
-**Visual theme authoring for Lumiverse.** Pick, describe the visual intent, and Palette turns it into scoped, reusable CSS.
+**Visual theme authoring for Lumiverse.** Pick the thing you mean, describe the visual intent, and Palette turns it into scoped, reusable CSS.
 
 > Palette is an independent, unofficial community extension for Lumiverse. It is not affiliated with, endorsed by, or supported by the Lumiverse project or its maintainers.
 
-Palette is built around one idea: A normal user can resize, recolor, rearrange, crop, fade, group, and reuse real Lumiverse UI without learning selector syntax. Advanced users can still inspect the generated CSS or add a separate Custom CSS layer.
+Palette is built around one idea: **Palette knows the CSS; you express the visual intent.** A normal user can resize, recolor, rearrange, crop, fade, group, and reuse real Lumiverse UI without learning selector syntax. Advanced users can still inspect the generated CSS or add a separate Custom CSS layer.
 
 **Public release:** 1.0.0  
-**Project schema:** v39  
+**Project schema:** v41  
 **Minimum Lumiverse version:** 1.1.6
 
 ## Highlights
 
 - **Pick real UI** — persistent element picker, semantic target ladder, Edit Part, Browse Inside, Assistant/User/Both message facets, and stable scoped selectors.
-- **Visual style packets** — Background, Text Style, Typography, Border, Corners, Spacing, Shadow, Glass, Size, Layout, Image, Media Flow, Position, Transform, Visibility, SVG assets, pseudo surfaces, and more.
+- **Visual style packets** — Background, Text Style, Typography, Border, Corners, Spacing, Shadow, Glass, Size, Layout, Quick Align, Image, Media Flow, Position, Transform, Visibility, SVG assets, pseudo surfaces, and more.
 - **Base + Mobile** — author responsive deltas without hand-writing media queries.
 - **States** — Normal, Hover, Active, Focus, and Disabled styling.
 - **Smart Guides** — box model, dimensions, layout geometry, positioning, crop/focal guides, and group member overlays.
@@ -24,16 +24,13 @@ Palette is built around one idea: A normal user can resize, recolor, rearrange, 
 - **Full App Boost** — transform the native theme palette and backdrop while keeping global Typography independently toggleable.
 - **Theme projects** — persistent swatch-based Theme Stash with duplicate/rename/delete workflows.
 - **Native handoff** — inspect generated CSS, keep Custom CSS separate, work with native assets, and hand compatible themes back through Lumiverse's public theme bridge.
-- **Float / Dock / mobile** — keep Palette reachable while editing modals, drawers, and temporary surfaces, even on mobile.
+- **Float / Dock / mobile** — keep Palette reachable while editing modals, drawers, and temporary surfaces.
 
 ## Installation
 
 1. Open **Lumiverse → Extensions**.
 2. Choose **Install Extension**.
 3. Paste the GitHub repository URL for Palette.
-```url
-https://github.com/kittyafterdark/Palette
-```
 4. Review and grant the requested `app_manipulation` permission.
 5. Open **Palette** from the Lumiverse sidebar/drawer.
 
@@ -51,9 +48,9 @@ To update, use Lumiverse's extension update flow after a new Palette release is 
 6. Open **Code** whenever you want to inspect the generated CSS.
 7. Open Palette's built-in **Guide** for the full one-page manual and CSS field guide.
 
-## How Palette works
+## How Palette thinks
 
-Palette stores semantic styling. The project model is canonical; CSS is deterministic compiler output.
+Palette stores semantic styling intent, not a blob of generated CSS. The project model is canonical; CSS is deterministic compiler output.
 
 That enables a few important behaviors:
 
@@ -86,7 +83,7 @@ That means upstream DOM changes can occasionally require a Palette selector upda
 
 - **My Styles Bundles do not save Layout Groups yet.** Group collision/provenance semantics need an explicit policy before cross-project groups are safe to merge.
 - Some very deep/conditional Lumiverse parts are available through **Browse Inside** rather than a permanent semantic Edit Part entry.
-- A target that Lumiverse itself removes with `display:none` may require Palette to explicitly own `display` before other visibility/position styling can work over it.
+- A target that Lumiverse itself removes with `display:none` may require Palette to explicitly own `display` before other visibility/position styling can matter.
 - Pack previews teach the composition but are not a promise of pixel-identical mounted geometry for every custom theme/font/viewport.
 
 ## Development

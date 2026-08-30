@@ -99,16 +99,20 @@ const FAMILY_BY_PRESET: Record<string, string> = {
   'manga-media-panel': 'Manga',
   'manga-margin-speaker': 'Manga',
   'manga-ink-frame': 'Manga',
+  'manga-minimal-ink-frame': 'Manga',
   'manga-chapter-set': 'Manga',
   'manga-caption-box': 'Manga',
   'manga-body-copy': 'Manga',
   'manga-sticker-portrait': 'Manga',
+  'manga-minimal-sticker-portrait': 'Manga',
   'manga-composer': 'Manga',
   'manga-code-panel': 'Manga',
   'manga-greetings-tag': 'Manga',
+  'manga-minimal-greetings-tag': 'Manga',
   'manga-swipe-strip': 'Manga',
   'manga-read-more': 'Manga',
   'manga-temper-mark': 'Manga',
+  'manga-minimal-temper-mark': 'Manga',
   'manga-scroll-cue': 'Manga',
   'manga-cast-strip': 'Manga',
   'editorial-feature-lead': 'Editorial',
@@ -116,22 +120,31 @@ const FAMILY_BY_PRESET: Record<string, string> = {
   'editorial-actions-rail': 'Editorial',
   'editorial-column-rule': 'Editorial',
   'editorial-byline': 'Editorial',
+  'editorial-minimal-byline': 'Editorial',
   'editorial-heading-set': 'Editorial',
   'editorial-media-plate': 'Editorial',
   'editorial-pull-quote': 'Editorial',
   'editorial-reading-column': 'Editorial',
   'editorial-author-portrait': 'Editorial',
+  'editorial-minimal-author-portrait': 'Editorial',
   'editorial-composer': 'Editorial',
+  'editorial-scroll-cue': 'Editorial',
+  'editorial-cast-strip': 'Editorial',
   'minimal-actions-overlay': 'Minimal',
   'minimal-native-strip-off': 'Minimal',
   'message-greetings-editorial': 'Editorial',
+  'minimal-greetings-editorial': 'Editorial',
   'message-swipes-compact': 'Minimal',
   'editorial-read-more': 'Editorial',
   'message-thinking-editorial': 'Editorial',
+  'minimal-thinking-editorial': 'Editorial',
   'message-thinking-manga': 'Manga',
+  'minimal-thinking-manga': 'Manga',
   'visual-novel-stage': 'Visual Novel',
+  'visual-novel-attachment-mount': 'Visual Novel',
   'visual-novel-attachments': 'Visual Novel',
   'visual-novel-prose': 'Visual Novel',
+  'visual-novel-minimal-prose': 'Visual Novel',
   'visual-novel-inner-voice': 'Visual Novel',
   'visual-novel-greetings': 'Visual Novel',
   'visual-novel-hud': 'Visual Novel',
@@ -140,27 +153,35 @@ const FAMILY_BY_PRESET: Record<string, string> = {
   'visual-novel-roster': 'Visual Novel',
   'visual-novel-composer': 'Visual Novel',
   'visual-novel-user-speaker': 'Visual Novel',
+  'visual-novel-minimal-route-log': 'Visual Novel',
+  'visual-novel-minimal-user-log': 'Visual Novel',
+  'visual-novel-minimal-inner-voice': 'Visual Novel',
+  'visual-novel-minimal-hud': 'Visual Novel',
   'journal-polaroid-note': 'Journal',
   'journal-entry-ledger': 'Journal',
   'journal-minimal-card': 'Journal',
   'journal-corner-sticker': 'Journal',
+  'journal-minimal-corner-sticker': 'Journal',
   'journal-prose': 'Journal',
   'journal-photo-insert': 'Journal',
   'journal-quote-card': 'Journal',
   'journal-pasted-ephemera': 'Journal',
   'journal-thinking-note': 'Journal',
+  'journal-minimal-thinking-note': 'Journal',
   'journal-greetings-ticket': 'Journal',
+  'journal-minimal-greetings-ticket': 'Journal',
   'journal-page-pager': 'Journal',
   'journal-read-more': 'Journal',
   'journal-paper-actions': 'Journal',
+  'journal-minimal-paper-actions': 'Journal',
   'journal-composer': 'Journal',
   'journal-scroll-stamp': 'Journal',
 }
 
-const BOTH_MANGA = new Set(['manga-media-panel', 'manga-ink-frame', 'manga-chapter-set', 'manga-caption-box', 'manga-body-copy', 'manga-sticker-portrait', 'manga-code-panel', 'manga-greetings-tag', 'manga-swipe-strip', 'manga-read-more', 'manga-temper-mark', 'manga-scroll-cue'])
-const BOTH_JOURNAL = new Set(['journal-corner-sticker', 'journal-prose', 'journal-photo-insert', 'journal-quote-card', 'journal-pasted-ephemera', 'journal-thinking-note', 'journal-greetings-ticket', 'journal-page-pager', 'journal-read-more', 'journal-paper-actions', 'journal-composer', 'journal-scroll-stamp'])
-const BOTH_EDITORIAL = new Set(['editorial-byline', 'editorial-heading-set', 'editorial-media-plate', 'editorial-pull-quote', 'editorial-reading-column', 'editorial-author-portrait', 'editorial-composer', 'editorial-read-more'])
-const BOTH_MESSAGE_CHROME = new Set(['message-greetings-editorial', 'message-swipes-compact', 'message-thinking-editorial', 'message-thinking-manga'])
+const BOTH_MANGA = new Set(['manga-media-panel', 'manga-chapter-set', 'manga-caption-box', 'manga-body-copy', 'manga-code-panel', 'manga-swipe-strip', 'manga-read-more', 'manga-scroll-cue'])
+const BOTH_JOURNAL = new Set(['journal-prose', 'journal-photo-insert', 'journal-quote-card', 'journal-pasted-ephemera', 'journal-page-pager', 'journal-read-more', 'journal-composer', 'journal-scroll-stamp'])
+const BOTH_EDITORIAL = new Set(['editorial-heading-set', 'editorial-media-plate', 'editorial-pull-quote', 'editorial-reading-column', 'editorial-composer', 'editorial-read-more', 'editorial-scroll-cue', 'editorial-cast-strip'])
+const BOTH_MESSAGE_CHROME = new Set(['message-swipes-compact'])
 
 function areaFor(preset: CommonPartPreset): StyleLibraryArea {
   if (preset.category === 'prose') return 'prose'
@@ -179,8 +200,9 @@ function scaleFor(preset: CommonPartPreset): StyleLibraryScale {
 }
 
 function supportsFor(preset: CommonPartPreset): MessageLayoutSupport[] {
-  if (preset.id === 'manga-panel-portrait' || preset.id === 'editorial-feature-lead' || preset.id === 'editorial-actions-rail' || preset.id === 'journal-polaroid-note' || preset.id === 'journal-entry-ledger' || preset.id === 'visual-novel-stage' || preset.id === 'visual-novel-user-speaker') return ['bubble']
-  if (preset.id === 'manga-margin-speaker' || preset.id === 'editorial-column-rule' || preset.id === 'editorial-user-correspondent' || preset.id === 'journal-minimal-card' || preset.id === 'minimal-actions-overlay' || preset.id === 'minimal-native-strip-off') return ['minimal']
+  if (preset.id === 'manga-panel-portrait' || preset.id === 'manga-ink-frame' || preset.id === 'manga-sticker-portrait' || preset.id === 'manga-greetings-tag' || preset.id === 'message-thinking-manga' || preset.id === 'manga-temper-mark' || preset.id === 'editorial-byline' || preset.id === 'editorial-author-portrait' || preset.id === 'message-greetings-editorial' || preset.id === 'message-thinking-editorial' || preset.id === 'journal-corner-sticker' || preset.id === 'journal-thinking-note' || preset.id === 'journal-greetings-ticket' || preset.id === 'journal-paper-actions' || preset.id === 'editorial-feature-lead' || preset.id === 'editorial-actions-rail' || preset.id === 'journal-polaroid-note' || preset.id === 'journal-entry-ledger' || preset.id === 'visual-novel-stage' || preset.id === 'visual-novel-user-speaker' || preset.id === 'visual-novel-user-choice' || preset.id === 'visual-novel-inner-voice' || preset.id === 'visual-novel-greetings' || preset.id === 'visual-novel-hud' || preset.id === 'visual-novel-attachment-mount') return ['bubble']
+  if (preset.id === 'manga-margin-speaker' || preset.id === 'manga-minimal-ink-frame' || preset.id === 'manga-minimal-sticker-portrait' || preset.id === 'manga-minimal-greetings-tag' || preset.id === 'minimal-thinking-manga' || preset.id === 'manga-minimal-temper-mark' || preset.id === 'editorial-minimal-byline' || preset.id === 'editorial-minimal-author-portrait' || preset.id === 'minimal-greetings-editorial' || preset.id === 'minimal-thinking-editorial' || preset.id === 'journal-minimal-corner-sticker' || preset.id === 'journal-minimal-thinking-note' || preset.id === 'journal-minimal-greetings-ticket' || preset.id === 'journal-minimal-paper-actions' || preset.id === 'editorial-column-rule' || preset.id === 'editorial-user-correspondent' || preset.id === 'journal-minimal-card' || preset.id === 'minimal-actions-overlay' || preset.id === 'minimal-native-strip-off' || preset.id === 'visual-novel-minimal-route-log' || preset.id === 'visual-novel-minimal-user-log' || preset.id === 'visual-novel-minimal-inner-voice' || preset.id === 'visual-novel-minimal-hud' || preset.id === 'visual-novel-minimal-prose') return ['minimal']
+  if (preset.id === 'visual-novel-attachments' || preset.id === 'visual-novel-prose' || preset.id === 'visual-novel-read-more') return ['bubble', 'minimal']
   if (BOTH_MANGA.has(preset.id) || preset.id === 'manga-composer' || BOTH_EDITORIAL.has(preset.id) || BOTH_JOURNAL.has(preset.id) || BOTH_MESSAGE_CHROME.has(preset.id)) return ['bubble', 'minimal']
   // Existing message recipes were authored against BubbleMessage. MinimalMessage
   // gets explicit adapters rather than compatibility-by-optimism.
@@ -218,11 +240,11 @@ export const STYLE_LIBRARY_PACKS: StyleLibraryPack[] = [
     preview: 'manga',
     defaultPalette: { accent: '#ffffff', text: '#f4f1e9', intensity: 100 },
     keywords: ['manga', 'comic', 'panel', 'halftone', 'portrait', 'speaker', 'chapter', 'caption', 'black', 'white', 'monochrome', 'pager', 'composer', 'roster', 'cast strip', 'group chat'],
-    applyAllPresetIds: ['manga-panel-portrait', 'manga-media-panel', 'manga-margin-speaker', 'minimal-native-strip-off', 'manga-chapter-set', 'manga-body-copy', 'manga-caption-box', 'manga-code-panel', 'manga-greetings-tag', 'manga-swipe-strip', 'manga-read-more', 'message-thinking-manga', 'manga-temper-mark', 'manga-scroll-cue', 'manga-cast-strip', 'manga-composer'],
+    applyAllPresetIds: ['manga-panel-portrait', 'manga-media-panel', 'manga-margin-speaker', 'minimal-native-strip-off', 'manga-chapter-set', 'manga-body-copy', 'manga-caption-box', 'manga-code-panel', 'manga-greetings-tag', 'manga-minimal-greetings-tag', 'manga-swipe-strip', 'manga-read-more', 'message-thinking-manga', 'minimal-thinking-manga', 'manga-temper-mark', 'manga-minimal-temper-mark', 'manga-scroll-cue', 'manga-cast-strip', 'manga-composer'],
     sections: [
-      { label: 'Messages', presetIds: ['manga-panel-portrait', 'manga-media-panel', 'manga-margin-speaker', 'minimal-native-strip-off', 'manga-ink-frame', 'manga-greetings-tag', 'manga-swipe-strip', 'manga-read-more', 'message-thinking-manga', 'manga-temper-mark', 'manga-scroll-cue'] },
+      { label: 'Messages', presetIds: ['manga-panel-portrait', 'manga-media-panel', 'manga-margin-speaker', 'minimal-native-strip-off', 'manga-ink-frame', 'manga-minimal-ink-frame', 'manga-greetings-tag', 'manga-minimal-greetings-tag', 'manga-swipe-strip', 'manga-read-more', 'message-thinking-manga', 'minimal-thinking-manga', 'manga-temper-mark', 'manga-minimal-temper-mark', 'manga-scroll-cue'] },
       { label: 'Prose', presetIds: ['manga-chapter-set', 'manga-body-copy', 'manga-caption-box', 'manga-code-panel'] },
-      { label: 'Avatar', presetIds: ['manga-sticker-portrait'] },
+      { label: 'Avatar', presetIds: ['manga-sticker-portrait', 'manga-minimal-sticker-portrait'] },
       { label: 'Scene furniture', presetIds: ['manga-cast-strip'] },
       { label: 'Composer', presetIds: ['manga-composer'] },
     ],
@@ -239,16 +261,17 @@ export const STYLE_LIBRARY_PACKS: StyleLibraryPack[] = [
     name: 'Editorial',
     description: 'Split mastheads, cool paper rules, literary spacing, serif display type, ghosted portrait bleeds, and a writing-desk composer. Built to make the conversation read like a publication instead of a card stack.',
     family: 'Editorial',
-    areas: ['message', 'prose', 'avatar', 'composer'],
+    areas: ['message', 'prose', 'avatar', 'composer', 'global'],
     supports: ['bubble', 'minimal'],
     preview: 'editorial',
     defaultPalette: { accent: '#92a6b3', text: '#ece8df', intensity: 78 },
-    keywords: ['editorial', 'magazine', 'journal', 'literary', 'publication', 'serif', 'byline', 'column', 'quote', 'feature', 'composer'],
-    applyAllPresetIds: ['editorial-feature-lead', 'editorial-actions-rail', 'editorial-column-rule', 'editorial-user-correspondent', 'minimal-actions-overlay', 'minimal-native-strip-off', 'message-greetings-editorial', 'message-swipes-compact', 'editorial-read-more', 'message-thinking-editorial', 'editorial-media-plate', 'editorial-heading-set', 'editorial-pull-quote', 'editorial-reading-column', 'editorial-composer'],
+    keywords: ['editorial', 'magazine', 'journal', 'literary', 'publication', 'serif', 'byline', 'column', 'quote', 'feature', 'composer', 'writing desk', 'postage', 'contributors', 'roster'],
+    applyAllPresetIds: ['editorial-feature-lead', 'editorial-actions-rail', 'minimal-actions-overlay', 'editorial-column-rule', 'minimal-native-strip-off', 'message-greetings-editorial', 'minimal-greetings-editorial', 'message-swipes-compact', 'editorial-read-more', 'message-thinking-editorial', 'minimal-thinking-editorial', 'editorial-media-plate', 'editorial-heading-set', 'editorial-pull-quote', 'editorial-reading-column', 'editorial-scroll-cue', 'editorial-cast-strip', 'editorial-composer', 'editorial-user-correspondent'],
     sections: [
-      { label: 'Messages', presetIds: ['editorial-feature-lead', 'editorial-actions-rail', 'editorial-column-rule', 'editorial-user-correspondent', 'editorial-byline', 'minimal-actions-overlay', 'minimal-native-strip-off', 'message-greetings-editorial', 'message-swipes-compact', 'editorial-read-more', 'message-thinking-editorial'] },
+      { label: 'Messages', presetIds: ['editorial-feature-lead', 'editorial-actions-rail', 'editorial-column-rule', 'editorial-user-correspondent', 'editorial-byline', 'editorial-minimal-byline', 'minimal-actions-overlay', 'minimal-native-strip-off', 'message-greetings-editorial', 'minimal-greetings-editorial', 'message-swipes-compact', 'editorial-read-more', 'message-thinking-editorial', 'minimal-thinking-editorial'] },
       { label: 'Prose', presetIds: ['editorial-media-plate', 'editorial-heading-set', 'editorial-pull-quote', 'editorial-reading-column'] },
-      { label: 'Avatar', presetIds: ['editorial-author-portrait'] },
+      { label: 'Avatar', presetIds: ['editorial-author-portrait', 'editorial-minimal-author-portrait'] },
+      { label: 'Publication furniture', presetIds: ['editorial-cast-strip', 'editorial-scroll-cue'] },
       { label: 'Composer', presetIds: ['editorial-composer'] },
     ],
     assetSlots: [
@@ -260,17 +283,19 @@ export const STYLE_LIBRARY_PACKS: StyleLibraryPack[] = [
   {
     id: 'visual-novel',
     name: 'Visual Novel',
-    description: 'Conversation as scene UI: cinematic character art, speaker scrims, inner-voice ribbons, framed dialogue, heart-shaped system furniture, and two deliberately different user roles.',
+    description: 'Two visual-novel grammars in one pack: Bubble plays the active cinematic scene; Minimal becomes a classic dialogue stage with centered character art, name/meta plates, translucent text frames, inner-voice plates, and authored route furniture.',
     family: 'Visual Novel',
     areas: ['message', 'prose', 'avatar', 'composer', 'global'],
-    supports: ['bubble'],
+    supports: ['bubble', 'minimal'],
     preview: 'visual-novel',
     defaultPalette: { accent: '#b88cff', text: '#f5f0fb', intensity: 88 },
     keywords: ['visual novel', 'vn', 'otome', 'dialogue', 'choice', 'speaker', 'scene', 'romance', 'hearts', 'hud', 'backdrop', 'scrim', 'composer', 'roster', 'member bar'],
-    applyAllPresetIds: ['visual-novel-stage', 'visual-novel-attachments', 'visual-novel-prose', 'visual-novel-inner-voice', 'visual-novel-greetings', 'visual-novel-hud', 'visual-novel-read-more', 'visual-novel-user-choice', 'visual-novel-roster', 'visual-novel-composer'],
+    applyAllPresetIds: ['visual-novel-stage', 'visual-novel-attachment-mount', 'visual-novel-attachments', 'visual-novel-prose', 'visual-novel-inner-voice', 'visual-novel-greetings', 'visual-novel-hud', 'visual-novel-read-more', 'visual-novel-user-choice', 'visual-novel-minimal-route-log', 'visual-novel-minimal-user-log', 'visual-novel-minimal-prose', 'visual-novel-minimal-inner-voice', 'visual-novel-minimal-hud', 'visual-novel-roster', 'visual-novel-composer'],
     sections: [
-      { label: 'Assistant scene', presetIds: ['visual-novel-stage', 'visual-novel-attachments', 'visual-novel-inner-voice', 'visual-novel-greetings', 'visual-novel-hud', 'visual-novel-read-more'] },
-      { label: 'Prose', presetIds: ['visual-novel-prose'] },
+      { label: 'Assistant scene', presetIds: ['visual-novel-stage', 'visual-novel-attachment-mount', 'visual-novel-inner-voice', 'visual-novel-greetings', 'visual-novel-hud'] },
+      { label: 'Minimal VN dialogue stage', presetIds: ['visual-novel-minimal-route-log', 'visual-novel-minimal-user-log', 'visual-novel-minimal-prose', 'visual-novel-minimal-inner-voice', 'visual-novel-minimal-hud'] },
+      { label: 'Shared route media', presetIds: ['visual-novel-attachments', 'visual-novel-read-more'] },
+      { label: 'Prose', presetIds: ['visual-novel-prose', 'visual-novel-minimal-prose'] },
       { label: 'User role', presetIds: ['visual-novel-user-choice', 'visual-novel-user-speaker'] },
       { label: 'Scene furniture', presetIds: ['visual-novel-roster'] },
       { label: 'Composer', presetIds: ['visual-novel-composer'] },
@@ -291,9 +316,9 @@ export const STYLE_LIBRARY_PACKS: StyleLibraryPack[] = [
     preview: 'journal',
     defaultPalette: { accent: '#8db5b0', text: '#4b5553', intensity: 72 },
     keywords: ['journal', 'scrapbook', 'stationery', 'polaroid', 'washi', 'tape', 'sticker', 'paper', 'cute', 'ornament', 'diary', 'stamp'],
-    applyAllPresetIds: ['journal-polaroid-note', 'journal-entry-ledger', 'journal-minimal-card', 'minimal-native-strip-off', 'journal-corner-sticker', 'journal-thinking-note', 'journal-greetings-ticket', 'journal-page-pager', 'journal-read-more', 'journal-paper-actions', 'journal-scroll-stamp', 'journal-photo-insert', 'journal-prose', 'journal-quote-card', 'journal-pasted-ephemera', 'journal-composer'],
+    applyAllPresetIds: ['journal-polaroid-note', 'journal-entry-ledger', 'journal-minimal-card', 'minimal-native-strip-off', 'journal-corner-sticker', 'journal-minimal-corner-sticker', 'journal-thinking-note', 'journal-minimal-thinking-note', 'journal-greetings-ticket', 'journal-minimal-greetings-ticket', 'journal-page-pager', 'journal-read-more', 'journal-paper-actions', 'journal-minimal-paper-actions', 'journal-scroll-stamp', 'journal-photo-insert', 'journal-prose', 'journal-quote-card', 'journal-pasted-ephemera', 'journal-composer'],
     sections: [
-      { label: 'Messages', presetIds: ['journal-polaroid-note', 'journal-entry-ledger', 'journal-minimal-card', 'minimal-native-strip-off', 'journal-corner-sticker', 'journal-thinking-note', 'journal-greetings-ticket', 'journal-page-pager', 'journal-read-more', 'journal-paper-actions', 'journal-pasted-ephemera'] },
+      { label: 'Messages', presetIds: ['journal-polaroid-note', 'journal-entry-ledger', 'journal-minimal-card', 'minimal-native-strip-off', 'journal-corner-sticker', 'journal-minimal-corner-sticker', 'journal-thinking-note', 'journal-minimal-thinking-note', 'journal-greetings-ticket', 'journal-minimal-greetings-ticket', 'journal-page-pager', 'journal-read-more', 'journal-paper-actions', 'journal-minimal-paper-actions', 'journal-pasted-ephemera'] },
       { label: 'Prose', presetIds: ['journal-photo-insert', 'journal-prose', 'journal-quote-card'] },
       { label: 'Furniture', presetIds: ['journal-scroll-stamp'] },
       { label: 'Composer', presetIds: ['journal-composer'] },

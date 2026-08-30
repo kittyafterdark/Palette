@@ -157,7 +157,7 @@ describe('Phase Four Boost semantics', () => {
     await bridge.sync(project.boost)
     const expected = bridge.runtimeDiagnostics?.expected
     expect(expected).toBeTruthy()
-    expect(document.documentElement.style.getPropertyValue('--lumiverse-primary').trim()).toBe(expected)
+    expect(document.documentElement.style.getPropertyValue('--lumiverse-primary').trim()).toBe(expected!)
     expect(document.documentElement.style.getPropertyPriority('--lumiverse-primary')).toBe('important')
     expect(bridge.runtimeDiagnostics?.authority).toBe('root-inline-important')
 
@@ -165,7 +165,7 @@ describe('Phase Four Boost semantics', () => {
     // remember that new underlying value and reclaim Boost before the next paint.
     document.documentElement.style.setProperty('--lumiverse-primary', '#445566')
     await new Promise((resolve) => setTimeout(resolve, 0))
-    expect(document.documentElement.style.getPropertyValue('--lumiverse-primary').trim()).toBe(expected)
+    expect(document.documentElement.style.getPropertyValue('--lumiverse-primary').trim()).toBe(expected!)
     expect(document.documentElement.style.getPropertyPriority('--lumiverse-primary')).toBe('important')
 
     await bridge.clear()

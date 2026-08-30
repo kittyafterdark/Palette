@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'bun:test'
 import { COMMON_PART_CATEGORIES, COMMON_PART_PRESETS, KNOWN_PART_ROLES, applyTextInkPolicyForRole, presetRoles, targetForKnownRole, textInkModeForRole } from '../src/presets/common-parts'
+import type { DimensionValue } from '../src/project/model'
+
+function fixedValue(value: DimensionValue | undefined): number | undefined {
+  return value?.mode === 'fixed' ? value.value : undefined
+}
 
 describe('common-part quick style library', () => {
   test('each gallery category has reusable semantic recipes built from known roles', () => {
@@ -11,9 +16,9 @@ describe('common-part quick style library', () => {
         for (const step of preset.steps) {
           const role = KNOWN_PART_ROLES[step.role]
           expect(role.component.length).toBeGreaterThan(0)
-          if (role.source === 'dom-scoped') expect(role.selectors[0].selector).toMatch(/:where\(#root\)|\[data-component="(?:BubbleMessage|MinimalMessage|MessageContent)"\]/)
+          if (role.source === 'dom-scoped') expect(role.selectors[0].selector).toMatch(/:where\(#root\)|\[data-component=/)
           else expect(role.selectors[0].selector).toContain(`[data-component="${role.component}"]`)
-          expect(step.createPackets().length).toBeGreaterThan(0)
+          expect(step.createPackets().length + (step.createMobilePackets?.().length ?? 0)).toBeGreaterThan(0)
         }
         expect(presetRoles(preset).length).toBe(preset.steps.length)
       }
@@ -45,10 +50,10 @@ describe('common-part quick style library', () => {
   })
 
   test('MessageContent prose gallery covers individual roles plus whole hierarchy suites', () => {
-    const prose = COMMON_PART_PRESETS.filter((entry) => entry.category === 'prose' && !['Manga', 'Editorial'].includes(entry.section ?? ''))
+    const prose = COMMON_PART_PRESETS.filter((entry) => entry.category === 'prose' && !['Manga', 'Editorial', 'Journal', 'Visual Novel'].includes(entry.section ?? ''))
     const individual = prose.filter((entry) => !entry.id.includes('suite'))
     expect(individual.map((entry) => entry.steps[0].role)).toEqual([
-      'message.h1', 'message.h2', 'message.h3', 'message.h4', 'message.paragraph', 'message.codeblock', 'message.bold', 'message.italic',
+      'message.h1', 'message.h1', 'message.h1', 'message.h1', 'message.paragraph', 'message.codeblock', 'message.bold', 'message.italic',
     ])
     const suites = prose.filter((entry) => entry.id.includes('suite'))
     expect(suites.map((entry) => entry.id)).toEqual(['prose-editorial-suite', 'prose-neon-suite', 'prose-terminal-suite'])
@@ -88,7 +93,7 @@ describe('common-part quick style library', () => {
 
 
   test('prose and avatar recipes expose useful browsing subsections', () => {
-    const coreProse = COMMON_PART_PRESETS.filter((entry) => entry.category === 'prose' && !['Manga', 'Editorial'].includes(entry.section ?? ''))
+    const coreProse = COMMON_PART_PRESETS.filter((entry) => entry.category === 'prose' && !['Manga', 'Editorial', 'Journal', 'Visual Novel'].includes(entry.section ?? ''))
     const proseSections = new Set(coreProse.map((entry) => entry.section))
     expect(proseSections).toEqual(new Set(['Sets', 'Headings', 'Body', 'Inline', 'Code']))
     const headingSystems = coreProse.filter((entry) => entry.section === 'Headings')
@@ -96,7 +101,7 @@ describe('common-part quick style library', () => {
     for (const system of headingSystems) expect(system.steps.map((step) => step.role)).toEqual(['message.h1', 'message.h2', 'message.h3', 'message.h4'])
     const packProseSections = new Set(COMMON_PART_PRESETS.filter((entry) => entry.category === 'prose' && ['Manga', 'Editorial'].includes(entry.section ?? '')).map((entry) => entry.section))
     expect(packProseSections).toEqual(new Set(['Manga', 'Editorial']))
-    const coreAvatar = COMMON_PART_PRESETS.filter((entry) => entry.category === 'avatar' && !['Manga', 'Editorial'].includes(entry.section ?? ''))
+    const coreAvatar = COMMON_PART_PRESETS.filter((entry) => entry.category === 'avatar' && !['Manga', 'Editorial', 'Legacy'].includes(entry.section ?? ''))
     const avatarSections = new Set(coreAvatar.map((entry) => entry.section))
     expect(avatarSections).toEqual(new Set(['Hero', 'Portrait', 'Frames', 'Backdrop']))
   })
@@ -183,6 +188,12 @@ describe('common-part quick style library', () => {
     expect(KNOWN_PART_ROLES['input.field'].selectors[0].selector).toContain('_inputWrapper_')
     expect(KNOWN_PART_ROLES['input.attach'].selectors[0].selector).toContain('_attachBtn_')
     expect(KNOWN_PART_ROLES['input.attach'].selectors[0].selector).toContain(':not([class*="_sttBtn_"])')
+    expect(KNOWN_PART_ROLES['input.textarea'].selectors[0].selector).toBe('[data-component="InputArea"] textarea[name="chat-message"]')
+    expect(KNOWN_PART_ROLES['input.textarea.mirror'].selectors[0].selector).toContain('_textareaMirror_')
+    expect(KNOWN_PART_ROLES['input.placeholder'].selectors[0].selector).toBe('[data-component="InputArea"] textarea[name="chat-message"]::placeholder')
+    expect(KNOWN_PART_ROLES['input.send.shell'].selectors[0].selector).toContain('_sendBtnShell_')
+    expect(KNOWN_PART_ROLES['input.send'].selectors[0].selector).toContain('> button[class*="_sendBtn_"]')
+    expect(KNOWN_PART_ROLES['input.send.icon'].selectors[0].selector).toContain('_sendBtnIcon_')
     expect(KNOWN_PART_ROLES['input.send.controls'].selectors[0].selector).toContain('_sendBtnIcon_')
     expect(KNOWN_PART_ROLES['input.status.badges'].selectors[0].selector).toContain('[data-composer-action="persona"][data-toolbar-action="persona"]')
     expect(KNOWN_PART_ROLES['input.status.badges'].selectors[0].selector).toContain('[data-composer-action="guides"][data-toolbar-action="guides"]')
@@ -194,13 +205,29 @@ describe('common-part quick style library', () => {
     expect(KNOWN_PART_ROLES['prose.bold'].selectors[0].selector).toContain('MessageContent')
     expect(KNOWN_PART_ROLES['prose.italic'].selectors[0].selector).toContain('MessageContent')
     const editorialThinking = COMMON_PART_PRESETS.find((entry) => entry.id === 'message-thinking-editorial')!
-    expect(editorialThinking.steps.map((step) => step.role)).toEqual(['message.thinking', 'message.thinking.header', 'message.thinking.toggle', 'message.thinking.icon', 'message.thinking.content'])
-    expect(editorialThinking.steps.find((step) => step.role === 'message.thinking.header')!.createPackets().map((packet) => packet.type)).toContain('corners')
+    expect(editorialThinking.steps.map((step) => step.role)).toEqual(['bubble.thinking', 'bubble.thinking.header', 'bubble.thinking.toggle', 'bubble.thinking.icon', 'bubble.thinking.content'])
+    expect(editorialThinking.steps.find((step) => step.role === 'bubble.thinking.header')!.createPackets().map((packet) => packet.type)).toContain('corners')
+    expect(editorialThinking.steps.find((step) => step.role === 'bubble.thinking')!.createPackets().find((packet) => packet.type === 'border')).toMatchObject({ type: 'border', width: 0 })
+    expect(editorialThinking.steps.find((step) => step.role === 'bubble.thinking')!.createPackets().find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 72, unit: '%' }, maxWidth: { mode: 'fixed', value: 620, unit: 'px' } })
+    expect(editorialThinking.steps.find((step) => step.role === 'bubble.thinking')!.createMobilePackets!().find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' }, maxWidth: { mode: 'parent' } })
+    const editorialThinkingHeaderBg = editorialThinking.steps.find((step) => step.role === 'bubble.thinking.header')!.createPackets().find((packet) => packet.type === 'background')
+    expect(editorialThinkingHeaderBg?.type === 'background' && editorialThinkingHeaderBg.mode).toBe('gradient')
+    expect(editorialThinkingHeaderBg?.type === 'background' && editorialThinkingHeaderBg.gradient.stops[0]?.color).toBe('#617983')
+    expect(editorialThinking.steps.find((step) => step.role === 'bubble.thinking.toggle')!.createPackets().map((packet) => packet.type)).toEqual(['text'])
     const mangaThinking = COMMON_PART_PRESETS.find((entry) => entry.id === 'message-thinking-manga')!
-    expect(mangaThinking.steps.map((step) => step.role)).toEqual(['message.thinking', 'message.thinking.header', 'message.thinking.toggle', 'message.thinking.icon', 'message.thinking.content'])
-    expect(mangaThinking.steps.find((step) => step.role === 'message.thinking.header')!.createPackets().map((packet) => packet.type)).toContain('border')
+    expect(mangaThinking.steps.map((step) => step.role)).toEqual(['bubble.thinking', 'bubble.thinking.header', 'bubble.thinking.toggle', 'bubble.thinking.icon', 'bubble.thinking.content'])
+    expect(mangaThinking.steps.find((step) => step.role === 'bubble.thinking.header')!.createPackets().map((packet) => packet.type)).toContain('border')
     const mangaGreetings = COMMON_PART_PRESETS.find((entry) => entry.id === 'manga-greetings-tag')!
-    expect(mangaGreetings.steps.map((step) => step.role)).toEqual(['message.greetings', 'message.greetings.content'])
+    expect(mangaGreetings.steps.map((step) => step.role)).toEqual(['bubble.greetings', 'bubble.greetings.content'])
+    const minimalMangaThinking = COMMON_PART_PRESETS.find((entry) => entry.id === 'minimal-thinking-manga')!
+    expect(minimalMangaThinking.steps.map((step) => step.role)).toEqual(['minimal.thinking', 'minimal.thinking.header', 'minimal.thinking.toggle', 'minimal.thinking.icon', 'minimal.thinking.content'])
+    const minimalMangaGreetings = COMMON_PART_PRESETS.find((entry) => entry.id === 'manga-minimal-greetings-tag')!
+    expect(minimalMangaGreetings.steps.map((step) => step.role)).toEqual(['minimal.greetings', 'minimal.greetings.content'])
+    const minimalEditorialThinking = COMMON_PART_PRESETS.find((entry) => entry.id === 'minimal-thinking-editorial')!
+    expect(minimalEditorialThinking.steps.every((step) => step.role.startsWith('minimal.thinking'))).toBe(true)
+    expect(minimalEditorialThinking.steps.find((step) => step.role === 'minimal.thinking')!.createPackets().find((packet) => packet.type === 'border')).toMatchObject({ type: 'border', width: 0 })
+    expect(minimalEditorialThinking.steps.find((step) => step.role === 'minimal.thinking')!.createMobilePackets!().find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' }, maxWidth: { mode: 'parent' } })
+    expect(minimalEditorialThinking.steps.find((step) => step.role === 'minimal.thinking.toggle')!.createPackets().map((packet) => packet.type)).toEqual(['text'])
     const mangaReadMore = COMMON_PART_PRESETS.find((entry) => entry.id === 'manga-read-more')!
     expect(mangaReadMore.steps.map((step) => step.role)).toEqual(['message.long-toggle', 'message.long-toggle.label'])
     expect(mangaReadMore.steps[1].createPackets().find((packet) => packet.type === 'typography')?.type).toBe('typography')
@@ -287,16 +314,200 @@ describe('common-part quick style library', () => {
     expect(mangaMinimal.name).toBe('Portrait rail')
     expect(mangaMinimal.steps.map((step) => step.role)).toContain('minimal.content.rule')
     expect(mangaMinimal.steps.map((step) => step.role)).toContain('minimal.name.user')
-    const mangaMinimalAvatar = mangaMinimal.steps.find((step) => step.role === 'minimal.avatar.frame')!
+    const mangaMinimalAvatar = mangaMinimal.steps.find((step) => step.role === 'minimal.avatar.assistant.frame')!
     const mangaMinimalPosition = mangaMinimalAvatar.createPackets().find((packet) => packet.type === 'position')
     const mangaMinimalMobilePosition = mangaMinimalAvatar.createMobilePackets!().find((packet) => packet.type === 'position')
-    expect(mangaMinimalPosition?.type === 'position' && mangaMinimalPosition.mode).toBe('anchored')
-    expect(mangaMinimalMobilePosition?.type === 'position' && mangaMinimalMobilePosition.mode).toBe('nudge')
+    expect(mangaMinimalPosition?.type === 'position' && mangaMinimalPosition.mode).toBe('sticky')
+    expect(mangaMinimalPosition?.type === 'position' && mangaMinimalPosition.top).toBe(18)
+    expect(mangaMinimalMobilePosition?.type === 'position' && mangaMinimalMobilePosition.mode).toBe('flow')
+    expect(mangaMinimalMobilePosition?.editedFields).toContain('mode')
+    expect(mangaMinimal.steps.map((step) => step.role)).toContain('minimal.avatar.user.image')
+    expect(mangaMinimal.steps.map((step) => step.role)).toContain('minimal.content.user')
+    expect(mangaMinimal.steps.map((step) => step.role)).toContain('minimal.header.assistant')
+    expect(mangaMinimal.steps.map((step) => step.role)).toContain('minimal.header.user')
+    const mangaAssistantHeader = mangaMinimal.steps.find((step) => step.role === 'minimal.header.assistant')!
+    const mangaUserHeader = mangaMinimal.steps.find((step) => step.role === 'minimal.header.user')!
+    expect(mangaAssistantHeader.createPackets().find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', direction: 'column', align: 'start', justify: 'start' })
+    expect(mangaUserHeader.createPackets().find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', direction: 'column', align: 'start', justify: 'start' })
+    expect(mangaAssistantHeader.createPackets().find((packet) => packet.type === 'spacing')).toMatchObject({ type: 'spacing', padding: { top: 30, right: 58, bottom: 8, left: 0, unit: 'px' } })
+    expect(mangaUserHeader.createPackets().find((packet) => packet.type === 'spacing')).toMatchObject({ type: 'spacing', padding: { top: 30, right: 0, bottom: 8, left: 58, unit: 'px' } })
+    expect(mangaAssistantHeader.createPackets().find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' } })
+    expect(mangaUserHeader.createPackets().find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' } })
+    const mangaMinimalUserAvatar = mangaMinimal.steps.find((step) => step.role === 'minimal.avatar.user.frame')!
+    const mangaMinimalUserPosition = mangaMinimalUserAvatar.createPackets().find((packet) => packet.type === 'position')
+    const mangaMinimalUserMobilePosition = mangaMinimalUserAvatar.createMobilePackets!().find((packet) => packet.type === 'position')
+    expect(mangaMinimalUserPosition?.type === 'position' && mangaMinimalUserPosition.mode).toBe('sticky')
+    expect(mangaMinimalUserPosition?.type === 'position' && mangaMinimalUserPosition.top).toBe(18)
+    expect(mangaMinimalUserMobilePosition?.type === 'position' && mangaMinimalUserMobilePosition.mode).toBe('flow')
+    expect(mangaMinimalUserMobilePosition?.editedFields).toContain('mode')
+    const assistantName = mangaMinimal.steps.find((step) => step.role === 'minimal.name')!.createPackets().find((packet) => packet.type === 'typography')
+    const userName = mangaMinimal.steps.find((step) => step.role === 'minimal.name.user')!.createPackets().find((packet) => packet.type === 'typography')
+    expect(userName).toMatchObject({ type: 'typography', fontSize: 18, fontWeight: 900, transform: 'uppercase', letterSpacing: 1.45 })
+    expect(assistantName).toMatchObject({ type: 'typography', fontSize: 18, fontWeight: 900, transform: 'uppercase', letterSpacing: 1.45 })
+    const assistantHeader = mangaMinimal.steps.find((step) => step.role === 'minimal.header.assistant')!.createPackets()
+    const userHeader = mangaMinimal.steps.find((step) => step.role === 'minimal.header.user')!.createPackets()
+    expect(assistantHeader.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'content' } })
+    expect(assistantHeader.find((packet) => packet.type === 'placement')).toMatchObject({ type: 'placement', horizontal: 'start', vertical: 'native' })
+    expect(userHeader.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'content' } })
+    expect(userHeader.find((packet) => packet.type === 'placement')).toMatchObject({ type: 'placement', horizontal: 'end', vertical: 'native' })
+    expect(mangaMinimal.steps.every((step) => step.role.startsWith('minimal.'))).toBe(true)
+    for (const role of ['minimal.actions.assistant.row', 'minimal.actions.assistant.buttons', 'minimal.actions.assistant.icons', 'minimal.actions.user.row', 'minimal.actions.user.buttons', 'minimal.actions.user.icons', 'minimal.actions.edit', 'minimal.actions.hide', 'minimal.actions.anchor', 'minimal.actions.fork', 'minimal.actions.prompt', 'minimal.actions.delete', 'minimal.actions.omitted'] as const) {
+      expect(KNOWN_PART_ROLES[role].selectors[0].selector).toContain('[data-component="MinimalMessage"]')
+      expect(KNOWN_PART_ROLES[role].selectors[0].selector).not.toContain('BubbleMessage')
+    }
+    const expectedLabels = new Map([
+      ['minimal.actions.edit', 'EDIT'],
+      ['minimal.actions.hide', 'HIDE'],
+      ['minimal.actions.anchor', 'ANCHOR'],
+      ['minimal.actions.fork', 'FORK'],
+      ['minimal.actions.prompt', 'PROMPT'],
+      ['minimal.actions.delete', 'DELETE'],
+    ])
+    for (const [role, label] of expectedLabels) {
+      const step = mangaMinimal.steps.find((entry) => entry.role === role)!
+      const content = step.createPackets().find((packet) => packet.type === 'content')
+      const text = step.createPackets().find((packet) => packet.type === 'text')
+      expect(content).toMatchObject({ type: 'content', source: 'literal', value: label })
+      expect(text).toMatchObject({ type: 'text', outlineMode: 'outside', strokeColor: '#000000', strokeAlpha: 1, strokeWidth: 1 })
+    }
+    const deleteText = mangaMinimal.steps.find((entry) => entry.role === 'minimal.actions.delete')!.createPackets().find((packet) => packet.type === 'text')
+    expect(deleteText).toMatchObject({ type: 'text', solid: { color: '#ff2d3d', alpha: 1 } })
+    expect(mangaMinimal.steps.find((entry) => entry.role === 'minimal.actions.omitted')!.createPackets().find((packet) => packet.type === 'visibility')).toMatchObject({ type: 'visibility', mode: 'gone' })
+    const assistantActions = mangaMinimal.steps.find((step) => step.role === 'minimal.actions.assistant')!.createPackets()
+    const assistantActionRow = mangaMinimal.steps.find((step) => step.role === 'minimal.actions.assistant.row')!.createPackets()
+    const userActions = mangaMinimal.steps.find((step) => step.role === 'minimal.actions.user')!.createPackets()
+    const userActionRow = mangaMinimal.steps.find((step) => step.role === 'minimal.actions.user.row')!.createPackets()
+    expect(assistantActions.find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', top: 9, right: 58 })
+    expect(assistantActions.find((packet) => packet.type === 'position')).not.toMatchObject({ nudgeX: expect.any(Number) })
+    expect(userActions.find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', top: 9, left: 58 })
+    expect(userActions.find((packet) => packet.type === 'position')).not.toMatchObject({ nudgeX: expect.any(Number) })
+    expect(assistantActions.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 40, unit: '%' }, maxWidth: { mode: 'fixed', value: 420, unit: 'px' } })
+    expect(userActions.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 40, unit: '%' }, maxWidth: { mode: 'fixed', value: 420, unit: 'px' } })
+    expect(assistantActionRow.find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', wrap: 'nowrap', justify: 'space-between', gap: { mode: 'fixed', value: 8, unit: 'px' } })
+    expect(userActionRow.find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', wrap: 'nowrap', justify: 'space-between', gap: { mode: 'fixed', value: 8, unit: 'px' } })
+    expect(assistantActionRow.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 100, unit: '%' } })
+    expect(userActionRow.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 100, unit: '%' } })
+    const userNameItem = mangaMinimal.steps.find((step) => step.role === 'minimal.name.user')!.createPackets().find((packet) => packet.type === 'layout-item')
+    const assistantMetaItem = mangaMinimal.steps.find((step) => step.role === 'minimal.meta.assistant.pill')!.createPackets().find((packet) => packet.type === 'layout-item')
+    const userMetaItem = mangaMinimal.steps.find((step) => step.role === 'minimal.meta.user.pill')!.createPackets().find((packet) => packet.type === 'layout-item')
+    expect(userNameItem).toMatchObject({ type: 'layout-item', alignSelf: 'start' })
+    expect(assistantMetaItem).toMatchObject({ type: 'layout-item', alignSelf: 'start' })
+    expect(userMetaItem).toMatchObject({ type: 'layout-item', alignSelf: 'start' })
+    expect(KNOWN_PART_ROLES['minimal.header.assistant'].selectors[0].selector).toContain(':not([class*="_user_"])')
+    expect(KNOWN_PART_ROLES['minimal.header.user'].selectors[0].selector).toContain('[class*="_user_"]')
+    expect(KNOWN_PART_ROLES['minimal.name'].selectors[0].selector).toContain(':not([class*="_user_"])')
+    expect(KNOWN_PART_ROLES['minimal.name.user'].selectors[0].selector).toContain('[class*="_user_"]')
+    expect(KNOWN_PART_ROLES['minimal.meta.assistant.pill'].selectors[0].selector).toContain(':not([class*="_user_"])')
+    expect(KNOWN_PART_ROLES['minimal.meta.user.pill'].selectors[0].selector).toContain('[class*="_user_"]')
+
+    const mobileAssistantBubble = mangaMinimal.steps.find((step) => step.role === 'minimal.bubble.assistant')!.createMobilePackets!()
+    const mobileUserBubble = mangaMinimal.steps.find((step) => step.role === 'minimal.bubble.user')!.createMobilePackets!()
+    expect(mobileAssistantBubble.find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', display: 'block' })
+    expect(mobileUserBubble.find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', display: 'block' })
+    expect(mobileAssistantBubble.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' }, maxWidth: { mode: 'parent' } })
+    expect(mobileUserBubble.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' }, maxWidth: { mode: 'parent' } })
+    const mobileAssistantHeader = mangaAssistantHeader.createMobilePackets!()
+    const mobileUserHeader = mangaUserHeader.createMobilePackets!()
+    expect(mobileAssistantHeader.find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', direction: 'column', align: 'start', justify: 'start', gap: { mode: 'fixed', value: 2, unit: 'px' } })
+    expect(mobileUserHeader.find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', direction: 'column', align: 'start', justify: 'start', gap: { mode: 'fixed', value: 2, unit: 'px' } })
+    expect(mobileAssistantHeader.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' }, maxWidth: { mode: 'parent' }, minHeight: { mode: 'fixed', value: 60, unit: 'px' } })
+    expect(mobileUserHeader.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' }, maxWidth: { mode: 'parent' }, minHeight: { mode: 'fixed', value: 60, unit: 'px' } })
+    const mobileAssistantActions = mangaMinimal.steps.find((step) => step.role === 'minimal.actions.assistant')!.createMobilePackets!()
+    const mobileUserActions = mangaMinimal.steps.find((step) => step.role === 'minimal.actions.user')!.createMobilePackets!()
+    const mobileAssistantRow = mangaMinimal.steps.find((step) => step.role === 'minimal.actions.assistant.row')!.createMobilePackets!()
+    const mobileUserRow = mangaMinimal.steps.find((step) => step.role === 'minimal.actions.user.row')!.createMobilePackets!()
+    expect(mobileAssistantActions.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' }, maxWidth: { mode: 'parent' } })
+    expect(mobileUserActions.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' }, maxWidth: { mode: 'parent' } })
+    expect(mobileAssistantRow.find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', wrap: 'nowrap', justify: 'space-between', gap: { mode: 'fixed', value: 4, unit: 'px' } })
+    expect(mobileUserRow.find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', wrap: 'nowrap', justify: 'space-between', gap: { mode: 'fixed', value: 4, unit: 'px' } })
+    expect(mobileAssistantRow.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' }, maxWidth: { mode: 'parent' } })
+    expect(mobileUserRow.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' }, maxWidth: { mode: 'parent' } })
+    const mobileAssistantMount = mangaMinimal.steps.find((step) => step.role === 'minimal.content.mount.assistant')!.createMobilePackets!()
+    const mobileUserMount = mangaMinimal.steps.find((step) => step.role === 'minimal.content.mount.user')!.createMobilePackets!()
+    expect(mobileAssistantMount.find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', display: 'block' })
+    expect(mobileUserMount.find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', display: 'block' })
+    expect(mobileAssistantMount.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' }, minWidth: { mode: 'fixed', value: 0, unit: 'px' }, maxWidth: { mode: 'parent' }, height: { mode: 'content' } })
+    expect(mobileUserMount.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' }, minWidth: { mode: 'fixed', value: 0, unit: 'px' }, maxWidth: { mode: 'parent' }, height: { mode: 'content' } })
+    const mobileAssistantContent = mangaMinimal.steps.find((step) => step.role === 'minimal.content.assistant')!.createMobilePackets!().find((packet) => packet.type === 'size')
+    const mobileUserContent = mangaMinimal.steps.find((step) => step.role === 'minimal.content.user')!.createMobilePackets!().find((packet) => packet.type === 'size')
+    expect(mobileAssistantContent).toMatchObject({ type: 'size', width: { mode: 'parent' }, maxWidth: { mode: 'parent' } })
+    expect(mobileUserContent).toMatchObject({ type: 'size', width: { mode: 'parent' }, maxWidth: { mode: 'parent' } })
+    const mangaMinimalThinking = COMMON_PART_PRESETS.find((entry) => entry.id === 'minimal-thinking-manga')!
+    const mobileThinkingSize = mangaMinimalThinking.steps.find((step) => step.role === 'minimal.thinking')!.createMobilePackets!().find((packet) => packet.type === 'size')
+    expect(mobileThinkingSize).toMatchObject({ type: 'size', width: { mode: 'parent' }, maxWidth: { mode: 'parent' } })
+
+    const mangaMinimalTemper = COMMON_PART_PRESETS.find((entry) => entry.id === 'manga-minimal-temper-mark')!
+    expect(mangaMinimalTemper.steps.map((step) => step.role)).toEqual(['minimal.corner-ornament.assistant', 'minimal.corner-ornament.user'])
+    expect(KNOWN_PART_ROLES['minimal.corner-ornament.assistant'].selectors[0].selector).toContain(':not([class*="_user_"])::after')
+    expect(KNOWN_PART_ROLES['minimal.corner-ornament.user'].selectors[0].selector).toContain('[class*="_user_"]::after')
+    const userTemperPosition = mangaMinimalTemper.steps[1].createPackets().find((packet) => packet.type === 'position')
+    expect(userTemperPosition).toMatchObject({ type: 'position', left: 8 })
+    const assistantTemperMobile = mangaMinimalTemper.steps[0].createMobilePackets!()
+    const userTemperMobile = mangaMinimalTemper.steps[1].createMobilePackets!()
+    expect(assistantTemperMobile.find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', top: 42, left: 42 })
+    expect(userTemperMobile.find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', top: 42, right: 42 })
+    expect(assistantTemperMobile.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 20, unit: 'px' }, height: { mode: 'fixed', value: 20, unit: 'px' } })
 
     const editorialMinimal = COMMON_PART_PRESETS.find((entry) => entry.id === 'editorial-column-rule')!
     expect(editorialMinimal.name).toBe('Author rail')
     expect(editorialMinimal.steps.map((step) => step.role)).toContain('minimal.content.rule')
     expect(editorialMinimal.steps.map((step) => step.role)).toContain('minimal.name.user')
+    expect(editorialMinimal.steps.map((step) => step.role)).toContain('minimal.avatar.assistant.image')
+    expect(editorialMinimal.steps.map((step) => step.role)).not.toContain('minimal.avatar.image')
+    const editorialAssistantAvatar = editorialMinimal.steps.find((step) => step.role === 'minimal.avatar.assistant.frame')!.createPackets().find((packet) => packet.type === 'size')
+    expect(editorialAssistantAvatar).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 94, unit: 'px' }, height: { mode: 'fixed', value: 118, unit: 'px' } })
+    const editorialAssistantMobileFrame = editorialMinimal.steps.find((step) => step.role === 'minimal.assistant.frame')!.createMobilePackets!()
+    expect(editorialAssistantMobileFrame.find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', display: 'block' })
+    const editorialAssistantMobileHeader = editorialMinimal.steps.find((step) => step.role === 'minimal.header')!.createMobilePackets!()
+    expect(editorialAssistantMobileHeader.find((packet) => packet.type === 'spacing')).toMatchObject({ type: 'spacing', padding: { linked: false, top: 0, right: 0, bottom: 8, left: 58, unit: 'px' } })
+    expect(editorialAssistantMobileHeader.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', minHeight: { mode: 'fixed', value: 66, unit: 'px' } })
+    const editorialAssistantMobileAvatar = editorialMinimal.steps.find((step) => step.role === 'minimal.avatar.assistant.frame')!.createMobilePackets!()
+    expect(editorialAssistantMobileAvatar.find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', mode: 'anchored', top: 10, left: 12 })
+    const editorialAssistantMobileActions = editorialMinimal.steps.find((step) => step.role === 'minimal.actions.assistant')!.createMobilePackets!()
+    expect(editorialAssistantMobileActions.find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', mode: 'flow' })
+    expect(editorialAssistantMobileActions.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' }, maxWidth: { mode: 'parent' } })
+    expect(editorialAssistantMobileActions.find((packet) => packet.type === 'spacing')).toMatchObject({ type: 'spacing', margin: { top: 1, right: 0, bottom: 0, left: 0, unit: 'px' }, padding: { top: 1, right: 0, bottom: 0, left: 0, unit: 'px' } })
+    const compactSwipes = COMMON_PART_PRESETS.find((entry) => entry.id === 'message-swipes-compact')!
+    expect(compactSwipes.steps.map((step) => step.role)).toEqual(['message.swipes', 'message.swipes.buttons', 'message.swipes.counter'])
+    expect(KNOWN_PART_ROLES['message.swipes.buttons'].selectors[0].selector).toContain('> button')
+    expect(KNOWN_PART_ROLES['message.swipes.buttons'].selectors[0].selector).not.toContain('_btn_')
+    expect(KNOWN_PART_ROLES['message.swipes.counter'].selectors[0].selector).toContain('[class*="_counter_"]')
+    expect(compactSwipes.steps.find((step) => step.role === 'message.swipes.buttons')!.createPackets().find((packet) => packet.type === 'border')).toMatchObject({ type: 'border', width: 0 })
+    expect(compactSwipes.steps.find((step) => step.role === 'message.swipes.buttons')!.createMobilePackets!().find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 20, unit: 'px' }, height: { mode: 'fixed', value: 20, unit: 'px' } })
+    expect(compactSwipes.steps.find((step) => step.role === 'message.swipes.counter')!.createPackets().find((packet) => packet.type === 'typography')).toMatchObject({ type: 'typography', fontSize: 9, fontWeight: 750 })
+    const correspondent = COMMON_PART_PRESETS.find((entry) => entry.id === 'editorial-user-correspondent')!
+    const correspondentAvatar = correspondent.steps.find((step) => step.role === 'minimal.avatar.user.frame')!
+    expect(correspondentAvatar.createPackets().find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', mode: 'anchored', top: 14, left: 18 })
+    expect(correspondentAvatar.createPackets().find((packet) => packet.type === 'placement')).toBeUndefined()
+    expect(correspondent.steps.map((step) => step.role)).toContain('minimal.avatar.user.image')
+    expect(correspondent.steps.map((step) => step.role)).toContain('minimal.content.user')
+    expect(correspondent.steps.map((step) => step.role)).toContain('minimal.content.user.ink')
+    expect(correspondent.steps.map((step) => step.role)).toContain('minimal.header.user')
+    expect(correspondent.steps.map((step) => step.role)).toContain('minimal.meta.user.pill')
+    const correspondentFrame = correspondent.steps.find((step) => step.role === 'minimal.user.frame')!.createPackets()
+    expect(correspondentFrame.find((packet) => packet.type === 'background')).toMatchObject({ type: 'background', mode: 'gradient' })
+    expect(correspondentFrame.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 74, unit: '%' }, maxWidth: { mode: 'fixed', value: 780, unit: 'px' } })
+    expect(correspondentFrame.find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', mode: 'flow', flowAlign: 'center' })
+    expect(correspondentFrame.find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', display: 'block' })
+    expect(correspondentFrame.find((packet) => packet.type === 'spacing')).toMatchObject({ type: 'spacing', padding: { linked: false, top: 14, right: 18, bottom: 16, left: 106, unit: 'px' } })
+    const correspondentBubble = correspondent.steps.find((step) => step.role === 'minimal.bubble.user')!.createPackets()
+    expect(correspondentBubble.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' }, maxWidth: { mode: 'parent' }, minWidth: { mode: 'fixed', value: 0, unit: 'px' } })
+    expect(correspondentAvatar.createPackets().find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 70, unit: 'px' }, height: { mode: 'fixed', value: 70, unit: 'px' } })
+    const correspondentCorners = correspondentAvatar.createPackets().find((packet) => packet.type === 'corners')
+    expect(correspondentCorners).toMatchObject({ type: 'corners', topLeft: 999, topRight: 999, bottomRight: 999, bottomLeft: 999 })
+    const correspondentHeader = correspondent.steps.find((step) => step.role === 'minimal.header.user')!.createPackets()
+    expect(correspondentHeader.find((packet) => packet.type === 'spacing')).toMatchObject({ type: 'spacing', padding: { linked: true, top: 0, right: 0, bottom: 0, left: 0, unit: 'px' } })
+    expect(correspondentHeader.find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', display: 'flex', direction: 'row', align: 'center' })
+    expect(correspondentHeader.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', height: { mode: 'fixed', value: 40, unit: 'px' } })
+    const correspondentMobileHeader = correspondent.steps.find((step) => step.role === 'minimal.header.user')!.createMobilePackets!()
+    expect(correspondentMobileHeader.find((packet) => packet.type === 'spacing')).toMatchObject({ type: 'spacing', padding: { linked: false, top: 0, right: 0, bottom: 0, left: 54, unit: 'px' } })
+    expect(correspondentMobileHeader.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' }, height: { mode: 'fixed', value: 44, unit: 'px' } })
+    const correspondentMobileAvatar = correspondentAvatar.createMobilePackets!()
+    expect(correspondentMobileAvatar.find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', mode: 'anchored', top: 10, left: 10 })
+    const correspondentActions = correspondent.steps.find((step) => step.role === 'minimal.actions.user')!.createPackets()
+    expect(correspondentActions.find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', top: 91, left: 11 })
+    expect(correspondentActions.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 84, unit: 'px' } })
+    expect(correspondent.steps.find((step) => step.role === 'minimal.actions.user.icons')!.createPackets().find((packet) => packet.type === 'text')).toMatchObject({ type: 'text', solid: { color: '#55747e', alpha: .78 } })
 
     expect(KNOWN_PART_ROLES['meta.segment.number'].selectors[0].selector).toContain(':nth-child(1 of [class*="_metaSegment_"])')
     expect(KNOWN_PART_ROLES['meta.segment.timestamp'].selectors[0].selector).toContain(':nth-child(2 of [class*="_metaSegment_"])')
@@ -327,79 +538,162 @@ describe('common-part quick style library', () => {
 
     const journalThinking = COMMON_PART_PRESETS.find((entry) => entry.id === 'journal-thinking-note')!
     expect(journalThinking.name).toBe('Private note')
-    const thinkingCaption = journalThinking.steps.find((step) => step.role === 'message.thinking.caption')!
+    const thinkingCaption = journalThinking.steps.find((step) => step.role === 'bubble.thinking.caption')!
     const thinkingContent = thinkingCaption.createPackets().find((entry) => entry.type === 'content')
-    expect(thinkingContent?.type === 'content' && thinkingContent.value).toBe('PRIVATE NOTE')
+    expect(thinkingContent?.type === 'content' && thinkingContent.value).toBe('PRIVATE NOTES')
     const thinkingCaptionPosition = thinkingCaption.createPackets().find((entry) => entry.type === 'position')
     expect(thinkingCaptionPosition?.type === 'position' && thinkingCaptionPosition.anchorSelector).toBeUndefined()
-    const thinkingShell = journalThinking.steps.find((step) => step.role === 'message.thinking')!.createPackets()
-    expect(thinkingShell.find((entry) => entry.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 272, unit: 'px' } })
-    const thinkingToggle = journalThinking.steps.find((step) => step.role === 'message.thinking.toggle')!.createPackets()
-    expect(thinkingToggle.find((entry) => entry.type === 'text')).toMatchObject({ type: 'text', solid: { color: '#394542', alpha: 1 } })
+    const thinkingShell = journalThinking.steps.find((step) => step.role === 'bubble.thinking')!.createPackets()
+    expect(thinkingShell.find((entry) => entry.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 60, unit: '%' }, maxWidth: { mode: 'fixed', value: 590, unit: 'px' } })
+    const thinkingToggle = journalThinking.steps.find((step) => step.role === 'bubble.thinking.toggle')!.createPackets()
+    expect(thinkingToggle.find((entry) => entry.type === 'text')).toMatchObject({ type: 'text', solid: { color: '#edf5f1', alpha: .98 } })
     expect(thinkingToggle.find((entry) => entry.type === 'opacity')).toMatchObject({ type: 'opacity', value: 1 })
-    expect(journalThinking.steps.find((step) => step.role === 'message.thinking.content')!.createPackets().some((entry) => entry.type === 'pattern')).toBe(true)
+    expect(journalThinking.steps.find((step) => step.role === 'bubble.thinking.content')!.createPackets().some((entry) => entry.type === 'pattern')).toBe(true)
 
     const journalBubble = COMMON_PART_PRESETS.find((entry) => entry.id === 'journal-polaroid-note')!
     const journalFrame = journalBubble.steps.find((step) => step.role === 'message.frame')!
     expect(journalFrame.tuneText).toBe(false)
     const journalInk = journalFrame.createPackets().find((packet) => packet.type === 'text')
-    expect(journalInk?.type === 'text' && journalInk.solid.color).toBe('#46504e')
+    expect(journalInk?.type === 'text' && journalInk.solid.color).toBe('#3f4947')
     const journalBackdrop = journalBubble.steps.find((step) => step.role === 'avatar.backdrop.stack')!.createPackets()[0]
     expect(journalBackdrop.type === 'visibility' && journalBackdrop.mode).toBe('gone')
     expect(KNOWN_PART_ROLES['avatar.backdrop.stack'].selectors[0].selector).toContain('[class*="_avatarBg_"] img')
     const journalMetaRow = journalBubble.steps.find((step) => step.role === 'meta.row')!.createPackets()
-    expect(journalMetaRow.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 420, unit: 'px' } })
+    expect(journalMetaRow.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 452, unit: 'px' } })
     const journalHeaderSpacing = journalBubble.steps.find((step) => step.role === 'header.root')!.createPackets().find((packet) => packet.type === 'spacing')
-    expect(journalHeaderSpacing).toMatchObject({ type: 'spacing', padding: { bottom: 22 } })
+    expect(journalHeaderSpacing).toMatchObject({ type: 'spacing', padding: { bottom: 18 } })
     const journalFramePackets = journalFrame.createPackets()
     expect(journalFramePackets.find((packet) => packet.type === 'background')?.type).toBe('background')
     expect(journalFramePackets.some((packet) => packet.type === 'pattern')).toBe(true)
     expect(journalFramePackets.some((packet) => packet.type === 'shadow')).toBe(true)
     expect(journalBubble.steps.map((step) => step.role)).toContain('header.root')
+    expect(journalBubble.steps.map((step) => step.role)).toContain('assistant.header')
+    expect(journalBubble.steps.map((step) => step.role)).toContain('assistant.header.left')
+    expect(journalBubble.steps.map((step) => step.role)).toContain('assistant.meta.row')
+    expect(journalBubble.steps.map((step) => step.role)).toContain('user.header')
+    expect(journalBubble.steps.map((step) => step.role)).toContain('user.header.left')
+    const journalAssistantHeaderMobile = journalBubble.steps.find((step) => step.role === 'assistant.header')!.createMobilePackets!()
+    expect(journalAssistantHeaderMobile.find((packet) => packet.type === 'spacing')).toMatchObject({ type: 'spacing', padding: { top: 6, right: 6, bottom: 6, left: 6, unit: 'px' } })
+    expect(journalAssistantHeaderMobile.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' }, boundary: { selector: KNOWN_PART_ROLES['assistant.bubble'].selectors[0].selector, label: 'Bubble' } })
+    expect(journalBubble.steps.find((step) => step.role === 'assistant.header.left')!.createMobilePackets!().find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' }, boundary: { selector: KNOWN_PART_ROLES['assistant.header'].selectors[0].selector, label: 'Header' } })
+    expect(journalBubble.steps.find((step) => step.role === 'assistant.meta.row')!.createMobilePackets!().find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' }, boundary: { selector: KNOWN_PART_ROLES['assistant.header'].selectors[0].selector, label: 'Header' } })
+    expect(journalBubble.steps.find((step) => step.role === 'user.header')!.createMobilePackets!().find((packet) => packet.type === 'spacing')).toMatchObject({ type: 'spacing', padding: { top: 6, right: 6, bottom: 6, left: 6, unit: 'px' } })
+    expect(journalBubble.steps.find((step) => step.role === 'user.header.left')!.createMobilePackets!().find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' }, boundary: { selector: KNOWN_PART_ROLES['user.bubble'].selectors[0].selector, label: 'Bubble' } })
     expect(journalBubble.steps.map((step) => step.role)).toContain('message.content.rule')
     expect(journalBubble.steps.map((step) => step.role)).toContain('message.content.ornament')
     expect(KNOWN_PART_ROLES['header.ornament'].selectors[0].selector).toContain('::after')
     const journalAvatar = journalBubble.steps.find((step) => step.role === 'avatar.frame')!
     const journalAvatarTransform = journalAvatar.createPackets().find((packet) => packet.type === 'transform')
     const journalAvatarMobileTransform = journalAvatar.createMobilePackets!().find((packet) => packet.type === 'transform')
-    expect(journalAvatarTransform?.type === 'transform' && journalAvatarTransform.rotate).toBe(-3)
+    expect(journalAvatarTransform?.type === 'transform' && journalAvatarTransform.rotate).toBe(-2.5)
     expect(journalAvatarMobileTransform?.type === 'transform' && journalAvatarMobileTransform.rotate).toBe(-1)
     const journalMinimal = COMMON_PART_PRESETS.find((entry) => entry.id === 'journal-minimal-card')!
-    expect(journalMinimal.steps.find((step) => step.role === 'minimal.frame')?.tuneText).toBe(false)
+    expect(journalMinimal.steps.find((step) => step.role === 'minimal.assistant.frame')?.tuneText).toBe(false)
+    expect(journalMinimal.steps.find((step) => step.role === 'minimal.user.frame')?.tuneText).toBe(false)
     expect(journalMinimal.steps.map((step) => step.role)).toContain('minimal.content.rule')
     expect(journalMinimal.steps.map((step) => step.role)).toContain('minimal.content.ornament')
     expect(KNOWN_PART_ROLES['minimal.header.ornament'].selectors[0].selector).toContain('::after')
-    const journalMinimalAvatar = journalMinimal.steps.find((step) => step.role === 'minimal.avatar.frame')!
+    expect(KNOWN_PART_ROLES['minimal.header.ornament.assistant'].selectors[0].selector).toContain(':not([class*="_user_"])')
+    expect(KNOWN_PART_ROLES['minimal.header.ornament.user'].selectors[0].selector).toContain('[class*="_user_"]')
+    const journalMinimalAvatar = journalMinimal.steps.find((step) => step.role === 'minimal.avatar.assistant.frame')!
     const journalMinimalTransform = journalMinimalAvatar.createPackets().find((packet) => packet.type === 'transform')
     const journalMinimalMobileTransform = journalMinimalAvatar.createMobilePackets!().find((packet) => packet.type === 'transform')
     expect(journalMinimalTransform?.type === 'transform' && journalMinimalTransform.rotate).toBe(2)
     expect(journalMinimalMobileTransform?.type === 'transform' && journalMinimalMobileTransform.rotate).toBe(0)
+    expect(journalMinimalAvatar.createMobilePackets!().find((packet) => packet.type === 'placement')).toMatchObject({ type: 'placement', horizontal: 'center' })
+    expect(journalMinimal.steps.find((step) => step.role === 'minimal.header')!.createMobilePackets!().find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', justify: 'center' })
     expect(journalBubble.steps.map((step) => step.role)).toContain('header.ornament')
     expect(journalBubble.steps.find((step) => step.role === 'header.ornament')!.createPackets().find((packet) => packet.type === 'transform')).toMatchObject({ type: 'transform', rotate: -7 })
-    expect(journalMinimal.steps.map((step) => step.role)).toContain('minimal.header.ornament')
+    expect(journalMinimal.steps.map((step) => step.role)).toContain('minimal.header.ornament.assistant')
+    expect(journalMinimal.steps.map((step) => step.role)).toContain('minimal.header.ornament.user')
+    expect(journalMinimal.steps.map((step) => step.role)).not.toContain('minimal.header.ornament')
+    const journalAssistantFrameMobile = journalMinimal.steps.find((step) => step.role === 'minimal.assistant.frame')!.createMobilePackets!()
+    expect(journalAssistantFrameMobile.find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', display: 'block' })
+    expect(journalAssistantFrameMobile.find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', mode: 'nudge', nudgeX: 0, nudgeY: 0 })
+    expect(journalMinimal.steps.find((step) => step.role === 'minimal.user.frame')!.createMobilePackets!().find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', display: 'block' })
+    const journalUserAvatar = journalMinimal.steps.find((step) => step.role === 'minimal.avatar.user.frame')!
+    expect(journalUserAvatar.createPackets().find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 85, unit: 'px' }, height: { mode: 'fixed', value: 106, unit: 'px' } })
+    expect(journalUserAvatar.createPackets().find((packet) => packet.type === 'border')).toMatchObject({ type: 'border', width: 7, color: '#8db5b0', alpha: .818 })
+    expect(journalUserAvatar.createMobilePackets!().find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', mode: 'flow', editedFields: ['mode'] })
+    expect(journalUserAvatar.createMobilePackets!().find((packet) => packet.type === 'placement')).toMatchObject({ type: 'placement', horizontal: 'center' })
+    const journalAssistantWashi = journalMinimal.steps.find((step) => step.role === 'minimal.header.ornament.assistant')!
+    const journalUserWashi = journalMinimal.steps.find((step) => step.role === 'minimal.header.ornament.user')!
+    expect(journalAssistantWashi.createPackets().find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', left: -104, top: -8 })
+    expect(journalUserWashi.createPackets().find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', right: -84, top: -8 })
+    expect(journalAssistantWashi.createPackets().find((packet) => packet.type === 'background')).toMatchObject({ type: 'background', image: { maskColor: '#8db5b0', maskAlpha: .654 } })
+    expect(journalAssistantWashi.createMobilePackets!().find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', top: -70, left: 1 })
+    expect(journalUserWashi.createMobilePackets!().find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', top: -70, right: 15 })
+    const journalMinimalThinking = COMMON_PART_PRESETS.find((entry) => entry.id === 'journal-minimal-thinking-note')!
+    expect(journalMinimalThinking.steps.find((step) => step.role === 'minimal.thinking')!.createPackets().find((packet) => packet.type === 'placement')).toMatchObject({ type: 'placement', horizontal: 'center' })
+    const journalMinimalGreetings = COMMON_PART_PRESETS.find((entry) => entry.id === 'journal-minimal-greetings-ticket')!
+    expect(journalMinimalGreetings.steps.find((step) => step.role === 'minimal.greetings.badge')!.createPackets().find((packet) => packet.type === 'background')).toMatchObject({ type: 'background', solid: { color: '#bbd2ca', alpha: .15 } })
+    expect(journalMinimalGreetings.steps.find((step) => step.role === 'minimal.greetings.badge')!.createPackets().find((packet) => packet.type === 'typography')).toMatchObject({ type: 'typography', textAlign: 'center' })
     const washiLegacy = COMMON_PART_PRESETS.find((entry) => entry.id === 'journal-washi-photo')!
     expect(washiLegacy.section).toBe('Legacy')
     const journalActions = COMMON_PART_PRESETS.find((entry) => entry.id === 'journal-paper-actions')!
-    expect(journalActions.steps.map((step) => step.role)).toEqual(['actions.pill', 'actions.controls', 'minimal.actions', 'minimal.actions.controls'])
+    expect(journalActions.steps.map((step) => step.role)).toEqual(['assistant.actions.pill', 'user.actions.pill', 'actions.button', 'actions.controls'])
     expect(journalActions.steps.every((step) => step.tuneText === false)).toBe(true)
-    const journalActionsStep = journalActions.steps.find((step) => step.role === 'actions.pill')!
-    const journalActionsPosition = journalActionsStep.createPackets().find((packet) => packet.type === 'position')
-    const journalActionsMobilePosition = journalActionsStep.createMobilePackets!().find((packet) => packet.type === 'position')
-    expect(journalActionsPosition?.type === 'position' && journalActionsPosition.mode).toBe('nudge')
-    expect(journalActionsPosition?.type === 'position' && journalActionsPosition.nudgeX).toBe(-12)
-    expect(journalActionsPosition?.type === 'position' && journalActionsPosition.nudgeY).toBe(138)
+    const journalAssistantActionsStep = journalActions.steps.find((step) => step.role === 'assistant.actions.pill')!
+    const journalUserActionsStep = journalActions.steps.find((step) => step.role === 'user.actions.pill')!
+    const journalActionsPosition = journalAssistantActionsStep.createPackets().find((packet) => packet.type === 'position')
+    const journalActionsMobilePosition = journalAssistantActionsStep.createMobilePackets!().find((packet) => packet.type === 'position')
+    expect(journalActionsPosition).toMatchObject({ type: 'position', mode: 'nudge', nudgeX: -20, nudgeY: 116 })
     expect(journalActionsPosition?.type === 'position' && journalActionsPosition.anchorSelector).toBeUndefined()
-    expect(journalActionsMobilePosition?.type === 'position' && journalActionsMobilePosition.mode).toBe('nudge')
-    expect(journalActionsMobilePosition?.type === 'position' && journalActionsMobilePosition.nudgeX).toBe(0)
-    expect(journalActionsMobilePosition?.type === 'position' && journalActionsMobilePosition.nudgeY).toBe(0)
+    expect(journalActionsMobilePosition).toMatchObject({ type: 'position', mode: 'nudge', nudgeX: -45, nudgeY: 50 })
+    expect(journalAssistantActionsStep.createMobilePackets!().find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', display: 'flex', direction: 'row', wrap: 'wrap', justify: 'center' })
+    expect(journalAssistantActionsStep.createMobilePackets!().find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 150, unit: 'px' } })
+    expect(journalUserActionsStep.createPackets().find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', mode: 'nudge', nudgeX: -16, nudgeY: 117 })
+    expect(journalUserActionsStep.createMobilePackets!().find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', mode: 'anchored', anchorSelector: KNOWN_PART_ROLES['user.frame'].selectors[0].selector, top: 0, nudgeX: 200, nudgeY: 45 })
+    expect(journalUserActionsStep.createMobilePackets!().find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', display: 'grid', gridColumns: { mode: 'count', count: 3 } })
+    const journalMinimalActions = COMMON_PART_PRESETS.find((entry) => entry.id === 'journal-minimal-paper-actions')!
+    expect(journalActions.steps.every((step) => !step.role.startsWith('minimal.'))).toBe(true)
+    expect(journalMinimalActions.steps.every((step) => step.role.startsWith('minimal.'))).toBe(true)
+    const journalMinimalAssistantActions = journalMinimalActions.steps.find((step) => step.role === 'minimal.actions.assistant')!
+    const journalMinimalUserActions = journalMinimalActions.steps.find((step) => step.role === 'minimal.actions.user')!
+    expect(journalMinimalAssistantActions.createPackets().find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', mode: 'anchored', top: 11, right: 11 })
+    expect(journalMinimalUserActions.createPackets().find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', mode: 'anchored', top: 11, left: 11 })
+    expect(journalMinimalAssistantActions.createPackets().find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', display: 'grid', gridColumns: { mode: 'count', count: 1 }, justify: 'center', align: 'center', gap: { mode: 'fixed', value: 5, unit: 'px' } })
+    expect(journalMinimalUserActions.createPackets().find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', display: 'grid', gridColumns: { mode: 'count', count: 1 }, justify: 'center', align: 'center', gap: { mode: 'fixed', value: 5, unit: 'px' } })
+    const journalMinimalAssistantRow = journalMinimalActions.steps.find((step) => step.role === 'minimal.actions.assistant.row')!
+    const journalMinimalUserRow = journalMinimalActions.steps.find((step) => step.role === 'minimal.actions.user.row')!
+    expect(journalMinimalAssistantRow.createPackets().find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', display: 'grid', justify: 'start', align: 'center', gap: { mode: 'fixed', value: 0, unit: 'px' } })
+    expect(journalMinimalAssistantRow.createPackets().find((packet) => packet.type === 'layout')).not.toHaveProperty('gridColumns')
+    expect(journalMinimalUserRow.createPackets().find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', display: 'grid', justify: 'start', align: 'center', gap: { mode: 'fixed', value: 0, unit: 'px' } })
+    expect(journalMinimalAssistantRow.createMobilePackets?.().find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', display: 'flex', justify: 'center', align: 'start', gap: { mode: 'fixed', value: 8, unit: 'px' } })
+    expect(journalMinimalAssistantActions.createMobilePackets?.().find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', mode: 'sticky', top: 7, right: 7 })
+    expect(journalMinimalAssistantActions.createMobilePackets?.().find((packet) => packet.type === 'placement')).toMatchObject({ type: 'placement', horizontal: 'native', vertical: 'end' })
+    expect(journalMinimalUserActions.createMobilePackets?.().find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', mode: 'sticky', top: 7, left: 7 })
+    expect(journalMinimalUserActions.createMobilePackets?.().find((packet) => packet.type === 'placement')).toMatchObject({ type: 'placement', horizontal: 'end', vertical: 'end' })
+    const journalAssistantButton = journalMinimalActions.steps.find((step) => step.role === 'minimal.actions.assistant.buttons')!
+    const journalUserButton = journalMinimalActions.steps.find((step) => step.role === 'minimal.actions.user.buttons')!
+    expect(journalAssistantButton.createPackets().find((packet) => packet.type === 'background')).toMatchObject({ type: 'background', solid: { color: '#b9d0c9', alpha: .92 } })
+    expect(journalAssistantButton.createMobilePackets!().find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 20, unit: 'px' }, height: { mode: 'fixed', value: 20, unit: 'px' } })
+    expect(journalUserButton.createPackets().find((packet) => packet.type === 'border')).toMatchObject({ type: 'border', width: 3, color: '#8db5b0', alpha: .785 })
+    expect(journalUserButton.createPackets().find((packet) => packet.type === 'shadow')).toMatchObject({ type: 'shadow', color: '#8db5b0', alpha: .262 })
+    expect(journalUserButton.createMobilePackets!().find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 20, unit: 'px' }, height: { mode: 'fixed', value: 20, unit: 'px' } })
     const journalScroll = COMMON_PART_PRESETS.find((entry) => entry.id === 'journal-scroll-stamp')!
     expect(journalScroll.steps[0].role).toBe('chat.scroll-bottom')
     expect(journalScroll.steps[0].createPackets().map((packet) => packet.type)).toEqual(['background', 'border', 'corners', 'text', 'shadow', 'size', 'transform'])
+    const editorialScroll = COMMON_PART_PRESETS.find((entry) => entry.id === 'editorial-scroll-cue')!
+    expect(editorialScroll.steps[0].role).toBe('chat.scroll-bottom')
+    expect(editorialScroll.steps[0].createPackets().find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 36, unit: 'px' }, height: { mode: 'fixed', value: 34, unit: 'px' } })
+    const editorialCast = COMMON_PART_PRESETS.find((entry) => entry.id === 'editorial-cast-strip')!
+    expect(editorialCast.steps.map((step) => step.role)).toEqual(['chat.roster.wrapper', 'chat.roster.bar', 'chat.roster.member', 'chat.roster.member.active', 'chat.roster.member.avatar', 'chat.roster.member.name', 'chat.roster.add'])
+    expect(editorialCast.steps.find((step) => step.role === 'chat.roster.member.avatar')!.createPackets().find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 38, unit: 'px' }, height: { mode: 'fixed', value: 38, unit: 'px' } })
     const journalPager = COMMON_PART_PRESETS.find((entry) => entry.id === 'journal-page-pager')!
-    expect(journalPager.steps[0].role).toBe('message.swipes')
+    expect(journalPager.steps.map((step) => step.role)).toEqual(['message.swipes', 'assistant.swipes', 'message.swipes.buttons', 'message.swipes.counter'])
+    const journalAssistantPagerMobile = journalPager.steps.find((step) => step.role === 'assistant.swipes')!.createMobilePackets!()
+    expect(journalAssistantPagerMobile.find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', display: 'flex', direction: 'row', wrap: 'nowrap', justify: 'end', align: 'center', gap: { mode: 'fixed', value: 8, unit: 'px' } })
+    expect(journalAssistantPagerMobile.find((packet) => packet.type === 'layout-item')).toMatchObject({ type: 'layout-item', grow: 0, shrink: 1 })
+    expect(journalAssistantPagerMobile.find((packet) => packet.type === 'placement')).toMatchObject({ type: 'placement', horizontal: 'center' })
+    expect(journalAssistantPagerMobile.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' } })
     expect(journalPager.steps[0].tuneText).toBe(false)
     const pagerInk = journalPager.steps[0].createPackets().find((packet) => packet.type === 'text')
     expect(pagerInk?.type === 'text' && pagerInk.solid.color).toBe('#46504e')
+    const pagerBg = journalPager.steps[0].createPackets().find((packet) => packet.type === 'background')
+    expect(pagerBg).toMatchObject({ type: 'background', solid: { color: '#b9d0c9', alpha: .92 } })
+    expect(journalPager.steps.find((step) => step.role === 'message.swipes.buttons')!.createPackets().find((packet) => packet.type === 'text')).toMatchObject({ type: 'text', solid: { color: '#46504e', alpha: .94 } })
+    expect(journalPager.steps.find((step) => step.role === 'message.swipes.counter')!.createPackets().find((packet) => packet.type === 'text')).toMatchObject({ type: 'text', solid: { color: '#46504e', alpha: .96 } })
     expect(KNOWN_PART_ROLES['actions.controls'].selectors[0].selector).toContain('[data-component="BubbleActions"] :is(button, svg)')
     expect(KNOWN_PART_ROLES['minimal.actions.controls'].selectors[0].selector).toContain(':is(button, svg)')
     const journalComposer = COMMON_PART_PRESETS.find((entry) => entry.id === 'journal-composer')!
@@ -411,6 +705,7 @@ describe('common-part quick style library', () => {
     expect(placeholderInk?.type === 'text' && placeholderInk.solid.color).toBe('#566460')
     const placeholderOpacity = journalComposer.steps.find((step) => step.role === 'input.placeholder')!.createPackets().find((packet) => packet.type === 'opacity')
     expect(placeholderOpacity?.type === 'opacity' && placeholderOpacity.value).toBe(1)
+    expect(journalComposer.steps.find((step) => step.role === 'input.textarea')!.createPackets().find((packet) => packet.type === 'spacing')).toMatchObject({ type: 'spacing', padding: { top: 10, right: 14, bottom: 10, left: 14, unit: 'px' } })
 
     for (const presetId of ['manga-composer', 'editorial-composer', 'journal-composer', 'visual-novel-composer']) {
       const composer = COMMON_PART_PRESETS.find((entry) => entry.id === presetId)!
@@ -429,13 +724,30 @@ describe('common-part quick style library', () => {
     expect(editorialActionInk?.type === 'text' && editorialActionInk.solid.alpha).toBeGreaterThanOrEqual(.9)
     const editorialToolbarOpacity = editorialComposer.steps.find((step) => step.role === 'input.actionbar')!.createPackets().find((packet) => packet.type === 'opacity')
     expect(editorialToolbarOpacity?.type === 'opacity' && editorialToolbarOpacity.value).toBe(1)
+    expect(editorialComposer.steps.map((step) => step.role)).toContain('input.field')
+    expect(editorialComposer.steps.map((step) => step.role)).toContain('input.send.shell')
+    expect(editorialComposer.steps.map((step) => step.role)).toContain('input.send.icon')
+    expect(editorialComposer.steps.map((step) => step.role)).not.toContain('input.placeholder')
+    const editorialTextEntry = editorialComposer.steps.find((step) => step.role === 'input.textarea')!.createPackets().find((packet) => packet.type === 'text-entry')
+    expect(editorialTextEntry).toMatchObject({ type: 'text-entry', insetX: 14, insetY: 9, fontFamily: 'Georgia', fontSize: 16, fontSizeUnit: 'px', placeholderColor: '#665f62', placeholderAlpha: .62, placeholderStyle: 'italic' })
+    const editorialStamp = editorialComposer.steps.find((step) => step.role === 'input.send.shell')!.createPackets()
+    expect(editorialStamp.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 48, unit: 'px' }, height: { mode: 'fixed', value: 48, unit: 'px' } })
+    const editorialStampMask = editorialStamp.find((packet) => packet.type === 'background')
+    expect(editorialStampMask).toMatchObject({ type: 'background', mode: 'image', image: { renderMode: 'mask', maskColor: '#efe3d3', hideContents: false } })
+    expect(editorialComposer.steps.find((step) => step.role === 'input.send')!.createPackets().find((packet) => packet.type === 'corners')).toMatchObject({ type: 'corners', topLeft: 0, topRight: 0, bottomRight: 0, bottomLeft: 0 })
+    const editorialQuill = editorialComposer.steps.find((step) => step.role === 'input.send.icon')!.createPackets()
+    expect(editorialQuill.find((packet) => packet.type === 'background')).toMatchObject({ type: 'background', mode: 'image', image: { renderMode: 'mask', maskColor: '#355d69', hideContents: true } })
+    expect(editorialQuill.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 22, unit: 'px' }, height: { mode: 'fixed', value: 22, unit: 'px' } })
     for (const presetId of ['manga-composer', 'editorial-composer', 'journal-composer']) {
       const composer = COMMON_PART_PRESETS.find((entry) => entry.id === presetId)!
       expect(composer.steps.map((step) => step.role)).toContain('input.attach')
       expect(composer.steps.map((step) => step.role)).toContain('input.send.controls')
       expect(composer.steps.find((step) => step.role === 'input.textarea')?.tuneText).toBe(false)
-      expect(composer.steps.find((step) => step.role === 'input.placeholder')?.tuneText).toBe(false)
       expect(composer.steps.find((step) => step.role === 'input.send')?.tuneText).toBe(false)
+    }
+    for (const presetId of ['manga-composer', 'journal-composer']) {
+      const composer = COMMON_PART_PRESETS.find((entry) => entry.id === presetId)!
+      expect(composer.steps.find((step) => step.role === 'input.placeholder')?.tuneText).toBe(false)
     }
     const composerFamilies = new Map([
       ['manga-composer', 'manga'],
@@ -449,12 +761,13 @@ describe('common-part quick style library', () => {
       expect(icons?.type === 'composer-icons' && icons.family).toBe(family)
     }
     const mangaComposer = COMMON_PART_PRESETS.find((entry) => entry.id === 'manga-composer')!
+    expect(mangaComposer.steps.find((step) => step.role === 'input.textarea')!.createPackets().find((packet) => packet.type === 'spacing')).toMatchObject({ type: 'spacing', padding: { top: 10, right: 14, bottom: 10, left: 14, unit: 'px' } })
     const mangaSendInk = mangaComposer.steps.find((step) => step.role === 'input.send.controls')!.createPackets().find((packet) => packet.type === 'text')
     expect(mangaSendInk?.type === 'text' && mangaSendInk.solid.color).toBe('#050506')
 
     const vnStage = COMMON_PART_PRESETS.find((entry) => entry.id === 'visual-novel-stage')!
     const vnGreetings = COMMON_PART_PRESETS.find((entry) => entry.id === 'visual-novel-greetings')!
-    expect(vnGreetings.steps.map((step) => step.role)).toEqual(['message.greetings', 'message.greetings.content'])
+    expect(vnGreetings.steps.map((step) => step.role)).toEqual(['bubble.greetings', 'bubble.greetings.content'])
     const vnGreetingBasePackets = vnGreetings.steps[0].createPackets()
     const vnGreetingBasePosition = vnGreetingBasePackets.find((packet) => packet.type === 'position')
     const vnGreetingBaseSpacing = vnGreetingBasePackets.find((packet) => packet.type === 'spacing')
@@ -475,7 +788,7 @@ describe('common-part quick style library', () => {
     const vnTopFrameMobileBg = vnTopFrameMobile.find((packet) => packet.type === 'background')
     const vnTopFrameMobileSize = vnTopFrameMobile.find((packet) => packet.type === 'size')
     expect(vnTopFrameMobileBg?.type === 'background' && decodeURIComponent(vnTopFrameMobileBg.image.assetPath)).toContain('viewBox="0 0 400 64"')
-    expect(vnTopFrameMobileSize?.type === 'size' && vnTopFrameMobileSize.height.mode === 'fixed' && vnTopFrameMobileSize.height.value).toBe(64)
+    expect(vnTopFrameMobileSize?.type === 'size' ? fixedValue(vnTopFrameMobileSize.height) : undefined).toBe(64)
     const vnTopFrameMobilePosition = vnTopFrameMobile.find((packet) => packet.type === 'position')
     expect(vnTopFrameMobilePosition).toMatchObject({ type: 'position', mode: 'anchored', anchorLabel: 'Assistant dialogue frame', nudgeX: -13, nudgeY: -11 })
     expect(vnTopFrameMobilePosition).not.toHaveProperty('top')
@@ -485,9 +798,9 @@ describe('common-part quick style library', () => {
     const vnAssistantHeaderLayout = vnAssistantHeaderPackets.find((packet) => packet.type === 'layout')
     const vnAssistantHeaderSize = vnAssistantHeaderPackets.find((packet) => packet.type === 'size')
     expect(vnAssistantHeaderLayout?.type === 'layout' && vnAssistantHeaderLayout.display).toBe('block')
-    expect(vnAssistantHeaderSize?.type === 'size' && vnAssistantHeaderSize.height.mode === 'fixed' && vnAssistantHeaderSize.height.value).toBe(238)
+    expect(vnAssistantHeaderSize?.type === 'size' ? fixedValue(vnAssistantHeaderSize.height) : undefined).toBe(238)
     const vnAssistantHeaderMobileSize = vnStage.steps.find((step) => step.role === 'assistant.header')!.createMobilePackets!().find((packet) => packet.type === 'size')
-    expect(vnAssistantHeaderMobileSize?.type === 'size' && vnAssistantHeaderMobileSize.height.mode === 'fixed' && vnAssistantHeaderMobileSize.height.value).toBe(176)
+    expect(vnAssistantHeaderMobileSize?.type === 'size' ? fixedValue(vnAssistantHeaderMobileSize.height) : undefined).toBe(176)
 
     const vnAssistantImage = vnStage.steps.find((step) => step.role === 'assistant.avatar.image')!
     const vnAssistantImageBase = vnAssistantImage.createPackets().find((packet) => packet.type === 'image')
@@ -525,7 +838,8 @@ describe('common-part quick style library', () => {
     expect(vnDialogueFrameBottom.find((packet) => packet.type === 'transform')).toMatchObject({ type: 'transform', rotate: 180 })
 
     const vnAttachments = COMMON_PART_PRESETS.find((entry) => entry.id === 'visual-novel-attachments')!
-    expect(vnAttachments.steps.map((step) => step.role)).toEqual(['message.media.paragraph', 'message.media.wrapper', 'message.media.image', 'assistant.attachment.mount', 'message.attachments', 'message.attachment.inline-button', 'message.attachment.inline-wrap', 'message.attachment.image'])
+    expect(vnAttachments.steps.map((step) => step.role)).toEqual(['message.media.paragraph', 'message.media.wrapper', 'message.media.image', 'message.attachments', 'message.attachment.inline-button', 'message.attachment.inline-wrap', 'message.attachment.image'])
+    expect(COMMON_PART_PRESETS.find((entry) => entry.id === 'visual-novel-attachment-mount')!.steps.map((step) => step.role)).toEqual(['assistant.attachment.mount'])
     const vnAttachmentButtonSize = vnAttachments.steps.find((step) => step.role === 'message.attachment.inline-button')!.createPackets().find((packet) => packet.type === 'size')
     expect(vnAttachmentButtonSize?.type === 'size' && vnAttachmentButtonSize.width?.mode).toBe('native')
     expect(vnAttachmentButtonSize?.type === 'size' && vnAttachmentButtonSize.height?.mode).toBe('content')
@@ -541,9 +855,9 @@ describe('common-part quick style library', () => {
     expect(vnAttachmentImage?.type === 'image' && vnAttachmentImage.objectFit).toBe('contain')
     expect(KNOWN_PART_ROLES['message.attachment.inline-button'].selectors[0].selector).toContain('_inlineImageBtn_')
     expect(KNOWN_PART_ROLES['message.attachment.inline-wrap'].selectors[0].selector).toContain('_inlineImageWrap_')
-    const vnAttachmentMountPackets = vnAttachments.steps.find((step) => step.role === 'assistant.attachment.mount')!.createPackets()
+    const vnAttachmentMountPackets = COMMON_PART_PRESETS.find((entry) => entry.id === 'visual-novel-attachment-mount')!.steps[0].createPackets()
     const vnAttachmentMountSpacing = vnAttachmentMountPackets.find((packet) => packet.type === 'spacing')
-    expect(vnAttachmentMountSpacing?.type === 'spacing' && vnAttachmentMountSpacing.margin.bottom).toBe(52)
+    expect(vnAttachmentMountSpacing?.type === 'spacing' && vnAttachmentMountSpacing.margin?.bottom).toBe(52)
     const vnAttachmentMountOrder = vnAttachmentMountPackets.find((packet) => packet.type === 'layout-item')
     expect(vnAttachmentMountOrder?.type === 'layout-item' && vnAttachmentMountOrder.order).toBe(3)
     const vnDialogueOrder = vnStage.steps.find((step) => step.role === 'assistant.content.mount')!.createPackets().find((packet) => packet.type === 'layout-item')
@@ -564,7 +878,7 @@ describe('common-part quick style library', () => {
     const vnSwipesSize = vnSwipesPackets.find((packet) => packet.type === 'size')
     const vnSwipesPosition = vnSwipesPackets.find((packet) => packet.type === 'position')
     expect(vnSwipesLayout?.type === 'layout' && vnSwipesLayout.justify).toBe('end')
-    expect(vnSwipesSize?.type === 'size' && vnSwipesSize.width.mode).toBe('content')
+    expect(vnSwipesSize?.type === 'size' && vnSwipesSize.width?.mode).toBe('content')
     expect(vnSwipesPosition?.type === 'position' && vnSwipesPosition.right).toBe(14)
     expect(vnSwipesPosition?.type === 'position' && vnSwipesPosition.left).toBeUndefined()
     const vnSwipesMobilePosition = vnHud.steps.find((step) => step.role === 'assistant.swipes')!.createMobilePackets!().find((packet) => packet.type === 'position')
@@ -598,7 +912,7 @@ describe('common-part quick style library', () => {
     const vnChoiceNameMobileSize = vnChoice.steps.find((step) => step.role === 'user.name')!.createMobilePackets!().find((packet) => packet.type === 'size')
     expect(vnChoiceNameMobilePosition?.type === 'position' && vnChoiceNameMobilePosition.left).toBe(74)
     expect(vnChoiceNameMobilePosition?.type === 'position' && vnChoiceNameMobilePosition.top).toBe(30)
-    expect(vnChoiceNameMobileSize?.type === 'size' && vnChoiceNameMobileSize.width.mode === 'fixed' && vnChoiceNameMobileSize.width.value).toBe(120)
+    expect(vnChoiceNameMobileSize?.type === 'size' ? fixedValue(vnChoiceNameMobileSize.width) : undefined).toBe(120)
     const vnChoiceMetaVisibility = vnChoice.steps.find((step) => step.role === 'user.meta.pill')!.createPackets().find((packet) => packet.type === 'visibility')
     expect(vnChoiceMetaVisibility?.type === 'visibility' && vnChoiceMetaVisibility.mode).toBe('gone')
     const vnChoiceActionsPosition = vnChoice.steps.find((step) => step.role === 'user.actions.pill')!.createPackets().find((packet) => packet.type === 'position')
@@ -634,13 +948,13 @@ describe('common-part quick style library', () => {
     const vnSecondSpeakerScrimPackets = vnSecondSpeaker.steps.find((step) => step.role === 'user.backdrop.scrim')!.createPackets()
     const vnSecondSpeakerScrimSize = vnSecondSpeakerScrimPackets.find((packet) => packet.type === 'size')
     const vnSecondSpeakerScrimBg = vnSecondSpeakerScrimPackets.find((packet) => packet.type === 'background')
-    expect(vnSecondSpeakerScrimSize?.type === 'size' && vnSecondSpeakerScrimSize.width.mode).toBe('parent')
-    expect(vnSecondSpeakerScrimSize?.type === 'size' && vnSecondSpeakerScrimSize.height.mode === 'fixed' && vnSecondSpeakerScrimSize.height.value).toBe(62)
+    expect(vnSecondSpeakerScrimSize?.type === 'size' && vnSecondSpeakerScrimSize.width?.mode).toBe('parent')
+    expect(vnSecondSpeakerScrimSize?.type === 'size' ? fixedValue(vnSecondSpeakerScrimSize.height) : undefined).toBe(62)
     expect(vnSecondSpeakerScrimBg?.type === 'background' && vnSecondSpeakerScrimBg.gradient.angle).toBe(180)
     expect(vnSecondSpeakerScrimBg?.type === 'background' && vnSecondSpeakerScrimBg.gradient.stops[0]?.alpha).toBe(0)
     const vnSecondSpeakerScrimMobile = vnSecondSpeaker.steps.find((step) => step.role === 'user.backdrop.scrim')!.createMobilePackets!()
     const vnSecondSpeakerScrimMobileSize = vnSecondSpeakerScrimMobile.find((packet) => packet.type === 'size')
-    expect(vnSecondSpeakerScrimMobileSize?.type === 'size' && vnSecondSpeakerScrimMobileSize.height.mode === 'fixed' && vnSecondSpeakerScrimMobileSize.height.value).toBe(68)
+    expect(vnSecondSpeakerScrimMobileSize?.type === 'size' ? fixedValue(vnSecondSpeakerScrimMobileSize.height) : undefined).toBe(68)
 
     const vnSecondSpeakerNamePackets = vnSecondSpeaker.steps.find((step) => step.role === 'user.name')!.createPackets()
     const vnSecondSpeakerNameVisibility = vnSecondSpeakerNamePackets.find((packet) => packet.type === 'visibility')
@@ -658,7 +972,7 @@ describe('common-part quick style library', () => {
     expect(vnSecondSpeakerHeaderLeftLayout?.type === 'layout' && vnSecondSpeakerHeaderLeftLayout.direction).toBe('row-reverse')
     const vnSecondSpeakerContentMountPackets = vnSecondSpeaker.steps.find((step) => step.role === 'user.content.mount')!.createPackets()
     const vnSecondSpeakerContentSize = vnSecondSpeakerContentMountPackets.find((packet) => packet.type === 'size')
-    expect(vnSecondSpeakerContentSize?.type === 'size' && vnSecondSpeakerContentSize.width.mode).toBe('content')
+    expect(vnSecondSpeakerContentSize?.type === 'size' && vnSecondSpeakerContentSize.width?.mode).toBe('content')
     expect(vnSecondSpeakerContentSize?.type === 'size' && vnSecondSpeakerContentSize.height?.mode).toBe('content')
     expect(vnSecondSpeakerContentSize?.type === 'size' && vnSecondSpeakerContentSize.maxWidth?.mode === 'fixed' && vnSecondSpeakerContentSize.maxWidth.value).toBe(88)
     const vnSecondSpeakerTopFrame = vnSecondSpeaker.steps.find((step) => step.role === 'user.content.mount.back')!.createPackets()
@@ -679,13 +993,171 @@ describe('common-part quick style library', () => {
     const jewelSend = COMMON_PART_PRESETS.find((entry) => entry.id === 'input-jewel-send')!
     expect(jewelSend.steps.map((step) => step.role)).toEqual(['input.send', 'input.send.controls'])
     const jewelSendSize = jewelSend.steps.find((step) => step.role === 'input.send')!.createPackets().find((packet) => packet.type === 'size')
-    expect(jewelSendSize?.type === 'size' && jewelSendSize.width.mode === 'fixed' && jewelSendSize.width.value).toBe(38)
+    expect(jewelSendSize?.type === 'size' ? fixedValue(jewelSendSize.width) : undefined).toBe(38)
     expect(KNOWN_PART_ROLES['input.placeholder'].selectors[0].selector).toContain('::placeholder')
 
     const strip = COMMON_PART_PRESETS.find((entry) => entry.id === 'minimal-native-strip-off')!
     const visibility = strip.steps[0].createPackets()[0]
     expect(visibility.type === 'visibility' && visibility.mode).toBe('gone')
     expect(visibility.editedFields).toEqual(['mode'])
+  })
+
+  test('side-aware Minimal roles stay component-local and preserve shared roles', () => {
+    const assistantRoles = [
+      'minimal.assistant.frame',
+      'minimal.avatar.assistant.frame',
+      'minimal.avatar.assistant.image',
+      'minimal.content.mount.assistant',
+      'minimal.content.assistant',
+      'minimal.actions.assistant',
+      'minimal.actions.assistant.row',
+      'minimal.actions.assistant.controls',
+    ] as const
+    const userRoles = [
+      'minimal.user.frame',
+      'minimal.avatar.user.frame',
+      'minimal.avatar.user.image',
+      'minimal.content.mount.user',
+      'minimal.content.user',
+      'minimal.content.user.ink',
+      'minimal.actions.user',
+      'minimal.actions.user.row',
+      'minimal.actions.user.controls',
+    ] as const
+    for (const roleId of assistantRoles) {
+      const selector = KNOWN_PART_ROLES[roleId].selectors[0].selector
+      expect(selector).toStartWith('[data-component="MinimalMessage"]')
+      expect(selector).toContain(':not([class*="_user_"])')
+    }
+    expect(KNOWN_PART_ROLES['minimal.content.mount.assistant'].selectors[0].selector).toContain('[class*="_content_"]:has([data-component="MessageContent"])')
+    expect(KNOWN_PART_ROLES['minimal.content.mount.user'].selectors[0].selector).toContain('[class*="_content_"]:has([data-component="MessageContent"])')
+    for (const roleId of userRoles) {
+      const selector = KNOWN_PART_ROLES[roleId].selectors[0].selector
+      expect(selector).toStartWith('[data-component="MinimalMessage"]')
+      expect(selector).toContain('[class*="_user_"]')
+    }
+    expect(KNOWN_PART_ROLES['minimal.avatar.assistant.image'].selectors[0].selector).toEndWith(' img')
+    expect(KNOWN_PART_ROLES['minimal.avatar.user.image'].selectors[0].selector).toEndWith(' img')
+    expect(KNOWN_PART_ROLES['minimal.avatar.frame']).toBeDefined()
+    expect(KNOWN_PART_ROLES['minimal.avatar.image']).toBeDefined()
+    expect(KNOWN_PART_ROLES['minimal.actions']).toBeDefined()
+    expect(KNOWN_PART_ROLES['minimal.content.rule.assistant'].selectors[0].selector).toContain(':not([class*="_user_"])')
+    expect(KNOWN_PART_ROLES['minimal.content.rule.user'].selectors[0].selector).toContain('[class*="_user_"]')
+    expect(KNOWN_PART_ROLES['minimal.swipes.buttons'].selectors[0].selector).toContain('[data-component="SwipeControls"] > button')
+    expect(KNOWN_PART_ROLES['minimal.swipes.buttons'].selectors[0].selector).not.toContain('_btn_')
+    expect(KNOWN_PART_ROLES['minimal.swipes.counter'].selectors[0].selector).toContain('[data-component="SwipeControls"]')
+    expect(KNOWN_PART_ROLES['minimal.swipes.previous'].selectors[0].selector).toContain(':first-of-type')
+    expect(KNOWN_PART_ROLES['minimal.swipes.next'].selectors[0].selector).toContain(':last-of-type')
+    expect(KNOWN_PART_ROLES['minimal.actions.copy'].selectors[0].selector).toContain('copy')
+    expect(KNOWN_PART_ROLES['minimal.decorative-rail.assistant'].selectors[0].selector).toContain(':not([class*="_user_"])::before')
+    expect(KNOWN_PART_ROLES['minimal.decorative-rail.user'].selectors[0].selector).toContain('[class*="_user_"]::before')
+    expect(KNOWN_PART_ROLES['minimal.long-toggle'].selectors[0].selector).toContain('[data-component="MinimalMessage"]')
+    expect(KNOWN_PART_ROLES['minimal.prose.paragraph'].selectors[0].selector).toContain('[data-component="MinimalMessage"]')
+    expect(KNOWN_PART_ROLES['minimal.prose.paragraph'].selectors[0].selector).toContain('[data-component="MessageContent"] p')
+    expect(Object.values(KNOWN_PART_ROLES).flatMap((role) => role.selectors).some((entry) => entry.selector === '[class*="_avatar_"]')).toBe(false)
+  })
+
+  test('Visual Novel Minimal recipes use route-log roles without Bubble anchors', () => {
+    const routeIds = ['visual-novel-minimal-route-log', 'visual-novel-minimal-user-log', 'visual-novel-minimal-prose', 'visual-novel-minimal-inner-voice', 'visual-novel-minimal-hud']
+    for (const id of routeIds) {
+      const recipe = COMMON_PART_PRESETS.find((entry) => entry.id === id)
+      expect(recipe).toBeDefined()
+      expect(recipe!.steps.some((step) => step.role.startsWith('minimal.'))).toBe(true)
+      expect(recipe!.steps.some((step) => step.role.startsWith('assistant.') || step.role.startsWith('user.'))).toBe(false)
+      for (const step of recipe!.steps) {
+        for (const position of step.createPackets().filter((packet) => packet.type === 'position')) {
+          expect(position.anchorSelector ?? '').not.toContain('BubbleMessage')
+          expect(position.anchorSelector ?? '').not.toContain('_bubble_')
+        }
+      }
+    }
+    const route = COMMON_PART_PRESETS.find((entry) => entry.id === 'visual-novel-minimal-route-log')!
+    expect(route.steps.map((step) => step.role)).toContain('minimal.header.assistant')
+    expect(route.steps.map((step) => step.role)).not.toContain('minimal.header')
+    expect(route.steps.map((step) => step.role)).toContain('minimal.decorative-rail.assistant')
+    expect(route.steps.map((step) => step.role)).toContain('minimal.corner-ornament.assistant')
+    expect(route.steps.map((step) => step.role)).not.toContain('minimal.content.rule.assistant')
+    const routeFrame = route.steps.find((step) => step.role === 'minimal.assistant.frame')!.createPackets()
+    expect(routeFrame.find((packet) => packet.type === 'pattern')).toMatchObject({ type: 'pattern', pattern: 'stripes', color: '#7da9e3', alpha: .06, scale: 9, angle: 0 })
+    const routeAvatar = route.steps.find((step) => step.role === 'minimal.avatar.assistant.frame')!.createPackets()
+    expect(routeAvatar.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 255, unit: 'px' }, height: { mode: 'fixed', value: 180, unit: 'px' } })
+    const routeName = route.steps.find((step) => step.role === 'minimal.name')!.createPackets()
+    expect(routeName.find((packet) => packet.type === 'corners')).toMatchObject({ type: 'corners', linked: false, topLeft: 7, topRight: 0, bottomRight: 7, bottomLeft: 0 })
+    expect(routeName.find((packet) => packet.type === 'placement')).toMatchObject({ type: 'placement', horizontal: 'start' })
+    expect(route.steps.find((step) => step.role === 'minimal.header.assistant')!.createPackets().find((packet) => packet.type === 'placement')).toMatchObject({ type: 'placement', horizontal: 'center' })
+    expect(route.steps.find((step) => step.role === 'minimal.meta.assistant.pill')!.createPackets().some((packet) => packet.type === 'position')).toBe(false)
+    const routeAvatarMobile = route.steps.find((step) => step.role === 'minimal.avatar.assistant.frame')!.createMobilePackets!()
+    expect(routeAvatarMobile.find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', mode: 'anchored', anchorSelector: KNOWN_PART_ROLES['minimal.assistant.frame'].selectors[0].selector, top: 10, left: 12, unit: 'px' })
+    const routeHeaderMobile = route.steps.find((step) => step.role === 'minimal.header.assistant')!.createMobilePackets!()
+    expect(routeHeaderMobile.find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', direction: 'column', align: 'start', justify: 'center' })
+    expect(routeHeaderMobile.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' }, minHeight: { mode: 'fixed', value: 102, unit: 'px' }, height: { mode: 'content' } })
+    expect(route.steps.find((step) => step.role === 'minimal.meta.assistant.pill')!.createMobilePackets!().find((packet) => packet.type === 'placement')).toMatchObject({ type: 'placement', horizontal: 'start' })
+    const routeContent = route.steps.find((step) => step.role === 'minimal.content.assistant')!.createPackets()
+    expect(routeContent.find((packet) => packet.type === 'border')).toMatchObject({ type: 'border', width: 5, style: 'double' })
+    const player = COMMON_PART_PRESETS.find((entry) => entry.id === 'visual-novel-minimal-user-log')!
+    expect(player.steps.map((step) => step.role)).toContain('minimal.header.user')
+    expect(player.steps.map((step) => step.role)).toContain('minimal.decorative-rail.user')
+    expect(player.steps.map((step) => step.role)).toContain('minimal.corner-ornament.user')
+    expect(player.steps.map((step) => step.role)).not.toContain('minimal.content.rule.user')
+    expect(player.steps.find((step) => step.role === 'minimal.user.frame')!.createPackets().find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 92, unit: '%' }, maxWidth: { mode: 'fixed', value: 1040, unit: 'px' } })
+    expect(player.steps.find((step) => step.role === 'minimal.avatar.user.frame')!.createPackets().find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 255, unit: 'px' }, height: { mode: 'fixed', value: 180, unit: 'px' } })
+    expect(player.steps.find((step) => step.role === 'minimal.header.user')!.createPackets().find((packet) => packet.type === 'placement')).toMatchObject({ type: 'placement', horizontal: 'center' })
+    expect(player.steps.find((step) => step.role === 'minimal.name.user')!.createPackets().find((packet) => packet.type === 'placement')).toMatchObject({ type: 'placement', horizontal: 'start' })
+    expect(player.steps.find((step) => step.role === 'minimal.meta.user.pill')!.createPackets().some((packet) => packet.type === 'position')).toBe(false)
+    const playerAvatarMobile = player.steps.find((step) => step.role === 'minimal.avatar.user.frame')!.createMobilePackets!()
+    expect(playerAvatarMobile.find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', mode: 'anchored', anchorSelector: KNOWN_PART_ROLES['minimal.user.frame'].selectors[0].selector, top: 10, left: 12, unit: 'px' })
+    const playerHeaderMobile = player.steps.find((step) => step.role === 'minimal.header.user')!.createMobilePackets!()
+    expect(playerHeaderMobile.find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', direction: 'column', align: 'start', justify: 'center' })
+    expect(playerHeaderMobile.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'parent' }, minHeight: { mode: 'fixed', value: 102, unit: 'px' }, height: { mode: 'content' } })
+    expect(player.steps.find((step) => step.role === 'minimal.meta.user.pill')!.createMobilePackets!().find((packet) => packet.type === 'placement')).toMatchObject({ type: 'placement', horizontal: 'start' })
+    expect(player.steps.find((step) => step.role === 'minimal.content.user')!.createPackets().find((packet) => packet.type === 'border')).toMatchObject({ type: 'border', width: 5, style: 'double' })
+    const hud = COMMON_PART_PRESETS.find((entry) => entry.id === 'visual-novel-minimal-hud')!
+    expect(hud.steps.map((step) => step.role)).toContain('minimal.swipes.buttons')
+    expect(hud.steps.map((step) => step.role)).toContain('minimal.swipes.counter')
+    expect(hud.steps.map((step) => step.role)).toContain('minimal.swipes.previous')
+    expect(hud.steps.map((step) => step.role)).toContain('minimal.swipes.next')
+    expect(hud.steps.map((step) => step.role)).toContain('minimal.swipes.ornament')
+    expect(hud.steps.map((step) => step.role)).toContain('minimal.actions.copy')
+    expect(hud.steps.map((step) => step.role)).toContain('minimal.long-toggle')
+    expect(hud.steps.find((step) => step.role === 'minimal.actions.assistant.row')!.createPackets().find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', direction: 'column', align: 'end' })
+    expect(hud.steps.find((step) => step.role === 'minimal.actions.user.row')!.createPackets().find((packet) => packet.type === 'layout')).toMatchObject({ type: 'layout', direction: 'column', align: 'end' })
+    expect(hud.steps.find((step) => step.role === 'minimal.actions.assistant.buttons')!.createPackets().find((packet) => packet.type === 'background')).toMatchObject({ type: 'background', mode: 'gradient' })
+    expect(hud.steps.find((step) => step.role === 'minimal.actions.user.buttons')!.createPackets().find((packet) => packet.type === 'background')).toMatchObject({ type: 'background', mode: 'gradient' })
+    expect(hud.steps.find((step) => step.role === 'minimal.swipes')!.createPackets().find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', mode: 'flow', editedFields: ['mode'] })
+    expect(hud.steps.find((step) => step.role === 'minimal.swipes')!.createPackets().find((packet) => packet.type === 'placement')).toMatchObject({ type: 'placement', horizontal: 'start' })
+    expect(hud.steps.find((step) => step.role === 'minimal.swipes')!.createMobilePackets!().find((packet) => packet.type === 'placement')).toMatchObject({ type: 'placement', horizontal: 'center' })
+    expect(hud.steps.find((step) => step.role === 'minimal.actions.assistant')!.createMobilePackets!().find((packet) => packet.type === 'placement')).toMatchObject({ type: 'placement', horizontal: 'center' })
+    expect(hud.steps.find((step) => step.role === 'minimal.actions.user')!.createMobilePackets!().find((packet) => packet.type === 'placement')).toMatchObject({ type: 'placement', horizontal: 'center' })
+    expect(hud.steps.find((step) => step.role === 'minimal.greetings')!.createPackets().find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', mode: 'flow', flowAlign: 'center' })
+    expect(hud.steps.find((step) => step.role === 'minimal.greetings')!.createPackets().find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 74, unit: '%' } })
+    const innerVoice = COMMON_PART_PRESETS.find((entry) => entry.id === 'visual-novel-minimal-inner-voice')!
+    expect(innerVoice.steps.map((step) => step.role)).toEqual(['minimal.thinking', 'minimal.thinking.header', 'minimal.thinking.toggle', 'minimal.thinking.icon', 'minimal.thinking.caption', 'minimal.thinking.content'])
+    const innerVoiceMobile = innerVoice.steps.find((step) => step.role === 'minimal.thinking')!.createMobilePackets!()
+    expect(innerVoiceMobile.find((packet) => packet.type === 'placement')).toMatchObject({ type: 'placement', horizontal: 'center', vertical: 'native' })
+    expect(innerVoiceMobile.some((packet) => packet.type === 'size')).toBe(false)
+    const backlogProse = COMMON_PART_PRESETS.find((entry) => entry.id === 'visual-novel-minimal-prose')!
+    expect(backlogProse.steps.map((step) => step.role)).toEqual(['minimal.prose.h1','minimal.prose.h2','minimal.prose.h3','minimal.prose.h4','minimal.prose.paragraph','minimal.prose.bold','minimal.prose.italic','minimal.prose.blockquote','minimal.prose.codeblock'])
+    expect(backlogProse.steps.find((step) => step.role === 'minimal.prose.paragraph')!.createPackets().find((packet) => packet.type === 'typography')).toMatchObject({ fontFamily: expect.stringContaining('ui-sans-serif') })
+  })
+
+  test('Minimal portrait recipes release desktop positioning on mobile unless the pack deliberately re-anchors a compact token', () => {
+    for (const presetId of ['editorial-column-rule', 'editorial-user-correspondent', 'journal-minimal-card', 'visual-novel-minimal-route-log'] as const) {
+      const preset = COMMON_PART_PRESETS.find((entry) => entry.id === presetId)!
+      for (const step of preset.steps.filter((entry) => entry.role === 'minimal.avatar.assistant.frame' || entry.role === 'minimal.avatar.user.frame')) {
+        const basePosition = step.createPackets().find((packet) => packet.type === 'position')
+        if (basePosition?.type !== 'position' || (basePosition.mode !== 'anchored' && basePosition.mode !== 'sticky')) continue
+        const position = step.createMobilePackets?.().find((packet) => packet.type === 'position')
+        expect(position).toMatchObject({ type: 'position', mode: 'flow', editedFields: ['mode'] })
+      }
+    }
+
+    const manga = COMMON_PART_PRESETS.find((entry) => entry.id === 'manga-margin-speaker')!
+    const assistantAvatar = manga.steps.find((entry) => entry.role === 'minimal.avatar.assistant.frame')!.createMobilePackets!()
+    const userAvatar = manga.steps.find((entry) => entry.role === 'minimal.avatar.user.frame')!.createMobilePackets!()
+    expect(assistantAvatar.find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', mode: 'anchored', top: 38, left: 10 })
+    expect(userAvatar.find((packet) => packet.type === 'position')).toMatchObject({ type: 'position', mode: 'anchored', top: 38, right: 10 })
+    expect(assistantAvatar.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 48, unit: 'px' }, height: { mode: 'fixed', value: 58, unit: 'px' } })
+    expect(userAvatar.find((packet) => packet.type === 'size')).toMatchObject({ type: 'size', width: { mode: 'fixed', value: 48, unit: 'px' }, height: { mode: 'fixed', value: 58, unit: 'px' } })
   })
 
   test('Visual Novel now owns a full MessageContent prose hierarchy', () => {
@@ -738,7 +1210,7 @@ describe('common-part quick style library', () => {
     const position = packets.find((packet) => packet.type === 'position')
     expect(position?.type === 'position' && position.right).toBe(8)
     const size = packets.find((packet) => packet.type === 'size')
-    expect(size?.type === 'size' && size.width.mode === 'fixed' && size.width.value).toBe(44)
+    expect(size?.type === 'size' ? fixedValue(size.width) : undefined).toBe(44)
   })
 
   test('Manga foreground portrait focal defaults stay near neutral on desktop and mobile', () => {
@@ -749,7 +1221,7 @@ describe('common-part quick style library', () => {
     expect(base?.type === 'image' && base.objectPositionY).toBe(46)
     expect(mobile?.type === 'image' && mobile.objectPositionY).toBe(46)
     const rail = COMMON_PART_PRESETS.find((entry) => entry.id === 'manga-margin-speaker')!
-    const railImage = rail.steps.find((step) => step.role === 'minimal.avatar.image')!
+    const railImage = rail.steps.find((step) => step.role === 'minimal.avatar.assistant.image')!
     expect(railImage.createPackets().find((packet) => packet.type === 'image')?.type).toBe('image')
     expect((railImage.createPackets().find((packet) => packet.type === 'image') as any).objectPositionY).toBe(50)
   })

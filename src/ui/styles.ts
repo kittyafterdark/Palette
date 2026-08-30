@@ -121,13 +121,27 @@ export const THEME_STUDIO_CSS = `
 .ts-segment button[aria-pressed="true"] { color: var(--ts-text); background: var(--ts-elevated); box-shadow: var(--lumiverse-shadow-sm, 0 2px 8px rgba(0,0,0,.2)); }
 .ts-field { margin-top: 12px; }
 .ts-label { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 6px; color: var(--ts-muted); font-size: 11px; font-weight: 650; }
-.ts-color-row { display: grid; grid-template-columns: 42px 1fr; gap: 8px; align-items: center; }
-.ts-color { width: 42px; height: 34px; padding: 2px; border: 1px solid var(--ts-border); border-radius: 6px; background: transparent; cursor: pointer; }
+.ts-color-row { display: grid; grid-template-columns: 64px minmax(0,1fr); gap: 8px; align-items: center; }
+.ts-color-picker { display:grid; grid-template-columns:30px auto; gap:5px; align-items:center; min-height:34px; border:1px solid var(--ts-border); border-radius:7px; padding:2px 6px 2px 2px; background:var(--lumiverse-fill-subtle,rgba(0,0,0,.08)); color:var(--ts-muted); cursor:pointer; font-size:8px; font-weight:760; letter-spacing:.04em; text-transform:uppercase; }
+.ts-color-picker:hover { border-color:color-mix(in srgb,var(--ts-accent) 55%,var(--ts-border)); color:var(--ts-text); }
+.ts-color { width:30px; height:28px; padding:1px; border:0; border-radius:5px; background:transparent; cursor:pointer; }
+.ts-color::-webkit-color-swatch-wrapper { padding:0; }
+.ts-color::-webkit-color-swatch { border:1px solid color-mix(in srgb,var(--ts-text) 16%,transparent); border-radius:4px; }
+.ts-color::-moz-color-swatch { border:1px solid color-mix(in srgb,var(--ts-text) 16%,transparent); border-radius:4px; }
 .ts-range { width: 100%; accent-color: var(--ts-accent); }
 .ts-range-row { display: grid; grid-template-columns: minmax(0,1fr) 72px; gap: 8px; align-items: center; }
 .ts-check { display: flex; align-items: center; gap: 7px; margin-top: 12px; color: var(--ts-muted); font-size: 11px; }
 .ts-box-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
 .ts-box-grid .ts-label { display: grid; gap: 5px; }
+.ts-corner-grid { position:relative; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); grid-template-areas:"tl tr" "bl br"; gap:22px 18px; margin:10px 0 12px; padding:4px; }
+.ts-corner-field { position:relative; z-index:1; display:grid; gap:5px; color:var(--ts-muted); font-size:9px; }
+.ts-corner-field > span { font-size:8px; font-weight:720; letter-spacing:.03em; }
+.ts-corner-tl { grid-area:tl; text-align:left; }
+.ts-corner-tr { grid-area:tr; text-align:right; }
+.ts-corner-bl { grid-area:bl; text-align:left; }
+.ts-corner-br { grid-area:br; text-align:right; }
+.ts-corner-tr .ts-number,.ts-corner-br .ts-number { text-align:right; }
+.ts-corner-diagram { position:absolute; left:50%; top:50%; width:34px; height:34px; translate:-50% -50%; border:1px solid color-mix(in srgb,var(--ts-accent) 46%,var(--ts-border)); border-radius:8px; background:color-mix(in srgb,var(--ts-accent-soft) 48%,transparent); box-shadow:inset 0 0 0 4px color-mix(in srgb,var(--ts-elevated) 82%,transparent); pointer-events:none; }
 .ts-stop-block { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--ts-border); }
 .ts-stop-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .ts-stop-remove { width:24px; height:24px; min-height:24px; opacity:.72; }
@@ -149,7 +163,8 @@ export const THEME_STUDIO_CSS = `
 .ts-dimension-slider { min-width:0; }
 .ts-gradient-preview { height: 72px; border: 1px solid var(--ts-border); border-radius: 7px; margin-top: 10px; }
 .ts-stop { display: grid; grid-template-columns: 38px 1fr 72px; gap: 7px; align-items: center; margin-top: 8px; }
-.ts-stop .ts-color { width: 38px; }
+.ts-stop .ts-color-picker { grid-template-columns:26px auto; min-height:32px; padding-right:5px; }
+.ts-stop .ts-color { width:26px; height:26px; }
 .ts-resource-tabs { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; margin-bottom: 8px; }
 .ts-resource-tabs .ts-btn { padding-inline: 4px; font-size: 11px; }
 .ts-resource-tabs .ts-btn[aria-pressed="true"] { border-color: var(--ts-accent); background: var(--ts-accent-soft); }
@@ -1196,6 +1211,9 @@ export const THEME_STUDIO_CSS = `
 .ts-library-group-head span { min-width:24px; border-radius:99px; padding:2px 6px; background:var(--lumiverse-fill-subtle,rgba(255,255,255,.04)); color:var(--ts-dim); text-align:center; font-size:8px; }
 .ts-style-library-modal .ts-preset-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
 .ts-style-library-modal .ts-preset-card { grid-template-rows:112px minmax(0,1fr) auto; }
+.ts-library-targets { display:grid; gap:2px; margin-top:6px; min-width:0; }
+.ts-preset-card-copy .ts-library-targets span { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ts-muted); font-size:7px; line-height:1.35; text-transform:none; letter-spacing:0; }
+.ts-preset-card-copy .ts-library-targets b { color:var(--ts-dim); font-size:6.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
 .ts-library-badges { display:flex!important; flex-wrap:wrap; gap:4px; margin-top:5px; }
 .ts-library-badge { display:inline-flex!important; width:auto!important; margin:0!important; border:1px solid var(--ts-border); border-radius:999px; padding:2px 5px!important; color:var(--ts-dim)!important; font-size:6.5px!important; font-weight:700; letter-spacing:.04em!important; line-height:1!important; text-transform:uppercase; }
 .ts-library-family { color:var(--ts-text)!important; border-color:color-mix(in srgb,var(--ts-accent) 35%,var(--ts-border)); background:var(--ts-accent-soft); }
@@ -1347,6 +1365,14 @@ export const THEME_STUDIO_CSS = `
 .ts-preset-preview[data-preset-preview="editorial-column"] .ts-preview-line-a { top:44px; width:58%; }
 .ts-preset-preview[data-preset-preview="editorial-column"] .ts-preview-line-b { top:53px; width:46%; }
 .ts-preset-preview[data-preset-preview="editorial-column"] .ts-preview-meta { left:38px; bottom:14px; background:transparent; border:0; padding:0; }
+.ts-preset-preview[data-preset-preview="editorial-correspondence"] { background:linear-gradient(112deg,#e3ded4 0%,#d7d5cf 62%,#ccd5d3 100%); border-color:color-mix(in srgb,var(--ts-quick-accent,#92a6b3) 58%,#bfc8c5); color:#30383c; }
+.ts-preset-preview[data-preset-preview="editorial-correspondence"]::before { background:color-mix(in srgb,var(--ts-quick-accent,#92a6b3) 44%,transparent); }
+.ts-preset-preview[data-preset-preview="editorial-correspondence"] .ts-preview-avatar { left:12px; top:15px; width:50px; height:50px; border-radius:999px; border:4px solid #e9e2d6; box-shadow:0 0 0 1px color-mix(in srgb,var(--ts-quick-accent,#92a6b3) 62%,transparent); background:linear-gradient(135deg,#d7d2c9,#7a7f80); filter:saturate(.52) contrast(1.02); }
+.ts-preset-preview[data-preset-preview="editorial-correspondence"] .ts-preview-name { left:73px; top:19px; color:#30383c; font-family:Georgia,serif; font-size:13px; font-weight:700; letter-spacing:-.2px; }
+.ts-preset-preview[data-preset-preview="editorial-correspondence"] .ts-preview-meta { left:73px; top:44px; bottom:auto; color:#657278; background:transparent; border:0; padding:0; text-transform:uppercase; letter-spacing:.8px; }
+.ts-preset-preview[data-preset-preview="editorial-correspondence"] .ts-preview-line { left:18px; height:2px; color:#566368; opacity:.6; }
+.ts-preset-preview[data-preset-preview="editorial-correspondence"] .ts-preview-line-a { top:73px; width:72%; box-shadow:0 9px 0 currentColor; }
+.ts-preset-preview[data-preset-preview="editorial-correspondence"] .ts-preview-line-b { top:91px; width:48%; }
 .ts-preset-preview[data-preset-preview="editorial-byline"] .ts-preview-avatar { display:none; }
 .ts-preset-preview[data-preset-preview="editorial-byline"] .ts-preview-name { left:17px; top:27px; font-family:Georgia,serif; font-size:16px; font-weight:700; letter-spacing:-.35px; }
 .ts-preset-preview[data-preset-preview="editorial-byline"] .ts-preview-meta { left:17px; top:51px; bottom:auto; background:transparent; border:0; padding:0; text-transform:uppercase; letter-spacing:1px; }
@@ -1363,9 +1389,9 @@ export const THEME_STUDIO_CSS = `
 .ts-preset-preview[data-preset-preview="editorial-avatar"] .ts-preview-avatar { left:50%; top:19px; width:58px; height:58px; transform:translateX(-50%); border-radius:999px; border:1px solid color-mix(in srgb,var(--ts-quick-accent,#9370db) 68%,transparent); background:linear-gradient(135deg,#d8d3ca,#706c70); filter:saturate(.45) contrast(.98); box-shadow:0 7px 14px -9px #000; }
 .ts-preset-preview[data-preset-preview="editorial-avatar"] .ts-preview-name,.ts-preset-preview[data-preset-preview="editorial-avatar"] .ts-preview-line,.ts-preset-preview[data-preset-preview="editorial-avatar"] .ts-preview-meta { display:none; }
 .ts-preset-preview[data-preset-preview="editorial-composer"] .ts-preview-avatar,.ts-preset-preview[data-preset-preview="editorial-composer"] .ts-preview-name,.ts-preset-preview[data-preset-preview="editorial-composer"] .ts-preview-meta { display:none; }
-.ts-preset-preview[data-preset-preview="editorial-composer"] { background:linear-gradient(135deg,#ece8df,#dfe3e1); border-color:color-mix(in srgb,var(--ts-quick-accent,#9370db) 44%,#8a9194); }
-.ts-preset-preview[data-preset-preview="editorial-composer"]::after { content:'↗'; position:absolute; right:18px; bottom:20px; display:grid; place-items:center; width:27px; height:27px; border-radius:999px; background:#30383c; color:#f2eee6; font:12px/1 Georgia,serif; box-shadow:0 4px 9px -6px #000; }
-.ts-preset-preview[data-preset-preview="editorial-composer"] .ts-preview-line { left:18px; right:58px; top:auto; bottom:28px; width:auto; height:2px; opacity:.48; background:#394348; }
+.ts-preset-preview[data-preset-preview="editorial-composer"] { background:linear-gradient(135deg,#e9dfd0,#d3d8d4); border-color:color-mix(in srgb,var(--ts-quick-accent,#9370db) 44%,#738288); }
+.ts-preset-preview[data-preset-preview="editorial-composer"]::after { content:'✒'; position:absolute; right:17px; bottom:18px; display:grid; place-items:center; width:33px; height:33px; border:0; background:#efe3d3; color:#355d69; font:17px/1 Georgia,serif; box-shadow:inset 0 0 0 1px rgba(109,133,140,.38); transform:rotate(-2.4deg); clip-path:polygon(8% 0,16% 4%,24% 0,32% 4%,40% 0,48% 4%,56% 0,64% 4%,72% 0,80% 4%,88% 0,96% 4%,100% 8%,96% 16%,100% 24%,96% 32%,100% 40%,96% 48%,100% 56%,96% 64%,100% 72%,96% 80%,100% 88%,96% 96%,92% 100%,84% 96%,76% 100%,68% 96%,60% 100%,52% 96%,44% 100%,36% 96%,28% 100%,20% 96%,12% 100%,4% 96%,0 92%,4% 84%,0 76%,4% 68%,0 60%,4% 52%,0 44%,4% 36%,0 28%,4% 20%,0 12%,4% 4%); }
+.ts-preset-preview[data-preset-preview="editorial-composer"] .ts-preview-line { left:18px; right:62px; top:auto; bottom:28px; width:auto; height:2px; opacity:.48; background:#59666b; }
 
 /* Manga recipe thumbnails intentionally read like paper/panel composition rather than generic cards. */
 .ts-preset-preview[data-preset-preview^="manga-"] { background:#08080b; color:var(--ts-quick-text,#f4eef8); }
@@ -2088,6 +2114,7 @@ export const THEME_STUDIO_CSS = `
 .ts-library-browser .ts-preset-card { grid-template-rows:122px auto auto; }
 .ts-library-browser .ts-preset-card-copy { padding:10px 10px 8px; }
 .ts-library-browser .ts-preset-card-copy strong { font-size:11.5px; line-height:1.2; }
+.ts-library-browser .ts-preset-card-copy .ts-library-targets span { font-size:7.7px; }
 .ts-library-browser .ts-library-badges { gap:5px; margin-top:7px; }
 .ts-library-browser .ts-library-badge { padding:3px 6px!important; font-size:7.3px!important; }
 .ts-library-browser .ts-library-card-actions { padding:0 9px 9px; }
@@ -2822,6 +2849,177 @@ export const THEME_STUDIO_CSS = `
   .ts-style-map-item { grid-template-columns:minmax(0,1fr) 18px; min-height:54px; padding:10px; }
   .ts-style-map-source { grid-column:1 / -1; grid-row:2; padding-top:3px; border-top:1px solid color-mix(in srgb,var(--ts-border) 65%,transparent); }
   .ts-group-add-row { grid-template-columns:1fr; gap:4px; }
+}
+
+/* v28.24 · Quick Align --------------------------------------------------- */
+.ts-quick-align-axis button { min-width:0; }
+.ts-quick-align-context > div { gap:2px; }
+.ts-quick-align-context > div > small:last-child { margin-top:2px; white-space:normal; line-height:1.35; color:var(--ts-muted); }
+
+/* v28.30 · Composer textarea metrics + physical send shell -------------- */
+.ts-composer-mock-text > span[data-composer-mock-role="input.placeholder"] { padding:0; color:inherit; font:inherit; }
+.ts-composer-mock-send-shell { display:grid; place-items:center; justify-self:center; align-self:center; width:36px; height:36px; box-sizing:border-box; }
+.ts-composer-mock-send-shell .ts-composer-mock-send { max-width:100%; max-height:100%; }
+.ts-composer-workshop-preview[data-active-composer-role="input.send.shell"] .ts-composer-mock-send-shell,
+.ts-composer-workshop-preview[data-active-composer-role="input.send"] .ts-composer-mock-send,
+.ts-composer-workshop-preview[data-active-composer-role="input.send.icon"] .ts-composer-mock-send > i { outline:2px solid var(--ts-accent); outline-offset:3px; }
+
+/* v28.30 · Editorial contributors preview ------------------------------- */
+.ts-preset-preview[data-preset-preview="editorial-roster"] { background:linear-gradient(100deg,#dad5cb,#cfd5d1); border-color:#6d7c82; }
+.ts-preset-preview[data-preset-preview="editorial-roster"]::before { content:'CONTRIBUTORS'; position:absolute; left:10px; top:14px; color:#53636a; font:800 6px/1 ui-monospace,monospace; letter-spacing:.9px; opacity:.72; }
+.ts-preset-preview[data-preset-preview="editorial-roster"] .ts-preview-avatar { left:18px; top:35px; width:25px; height:25px; border:1px solid #68787e; border-radius:1px; filter:saturate(.62) grayscale(.08); box-shadow:46px 0 0 -1px #d4d0c8,92px 0 0 -1px #d4d0c8; }
+.ts-preset-preview[data-preset-preview="editorial-roster"] .ts-preview-name { left:13px; top:64px; width:35px; color:#39474c; font-family:Georgia,serif; font-size:7px; text-align:center; box-shadow:46px 8px 0 -7px #52666d; }
+.ts-preset-preview[data-preset-preview="editorial-roster"] .ts-preview-meta { display:none; }
+.ts-preset-preview[data-preset-preview="editorial-roster"] .ts-preview-line { display:none; }
+
+
+/* v28.52 · mobile workbench ------------------------------------------------
+   Float keeps the same authoring surface on phones, but the chrome stops
+   pretending it has desktop acreage. Density scales only the scroll body;
+   the title/workspace/window controls remain full-size touch targets. */
+.ts-inspector-density { width:100%; min-width:0; }
+.ts-floating-minimize { display:grid; place-items:center; width:30px; padding:0!important; }
+.ts-floating-minimize svg { width:15px; height:15px; }
+.ts-floating-action-divider { display:block; width:1px; height:20px; margin:0 2px; background:var(--ts-border); opacity:.8; }
+.ts-mobile-density-toggle { display:none!important; }
+
+@media (max-width:600px) {
+  .ts-floating-editor {
+    --ts-mobile-density-scale:1;
+    --ts-mobile-scroll-gutter:18px;
+  }
+  .ts-floating-editor[data-mobile-density="80"] { --ts-mobile-density-scale:.8; }
+  .ts-floating-editor[data-mobile-density="60"] { --ts-mobile-density-scale:.6; }
+
+  /* Palette owns its cockpit typography. Theme font/scale can style the app,
+     not turn Smart into a 22px display heading inside the editor. */
+  .ts-floating-editor [data-theme-studio-root] {
+    --lumiverse-font-scale:1;
+    font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    font-size:12px;
+  }
+
+  /* Tabs are one semantic island; edge/density/minimize/close are another. */
+  .ts-floating-editor-head {
+    grid-template-columns:minmax(40px,1fr) auto auto;
+    align-items:center;
+    gap:5px;
+    min-height:42px;
+    padding:8px 5px 5px 8px;
+  }
+  .ts-floating-editor-title { min-width:40px; }
+  .ts-floating-editor-title strong { font:750 9px/1 ui-sans-serif,system-ui,sans-serif; }
+  .ts-floating-workspaces {
+    display:grid;
+    grid-template-columns:repeat(3,30px);
+    gap:1px;
+    padding:2px;
+    border:1px solid var(--ts-border);
+    border-radius:8px;
+    background:color-mix(in srgb,var(--ts-surface) 74%,transparent);
+  }
+  .ts-floating-workspaces button { width:30px; height:30px; border-radius:6px; }
+  .ts-floating-workspaces svg { width:15px; height:15px; }
+  .ts-floating-editor-actions {
+    display:flex;
+    align-items:center;
+    gap:1px;
+    min-width:0;
+    padding-left:5px;
+    border-left:1px solid var(--ts-border);
+  }
+  .ts-floating-editor-actions button {
+    display:grid;
+    place-items:center;
+    width:29px;
+    min-width:29px;
+    height:30px;
+    min-height:30px;
+    padding:0;
+    font-family:ui-sans-serif,system-ui,sans-serif;
+  }
+  .ts-mobile-density-toggle {
+    display:grid!important;
+    width:38px!important;
+    min-width:38px!important;
+    color:var(--ts-muted)!important;
+    font:800 8px/1 ui-sans-serif,system-ui,sans-serif!important;
+    letter-spacing:-.2px;
+  }
+  .ts-floating-editor-actions [data-widget-action="dock"] {
+    width:30px;
+    min-width:30px;
+    color:var(--ts-muted)!important;
+    overflow:visible;
+  }
+  .ts-floating-editor-actions [data-widget-action="dock"]::after { content:none!important; }
+  .ts-floating-minimize svg,.ts-mobile-edge-toggle svg { width:15px; height:15px; }
+  .ts-floating-close { font-size:15px!important; }
+
+  /* Workbar remains unscaled and tappable, but its select/text no longer
+     inherits giant theme typography. Pick/Group and Guides/Smart stay two
+     visibly separate tool families. */
+  .ts-floating-editor .ts-workbar { padding:5px 6px; gap:4px; overflow:hidden; }
+  .ts-floating-editor .ts-workbar-primary { width:100%; gap:4px; }
+  .ts-floating-editor .ts-workbar-mode-group,
+  .ts-floating-editor .ts-workbar-guide-group { gap:2px; padding:2px; border-radius:7px; }
+  .ts-floating-editor .ts-workbar-divider { height:20px; }
+  .ts-floating-editor .ts-workbar .ts-btn { min-height:29px; padding:4px 7px; font:700 9px/1 ui-sans-serif,system-ui,sans-serif; }
+  .ts-floating-editor .ts-guide-mode {
+    width:76px;
+    min-width:72px;
+    height:29px;
+    min-height:29px;
+    padding:4px 22px 4px 7px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font:700 10px/1 ui-sans-serif,system-ui,sans-serif!important;
+  }
+
+  /* The padding itself is deliberately empty: either edge is always a safe
+     vertical pan lane even when a packet contains several range sliders. */
+  .ts-floating-editor .ts-scroll {
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:7px var(--ts-mobile-scroll-gutter) 16px!important;
+    touch-action:pan-y;
+  }
+  .ts-floating-editor .ts-inspector-density {
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    box-sizing:border-box;
+    zoom:var(--ts-mobile-density-scale);
+  }
+
+  /* Mobile form density. 100% is still fully usable; 80/60 expose more of
+     the same controls without scaling the persistent toolbar itself. */
+  .ts-floating-editor .ts-inspector-density :is(.ts-input,.ts-number,.ts-project-select,.ts-search) {
+    min-height:34px;
+    padding:6px 8px;
+    font:500 11px/1.2 ui-sans-serif,system-ui,sans-serif;
+  }
+  .ts-floating-editor .ts-inspector-density select.ts-input {
+    height:34px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .ts-floating-editor .ts-inspector-density .ts-field { margin-top:8px; }
+  .ts-floating-editor .ts-inspector-density .ts-label { margin-bottom:4px; font-size:10px; }
+  .ts-floating-editor .ts-inspector-density .ts-range-row { grid-template-columns:minmax(0,1fr) 64px; gap:6px; }
+  .ts-floating-editor .ts-inspector-density .ts-range { touch-action:none; }
+  .ts-floating-editor .ts-inspector-density .ts-advanced { margin-top:8px; }
+  .ts-floating-editor .ts-inspector-density .ts-advanced > summary { padding:7px 0 1px; font-size:9px; }
+  .ts-floating-editor .ts-inspector-density .ts-packet { margin-bottom:7px; }
+  .ts-floating-editor .ts-inspector-density .ts-packet-body { padding:9px; }
+  .ts-floating-editor .ts-inspector-density .ts-inline-fields { gap:6px; }
+  .ts-floating-editor .ts-inspector-density .ts-dimension-row.is-fixed { grid-template-columns:76px minmax(56px,1fr) minmax(92px,104px); gap:6px; }
+  .ts-floating-editor .ts-inspector-density .ts-primary-dimension.is-fixed { grid-template-columns:76px minmax(56px,1fr) minmax(92px,104px); gap:6px; }
+  .ts-floating-editor .ts-inspector-density .ts-size-mode { height:34px; }
+  .ts-floating-editor .ts-inspector-density .ts-box-grid { gap:6px; margin-top:8px; }
 }
 
 `

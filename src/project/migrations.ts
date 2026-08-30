@@ -1,9 +1,9 @@
 import {
   PROJECT_VERSION, STATE_VERSION, STYLE_STATES, COMPOSER_ICON_ACTIONS, createBoost, createGradient, createInitialState, normalizeSvgSource,
   type AlignmentPacket, type BackgroundPacket, type BorderPacket, type BoxSpacing, type ComponentOverride, type ContentPacket,
-  type CornersPacket, type GlassPacket, type ImagePacket, type ComposerIconsPacket, type PatternPacket, type LayoutGroup, type LayoutGroupState, type LayoutGroupStyleBucket, type LayoutGroupContentTarget, type LayoutItemPacket, type LayoutPacket, type OpacityPacket, type PositionPacket, type ShadowPacket,
+  type CornersPacket, type GlassPacket, type ImagePacket, type ComposerIconsPacket, type PatternPacket, type LayoutGroup, type LayoutGroupState, type LayoutGroupStyleBucket, type LayoutGroupContentTarget, type LayoutItemPacket, type LayoutPacket, type PlacementPacket, type OpacityPacket, type PositionPacket, type ShadowPacket,
   type SizePacket, type SpacingPacket, type StatePacketStacks, type StylePacket, type StudioFontFace, type TransformPacket, type StudioSvgAsset, type SvgAssetPacket, type MediaFlowPacket,
-  type StylePreset, type SavedStyleBundle, type StudioTarget, type TextPacket, type TypographyPacket, type VisibilityPacket, type RecipePacketSlot, type ThemeStudioProject, type ThemeStudioState,
+  type StylePreset, type SavedStyleBundle, type StudioTarget, type TextPacket, type TypographyPacket, type TextEntryPacket, type VisibilityPacket, type RecipePacketSlot, type ThemeStudioProject, type ThemeStudioState,
 } from './model'
 import { alpha, bounded, normalizeDimension, percentage } from './values'
 import { canonicalizeSavedContextSelector, composeContextSelector } from '../registry/selector-utils'
@@ -197,10 +197,11 @@ function normalizePacketBase(value: unknown): StylePacket | null {
       strokeWidth: value.strokeWidth === undefined ? 0 : bounded(value.strokeWidth, 0, 0, 100),
       strokeColor: typeof value.strokeColor === 'string' ? value.strokeColor : '#000000',
       strokeAlpha: value.strokeAlpha === undefined ? 1 : alpha(value.strokeAlpha),
+      outlineMode: value.outlineMode === 'outside' ? 'outside' : 'edge',
       shadow: shadow ? { x: bounded(shadow.x, 0, -10000, 10000), y: bounded(shadow.y, 2, -10000, 10000), blur: bounded(shadow.blur, 8, 0, 1000), color: string(shadow.color, '#000000'), alpha: alpha(shadow.alpha, .35) } : undefined,
     } satisfies TextPacket
   }
-  if (value.type === 'content') return { id, type: 'content', value: string(value.value, 'LABEL').slice(0, 4000) } satisfies ContentPacket
+  if (value.type === 'content') return { id, type: 'content', value: string(value.value, 'LABEL').slice(0, 4000), source: value.source === 'title' || value.source === 'aria-label' ? value.source : 'literal' } satisfies ContentPacket
   if (value.type === 'typography') return {
     id, type: 'typography',
     fontSize: value.fontSize === undefined ? undefined : bounded(value.fontSize, 15, 1, 10000),
@@ -213,6 +214,22 @@ function normalizePacketBase(value: unknown): StylePacket | null {
     letterSpacing: value.letterSpacing === undefined ? undefined : bounded(value.letterSpacing, 0, -1000, 1000),
     transform: ['uppercase', 'lowercase', 'capitalize'].includes(String(value.transform)) ? value.transform as TypographyPacket['transform'] : 'none',
   } satisfies TypographyPacket
+  if (value.type === 'text-entry') return {
+    id, type: 'text-entry',
+    insetX: bounded(value.insetX, 12, 0, 500),
+    insetY: bounded(value.insetY, 9, 0, 500),
+    fontSize: value.fontSize === undefined ? undefined : bounded(value.fontSize, 15, 1, 10000),
+    fontSizeUnit: value.fontSizeUnit === 'rem' ? 'rem' : 'px',
+    fontFamily: typeof value.fontFamily === 'string' ? value.fontFamily : undefined,
+    fontWeight: typeof value.fontWeight === 'number' || typeof value.fontWeight === 'string' ? value.fontWeight : undefined,
+    fontStyle: value.fontStyle === 'italic' ? 'italic' : value.fontStyle === 'normal' ? 'normal' : undefined,
+    lineHeight: value.lineHeight === undefined ? undefined : bounded(value.lineHeight, 1.5, 0.1, 20),
+    letterSpacing: value.letterSpacing === undefined ? undefined : bounded(value.letterSpacing, 0, -1000, 1000),
+    placeholderColor: string(value.placeholderColor, '#72777a'),
+    placeholderAlpha: alpha(value.placeholderAlpha, .65),
+    placeholderStyle: value.placeholderStyle === 'normal' ? 'normal' : 'italic',
+    placeholderWeight: typeof value.placeholderWeight === 'number' || typeof value.placeholderWeight === 'string' ? value.placeholderWeight : 400,
+  } satisfies TextEntryPacket
   if (value.type === 'border') return { id, type: 'border', width: bounded(value.width, 1, 0, 1000), style: ['dashed', 'dotted', 'double', 'none'].includes(String(value.style)) ? value.style as BorderPacket['style'] : 'solid', color: string(value.color, '#ffffff'), alpha: alpha(value.alpha) } satisfies BorderPacket
   if (value.type === 'corners') return { id, type: 'corners', linked: value.linked !== false, topLeft: bounded(value.topLeft, 0, 0, 99999), topRight: bounded(value.topRight, 0, 0, 99999), bottomRight: bounded(value.bottomRight, 0, 0, 99999), bottomLeft: bounded(value.bottomLeft, 0, 0, 99999), unit: 'px' } satisfies CornersPacket
   if (value.type === 'spacing') return { id, type: 'spacing', padding: box(value.padding), margin: box(value.margin), gap: value.gap === undefined ? undefined : bounded(value.gap, 0, 0, 10000) } satisfies SpacingPacket
@@ -276,6 +293,7 @@ function normalizePacketBase(value: unknown): StylePacket | null {
     return { id, type: 'layout', display: displays.includes(value.display as LayoutPacket['display']) ? value.display as LayoutPacket['display'] : 'normal', direction: directions.includes(value.direction as NonNullable<LayoutPacket['direction']>) ? value.direction as LayoutPacket['direction'] : 'row', wrap: wraps.includes(value.wrap as NonNullable<LayoutPacket['wrap']>) ? value.wrap as LayoutPacket['wrap'] : 'nowrap', justify: ['center', 'end', 'space-between', 'space-around', 'space-evenly'].includes(String(value.justify)) ? value.justify as LayoutPacket['justify'] : 'start', align: ['start', 'end', 'stretch'].includes(String(value.align)) ? value.align as LayoutPacket['align'] : 'center', gap: value.gap === undefined ? undefined : normalizeDimension(value.gap, { mode: 'fixed', value: 8, unit: 'px' }), gridColumns } satisfies LayoutPacket
   }
   if (value.type === 'layout-item') return { id, type: 'layout-item', sizeInParent: value.sizeInParent === 'fill' || value.sizeInParent === 'fixed' ? value.sizeInParent : 'natural', grow: value.grow === undefined ? undefined : bounded(value.grow, 0, 0, 100), shrink: value.shrink === undefined ? undefined : bounded(value.shrink, 1, 0, 100), basis: value.basis === undefined ? undefined : normalizeDimension(value.basis), alignSelf: ['auto', 'start', 'center', 'end', 'stretch'].includes(String(value.alignSelf)) ? value.alignSelf as LayoutItemPacket['alignSelf'] : 'auto', order: value.order === undefined ? undefined : bounded(value.order, 0, -10000, 10000) } satisfies LayoutItemPacket
+  if (value.type === 'placement') return { id, type: 'placement', horizontal: ['start', 'center', 'end', 'stretch'].includes(String(value.horizontal)) ? value.horizontal as PlacementPacket['horizontal'] : 'native', vertical: ['start', 'center', 'end', 'stretch'].includes(String(value.vertical)) ? value.vertical as PlacementPacket['vertical'] : 'native' } satisfies PlacementPacket
   if (value.type === 'size') { const boundary = record(value.boundary) && string(value.boundary.selector).trim() ? { selector: string(value.boundary.selector), label: string(value.boundary.label, 'Boundary') } : undefined; return { id, type: 'size', width: value.width === undefined ? undefined : normalizeDimension(value.width), height: value.height === undefined ? undefined : normalizeDimension(value.height), minWidth: value.minWidth === undefined ? undefined : normalizeDimension(value.minWidth), maxWidth: value.maxWidth === undefined ? undefined : normalizeDimension(value.maxWidth), minHeight: value.minHeight === undefined ? undefined : normalizeDimension(value.minHeight), maxHeight: value.maxHeight === undefined ? undefined : normalizeDimension(value.maxHeight), aspectRatio: record(value.aspectRatio) ? { width: bounded(value.aspectRatio.width, 1, 0.001, 10000), height: bounded(value.aspectRatio.height, 1, 0.001, 10000) } : undefined, boundary, mobileSafe: value.mobileSafe !== false } satisfies SizePacket }
   return null
 }
@@ -403,7 +421,7 @@ function recipeSlot(value: unknown): RecipePacketSlot | null {
   if (!record(value)) return null
   const target = storedTarget(value.target)
   if (!target || target.persistence !== 'persistent') return null
-  const allowedTypes = new Set(['background','pattern','text','typography','border','corners','spacing','shadow','glass','opacity','visibility','composer-icons','svg-asset','media-flow','image','position','transform','alignment','layout','layout-item','size'])
+  const allowedTypes = new Set(['background','pattern','text','typography','text-entry','border','corners','spacing','shadow','glass','opacity','visibility','composer-icons','svg-asset','media-flow','image','position','transform','alignment','layout','layout-item','placement','size'])
   const type = string(value.type) as RecipePacketSlot['type']
   if (!allowedTypes.has(type)) return null
   const base = normalizePacketBase(value.base)

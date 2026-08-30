@@ -1,6 +1,6 @@
-// Theme Studio bundled from TypeScript source (sandbox release builder)
-const __tsModules=Object.create(null);
-__tsModules["src/backend.ts"]=function(module,exports,require){
+// Generated fallback bundle for Palette (TypeScript CJS module graph wrapped as ESM)
+const __modules = Object.create(null);
+__modules["src/backend"] = function(module,exports,__require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const STATE_PATH = 'theme-studio/projects.json';
@@ -58,7 +58,6 @@ spindle.onFrontendMessage(async (payload, userId) => {
 });
 
 };
-const __tsCache=Object.create(null);
-function __tsResolve(from,spec){if(!spec.startsWith('.'))throw new Error('External runtime import '+spec);const b=from.split('/').slice(0,-1);for(const bit of spec.split('/')){if(!bit||bit==='.')continue;if(bit==='..')b.pop();else b.push(bit)}const raw=b.join('/');for(const id of [raw,raw+'.ts',raw+'/index.ts'])if(__tsModules[id])return id;throw new Error('Cannot resolve '+spec+' from '+from)}
-function __tsLoad(id){if(__tsCache[id])return __tsCache[id].exports;const fn=__tsModules[id];if(!fn)throw new Error('Unknown module '+id);const module={exports:{}};__tsCache[id]=module;fn(module,module.exports,(spec)=>__tsLoad(__tsResolve(id,spec)));return module.exports}
-const __tsEntry=__tsLoad("src/backend.ts");
+const __cache = Object.create(null);
+function __require(id){ if(__cache[id]) return __cache[id].exports; const fn=__modules[id]; if(!fn) throw new Error("Missing bundled module: "+id); const module={exports:{}}; __cache[id]=module; fn(module,module.exports,__require); return module.exports; }
+const __entry = __require("src/backend");

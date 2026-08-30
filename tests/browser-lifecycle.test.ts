@@ -9,6 +9,7 @@ import { createStylePacket } from '../src/project/model'
 import { resolveElement } from '../src/registry/selector-resolver'
 import type { NativeThemeComponent } from '../src/registry/types'
 import { ThemeStudioUI } from '../src/ui/studio'
+import { THEME_STUDIO_CSS } from '../src/ui/styles'
 import { KNOWN_PART_ROLES } from '../src/presets/common-parts'
 import { reverseEngineerElement } from '../src/project/reverse-engineer'
 
@@ -225,6 +226,29 @@ describe('browser-owned lifecycle', () => {
     studio.destroy()
     picker.destroy()
     preview.destroy()
+  })
+
+  test('mobile floating workbench cycles inspector density without shrinking persistent controls', () => {
+    const context = mockContext(); const root = document.createElement('div'); document.body.append(root)
+    const store = new ProjectStore(); const preview = new LiveStylesheet(context); const picker = new ElementPicker(context); const studio = new ThemeStudioUI(context, root, store, picker, preview)
+    const access = studio as unknown as { mountWidget(): void }
+    access.mountWidget()
+    const frame = document.querySelector<HTMLElement>('.ts-floating-editor')!
+    const density = frame.querySelector<HTMLButtonElement>('[data-widget-action="cycle-density"]')!
+    const minimize = frame.querySelector<HTMLButtonElement>('[data-widget-action="dock"]')!
+    expect(frame.dataset.mobileDensity).toBe('100')
+    expect(density.textContent).toBe('100%')
+    density.click(); expect(frame.dataset.mobileDensity).toBe('80'); expect(density.textContent).toBe('80%')
+    density.click(); expect(frame.dataset.mobileDensity).toBe('60'); expect(density.textContent).toBe('60%')
+    density.click(); expect(frame.dataset.mobileDensity).toBe('100'); expect(density.textContent).toBe('100%')
+    expect(minimize.getAttribute('aria-label')).toContain('Minimize')
+    expect(minimize.querySelector('svg')).not.toBeNull()
+    expect(THEME_STUDIO_CSS).toContain('--ts-mobile-scroll-gutter:18px')
+    expect(THEME_STUDIO_CSS).toContain('[data-mobile-density="80"]')
+    expect(THEME_STUDIO_CSS).toContain('.ts-inspector-density')
+    expect(THEME_STUDIO_CSS).not.toContain('--ts-mobile-density-width')
+    expect(THEME_STUDIO_CSS).toContain('width:100%;\n    max-width:100%;')
+    studio.destroy(); picker.destroy(); preview.destroy()
   })
 
   test('rerendering controls preserves the drawer scroll position', () => {

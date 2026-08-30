@@ -1,7 +1,7 @@
 import type {
-  AlignmentPacket, BackgroundPacket, BorderPacket, ComponentOverride, ContentPacket, CornersPacket, DimensionValue, GlassPacket, ImagePacket, ComposerIconsPacket, SvgAssetPacket, LayoutGroup, LayoutGroupState, LayoutItemPacket, LayoutPacket,
+  AlignmentPacket, BackgroundPacket, BorderPacket, ComponentOverride, ContentPacket, CornersPacket, DimensionValue, GlassPacket, ImagePacket, ComposerIconsPacket, SvgAssetPacket, LayoutGroup, LayoutGroupState, LayoutItemPacket, LayoutPacket, PlacementPacket,
   OpacityPacket, PatternPacket, PositionPacket, ShadowPacket, SizePacket, SpacingPacket, StatePacketStacks, StylePacket, StyleStateName, TransformPacket, ImageCustomMask, MediaFlowPacket,
-  StudioFontFace, StudioTarget, TextPacket, TypographyPacket, VisibilityPacket, ThemeStudioProject, ThemeTokenOverride, ResponsiveScopeName,
+  StudioFontFace, StudioTarget, TextPacket, TypographyPacket, TextEntryPacket, VisibilityPacket, ThemeStudioProject, ThemeTokenOverride, ResponsiveScopeName,
 } from '../project/model'
 import { COMPOSER_ICON_ACTIONS, MOBILE_BREAKPOINT_PX, STYLE_STATES, normalizeSvgSource } from '../project/model'
 import { compileDimension } from '../project/values'
@@ -32,16 +32,22 @@ function declarationOwnedBy(packet: StylePacket, property: string): boolean {
   switch (packet.type) {
     case 'background': return ownsField(packet, 'mode', 'solid', 'gradient', 'image')
     case 'pattern': return ownsField(packet, 'pattern', 'color', 'alpha', 'scale', 'angle')
-    case 'content': return property === 'content' && ownsField(packet, 'value')
+    case 'content': return property === 'content' && ownsField(packet, 'value', 'source')
     case 'text':
       if (['color','background-image','background-clip','-webkit-background-clip'].includes(property)) return ownsField(packet, 'colorMode', 'solid', 'gradient')
       if (property === '-webkit-text-fill-color') return packet.colorMode === 'gradient' ? ownsField(packet, 'colorMode', 'gradient') : packet.inkMode === 'force' && ownsField(packet, 'inkMode', 'colorMode', 'solid')
-      if (property === '-webkit-text-stroke') return ownsField(packet, 'strokeWidth', 'strokeColor', 'strokeAlpha')
-      if (property === 'text-shadow') return ownsField(packet, 'shadow')
+      if (property === '-webkit-text-stroke') return packet.outlineMode !== 'outside' && ownsField(packet, 'outlineMode', 'strokeWidth', 'strokeColor', 'strokeAlpha')
+      if (property === 'text-shadow') return ownsField(packet, 'shadow') || packet.outlineMode === 'outside' && ownsField(packet, 'outlineMode', 'strokeWidth', 'strokeColor', 'strokeAlpha')
       return false
     case 'typography': {
       if (property === 'font-size') return ownsField(packet, 'fontSize', 'fontSizeUnit')
       const map: Record<string, string> = { 'font-family':'fontFamily', 'font-weight':'fontWeight', 'font-style':'fontStyle', 'text-align':'textAlign', 'line-height':'lineHeight', 'letter-spacing':'letterSpacing', 'text-transform':'transform' }
+      return Boolean(map[property] && ownsField(packet, map[property]))
+    }
+    case 'text-entry': {
+      if (property === 'padding' || property === 'box-sizing') return ownsField(packet, 'insetX', 'insetY')
+      if (property === 'font-size') return ownsField(packet, 'fontSize', 'fontSizeUnit')
+      const map: Record<string, string> = { 'font-family':'fontFamily', 'font-weight':'fontWeight', 'font-style':'fontStyle', 'line-height':'lineHeight', 'letter-spacing':'letterSpacing' }
       return Boolean(map[property] && ownsField(packet, map[property]))
     }
     case 'border': return ownsField(packet, 'width', 'style', 'color', 'alpha')
@@ -93,6 +99,10 @@ function declarationOwnedBy(packet: StylePacket, property: string): boolean {
       if (property === 'flex-basis') return ownsField(packet, 'sizeInParent', 'basis')
       if (property === 'align-self') return ownsField(packet, 'alignSelf')
       if (property === 'order') return ownsField(packet, 'order')
+      return false
+    case 'placement':
+      if (['width','margin-inline-start','margin-inline-end','justify-self'].includes(property)) return ownsField(packet, 'horizontal')
+      if (['height','margin-block-start','margin-block-end','align-self'].includes(property)) return ownsField(packet, 'vertical')
       return false
     case 'size': {
       const map: Record<string, string> = { width:'width', height:'height', 'min-width':'minWidth', 'max-width':'maxWidth', 'min-height':'minHeight', 'max-height':'maxHeight', 'aspect-ratio':'aspectRatio' }
@@ -208,18 +218,44 @@ function compileBackgroundAndPattern(background: BackgroundPacket, pattern: Patt
     blend ? ['background-blend-mode', [...layers.images.map(() => 'normal'), blend].join(', ')] : null,
   ])
 }
+function compileOutsideTextOutline(width: number, color: string): string[] {
+  const radius = clamp(width, 0, 16)
+  if (radius <= 0) return []
+  const shadows: string[] = []
+  const rings = Math.max(1, Math.ceil(radius))
+  const samples = 16
+  for (let ring = 1; ring <= rings; ring += 1) {
+    const r = Math.min(ring, radius)
+    for (let sample = 0; sample < samples; sample += 1) {
+      const angle = Math.PI * 2 * sample / samples
+      const x = number(Math.cos(angle) * r)
+      const y = number(Math.sin(angle) * r)
+      shadows.push(`${x}px ${y}px 0 ${color}`)
+    }
+  }
+  return shadows
+}
 export function compileTextPacket(packet: TextPacket): string {
   const colorDeclarations: Array<[string, string]> = packet.colorMode === 'gradient'
     ? [['color', colorWithAlpha(packet.gradient.stops[0]?.color ?? '#ffffff', packet.gradient.stops[0]?.alpha ?? 1)], ['background-image', gradientValue(packet.gradient)], ['background-clip', 'text'], ['-webkit-background-clip', 'text'], ['-webkit-text-fill-color', 'transparent']]
     : [['color', colorWithAlpha(packet.solid.color, packet.solid.alpha)], ...(packet.inkMode === 'force' ? [['-webkit-text-fill-color', colorWithAlpha(packet.solid.color, packet.solid.alpha)] as [string, string]] : [])]
   const shadow = packet.shadow
+  const strokeWidth = clamp(packet.strokeWidth ?? 0, 0, 100)
+  const strokeColor = colorWithAlpha(packet.strokeColor ?? '#000000', packet.strokeAlpha ?? 1)
+  const outsideOutline = packet.outlineMode === 'outside' ? compileOutsideTextOutline(strokeWidth, strokeColor) : []
+  const textShadows = [
+    ...outsideOutline,
+    ...(shadow ? [`${number(shadow.x)}px ${number(shadow.y)}px ${number(clamp(shadow.blur, 0, 1000))}px ${colorWithAlpha(shadow.color, shadow.alpha)}`] : []),
+  ]
   return lines([
     ...colorDeclarations,
-    (packet.strokeWidth ?? 0) > 0 ? ['-webkit-text-stroke', `${number(clamp(packet.strokeWidth ?? 0, 0, 100))}px ${colorWithAlpha(packet.strokeColor ?? '#000000', packet.strokeAlpha ?? 1)}`] : null,
-    shadow ? ['text-shadow', `${number(shadow.x)}px ${number(shadow.y)}px ${number(clamp(shadow.blur, 0, 1000))}px ${colorWithAlpha(shadow.color, shadow.alpha)}`] : null,
+    packet.outlineMode !== 'outside' && strokeWidth > 0 ? ['-webkit-text-stroke', `${number(strokeWidth)}px ${strokeColor}`] : null,
+    textShadows.length ? ['text-shadow', textShadows.join(', ')] : null,
   ])
 }
 export function compileContentPacket(packet: ContentPacket): string {
+  if (packet.source === 'title') return 'content: attr(title);'
+  if (packet.source === 'aria-label') return 'content: attr(aria-label);'
   const escaped = String(packet.value ?? '').replaceAll('\\', '\\\\').replaceAll('"', '\\"').replace(/\r?\n/g, '\\A ')
   return `content: "${escaped}";`
 }
@@ -233,6 +269,29 @@ export function compileTypographyPacket(packet: TypographyPacket): string {
     packet.lineHeight !== undefined ? ['line-height', number(clamp(packet.lineHeight, 0.1, 20))] : null,
     packet.letterSpacing !== undefined ? ['letter-spacing', `${number(clamp(packet.letterSpacing, -1000, 1000))}px`] : null,
     packet.transform && packet.transform !== 'none' ? ['text-transform', packet.transform] : null,
+  ])
+}
+/** Compile the metric half of Text Entry. The same declaration is replayed onto Lumiverse's hidden autosize mirror. */
+export function compileTextEntryPacket(packet: TextEntryPacket): string {
+  return lines([
+    ['padding', `${number(clamp(packet.insetY, 0, 500))}px ${number(clamp(packet.insetX, 0, 500))}px`],
+    ['box-sizing', 'border-box'],
+    packet.fontSize !== undefined ? ['font-size', `${number(clamp(packet.fontSize, 0.01, 10000))}${packet.fontSizeUnit === 'rem' ? 'rem' : 'px'}`] : null,
+    packet.fontFamily ? ['font-family', safe(packet.fontFamily, 'inherit')] : null,
+    packet.fontWeight !== undefined ? ['font-weight', safe(String(packet.fontWeight), 'inherit')] : null,
+    packet.fontStyle ? ['font-style', packet.fontStyle] : null,
+    packet.lineHeight !== undefined ? ['line-height', number(clamp(packet.lineHeight, 0.1, 20))] : null,
+    packet.letterSpacing !== undefined ? ['letter-spacing', `${number(clamp(packet.letterSpacing, -1000, 1000))}px`] : null,
+  ])
+}
+function compileTextEntryPlaceholderPacket(packet: TextEntryPacket): string {
+  const ownsInk = ownsField(packet, 'placeholderColor', 'placeholderAlpha')
+  return lines([
+    ownsInk ? ['color', colorWithAlpha(packet.placeholderColor, clamp(packet.placeholderAlpha, 0, 1))] : null,
+    ownsInk ? ['-webkit-text-fill-color', colorWithAlpha(packet.placeholderColor, clamp(packet.placeholderAlpha, 0, 1))] : null,
+    ownsInk ? ['opacity', '1'] : null,
+    ownsField(packet, 'placeholderStyle') && packet.placeholderStyle ? ['font-style', packet.placeholderStyle] : null,
+    ownsField(packet, 'placeholderWeight') && packet.placeholderWeight !== undefined ? ['font-weight', safe(String(packet.placeholderWeight), 'inherit')] : null,
   ])
 }
 export function compileBorderPacket(packet: BorderPacket): string { return `border: ${number(packet.style === 'none' ? 0 : clamp(packet.width, 0, 1000))}px ${packet.style} ${colorWithAlpha(packet.color, packet.alpha)};` }
@@ -249,8 +308,8 @@ function compileSparseBorderPacket(packet: BorderPacket & { editedFields?: strin
   ])
 }
 export function compileCornersPacket(packet: CornersPacket): string { const values = [packet.topLeft, packet.topRight, packet.bottomRight, packet.bottomLeft].map((value) => `${number(clamp(value, 0, 99999))}px`); return `border-radius: ${values.every((value) => value === values[0]) ? values[0] : values.join(' ')};` }
-function boxValue(box: NonNullable<SpacingPacket['padding']>): string { const values = [box.top, box.right, box.bottom, box.left].map((value) => `${number(clamp(value, 0, 10000))}px`); return values.every((value) => value === values[0]) ? values[0] : values.join(' ') }
-export function compileSpacingPacket(packet: SpacingPacket): string { return lines([packet.padding ? ['padding', boxValue(packet.padding)] : null, packet.margin ? ['margin', boxValue(packet.margin)] : null, packet.gap !== undefined ? ['gap', `${number(clamp(packet.gap, 0, 10000))}px`] : null]) }
+function boxValue(box: NonNullable<SpacingPacket['padding']>, min = 0): string { const values = [box.top, box.right, box.bottom, box.left].map((value) => `${number(clamp(value, min, 10000))}px`); return values.every((value) => value === values[0]) ? values[0] : values.join(' ') }
+export function compileSpacingPacket(packet: SpacingPacket): string { return lines([packet.padding ? ['padding', boxValue(packet.padding, 0)] : null, packet.margin ? ['margin', boxValue(packet.margin, -10000)] : null, packet.gap !== undefined ? ['gap', `${number(clamp(packet.gap, 0, 10000))}px`] : null]) }
 export function shadowValue(packet: ShadowPacket): string { return `${packet.inset ? 'inset ' : ''}${number(packet.x)}px ${number(packet.y)}px ${number(clamp(packet.blur, 0, 10000))}px ${number(packet.spread)}px ${colorWithAlpha(packet.color, packet.alpha)}` }
 export function compileShadowPacket(packet: ShadowPacket): string { return `box-shadow: ${shadowValue(packet)};` }
 export function compileGlassPacket(packet: GlassPacket, options: { includeTint?: boolean; includeBorder?: boolean; includeShadow?: boolean } = {}): string {
@@ -311,8 +370,12 @@ export function compileImagePacket(packet: ImagePacket): string {
     custom?.webkitComposite ? ['-webkit-mask-composite', custom.webkitComposite] : null,
   ])
 }
-export function compilePositionPacket(packet: PositionPacket): string {
-  const position = packet.mode === 'flow' || packet.mode === 'nudge' ? undefined : packet.mode === 'anchored' ? 'absolute' : packet.mode === 'sticky' ? 'sticky' : 'fixed'
+export function compilePositionPacket(packet: PositionPacket & { editedFields?: string[] }): string {
+  // Flow normally preserves native positioning. A sparse packet that explicitly
+  // owns only `mode` is the responsive reset form used to release a Base
+  // anchored/sticky composition without changing ordinary flow semantics.
+  const resetsAuthoredPosition = packet.mode === 'flow' && packet.editedFields?.includes('mode')
+  const position = resetsAuthoredPosition ? 'static' : packet.mode === 'flow' || packet.mode === 'nudge' ? undefined : packet.mode === 'anchored' ? 'absolute' : packet.mode === 'sticky' ? 'sticky' : 'fixed'
   const offset = (name: string, value: number | undefined): [string, string] | null => {
     if (packet.mode === 'anchored') return [name, value === undefined ? 'auto' : `${number(value)}${packet.unit}`]
     return value === undefined ? null : [name, `${number(value)}${packet.unit}`]
@@ -361,6 +424,32 @@ export function compileLayoutItemPacket(packet: LayoutItemPacket): string {
     packet.order !== undefined && packet.order !== 0 ? ['order', number(clamp(packet.order, -10000, 10000), 0)] : null,
   ])
 }
+/** Compile friendly placement intent into broadly compatible logical CSS.
+ * Horizontal auto margins work in normal block flow, Flex, and Grid. Grid's justify-self
+ * is emitted as a harmless extra hint. Vertical alignment combines align-self with
+ * logical auto margins; normal block flow may not have free vertical space to distribute. */
+export function compilePlacementPacket(packet: PlacementPacket): string {
+  const horizontal = packet.horizontal
+  const vertical = packet.vertical
+  const width = horizontal === 'stretch' ? '100%' : horizontal === 'native' ? undefined : 'fit-content'
+  const marginInlineStart = horizontal === 'center' || horizontal === 'end' ? 'auto' : horizontal === 'start' || horizontal === 'stretch' ? '0' : undefined
+  const marginInlineEnd = horizontal === 'center' || horizontal === 'start' ? 'auto' : horizontal === 'end' || horizontal === 'stretch' ? '0' : undefined
+  const justifySelf = horizontal === 'native' ? undefined : horizontal
+  const height = vertical === 'stretch' ? '100%' : undefined
+  const marginBlockStart = vertical === 'center' || vertical === 'end' ? 'auto' : vertical === 'start' || vertical === 'stretch' ? '0' : undefined
+  const marginBlockEnd = vertical === 'center' || vertical === 'start' ? 'auto' : vertical === 'end' || vertical === 'stretch' ? '0' : undefined
+  const alignSelf = vertical === 'native' ? undefined : vertical
+  return lines([
+    width ? ['width', width] : null,
+    marginInlineStart ? ['margin-inline-start', marginInlineStart] : null,
+    marginInlineEnd ? ['margin-inline-end', marginInlineEnd] : null,
+    justifySelf ? ['justify-self', justifySelf] : null,
+    height ? ['height', height] : null,
+    marginBlockStart ? ['margin-block-start', marginBlockStart] : null,
+    marginBlockEnd ? ['margin-block-end', marginBlockEnd] : null,
+    alignSelf ? ['align-self', alignSelf] : null,
+  ])
+}
 export function compileSizePacket(packet: SizePacket): string {
   const dimension = (property: string, value: DimensionValue | undefined): [string, string] | null => { const compiled = value ? compileDimension(value) : ''; return compiled ? [property, compiled] : null }
   return lines([dimension('width', packet.width), dimension('height', packet.height), dimension('min-width', packet.minWidth), dimension('max-width', packet.maxWidth), dimension('min-height', packet.minHeight), dimension('max-height', packet.maxHeight), packet.aspectRatio ? ['aspect-ratio', `${number(packet.aspectRatio.width)} / ${number(packet.aspectRatio.height)}`] : null])
@@ -402,7 +491,7 @@ export function compileSvgAssetPacket(packet: SvgAssetPacket): string {
   ])
 }
 
-const packetOrder: StylePacket['type'][] = ['visibility', 'background', 'pattern', 'media-flow', 'image', 'svg-asset', 'composer-icons', 'content', 'text', 'typography', 'border', 'corners', 'spacing', 'shadow', 'glass', 'opacity', 'position', 'transform', 'alignment', 'layout-item', 'layout', 'size']
+const packetOrder: StylePacket['type'][] = ['visibility', 'background', 'pattern', 'media-flow', 'image', 'svg-asset', 'composer-icons', 'content', 'text', 'typography', 'text-entry', 'border', 'corners', 'spacing', 'shadow', 'glass', 'opacity', 'position', 'transform', 'alignment', 'layout-item', 'layout', 'placement', 'size']
 function compilePacket(packet: StylePacket, all: StylePacket[]): string {
   let declaration = ''
   switch (packet.type) {
@@ -411,6 +500,7 @@ function compilePacket(packet: StylePacket, all: StylePacket[]): string {
     case 'content': declaration = compileContentPacket(packet); break
     case 'text': declaration = compileTextPacket(packet); break
     case 'typography': declaration = compileTypographyPacket(packet); break
+    case 'text-entry': declaration = compileTextEntryPacket(packet); break
     case 'border': declaration = compileSparseBorderPacket(packet); break
     case 'corners': declaration = compileCornersPacket(packet); break
     case 'spacing': declaration = compileSpacingPacket(packet); break
@@ -426,6 +516,7 @@ function compilePacket(packet: StylePacket, all: StylePacket[]): string {
     case 'transform': declaration = compileTransformPacket(packet); break
     case 'alignment': declaration = compileAlignmentPacket(packet); break
     case 'layout-item': declaration = compileLayoutItemPacket(packet); break
+    case 'placement': declaration = compilePlacementPacket(packet); break
     case 'layout': declaration = compileLayoutPacket(packet); break
     case 'size': declaration = compileSizePacket(packet); break
   }
@@ -478,6 +569,7 @@ const SLOT_LABELS: Record<StylePacket['type'], string> = {
   content: 'Generated Content',
   text: 'Text Style',
   typography: 'Typography',
+  'text-entry': 'Text Entry',
   border: 'Border',
   corners: 'Corners',
   spacing: 'Spacing',
@@ -488,6 +580,7 @@ const SLOT_LABELS: Record<StylePacket['type'], string> = {
   transform: 'Transform',
   alignment: 'Alignment',
   'layout-item': 'Layout Item',
+  placement: 'Quick Align',
   layout: 'Container Layout',
   size: 'Size',
 }
@@ -523,6 +616,18 @@ function canonicalPacketSlots(packets: StylePacket[]): Array<{ key: string; labe
   }
   return slots
 }
+function generatedContentSelector(selector: string): string {
+  // CSS `content` is consistently useful on generated pseudo-surfaces, not on
+  // ordinary elements in Chromium. When a user adds Generated Content directly
+  // to a real element, Palette treats it as a visual ::after skin while leaving
+  // the real element as the semantic/layout target. Explicit pseudo targets stay
+  // exactly where the user put them.
+  return splitSelectorList(selector).map((branch) => {
+    const trimmed = branch.trim()
+    const { pseudo } = splitPseudoElement(trimmed)
+    return pseudo ? trimmed : `${trimmed}::after`
+  }).join(',\n')
+}
 function compileCanonicalSlot(selector: string, slot: { key: string; label: string; packets: StylePacket[] }, strength: 'normal' | 'strong'): string {
   if (slot.key === 'paint' && slot.packets.length === 2) {
     const background = slot.packets.find((packet): packet is BackgroundPacket => packet.type === 'background')
@@ -533,7 +638,8 @@ function compileCanonicalSlot(selector: string, slot: { key: string; label: stri
       return declaration ? [`/* Slot · ${slot.label} */`, `${compiledSelector} {`, ...declaration.split('\n').map((line) => `  ${strength === 'strong' ? strengthenDeclaration(line) : line}`), '}'].join('\n') : ''
     }
   }
-  const rule = compileRule(selector, slot.packets, strength)
+  const slotSelector = slot.key === 'content' ? generatedContentSelector(selector) : selector
+  const rule = compileRule(slotSelector, slot.packets, strength)
   return rule ? `/* Slot · ${slot.label} */\n${rule}` : ''
 }
 function compileCanonicalSlots(selector: string, packets: StylePacket[], strength: 'normal' | 'strong' = 'normal'): string[] {
@@ -626,6 +732,21 @@ function helperRulesForPackets(selector: string, packets: StylePacket[], strengt
       // authored absolute/sticky/fixed Position packet when anchors are nested.
       const anchorSelector = splitSelectorList(packet.anchorSelector).map((branch) => `:where(${branch.trim()})`).join(',\n')
       rules.push([`/* Position anchor · ${packet.anchorLabel ?? 'ancestor'} */`, `${anchorSelector} {`, '  position: relative;', '}'].join('\n'))
+    }
+    if (packet.type === 'text-entry') {
+      const roots = [...new Set(splitSelectorList(selector).map((branch) => branch.match(/^(.*?\[data-component=["']InputArea["']\])/i)?.[1]?.trim()).filter((entry): entry is string => Boolean(entry)))]
+      if (roots.length) {
+        const mirrorDeclaration = filterSparseDeclaration(packet, compileTextEntryPacket(packet))
+        if (mirrorDeclaration) {
+          const mirrorSelector = roots.map((root) => `${root} [class*="_textareaMirror_"]`).join(',\n')
+          rules.push([`/* Text Entry mirror sync · keep autosize metrics honest */`, `${ruleSelector(mirrorSelector, strength)} {`, ...mirrorDeclaration.split('\n').map((line) => `  ${strength === 'strong' ? strengthenDeclaration(line) : line}`), '}'].join('\n'))
+        }
+        const placeholderDeclaration = compileTextEntryPlaceholderPacket(packet)
+        if (placeholderDeclaration) {
+          const placeholderSelector = splitSelectorList(selector).map((branch) => `${splitPseudoElement(branch).base}::placeholder`).join(',\n')
+          rules.push([`/* Text Entry placeholder appearance */`, `${ruleSelector(placeholderSelector, strength)} {`, ...placeholderDeclaration.split('\n').map((line) => `  ${strength === 'strong' ? strengthenDeclaration(line) : line}`), '}'].join('\n'))
+        }
+      }
     }
     if (packet.type === 'size' && packet.boundary?.selector?.trim() && ownsField(packet, 'boundary', 'width', 'maxWidth')) rules.push([`/* Responsive size boundary · ${packet.boundary.label} */`, `${ruleSelector(packet.boundary.selector, strength)} {`, `  container-type: ${importantValue('inline-size', strength)};`, '}'].join('\n'))
   }

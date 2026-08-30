@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import {
   authoritySelector, compileBackgroundPacket, compileContentPacket, compileFontFace, compileImagePacket, compileLayoutPacket, compileMediaFlowPacket, compilePatternPacket, compilePositionPacket, compilePreviewThemeProject,
-  compileSafeTargetSelector, compileSizePacket, compileTextPacket, compileThemeProject, compileTransformPacket, compileTypographyPacket, compileVisibilityPacket,
+  compilePlacementPacket, compileSafeTargetSelector, compileSizePacket, compileSpacingPacket, compileTextEntryPacket, compileTextPacket, compileThemeProject, compileTransformPacket, compileTypographyPacket, compileVisibilityPacket,
 } from '../src/compiler/compiler'
 import { colorWithAlpha, parseHexColor } from '../src/compiler/color'
 import { transformThemeVariables } from '../src/compiler/boost'
@@ -54,12 +54,35 @@ describe('Phase Three semantic CSS compiler', () => {
     const styled = compileTextPacket(packet)
     expect(styled).toContain('-webkit-text-stroke: 1.5px rgba(18, 8, 24, 0.6);')
     expect(styled).toContain('text-shadow: 0px 2px 8px rgba(0, 0, 0, 0.35);')
+
+    packet.outlineMode = 'outside'
+    const outside = compileTextPacket(packet)
+    expect(outside).not.toContain('-webkit-text-stroke:')
+    expect(outside).toContain('text-shadow:')
+    expect(outside).toContain('1.5px 0px 0 rgba(18, 8, 24, 0.6)')
+    expect(outside).toContain('0px 2px 8px rgba(0, 0, 0, 0.35)')
   })
 
   test('Generated Content safely quotes literal pseudo labels', () => {
     const packet = createStylePacket('content'); if (packet.type !== 'content') throw new Error()
     packet.value = 'PRIVATE "NOTE"\nFILED'
     expect(compileContentPacket(packet)).toBe(String.raw`content: "PRIVATE \"NOTE\"\A FILED";`)
+    packet.source = 'title'
+    expect(compileContentPacket(packet)).toBe('content: attr(title);')
+    packet.source = 'aria-label'
+    expect(compileContentPacket(packet)).toBe('content: attr(aria-label);')
+  })
+
+
+  test('Generated Content on a real element compiles onto its ::after skin', () => {
+    const packet = createStylePacket('content'); if (packet.type !== 'content') throw new Error()
+    packet.value = 'FORK'
+    const project = createProject('Generated skin')
+    project.componentOverrides.push(override('[data-component="MinimalMessage"] button[aria-label="Fork chat"]', { normal: [packet] }))
+    const css = compileThemeProject(project)
+    expect(css).toContain('[data-component="MinimalMessage"] button[aria-label="Fork chat"]::after')
+    expect(css).toContain('content: "FORK";')
+    expect(css).not.toContain('[data-component="MinimalMessage"] button[aria-label="Fork chat"] {\n  content: "FORK";')
   })
 
   test('Typography is an independent semantic packet', () => {
@@ -76,11 +99,55 @@ describe('Phase Three semantic CSS compiler', () => {
     expect(css).toContain('text-transform: uppercase;')
   })
 
+  test('Text Entry moves typing origin and mirrors autosize metrics without faking placeholder positioning', () => {
+    const packet = createStylePacket('text-entry'); if (packet.type !== 'text-entry') throw new Error()
+    packet.insetX = 14; packet.insetY = 9; packet.fontFamily = 'Georgia'; packet.fontSize = 16; packet.lineHeight = 1.52; packet.placeholderColor = '#665f62'; packet.placeholderAlpha = .62; packet.placeholderStyle = 'italic'
+    const declaration = compileTextEntryPacket(packet)
+    expect(declaration).toContain('padding: 9px 14px;')
+    expect(declaration).toContain('font-family: Georgia;')
+    expect(declaration).toContain('font-size: 16px;')
+
+    const project = createProject('Composer metrics')
+    project.componentOverrides.push(override('[data-component="InputArea"] textarea[name="chat-message"]', { normal: [packet] }))
+    const css = compileThemeProject(project)
+    expect(css).toContain('Text Entry mirror sync · keep autosize metrics honest')
+    expect(css).toContain('[data-component="InputArea"] [class*="_textareaMirror_"]')
+    expect(css).toContain('Text Entry placeholder appearance')
+    expect(css).toContain('textarea[name="chat-message"]::placeholder')
+    expect(css).toContain('color: rgba(102, 95, 98, 0.62);')
+  })
+
   test('Layout Normal omits display while Flex compiles semantic alignment', () => {
     const packet = createStylePacket('layout'); if (packet.type !== 'layout') throw new Error()
     expect(compileLayoutPacket(packet)).toBe('')
     packet.display = 'flex'; packet.direction = 'row'; packet.justify = 'space-between'; packet.align = 'center'; packet.gap = { mode: 'fixed', value: 1.5, unit: 'rem' }
     expect(compileLayoutPacket(packet)).toBe('display: flex;\nflex-direction: row;\nflex-wrap: nowrap;\njustify-content: space-between;\nalign-items: center;\ngap: 1.5rem;')
+  })
+
+  test('Spacing preserves independent box sides and allows negative margins', () => {
+    const packet = createStylePacket('spacing'); if (packet.type !== 'spacing') throw new Error()
+    packet.padding = { linked: false, top: 2, right: 42, bottom: 10, left: 92, unit: 'px' }
+    packet.margin = { linked: false, top: -4, right: 8, bottom: 12, left: -16, unit: 'px' }
+    expect(compileSpacingPacket(packet)).toBe('padding: 2px 42px 10px 92px;\nmargin: -4px 8px 12px -16px;\ngap: 8px;')
+  })
+
+  test('Quick Align resolves friendly placement into logical CSS without requiring Flex/Grid', () => {
+    const packet = createStylePacket('placement'); if (packet.type !== 'placement') throw new Error()
+    expect(compilePlacementPacket(packet)).toBe('')
+    packet.horizontal = 'end'
+    expect(compilePlacementPacket(packet)).toBe('width: fit-content;\nmargin-inline-start: auto;\nmargin-inline-end: 0;\njustify-self: end;')
+    packet.horizontal = 'center'; packet.vertical = 'center'
+    const centered = compilePlacementPacket(packet)
+    expect(centered).toContain('width: fit-content;')
+    expect(centered).toContain('margin-inline-start: auto;')
+    expect(centered).toContain('margin-inline-end: auto;')
+    expect(centered).toContain('margin-block-start: auto;')
+    expect(centered).toContain('margin-block-end: auto;')
+    expect(centered).toContain('align-self: center;')
+    packet.horizontal = 'stretch'; packet.vertical = 'stretch'
+    const stretched = compilePlacementPacket(packet)
+    expect(stretched).toContain('width: 100%;')
+    expect(stretched).toContain('height: 100%;')
   })
 
   test('Size compiles friendly dimension modes and practical units', () => {
@@ -621,6 +688,22 @@ test('flow centering uses logical auto margins without changing positioning mode
   packet.nudgeX = 12
   expect(compilePositionPacket(packet)).toContain('translate: 12px 0px;')
   expect(compilePositionPacket(packet)).toContain('margin-inline: auto;')
+})
+
+test('sticky Position compiles offsets and a sparse flow mode can release it on mobile', () => {
+  const sticky = createStylePacket('position')
+  if (sticky.type !== 'position') throw new Error('expected position packet')
+  sticky.mode = 'sticky'
+  sticky.top = 18
+  expect(compilePositionPacket(sticky)).toContain('position: sticky;')
+  expect(compilePositionPacket(sticky)).toContain('top: 18px;')
+  expect(compilePositionPacket(sticky)).not.toContain('position: absolute;')
+
+  const release = createStylePacket('position')
+  if (release.type !== 'position') throw new Error('expected position packet')
+  release.mode = 'flow'
+  release.editedFields = ['mode']
+  expect(compilePositionPacket(release)).toContain('position: static;')
 })
 
 

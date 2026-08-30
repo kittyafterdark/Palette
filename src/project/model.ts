@@ -1,5 +1,5 @@
-export const PROJECT_VERSION = 39 as const
-export const STATE_VERSION = 39 as const
+export const PROJECT_VERSION = 41 as const
+export const STATE_VERSION = 41 as const
 
 export type SelectorStrategy = 'semantic' | 'native-context-local' | 'native-registry' | 'studio-registry' | 'css-module' | 'exact-class' | 'structural' | 'volatile'
 export type SelectorStability = 'high' | 'medium' | 'low'
@@ -39,15 +39,30 @@ export interface TextPacket {
   inkMode: TextInkMode
   solid: { color: string; alpha: number }; gradient: LinearGradient
   strokeWidth?: number; strokeColor?: string; strokeAlpha?: number
+  /** Edge uses native WebKit glyph stroke. Outside manufactures a crisp multi-shadow ring that does not eat into the fill. */
+  outlineMode?: 'edge' | 'outside'
   shadow?: { x: number; y: number; blur: number; color: string; alpha: number }
 }
-export interface ContentPacket { id: string; type: 'content'; value: string }
+export interface ContentPacket {
+  id: string; type: 'content'; value: string
+  /** Literal text, or mirror a native accessible label without hard-coding each button. */
+  source?: 'literal' | 'title' | 'aria-label'
+}
 export interface TypographyPacket {
   id: string; type: 'typography'
   fontSize?: number; fontSizeUnit?: 'px' | 'rem'; fontFamily?: string; fontWeight?: number | string
   fontStyle?: 'normal' | 'italic'; textAlign?: 'left' | 'center' | 'right' | 'justify'
   lineHeight?: number; letterSpacing?: number
   transform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize'
+}
+/** Composer-specific typing intent. Text inset and metrics apply to the real textarea and its hidden autosize mirror; placeholder appearance stays on ::placeholder. */
+export interface TextEntryPacket {
+  id: string; type: 'text-entry'
+  insetX: number; insetY: number
+  fontSize?: number; fontSizeUnit?: 'px' | 'rem'; fontFamily?: string; fontWeight?: number | string
+  fontStyle?: 'normal' | 'italic'; lineHeight?: number; letterSpacing?: number
+  placeholderColor: string; placeholderAlpha: number
+  placeholderStyle?: 'normal' | 'italic'; placeholderWeight?: number | string
 }
 export interface BorderPacket { id: string; type: 'border'; width: number; style: 'solid' | 'dashed' | 'dotted' | 'double' | 'none'; color: string; alpha: number }
 export interface CornersPacket { id: string; type: 'corners'; linked: boolean; topLeft: number; topRight: number; bottomRight: number; bottomLeft: number; unit: 'px' }
@@ -206,6 +221,12 @@ export interface LayoutItemPacket {
   id: string; type: 'layout-item'; sizeInParent: 'natural' | 'fill' | 'fixed'
   grow?: number; shrink?: number; basis?: DimensionValue; alignSelf?: 'auto' | 'start' | 'center' | 'end' | 'stretch'; order?: number
 }
+/** Friendly placement intent. Palette resolves this to logical margins/alignment instead of asking users to know which CSS layout model they are inside. */
+export interface PlacementPacket {
+  id: string; type: 'placement'
+  horizontal: 'native' | 'start' | 'center' | 'end' | 'stretch'
+  vertical: 'native' | 'start' | 'center' | 'end' | 'stretch'
+}
 export interface SizeBoundary { selector: string; label: string }
 export interface SizePacket {
   id: string; type: 'size'; width?: DimensionValue; height?: DimensionValue; minWidth?: DimensionValue; maxWidth?: DimensionValue
@@ -213,7 +234,7 @@ export interface SizePacket {
   boundary?: SizeBoundary; mobileSafe?: boolean
 }
 
-export type StylePacket = (BackgroundPacket | PatternPacket | TextPacket | ContentPacket | TypographyPacket | BorderPacket | CornersPacket | SpacingPacket | ShadowPacket | GlassPacket | OpacityPacket | VisibilityPacket | ComposerIconsPacket | SvgAssetPacket | MediaFlowPacket | ImagePacket | PositionPacket | TransformPacket | AlignmentPacket | LayoutPacket | LayoutItemPacket | SizePacket) & {
+export type StylePacket = (BackgroundPacket | PatternPacket | TextPacket | ContentPacket | TypographyPacket | TextEntryPacket | BorderPacket | CornersPacket | SpacingPacket | ShadowPacket | GlassPacket | OpacityPacket | VisibilityPacket | ComposerIconsPacket | SvgAssetPacket | MediaFlowPacket | ImagePacket | PositionPacket | TransformPacket | AlignmentPacket | LayoutPacket | LayoutItemPacket | PlacementPacket | SizePacket) & {
   /** Optional sparse-ownership metadata used by Read Style. Undefined means the packet owns its full semantic output; an array means only those observed fields were explicitly edited. */
   editedFields?: string[]
 }
@@ -350,9 +371,10 @@ export function createStylePacket(type: PacketType): StylePacket {
   switch (type) {
     case 'background': return createBackgroundPacket()
     case 'pattern': return { id, type, pattern: 'dots', color: '#ffffff', alpha: 0.12, scale: 18, angle: 45 }
-    case 'text': return { id, type, colorMode: 'solid', inkMode: 'cascade', solid: { color: '#f4eef8', alpha: 1 }, gradient: createGradient(), strokeWidth: 0, strokeColor: '#000000', strokeAlpha: 1 }
-    case 'content': return { id, type, value: 'LABEL' }
+    case 'text': return { id, type, colorMode: 'solid', inkMode: 'cascade', solid: { color: '#f4eef8', alpha: 1 }, gradient: createGradient(), strokeWidth: 0, strokeColor: '#000000', strokeAlpha: 1, outlineMode: 'edge' }
+    case 'content': return { id, type, value: 'LABEL', source: 'literal' }
     case 'typography': return { id, type, fontSize: 15, fontSizeUnit: 'px', fontWeight: 500, textAlign: 'left', lineHeight: 1.4, letterSpacing: 0, transform: 'none' }
+    case 'text-entry': return { id, type, insetX: 12, insetY: 9, fontSize: 15, fontSizeUnit: 'px', fontWeight: 400, fontStyle: 'normal', lineHeight: 1.5, letterSpacing: 0, placeholderColor: '#72777a', placeholderAlpha: .65, placeholderStyle: 'italic', placeholderWeight: 400 }
     case 'border': return { id, type, width: 1, style: 'solid', color: '#ffffff', alpha: 0.2 }
     case 'corners': return { id, type, linked: true, topLeft: 12, topRight: 12, bottomRight: 12, bottomLeft: 12, unit: 'px' }
     case 'spacing': return { id, type, padding: { linked: true, top: 12, right: 12, bottom: 12, left: 12, unit: 'px' }, gap: 8 }
@@ -369,6 +391,7 @@ export function createStylePacket(type: PacketType): StylePacket {
     case 'alignment': return { id, type, text: 'left', horizontal: 'start', vertical: 'center' }
     case 'layout': return { id, type, display: 'normal', direction: 'row', wrap: 'nowrap', justify: 'start', align: 'center', gap: { mode: 'fixed', value: 8, unit: 'px' }, gridColumns: { mode: 'auto' } }
     case 'layout-item': return { id, type, sizeInParent: 'natural', basis: { mode: 'native' }, alignSelf: 'auto', order: 0 }
+    case 'placement': return { id, type, horizontal: 'native', vertical: 'native' }
     case 'size': return { id, type, width: { mode: 'native' }, height: { mode: 'native' }, mobileSafe: true }
   }
 }
