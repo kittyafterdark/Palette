@@ -1,14 +1,17 @@
 # Palette
 
+<img width="1790" height="1017" alt="image" src="https://github.com/user-attachments/assets/61c653f3-5f4d-454d-b80d-f0f667b2bfd6" />
+
+
 **Visual theme authoring for Lumiverse.** Pick, slide and adjust, and Palette turns it into scoped, reusable CSS.
 
 > Palette is an independent, unofficial community extension for Lumiverse. It is not affiliated with, endorsed by, or supported by the Lumiverse project or its maintainers.
 
 Palette is built around one idea: **Palette knows the CSS; you design your space.** A normal user can resize, recolor, rearrange, crop, fade, group, and reuse real Lumiverse UI without learning selector syntax. Advanced users can still inspect the generated CSS or add a separate Custom CSS layer.
 
-**Public release:** 1.0.0  
-**Project schema:** v41  
-**Minimum Lumiverse version:** 1.1.6
+> **Public release:** 1.0.0  
+> **Project schema:** v41  
+> **Minimum Lumiverse version:** 1.1.6
 
 ## Highlights
 
@@ -69,9 +72,15 @@ That enables a few important behaviors:
 | **Style Library** | Browse reusable looks and cross-project My Styles. |
 | **Code** | Inspect generated CSS, add Custom CSS, and use native theme handoff. |
 
+<img width="541" height="1019" alt="image" src="https://github.com/user-attachments/assets/47f9af7e-2a00-44ed-9a2b-ec964a561306" />
+
+
 ## Built-in packs
 
 Palette currently ships curated message/composer directions including **Manga**, **Editorial**, **Journal**, and **Visual Novel**. Pack recipes use the same semantic targets, packets, responsive states, groups, and provenance system as normal Design work—there is no separate hidden pack-CSS engine.
+
+<img width="1683" height="437" alt="image" src="https://github.com/user-attachments/assets/2802934c-cd52-4069-97e9-029199402385" />
+
 
 ## Compatibility notes
 
