@@ -15,19 +15,19 @@ Palette is built around one idea: **Palette knows the CSS; you design your space
 
 ## Highlights
 
-- **Pick real UI** — persistent element picker, semantic target ladder, Edit Part, Browse Inside, Assistant/User/Both message facets, and stable scoped selectors.
-- **Visual style packets** — Background, Text Style, Typography, Border, Corners, Spacing, Shadow, Glass, Size, Layout, Quick Align, Image, Media Flow, Position, Transform, Visibility, SVG assets, pseudo surfaces, and more.
-- **Base + Mobile** — author responsive deltas without hand-writing media queries.
-- **States** — Normal, Hover, Active, Focus, and Disabled styling.
-- **Smart Guides** — box model, dimensions, layout geometry, positioning, crop/focal guides, and group member overlays.
-- **Layout Groups** — arrange real siblings as Row / Column / Grid without reparenting React-owned DOM.
-- **Read Style / Read Page** — inspect existing presentation without capturing it; only edited values become Palette-owned CSS.
-- **Quick Looks + Style Library** — reusable authored treatments and curated pack recipes.
-- **My Styles** — save Targets, Components, or multi-component Bundles and reuse them across Palette projects.
-- **Full App Boost** — transform the native theme palette and backdrop while keeping global Typography independently toggleable.
-- **Theme projects** — persistent swatch-based Theme Stash with duplicate/rename/delete workflows.
-- **Native handoff** — inspect generated CSS, keep Custom CSS separate, work with native assets, and hand compatible themes back through Lumiverse's public theme bridge.
-- **Float / Dock / mobile** — keep Palette reachable while editing modals, drawers, and temporary surfaces.
+- **Pick real UI:** persistent element picker, semantic target ladder, Edit Part, Browse Inside, Assistant/User/Both message facets, and stable scoped selectors.
+- **Visual style packets:** Background, Text Style, Typography, Border, Corners, Spacing, Shadow, Glass, Size, Layout, Quick Align, Image, Media Flow, Position, Transform, Visibility, SVG assets, pseudo surfaces, and more.
+- **Base + Mobile:** author responsive deltas without hand-writing media queries.
+- **States:** Normal, Hover, Active, Focus, and Disabled styling.
+- **Smart Guides:** box model, dimensions, layout geometry, positioning, crop/focal guides, and group member overlays.
+- **Layout Groups:** arrange real siblings as Row / Column / Grid without reparenting React-owned DOM.
+- **Read Style / Read Page:** inspect existing presentation without capturing it; only edited values become Palette-owned CSS.
+- **Quick Looks + Style Library:** reusable authored treatments and curated pack recipes.
+- **My Styles:** save Targets, Components, or multi-component Bundles and reuse them across Palette projects.
+- **Full App Boost:** transform the native theme palette and backdrop while keeping global Typography independently toggleable.
+- **Theme projects:** persistent swatch-based Theme Stash with duplicate/rename/delete workflows.
+- **Native handoff:** inspect generated CSS, keep Custom CSS separate, work with native assets, and hand compatible themes back through Lumiverse's public theme bridge.
+- **Float / Dock / mobile:** keep Palette reachable while editing modals, drawers, and temporary surfaces.
 
 ## Installation
 
