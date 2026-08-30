@@ -1,10 +1,10 @@
 # Palette
 
-**Visual theme authoring for Lumiverse.** Pick the thing you mean, describe the visual intent, and Palette turns it into scoped, reusable CSS.
+**Visual theme authoring for Lumiverse.** Pick, slide and adjust, and Palette turns it into scoped, reusable CSS.
 
 > Palette is an independent, unofficial community extension for Lumiverse. It is not affiliated with, endorsed by, or supported by the Lumiverse project or its maintainers.
 
-Palette is built around one idea: **Palette knows the CSS; you express the visual intent.** A normal user can resize, recolor, rearrange, crop, fade, group, and reuse real Lumiverse UI without learning selector syntax. Advanced users can still inspect the generated CSS or add a separate Custom CSS layer.
+Palette is built around one idea: **Palette knows the CSS; you design your space.** A normal user can resize, recolor, rearrange, crop, fade, group, and reuse real Lumiverse UI without learning selector syntax. Advanced users can still inspect the generated CSS or add a separate Custom CSS layer.
 
 **Public release:** 1.0.0  
 **Project schema:** v41  
@@ -50,7 +50,7 @@ To update, use Lumiverse's extension update flow after a new Palette release is 
 
 ## How Palette thinks
 
-Palette stores semantic styling intent, not a blob of generated CSS. The project model is canonical; CSS is deterministic compiler output.
+The project model is canonical; CSS is deterministic compiler output.
 
 That enables a few important behaviors:
 
@@ -104,7 +104,7 @@ Useful scripts:
 | `bun test` | Run the test suite. |
 | `bun run verify` | Typecheck + tests + build. |
 
-Development receipts and pre-public-release archaeology live under [`docs/development/`](docs/development/) instead of the public README.
+Development receipts and pre-public-release notes live under [`docs/development/`](docs/development/).
 
 ## Repository layout
 
