@@ -97,7 +97,7 @@ Typical shapes:
 [data-component="BubbleMessage"][data-part="user"] [class*="_avatar_"]
 ```
 
-Use **Both** only when you actually want the same treatment on both speakers.
+Use **Both** only when you actually want the same treatment on both speakers. In Design, Both is a real combined scope rather than shorthand for the speaker you clicked first: its editable stack represents styling common to the mounted Assistant/User branches, and new edits persist against the combined selector. One-sided authored packets remain available from their Assistant or User facet instead of masquerading as Both.
 
 ### Surface means the real thing, not just its box
 

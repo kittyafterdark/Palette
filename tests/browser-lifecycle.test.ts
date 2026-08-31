@@ -266,7 +266,7 @@ describe('browser-owned lifecycle', () => {
   test('fixed Width uses a bounded slider while exact values remain canonical outside its range', () => {
     const context = mockContext(); const root = document.createElement('div'); document.body.append(root)
     const store = new ProjectStore(); const preview = new LiveStylesheet(context); const picker = new ElementPicker(context); const studio = new ThemeStudioUI(context, root, store, picker, preview)
-    studio.render(); root.querySelector<HTMLButtonElement>('[data-component-id="src/components/panels/character-browser/CharacterCard"]')?.click(); root.querySelector<HTMLButtonElement>('[data-action="toggle-style-menu"]')?.click(); root.querySelector<HTMLButtonElement>('[data-add-packet="size"]')?.click()
+    studio.render(); root.querySelector<HTMLButtonElement>('[data-component-id="src/components/panels/character-browser/CharacterCard"]')?.click(); root.querySelector<HTMLButtonElement>('[data-action="toggle-style-menu"]')?.click(); root.querySelector<HTMLButtonElement>('[data-add-packet="background"]')?.click()
     const mode = root.querySelector<HTMLSelectElement>('[data-packet-field="size-width-mode"]')!; mode.value = 'fixed'; mode.dispatchEvent(new window.Event('change'))
     const exact = root.querySelector<HTMLInputElement>('input[type="number"][data-packet-field="size-width-value"]')!; exact.value = '5000'; exact.dispatchEvent(new window.Event('change'))
     const unit = root.querySelector<HTMLSelectElement>('[data-packet-field="size-width-unit"]')!; unit.value = 'rem'; unit.dispatchEvent(new window.Event('change'))
@@ -309,6 +309,66 @@ describe('browser-owned lifecycle', () => {
     accent.value = '#00ff00'; accent.dispatchEvent(new window.Event('input')); accent.dispatchEvent(new window.Event('change'))
     expect(localStorage.getItem('theme-studio:recent-colors')).toBe(JSON.stringify(['#112233']))
     studio.destroy(); picker.destroy(); preview.destroy()
+  })
+
+  test('Both message scope does not borrow a one-sided authored packet and new edits compile to both branches', () => {
+    const context = mockContext(); const root = document.createElement('div'); document.body.append(root)
+    document.body.insertAdjacentHTML('afterbegin', `
+      <div data-component="BubbleMessage" class="_card_1hvlc_3 _character_1hvlc_111">
+        <div class="_bubble_1hvlc_513"><div class="_header_1hvlc_553"><div id="assistant-header-left" class="_headerLeft_1hvlc_587"></div></div></div>
+      </div>
+      <div data-component="BubbleMessage" class="_card_1hvlc_3 _user_1hvlc_129">
+        <div class="_bubble_1hvlc_513"><div class="_header_1hvlc_553"><div id="user-header-left" class="_headerLeft_1hvlc_587"></div></div></div>
+      </div>`)
+    const component: NativeThemeComponent = { id: 'src/BubbleMessage', label: 'BubbleMessage', area: 'Messages', sources: ['css', 'tsx'], selectors: ['[data-component="BubbleMessage"]'], cssClasses: ['card', 'character', 'user', 'bubble', 'header', 'headerLeft'], nativeKey: 'src/BubbleMessage' }
+    const selection = resolveElement(document.querySelector('#assistant-header-left')!, [component])
+    const headerScopes = selection.scopeCandidates.filter((scope) => scope.type === 'native-part' && scope.label === 'Header Left')
+    const assistant = headerScopes.find((scope) => scope.messageSide === 'assistant')!
+    const both = headerScopes.find((scope) => scope.messageSide === 'both')!
+    expect(assistant).toBeDefined(); expect(both).toBeDefined()
+
+    const store = new ProjectStore()
+    const assistantPacket = createStylePacket('spacing')
+    store.upsertPacket({ selector: assistant.selector, strategy: assistant.strategy, stability: assistant.stability, persistence: assistant.persistence, source: assistant.source, label: assistant.label, nativeComponentId: assistant.nativeComponentId ?? assistant.componentId, nativeContextSelector: assistant.nativeContextSelector, localSelector: assistant.localSelector }, assistantPacket)
+
+    selection.activeScopeId = both.id
+    const preview = new LiveStylesheet(context); const picker = new ElementPicker(context); const studio = new ThemeStudioUI(context, root, store, picker, preview)
+    const access = studio as unknown as { selection: ReturnType<typeof resolveElement> }
+    access.selection = selection
+    studio.render()
+
+    // The assistant-only packet is context, not the editable Both stack.
+    expect(root.querySelector(`[data-packet-id="${assistantPacket.id}"]`)).toBeNull()
+    root.querySelector<HTMLButtonElement>('[data-action="toggle-style-menu"]')?.click()
+    root.querySelector<HTMLButtonElement>('[data-add-packet="background"]')?.click()
+    const bothOverride = store.activeProject.componentOverrides.find((override) => override.target.selector === both.selector)
+    expect(bothOverride).toBeDefined()
+    const css = compileThemeProject(store.activeProject)
+    expect(css).toContain(':not([class*="_user_"]) [class*="_headerLeft_"]')
+    expect(css).toContain('[class*="_user_"] [class*="_headerLeft_"]')
+
+    studio.destroy(); picker.destroy(); preview.destroy()
+  })
+
+  test('Both message scope highlights and forced-state previews every mounted branch', () => {
+    const context = mockContext(); const root = document.createElement('div'); document.body.append(root)
+    document.body.insertAdjacentHTML('afterbegin', `
+      <div data-component="BubbleMessage" class="_card_1hvlc_3 _character_1hvlc_111"><div id="assistant-header-left" class="_headerLeft_1hvlc_587"></div></div>
+      <div data-component="BubbleMessage" class="_card_1hvlc_3 _user_1hvlc_129"><div id="user-header-left" class="_headerLeft_1hvlc_587"></div></div>`)
+    const component: NativeThemeComponent = { id: 'src/BubbleMessage', label: 'BubbleMessage', area: 'Messages', sources: ['css', 'tsx'], selectors: ['[data-component="BubbleMessage"]'], cssClasses: ['card', 'character', 'user', 'headerLeft'], nativeKey: 'src/BubbleMessage' }
+    const selection = resolveElement(document.querySelector('#assistant-header-left')!, [component])
+    const active = selection.scopeCandidates.find((scope) => scope.id === selection.activeScopeId)!
+    const both = selection.scopeCandidates.find((scope) => scope.messageFamilyId === active.messageFamilyId && scope.messageSide === 'both')!
+    selection.activeScopeId = both.id
+    const store = new ProjectStore(); const preview = new LiveStylesheet(context); const picker = new ElementPicker(context); const studio = new ThemeStudioUI(context, root, store, picker, preview)
+    const access = studio as unknown as { selection: ReturnType<typeof resolveElement>; editingState: 'hover'; applyPreviewMarker(): void; syncSelectionHighlight(): void }
+    access.selection = selection; access.editingState = 'hover'; access.applyPreviewMarker(); access.syncSelectionHighlight()
+    expect(document.querySelector('#assistant-header-left')?.getAttribute('data-theme-studio-preview-state')).toBe('hover')
+    expect(document.querySelector('#user-header-left')?.getAttribute('data-theme-studio-preview-state')).toBe('hover')
+    studio.destroy()
+    expect(document.querySelector('#assistant-header-left')?.hasAttribute('data-theme-studio-preview-state')).toBe(false)
+    expect(document.querySelector('#user-header-left')?.hasAttribute('data-theme-studio-preview-state')).toBe(false)
+    picker.destroy(); preview.destroy()
   })
 
   test('forced state marker is extension-owned and removed on teardown', () => {

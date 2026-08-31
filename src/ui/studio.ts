@@ -223,16 +223,34 @@ function overrideForSelection(selection: ResolvedSelection | null, overrides: Co
   return selection ? overrides.find((entry) => entry.target.selector === selectorForSurface(activeScope(selection).selector, surface)) ?? null : null
 }
 
+function mountedElementsForScope(selection: ResolvedSelection | null): Element[] {
+  if (!selection) return []
+  const scope = activeScope(selection)
+  if (scope.messageSide === 'both') {
+    try {
+      const mounted = [...document.querySelectorAll(scope.selector)]
+      if (mounted.length) return mounted
+    } catch { /* fall back to the representative picked element */ }
+  }
+  const element = scope.element ?? selection.target.element
+  return element?.isConnected ? [element] : []
+}
+
 /**
  * CSS does not care whether the picker and a recipe arrived at the same node
  * through the exact same selector string. The Design reader should not either.
  * Keep exact-scope editing semantics, but surface any authored Palette
  * override whose selector actually matches the mounted element being inspected.
+ *
+ * Message facets are stricter: editing a matched-but-different selector must
+ * materialize under the active Assistant/User/Both target instead of mutating
+ * the source rule. In particular, Both is a selector list, not permission for
+ * the originally clicked speaker to impersonate both branches.
  */
 function shouldLocalizeMatchedMessageOverride(selection: ResolvedSelection | null, override: ComponentOverride, surface: TargetSurface = 'element'): boolean {
   if (!selection || surface !== 'element') return false
   const scope = activeScope(selection)
-  if (!scope.messageSide || scope.messageSide === 'both') return false
+  if (!scope.messageSide) return false
   return override.target.selector !== selectorForSurface(scope.selector, surface)
 }
 
@@ -241,13 +259,22 @@ function matchingOverridesForSelection(selection: ResolvedSelection | null, over
   const exact = overrideForSelection(selection, overrides, surface)
   if (surface !== 'element') return exact ? [exact] : []
   const scope = activeScope(selection)
-  const element = scope.element ?? selection.target.element
-  if (!element) return exact ? [exact] : []
+  const elements = mountedElementsForScope(selection)
+  if (!elements.length) return exact ? [exact] : []
   const matches: ComponentOverride[] = []
   if (exact) matches.push(exact)
   for (const override of overrides) {
     if (override === exact || /::(?:before|after)\s*$/.test(override.target.selector)) continue
-    try { if (element.matches(override.target.selector)) matches.push(override) } catch { /* invalid/transient selector: ignore in the ephemeral reader */ }
+    try {
+      // Both means common coverage. A one-sided Assistant/User override may match
+      // the representative picked node, but it is not an authored Both style.
+      // Requiring coverage of every mounted branch prevents that packet from
+      // masquerading as the active combined target in the editor.
+      const applies = scope.messageSide === 'both'
+        ? elements.every((element) => element.matches(override.target.selector))
+        : elements.some((element) => element.matches(override.target.selector))
+      if (applies) matches.push(override)
+    } catch { /* invalid/transient selector: ignore in the ephemeral reader */ }
   }
   return matches
 }
@@ -335,7 +362,7 @@ export class ThemeStudioUI {
   private mobileFloatSnap: 'peek' | 'work' | 'full' = 'work'
   private mobileFloatEdge: 'top' | 'bottom' = 'bottom'
   private mobileInspectorDensity: 100 | 80 | 60 = 100
-  private markedElement: Element | null = null
+  private markedElements: Element[] = []
   private structureNodes: Element[] = []
   /** Transient DOM references backing Group's structural target pickers. Rebuilt on every render. */
   private groupDraftRetargetElements: Element[] = []
@@ -3840,7 +3867,9 @@ ${compileComponentOverride(draft, previewOptions)}`)
     }
     if (!this.selection) { this.picker.clearHighlight(); return }
     const scope = activeScope(this.selection)
-    this.picker.highlight(scope.element ?? this.selection.target.element ?? null, this.resolvedGuideMode(), this.guideBoundaryElement())
+    const elements = mountedElementsForScope(this.selection)
+    if (scope.messageSide === 'both' && elements.length > 1) { this.picker.highlightGroup(elements); return }
+    this.picker.highlight(elements[0] ?? scope.element ?? this.selection.target.element ?? null, this.resolvedGuideMode(), this.guideBoundaryElement())
   }
   private toggleSelectionHidden(): void {
     if (!this.selection || activeScope(this.selection).persistence !== 'persistent') return
@@ -3954,10 +3983,16 @@ ${compileComponentOverride(draft, previewOptions)}`)
     this.store.upsertPacket({ ...observed.target, overrideStrength: 'strong' }, materialized, this.editingState, this.editingScope)
     this.revealStylePacket(materialized.id, false)
   }
-  private clearPreviewMarker(): void { this.markedElement?.removeAttribute('data-theme-studio-preview-state'); this.markedElement = null }
+  private clearPreviewMarker(): void {
+    for (const element of this.markedElements) element.removeAttribute('data-theme-studio-preview-state')
+    this.markedElements = []
+  }
   private applyPreviewMarker(): void {
-    this.clearPreviewMarker(); const element = this.selection ? activeScope(this.selection).element ?? this.selection.target.element : undefined
-    if (this.editingState !== 'normal' && element?.isConnected) { element.setAttribute('data-theme-studio-preview-state', this.editingState); this.markedElement = element }
+    this.clearPreviewMarker()
+    if (this.editingState === 'normal') return
+    const elements = mountedElementsForScope(this.selection)
+    for (const element of elements) if (element.isConnected) element.setAttribute('data-theme-studio-preview-state', this.editingState)
+    this.markedElements = elements.filter((element) => element.isConnected)
   }
   private reverseEngineerTarget(): void {
     this.observeSelection()

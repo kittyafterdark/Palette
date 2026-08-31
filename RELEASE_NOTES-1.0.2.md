@@ -27,6 +27,17 @@ Assistant, User, and Both are covered as one resolver contract:
 - older `foo / fooUser` families still resolve normally;
 - cross-module lookalikes never become side siblings merely because their local names resemble each other.
 
+The same hotfix also closes a downstream **Both editor-state leak** found with shared parts such as BubbleMessage Header Left. Target Details could already show the correct two-branch Both selector while the Style Stack silently borrowed an Assistant-only authored packet because Both retained the originally clicked Assistant DOM node as a representative element. Editing that card therefore wrote back to the Assistant override, making generated CSS look one-sided even though the active target preview was correct.
+
+Palette now distinguishes a representative DOM node from the full mounted scope:
+
+- Both only treats a matched authored override as common styling when that override covers every mounted branch of the active Both selector;
+- a matched-but-different message override is localized under the active Assistant/User/Both selector before edits are persisted instead of mutating the source rule;
+- Both selection highlighting covers every mounted branch rather than only the speaker that was clicked first;
+- forced Hover/Active/Focus/Disabled preview markers are applied to every mounted Both branch and cleaned up together.
+
+The canonical compiler already preserved comma-separated selector lists correctly; this correction is in Design's authored-style matching and preview plumbing.
+
 - Public release: **1.0.2**
 - Project schema: **v41**
 - Minimum Lumiverse version: **1.1.6**

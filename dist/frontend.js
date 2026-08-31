@@ -9917,17 +9917,37 @@ function widgetToolIcon(action) {
 function overrideForSelection(selection, overrides, surface = 'element') {
     return selection ? overrides.find((entry) => entry.target.selector === selectorForSurface(activeScope(selection).selector, surface)) ?? null : null;
 }
+function mountedElementsForScope(selection) {
+    if (!selection)
+        return [];
+    const scope = activeScope(selection);
+    if (scope.messageSide === 'both') {
+        try {
+            const mounted = [...document.querySelectorAll(scope.selector)];
+            if (mounted.length)
+                return mounted;
+        }
+        catch { /* fall back to the representative picked element */ }
+    }
+    const element = scope.element ?? selection.target.element;
+    return element?.isConnected ? [element] : [];
+}
 /**
  * CSS does not care whether the picker and a recipe arrived at the same node
  * through the exact same selector string. The Design reader should not either.
  * Keep exact-scope editing semantics, but surface any authored Palette
  * override whose selector actually matches the mounted element being inspected.
+ *
+ * Message facets are stricter: editing a matched-but-different selector must
+ * materialize under the active Assistant/User/Both target instead of mutating
+ * the source rule. In particular, Both is a selector list, not permission for
+ * the originally clicked speaker to impersonate both branches.
  */
 function shouldLocalizeMatchedMessageOverride(selection, override, surface = 'element') {
     if (!selection || surface !== 'element')
         return false;
     const scope = activeScope(selection);
-    if (!scope.messageSide || scope.messageSide === 'both')
+    if (!scope.messageSide)
         return false;
     return override.target.selector !== selectorForSurface(scope.selector, surface);
 }
@@ -9938,8 +9958,8 @@ function matchingOverridesForSelection(selection, overrides, surface = 'element'
     if (surface !== 'element')
         return exact ? [exact] : [];
     const scope = activeScope(selection);
-    const element = scope.element ?? selection.target.element;
-    if (!element)
+    const elements = mountedElementsForScope(selection);
+    if (!elements.length)
         return exact ? [exact] : [];
     const matches = [];
     if (exact)
@@ -9948,7 +9968,10 @@ function matchingOverridesForSelection(selection, overrides, surface = 'element'
         if (override === exact || /::(?:before|after)\s*$/.test(override.target.selector))
             continue;
         try {
-            if (element.matches(override.target.selector))
+            const applies = scope.messageSide === 'both'
+                ? elements.every((element) => element.matches(override.target.selector))
+                : elements.some((element) => element.matches(override.target.selector));
+            if (applies)
                 matches.push(override);
         }
         catch { /* invalid/transient selector: ignore in the ephemeral reader */ }
@@ -10044,7 +10067,7 @@ class ThemeStudioUI {
     mobileFloatSnap = 'work';
     mobileFloatEdge = 'bottom';
     mobileInspectorDensity = 100;
-    markedElement = null;
+    markedElements = [];
     structureNodes = [];
     /** Transient DOM references backing Group's structural target pickers. Rebuilt on every render. */
     groupDraftRetargetElements = [];
@@ -14514,7 +14537,12 @@ ${(0, compiler_1.compileComponentOverride)(draft, previewOptions)}`);
             return;
         }
         const scope = activeScope(this.selection);
-        this.picker.highlight(scope.element ?? this.selection.target.element ?? null, this.resolvedGuideMode(), this.guideBoundaryElement());
+        const elements = mountedElementsForScope(this.selection);
+        if (scope.messageSide === 'both' && elements.length > 1) {
+            this.picker.highlightGroup(elements);
+            return;
+        }
+        this.picker.highlight(elements[0] ?? scope.element ?? this.selection.target.element ?? null, this.resolvedGuideMode(), this.guideBoundaryElement());
     }
     toggleSelectionHidden() {
         if (!this.selection || activeScope(this.selection).persistence !== 'persistent')
@@ -14650,14 +14678,20 @@ ${(0, compiler_1.compileComponentOverride)(draft, previewOptions)}`);
         this.store.upsertPacket({ ...observed.target, overrideStrength: 'strong' }, materialized, this.editingState, this.editingScope);
         this.revealStylePacket(materialized.id, false);
     }
-    clearPreviewMarker() { this.markedElement?.removeAttribute('data-theme-studio-preview-state'); this.markedElement = null; }
+    clearPreviewMarker() {
+        for (const element of this.markedElements)
+            element.removeAttribute('data-theme-studio-preview-state');
+        this.markedElements = [];
+    }
     applyPreviewMarker() {
         this.clearPreviewMarker();
-        const element = this.selection ? activeScope(this.selection).element ?? this.selection.target.element : undefined;
-        if (this.editingState !== 'normal' && element?.isConnected) {
-            element.setAttribute('data-theme-studio-preview-state', this.editingState);
-            this.markedElement = element;
-        }
+        if (this.editingState === 'normal')
+            return;
+        const elements = mountedElementsForScope(this.selection);
+        for (const element of elements)
+            if (element.isConnected)
+                element.setAttribute('data-theme-studio-preview-state', this.editingState);
+        this.markedElements = elements.filter((element) => element.isConnected);
     }
     reverseEngineerTarget() {
         this.observeSelection();

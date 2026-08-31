@@ -4,6 +4,8 @@
 - Added the full mounted message-side grammar `foo / fooChar / fooUser`. Shared parts such as Name now resolve Assistant → `nameChar`, User → `nameUser`, and Both → exactly those two branches instead of carrying the assistant leaf onto the user side. The paired `*Char` / `*User` leaves are folded back into the semantic base part instead of appearing as duplicate anatomy entries.
 - Disambiguated repeated normalized locals inside one component by preserving a nearby same-module structural anchor when needed. BubbleMessage's outer content wrapper now resolves through the Bubble → Content path instead of a broad `[class*="_content_"]` selector that can also catch nested MessageContent.
 - Regressed **Assistant / User / Both** together for outer Content, nested MessageContent, shared+Char+User Name families, and picks originating from either speaker.
+- Fixed a downstream Both-scope editor leak where Target Details showed the correct combined selector but the Style Stack could borrow an Assistant-only packet via the originally clicked representative DOM node. Both now treats authored matches as common only when they cover every mounted branch; matched message edits localize to the active facet rather than mutating a one-sided source override.
+- Both selection guides and forced state previews now cover every mounted speaker branch instead of only the node that happened to be picked first.
 - No persisted theme vocabulary or project-state changes. Schema remains **v41** and minimum Lumiverse remains **1.1.6**.
 
 ## 1.0.1 — HTTP Browser UUID Hotfix
