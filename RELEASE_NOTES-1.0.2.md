@@ -1,6 +1,6 @@
 # Palette 1.0.2
 
-A selector-resolution hotfix for message-side DOM anatomy.
+A resolver and primitive-taxonomy hotfix for message-side DOM anatomy and visual packet ownership.
 
 ## Fixed
 
@@ -39,5 +39,14 @@ Palette now distinguishes a representative DOM node from the full mounted scope:
 The canonical compiler already preserved comma-separated selector lists correctly; this correction is in Design's authored-style matching and preview plumbing.
 
 - Public release: **1.0.2**
-- Project schema: **v41**
+- Project schema: **v42**
 - Minimum Lumiverse version: **1.1.6**
+
+### Primitive taxonomy / Image–Mask split
+
+- The full **Image** treatment panel is no longer conditional on the selected DOM tag. Image consistently owns source quality, brightness/saturation/contrast and extended tone controls, fit/crop, focal position, and frame movement. Semantic wrappers can keep media treatment without Palette silently relabeling the packet as Mask; crop/fit controls still make clear when an actual media leaf is required.
+- **Mask** is now its own primitive with Native / None / Fade / Custom modes, so masks can be authored on normal boxes, wrappers, media, pseudo-surfaces, and other valid CSS mask targets without borrowing Image's packet identity.
+- Schema **v42** migrates legacy combined Image+mask packets into sibling Image and Mask packets on the same target, scope, state, and breakpoint. A legacy mask-only wrapper packet becomes Mask only instead of leaving an empty Image card. Sparse edited-field ownership and recipe provenance are split with the packet, preserving authored output and preset reset/edit ownership.
+- **Read Style** emits Image and Mask independently, and the built-in Manga, Editorial, Visual Novel, and Journal recipes were normalized to the new split.
+- The former **Text Style** primitive is now **Ink** in the Paint group, next to SVG Asset. Its persisted packet type remains `text`; the rename is semantic/UI-only and existing projects retain color, gradient, stroke, outline, and glow settings.
+

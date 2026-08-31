@@ -1,3252 +1,7 @@
-// Generated fallback bundle for Palette (TypeScript CJS module graph wrapped as ESM)
-const __modules = Object.create(null);
-__modules["src/project/model"] = function(module,exports,__require){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.normalizeComposerSvgSource = exports.COMPOSER_ICON_ACTIONS = exports.MOBILE_BREAKPOINT_PX = exports.RESPONSIVE_SCOPES = exports.STYLE_STATES = exports.STATE_VERSION = exports.PROJECT_VERSION = void 0;
-exports.normalizeSvgSource = normalizeSvgSource;
-exports.newId = newId;
-exports.createGradient = createGradient;
-exports.createBackgroundPacket = createBackgroundPacket;
-exports.createStylePacket = createStylePacket;
-exports.createBoost = createBoost;
-exports.createProject = createProject;
-exports.createInitialState = createInitialState;
-exports.clonePacketStack = clonePacketStack;
-exports.statePackets = statePackets;
-exports.effectivePacketsForState = effectivePacketsForState;
-exports.stateInheritanceSummary = stateInheritanceSummary;
-exports.PROJECT_VERSION = 41;
-exports.STATE_VERSION = 41;
-exports.STYLE_STATES = ['normal', 'hover', 'active', 'focusVisible', 'disabled'];
-exports.RESPONSIVE_SCOPES = ['base', 'mobile'];
-exports.MOBILE_BREAKPOINT_PX = 720;
-exports.COMPOSER_ICON_ACTIONS = ['home', 'regen', 'continue', 'oneliner', 'persona', 'connections', 'altFields', 'addons', 'promptVariables', 'guides', 'quickReplies', 'tools', 'extras', 'selectMessages'];
-/** Strip harmless standalone-file wrappers before validating/storing the SVG root. */
-function stripSvgFilePreamble(value) {
-    let svg = value.replace(/^\uFEFF/, '').trimStart();
-    // Common editors/exporters prepend an XML declaration. It is irrelevant once the SVG is embedded.
-    svg = svg.replace(/^<\?xml\b[\s\S]*?\?>\s*/i, '');
-    // Accept leading comments and legacy DOCTYPE declarations, but never keep the DOCTYPE.
-    // Removing it also prevents PUBLIC/SYSTEM entity resolution from surviving into the stored asset.
-    for (let pass = 0; pass < 8; pass += 1) {
-        const before = svg;
-        svg = svg.replace(/^<!--[\s\S]*?-->\s*/, '');
-        if (/^<!doctype\b/i.test(svg)) {
-            let quote = null;
-            let internalSubsetDepth = 0;
-            let end = -1;
-            for (let index = 0; index < svg.length; index += 1) {
-                const character = svg[index];
-                if (quote) {
-                    if (character === quote)
-                        quote = null;
-                    continue;
-                }
-                if (character === '\"' || character === "'") {
-                    quote = character;
-                    continue;
-                }
-                if (character === '[') {
-                    internalSubsetDepth += 1;
-                    continue;
-                }
-                if (character === ']' && internalSubsetDepth > 0) {
-                    internalSubsetDepth -= 1;
-                    continue;
-                }
-                if (character === '>' && internalSubsetDepth === 0) {
-                    end = index + 1;
-                    break;
-                }
-            }
-            if (end < 0)
-                return null;
-            svg = svg.slice(end).trimStart();
-        }
-        if (svg === before)
-            break;
-    }
-    return svg;
-}
-/** Keep user SVGs reusable without allowing executable/remote SVG payloads into CSS masks. */
-function normalizeSvgSource(value) {
-    if (typeof value !== 'string')
-        return null;
-    const stripped = stripSvgFilePreamble(value);
-    if (!stripped)
-        return null;
-    let svg = stripped.trim().slice(0, 24000);
-    if (!/^<svg\b/i.test(svg) || !/<\/svg>\s*$/i.test(svg))
-        return null;
-    svg = svg
-        .replace(/<script\b[\s\S]*?<\/script\s*>/gi, '')
-        .replace(/<style\b[\s\S]*?<\/style\s*>/gi, '')
-        .replace(/<foreignObject\b[\s\S]*?<\/foreignObject\s*>/gi, '')
-        .replace(/<image\b[^>]*\/?\s*>/gi, '')
-        .replace(/\s+on[a-z0-9_-]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-        .replace(/\s+(?:href|xlink:href)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-        .replace(/\s+style\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
-    if (/javascript\s*:|data\s*:\s*text\/html|url\s*\(/i.test(svg))
-        return null;
-    return /^<svg\b/i.test(svg) && /<\/svg>\s*$/i.test(svg) ? svg : null;
-}
-/** @deprecated v35 alias retained for old integrations/tests. */
-exports.normalizeComposerSvgSource = normalizeSvgSource;
-function portableRandomUUID() {
-    const cryptoApi = globalThis.crypto;
-    if (cryptoApi && typeof cryptoApi.randomUUID === 'function')
-        return cryptoApi.randomUUID();
-    const bytes = new Uint8Array(16);
-    if (cryptoApi && typeof cryptoApi.getRandomValues === 'function')
-        cryptoApi.getRandomValues(bytes);
-    else
-        for (let index = 0; index < bytes.length; index += 1)
-            bytes[index] = Math.floor(Math.random() * 256);
-    bytes[6] = (bytes[6] & 15) | 64;
-    bytes[8] = (bytes[8] & 63) | 128;
-    const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, '0'));
-    return `${hex.slice(0, 4).join('')}-${hex.slice(4, 6).join('')}-${hex.slice(6, 8).join('')}-${hex.slice(8, 10).join('')}-${hex.slice(10).join('')}`;
-}
-function newId(prefix) { return `${prefix}_${portableRandomUUID()}`; }
-function createGradient() { return { type: 'linear', angle: 135, stops: [{ color: '#f06bc8', alpha: 1, position: 0 }, { color: '#7658ff', alpha: 1, position: 100 }] }; }
-function createBackgroundPacket() {
-    return { id: newId('packet'), type: 'background', mode: 'solid', solid: { color: '#5f4b8b', alpha: 1 }, gradient: createGradient(), image: { assetPath: '', size: 'cover', positionX: 50, positionY: 50, repeat: 'no-repeat', renderMode: 'image', maskColor: '#ffffff', maskAlpha: 1, hideContents: false } };
-}
-function createStylePacket(type) {
-    const id = newId('packet');
-    switch (type) {
-        case 'background': return createBackgroundPacket();
-        case 'pattern': return { id, type, pattern: 'dots', color: '#ffffff', alpha: 0.12, scale: 18, angle: 45 };
-        case 'text': return { id, type, colorMode: 'solid', inkMode: 'cascade', solid: { color: '#f4eef8', alpha: 1 }, gradient: createGradient(), strokeWidth: 0, strokeColor: '#000000', strokeAlpha: 1, outlineMode: 'edge' };
-        case 'content': return { id, type, value: 'LABEL', source: 'literal' };
-        case 'typography': return { id, type, fontSize: 15, fontSizeUnit: 'px', fontWeight: 500, textAlign: 'left', lineHeight: 1.4, letterSpacing: 0, transform: 'none' };
-        case 'text-entry': return { id, type, insetX: 12, insetY: 9, fontSize: 15, fontSizeUnit: 'px', fontWeight: 400, fontStyle: 'normal', lineHeight: 1.5, letterSpacing: 0, placeholderColor: '#72777a', placeholderAlpha: .65, placeholderStyle: 'italic', placeholderWeight: 400 };
-        case 'border': return { id, type, width: 1, style: 'solid', color: '#ffffff', alpha: 0.2 };
-        case 'corners': return { id, type, linked: true, topLeft: 12, topRight: 12, bottomRight: 12, bottomLeft: 12, unit: 'px' };
-        case 'spacing': return { id, type, padding: { linked: true, top: 12, right: 12, bottom: 12, left: 12, unit: 'px' }, gap: 8 };
-        case 'shadow': return { id, type, x: 0, y: 10, blur: 28, spread: 0, color: '#000000', alpha: 0.28, inset: false };
-        case 'glass': return { id, type, blur: 14, saturation: 1.15, borderColor: '#ffffff', borderAlpha: 0.12, borderWidth: 1, shadowStrength: 0.22, innerHighlight: 0.06 };
-        case 'opacity': return { id, type, value: 0.8 };
-        case 'visibility': return { id, type, mode: 'gone' };
-        case 'composer-icons': return { id, type, family: 'native', size: 14, customIcons: {} };
-        case 'svg-asset': return { id, type, svg: '', renderMode: 'mask', color: '#ffffff', alpha: 1, fit: 'contain', positionX: 50, positionY: 50 };
-        case 'media-flow': return { id, type, mode: 'native', unclipped: false };
-        case 'image': return { id, type, brightness: 1, saturation: 1, contrast: 1, grayscale: 0, hueRotate: 0, blur: 0, sourceQuality: 'native', objectFit: 'native', objectPositionX: 50, objectPositionY: 50, fillFrame: false, offsetX: 0, offsetY: 0, fade: { direction: 'none', amount: 28 } };
-        case 'position': return { id, type, mode: 'flow', unit: 'px', layer: 'normal', flowAlign: 'native', nudgeX: 0, nudgeY: 0 };
-        case 'transform': return { id, type, rotate: 0, scaleLinked: true, scaleX: 1, scaleY: 1, skewX: 0, skewY: 0 };
-        case 'alignment': return { id, type, text: 'left', horizontal: 'start', vertical: 'center' };
-        case 'layout': return { id, type, display: 'normal', direction: 'row', wrap: 'nowrap', justify: 'start', align: 'center', gap: { mode: 'fixed', value: 8, unit: 'px' }, gridColumns: { mode: 'auto' } };
-        case 'layout-item': return { id, type, sizeInParent: 'natural', basis: { mode: 'native' }, alignSelf: 'auto', order: 0 };
-        case 'placement': return { id, type, horizontal: 'native', vertical: 'native' };
-        case 'size': return { id, type, width: { mode: 'native' }, height: { mode: 'native' }, mobileSafe: true };
-    }
-}
-function createBoost() { return { enabled: false, colorsEnabled: false, typographyEnabled: false, canvasEnabled: false, mode: 'recolor', primary: { color: '#9370db', alpha: 1 }, secondary: { color: '#786bf0', alpha: 1 }, contrast: 0, brightness: 0, originalSaturation: 0.2, canvasOpacity: 1, wallpaperTreatmentEnabled: false, wallpaperOpacity: 1, wallpaperBlur: 0, wallpaperSaturation: 1, wallpaperContrast: 1, wallpaperBrightness: 1, protectControls: true, typography: {}, shuffleSeed: 1 }; }
-function createProject(name = 'Untitled Theme') {
-    const now = Date.now();
-    return { version: exports.PROJECT_VERSION, id: newId('project'), name, tokens: [], componentOverrides: [], layoutGroups: [], recipeSlots: [], customCss: '', assets: [], nativeAssetBundleId: undefined, fonts: [], presets: [], svgAssets: [], boost: createBoost(), createdAt: now, updatedAt: now };
-}
-function createInitialState() { const project = createProject('My Theme'); return { version: exports.STATE_VERSION, activeProjectId: project.id, projects: [project], savedStyles: [] }; }
-function clonePacketStack(packets) { return structuredClone(packets).map((packet) => ({ ...packet, id: newId('packet') })); }
-function statePackets(override, state) { return override.states[state] ?? []; }
-function effectivePacketsForState(override, state) {
-    if (state === 'normal')
-        return structuredClone(override.states.normal);
-    const byType = new Map(override.states.normal.map((packet) => [packet.type, structuredClone(packet)]));
-    for (const packet of override.states[state] ?? [])
-        byType.set(packet.type, structuredClone(packet));
-    return [...byType.values()];
-}
-function stateInheritanceSummary(override, state) {
-    const explicit = (override.states[state] ?? []).map((packet) => packet.type);
-    const explicitSet = new Set(explicit);
-    return { inherited: state === 'normal' ? [] : override.states.normal.map((packet) => packet.type).filter((type) => !explicitSet.has(type)), explicit };
-}
-
-};
-__modules["src/registry/types"] = function(module,exports,__require){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-
-};
-__modules["src/registry/selector-utils"] = function(module,exports,__require){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.composeContextSelector = composeContextSelector;
-exports.canonicalizeSavedContextSelector = canonicalizeSavedContextSelector;
-exports.simplifyRedundantModuleSegments = simplifyRedundantModuleSegments;
-exports.splitSelectorList = splitSelectorList;
-exports.appendPseudoToSelectorList = appendPseudoToSelectorList;
-exports.evaluateSelectorHealth = evaluateSelectorHealth;
-function safeShape(selector) {
-    if (!selector.trim() || /[;{}]/.test(selector) || selector.trim().endsWith(','))
-        return false;
-    let square = 0;
-    let round = 0;
-    let quote = '';
-    for (const char of selector) {
-        if (quote) {
-            if (char === quote)
-                quote = '';
-            continue;
-        }
-        if (char === '"' || char === "'")
-            quote = char;
-        else if (char === '[')
-            square += 1;
-        else if (char === ']')
-            square -= 1;
-        else if (char === '(')
-            round += 1;
-        else if (char === ')')
-            round -= 1;
-        if (square < 0 || round < 0)
-            return false;
-    }
-    return !quote && square === 0 && round === 0;
-}
-/** Compose native context and local target selectors conservatively.
- *
- * `localSelector` is allowed to be either genuinely local ("[class*=…]") or
- * already rooted. Native registry data and old Theme Studio saves can contain
- * both shapes. Never prepend the same context twice.
- */
-function composeContextSelector(contextSelector, localSelector) {
-    const context = contextSelector.trim();
-    const local = localSelector.trim();
-    if (!safeShape(context) || !safeShape(local) || context.includes(',') || local.includes(','))
-        return null;
-    if (local === ':scope')
-        return context;
-    if (local.startsWith(':scope'))
-        return `${context}${local.slice(':scope'.length)}`;
-    if (local === context || local.startsWith(`${context} `) || local.startsWith(`${context}>`) || local.startsWith(`${context}+`) || local.startsWith(`${context}~`))
-        return local;
-    return `${context} ${local}`;
-}
-/**
- * Repair a saved contextual selector when its own context/local metadata proves
- * that the native root was prepended more than once. This is deliberately
- * metadata-driven: recursive shapes such as Row > Row stay legal unless the
- * stored decomposition says the extra prefix is an authoring accident.
- */
-function canonicalizeSavedContextSelector(selector, contextSelector, localSelector) {
-    const raw = selector.trim();
-    const context = contextSelector?.trim() ?? '';
-    const local = localSelector?.trim() ?? '';
-    if (!raw || !context || !local)
-        return raw;
-    const canonical = composeContextSelector(context, local);
-    if (!canonical)
-        return raw;
-    const pseudo = raw.endsWith('::before') ? '::before' : raw.endsWith('::after') ? '::after' : '';
-    let base = pseudo ? raw.slice(0, -pseudo.length).trim() : raw;
-    if (base === canonical)
-        return `${canonical}${pseudo}`;
-    // V27.8/27.9 could preserve a selector that had already been contextualized and
-    // then contextualize that complete selector one more time. Peel only exact
-    // leading copies of the saved context until we reach the metadata-derived
-    // canonical selector. If we cannot reach it exactly, leave the selector alone.
-    let probe = base;
-    for (let pass = 0; pass < 8 && probe !== canonical; pass += 1) {
-        const prefix = `${context} `;
-        if (!probe.startsWith(prefix))
-            break;
-        const next = probe.slice(prefix.length).trimStart();
-        if (next !== canonical && !next.startsWith(prefix))
-            break;
-        probe = next;
-    }
-    return probe === canonical ? `${canonical}${pseudo}` : raw;
-}
-/**
- * Drop immediately repeated CSS-module selector segments only when doing so
- * selects the exact same mounted element set. This cleans registry/context
- * accidents like `_row_ _row_ _desc_` without breaking genuinely recursive
- * UIs where the second `_row_` is required to narrow the match.
- */
-function simplifyRedundantModuleSegments(selector, root = document) {
-    const repeated = /(\[class\*=["']_[A-Za-z][A-Za-z0-9_-]*?_["']\])\s+\1/g;
-    if (!repeated.test(selector))
-        return selector;
-    const matches = (value) => { try {
-        return [...root.querySelectorAll(value)];
-    }
-    catch {
-        return null;
-    } };
-    let current = selector;
-    for (let pass = 0; pass < 8; pass += 1) {
-        repeated.lastIndex = 0;
-        const candidate = current.replace(repeated, '$1');
-        if (candidate === current)
-            break;
-        const before = matches(current);
-        const after = matches(candidate);
-        if (!before || !after || before.length !== after.length || before.some((entry, index) => entry !== after[index]))
-            break;
-        current = candidate;
-    }
-    return current;
-}
-function splitSelectorList(selector) {
-    const parts = [];
-    let start = 0;
-    let paren = 0;
-    let bracket = 0;
-    let quote = '';
-    let escaped = false;
-    for (let index = 0; index < selector.length; index += 1) {
-        const char = selector[index];
-        if (escaped) {
-            escaped = false;
-            continue;
-        }
-        if (char === '\\') {
-            escaped = true;
-            continue;
-        }
-        if (quote) {
-            if (char === quote)
-                quote = '';
-            continue;
-        }
-        if (char === '"' || char === "'") {
-            quote = char;
-            continue;
-        }
-        if (char === '(')
-            paren += 1;
-        else if (char === ')')
-            paren = Math.max(0, paren - 1);
-        else if (char === '[')
-            bracket += 1;
-        else if (char === ']')
-            bracket = Math.max(0, bracket - 1);
-        else if (char === ',' && paren === 0 && bracket === 0) {
-            parts.push(selector.slice(start, index).trim());
-            start = index + 1;
-        }
-    }
-    parts.push(selector.slice(start).trim());
-    return parts.filter(Boolean);
-}
-function appendPseudoToSelectorList(selector, pseudo) {
-    return splitSelectorList(selector).map((branch) => `${branch}${pseudo}`).join(',\n');
-}
-function evaluateSelectorHealth(selector, root = document, broadThreshold = 100) {
-    try {
-        const matchCount = root.querySelectorAll(selector).length;
-        return { selector, matchCount, status: matchCount === 0 ? 'missing' : matchCount > broadThreshold ? 'broad' : 'healthy' };
-    }
-    catch {
-        return { selector, matchCount: 0, status: 'invalid' };
-    }
-}
-
-};
-__modules["src/registry/layout-context"] = function(module,exports,__require){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.inspectLayoutContext = inspectLayoutContext;
-exports.detectSizeController = detectSizeController;
-const MODULE_CLASS = /^_([A-Za-z][A-Za-z0-9_-]*?)_[A-Za-z0-9]{4,}_[0-9]+$/;
-function friendly(element) { const local = [...element.classList].map((name) => name.match(MODULE_CLASS)?.[1]).find(Boolean); return local?.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ') ?? element.getAttribute('data-component') ?? element.tagName.toLowerCase(); }
-function selector(element) { const component = element.getAttribute('data-component'); if (component)
-    return `[data-component="${component.replaceAll('"', '\\"')}"]`; const local = [...element.classList].map((name) => name.match(MODULE_CLASS)?.[1]).find(Boolean); return local ? `[class*="_${local}_"]` : element.id ? `#${element.id}` : undefined; }
-function styleOf(element) { return typeof getComputedStyle === 'function' ? getComputedStyle(element) : element.style; }
-function inspectLayoutContext(element, components = []) {
-    const parent = element.parentElement;
-    if (!parent)
-        return { parentLabel: 'No layout parent', parentDisplay: 'none', isFlex: false, isGrid: false };
-    const display = styleOf(parent).display || 'block', componentName = parent.getAttribute('data-component')?.toLowerCase(), component = components.find((entry) => entry.label.toLowerCase() === componentName);
-    return { parentElement: parent, parentLabel: friendly(parent), parentDisplay: display, parentSelector: selector(parent), parentNativeComponentId: component?.id, isFlex: /flex/.test(display), isGrid: /grid/.test(display) };
-}
-/** Conservative recommendation for media whose rendered size is owned by a stable wrapper. */
-function detectSizeController(element, scopes = []) {
-    if (!['img', 'video', 'canvas', 'svg'].includes(element.tagName.toLowerCase()))
-        return undefined;
-    const media = styleOf(element), fillsWrapper = /^(100%|auto)$/.test(media.width) || /^(100%|auto)$/.test(media.height) || media.maxWidth === '100%' || media.objectFit !== '';
-    if (!fillsWrapper)
-        return undefined;
-    let current = element.parentElement;
-    let depth = 0;
-    while (current && depth++ < 4) {
-        const style = styleOf(current), stable = selector(current), ownsSize = /\d(?:px|rem|em|vw|vh|%)/.test(`${style.width} ${style.height} ${style.maxWidth} ${style.maxHeight}`) || ['hidden', 'clip'].includes(style.overflow) || ['relative', 'absolute'].includes(style.position);
-        if (stable && ownsSize) {
-            const scope = scopes.find((entry) => entry.element === current);
-            return { element: current, label: friendly(current), selector: stable, scopeId: scope?.id, reason: `${element.tagName.toLowerCase()} fills a constrained wrapper; size the wrapper for predictable layout.` };
-        }
-        current = current.parentElement;
-    }
-    return undefined;
-}
-
-};
-__modules["src/registry/selector-resolver"] = function(module,exports,__require){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.normalizeCssModuleClass = normalizeCssModuleClass;
-exports.normalizeMeaningfulTarget = normalizeMeaningfulTarget;
-exports.rankSelectorCandidates = rankSelectorCandidates;
-exports.createStructuralSelector = createStructuralSelector;
-exports.resolveElement = resolveElement;
-exports.reconcileSelectionWithOverrides = reconcileSelectionWithOverrides;
-exports.resolveCatalogComponent = resolveCatalogComponent;
-const selector_utils_1 = __require("src/registry/selector-utils");
-const layout_context_1 = __require("src/registry/layout-context");
-const MODULE_CLASS = /^_([A-Za-z][A-Za-z0-9_-]*?)_([A-Za-z0-9]{4,})_([0-9]+)$/;
-const INTERACTIVE = 'button, a[href], input, select, textarea, summary, [role="button"], [role="link"], [role="menuitem"], [role="tab"], [role="checkbox"], [role="switch"]';
-const DECORATIVE_TAGS = new Set(['svg', 'path', 'g', 'use', 'circle', 'rect', 'line', 'polyline', 'polygon', 'ellipse']);
-function cssModuleSignature(className) {
-    const match = className.match(MODULE_CLASS);
-    return match ? { localName: match[1], hash: match[2] } : null;
-}
-function normalizeCssModuleClass(className) {
-    const match = className.match(MODULE_CLASS);
-    return match ? { localName: match[1], selector: `[class*="_${escapeAttribute(match[1])}_"]` } : null;
-}
-function escapeAttribute(value) { return value.replaceAll('\\', '\\\\').replaceAll('"', '\\"'); }
-function escapeIdentifier(value) {
-    const cssApi = globalThis.CSS;
-    return cssApi?.escape ? cssApi.escape(value) : value.replace(/[^A-Za-z0-9_-]/g, (char) => `\\${char.codePointAt(0)?.toString(16)} `);
-}
-function countMatches(root, selector) { try {
-    return root.querySelectorAll(selector).length;
-}
-catch {
-    return 0;
-} }
-/** Promote only decorative icon descendants to a nearby interactive control. */
-function normalizeMeaningfulTarget(element) {
-    const tag = element.tagName.toLowerCase();
-    const iconLike = DECORATIVE_TAGS.has(tag)
-        || element.getAttribute('aria-hidden') === 'true'
-        || [...element.classList].some((name) => /(^|[-_])(icon|glyph)([-_]|$)/i.test(name));
-    if (!iconLike)
-        return element;
-    const interactive = element.closest(INTERACTIVE);
-    if (!interactive)
-        return element;
-    let depth = 0;
-    let current = element;
-    while (current && current !== interactive && depth <= 4) {
-        current = current.parentElement;
-        depth += 1;
-    }
-    return current === interactive && depth <= 4 ? interactive : element;
-}
-const strategyScore = {
-    semantic: 700, 'native-context-local': 650, 'studio-registry': 550, 'css-module': 450,
-    'native-registry': 400, 'exact-class': 250, structural: 150, volatile: 50,
-};
-function rankSelectorCandidates(candidates) {
-    return [...candidates].sort((a, b) => {
-        const stability = { high: 30, medium: 20, low: 10 };
-        const aScore = strategyScore[a.strategy] + stability[a.stability] - Math.min(a.matchCount, 200) / 1000;
-        const bScore = strategyScore[b.strategy] + stability[b.stability] - Math.min(b.matchCount, 200) / 1000;
-        return bScore - aScore || a.selector.localeCompare(b.selector);
-    });
-}
-function candidate(root, selector, strategy, stability, nativeComponentId, warning) {
-    const matchCount = countMatches(root, selector);
-    return { selector, strategy, stability, matchCount, nativeComponentId, warning: warning ?? (matchCount > 50 ? `Broad selector: currently matches ${matchCount} elements.` : undefined) };
-}
-function composerActionSemantic(element) {
-    const owner = element.closest('[data-composer-action], [data-toolbar-action]');
-    if (!owner || !owner.closest('[data-component="InputArea"]'))
-        return undefined;
-    const composerAction = owner.getAttribute('data-composer-action');
-    const toolbarAction = owner.getAttribute('data-toolbar-action');
-    const attributes = composerAction && toolbarAction
-        ? `[data-composer-action="${escapeAttribute(composerAction)}"][data-toolbar-action="${escapeAttribute(toolbarAction)}"]`
-        : composerAction
-            ? `[data-composer-action="${escapeAttribute(composerAction)}"]`
-            : toolbarAction
-                ? `[data-toolbar-action="${escapeAttribute(toolbarAction)}"]`
-                : '';
-    if (!attributes)
-        return undefined;
-    return { owner, selector: `[data-component="InputArea"] ${attributes}`, label: composerAction ?? toolbarAction ?? 'action' };
-}
-function semanticCandidates(element, root) {
-    const result = [];
-    const id = element.getAttribute('id');
-    if (id)
-        result.push(candidate(root, `#${escapeIdentifier(id)}`, 'semantic', 'high'));
-    const component = element.getAttribute('data-component');
-    const part = element.getAttribute('data-part');
-    if (component) {
-        const base = `[data-component="${escapeAttribute(component)}"]`;
-        result.push(candidate(root, part ? `${base}[data-part="${escapeAttribute(part)}"]` : base, 'semantic', 'high'));
-    }
-    else if (part) {
-        const owner = element.closest('[data-component]')?.getAttribute('data-component');
-        if (owner)
-            result.push(candidate(root, `[data-component="${escapeAttribute(owner)}"] [data-part="${escapeAttribute(part)}"]`, 'semantic', 'high'));
-    }
-    for (const attribute of ['data-spindle-mount', 'data-spindle-app-mount', 'data-spindle-mount-id', 'data-spindle-drawer-tab']) {
-        const value = element.getAttribute(attribute);
-        if (value)
-            result.push(candidate(root, `[${attribute}="${escapeAttribute(value)}"]`, 'semantic', 'high'));
-    }
-    for (const attribute of ['data-message-id', 'data-character-id', 'data-chat-id', 'data-testid']) {
-        const value = element.getAttribute(attribute);
-        if (value && value.length <= 120)
-            result.push(candidate(root, `[${attribute}="${escapeAttribute(value)}"]`, 'semantic', 'high'));
-    }
-    // Current ComposerActionBarLive gives every reorderable native action stable
-    // data-composer-action + data-toolbar-action wrappers. Those wrappers are
-    // display:contents, so a picked visual child should still inherit a persistent
-    // selector anchored through that semantic unit instead of falling back to title/ARIA.
-    const composerAction = composerActionSemantic(element);
-    if (composerAction) {
-        if (element === composerAction.owner)
-            result.push(candidate(root, composerAction.selector, 'semantic', 'high'));
-        else if (composerAction.owner.contains(element)) {
-            const tag = element.tagName.toLowerCase();
-            const role = element.getAttribute('role');
-            const leaf = role ? `${tag}[role="${escapeAttribute(role)}"]` : tag;
-            result.push(candidate(root, `${composerAction.selector} ${leaf}`, 'semantic', 'high', undefined, `Stable composer action · ${composerAction.label}.`));
-        }
-    }
-    const aria = element.getAttribute('aria-label');
-    if (aria && aria.length <= 80)
-        result.push(candidate(root, `${element.tagName.toLowerCase()}[aria-label="${escapeAttribute(aria)}"]`, 'semantic', 'medium', undefined, 'ARIA labels can change when the interface language changes.'));
-    const title = element.getAttribute('title');
-    if (title && title.length <= 100)
-        result.push(candidate(root, `${element.tagName.toLowerCase()}[title="${escapeAttribute(title)}"]`, 'semantic', 'medium', undefined, 'Titles can change with interface copy.'));
-    const name = element.getAttribute('name');
-    if (name && name.length <= 100 && ['input', 'textarea', 'select', 'button'].includes(element.tagName.toLowerCase()))
-        result.push(candidate(root, `${element.tagName.toLowerCase()}[name="${escapeAttribute(name)}"]`, 'semantic', 'medium'));
-    return result;
-}
-function cssClassCandidates(element, root) {
-    const result = [];
-    for (const className of element.classList) {
-        const normalized = normalizeCssModuleClass(className);
-        if (normalized)
-            result.push(candidate(root, normalized.selector, 'css-module', 'medium', undefined, 'Generated CSS-module suffix removed; selector targets the stable local class name.'));
-        result.push(candidate(root, `.${escapeIdentifier(className)}`, 'exact-class', 'low', undefined, normalized ? 'Exact generated class may change after a Lumiverse build.' : 'Class stability is not guaranteed.'));
-    }
-    return result;
-}
-function createStructuralSelector(element, maxDepth = 6) {
-    const parts = [];
-    let current = element;
-    while (current && current !== document.body && parts.length < maxDepth) {
-        let part = current.tagName.toLowerCase();
-        const id = current.getAttribute('id');
-        if (id) {
-            parts.unshift(`#${escapeIdentifier(id)}`);
-            break;
-        }
-        const parent = current.parentElement;
-        if (parent) {
-            const siblings = [...parent.children].filter((child) => child.tagName === current?.tagName);
-            if (siblings.length > 1)
-                part += `:nth-of-type(${siblings.indexOf(current) + 1})`;
-        }
-        parts.unshift(part);
-        current = parent;
-    }
-    return parts.join(' > ');
-}
-function dedupe(entries) { return [...new Map(entries.map((entry) => [entry.selector, entry])).values()]; }
-function directDataComponent(element, components) {
-    const value = element.getAttribute('data-component')?.toLowerCase();
-    return value ? components.find((entry) => entry.label.toLowerCase() === value || entry.selectors.some((selector) => selector.toLowerCase() === `[data-component="${value}"]`)) : undefined;
-}
-const GENERIC_COMPONENT_LABELS = new Set(['app', 'root', 'container', 'layout', 'panel', 'view']);
-function isGenericComponent(component) { return GENERIC_COMPONENT_LABELS.has(component.label.trim().toLowerCase()); }
-function componentSpecificityScore(component) {
-    const label = component.label.trim();
-    const tokens = label.replace(/([a-z0-9])([A-Z])/g, '$1 $2').split(/[^A-Za-z0-9]+/).filter(Boolean);
-    const genericPenalty = GENERIC_COMPONENT_LABELS.has(label.toLowerCase()) ? 500 : 0;
-    return Math.min(label.length, 40) + Math.max(0, tokens.length - 1) * 24 - genericPenalty;
-}
-function selectorSpecificityScore(selector) {
-    return (selector.match(/[#.\[]/g)?.length ?? 0) * 18 + (selector.includes('data-component') ? 90 : 0);
-}
-function registryResolutions(element, components, root) {
-    const matches = [];
-    for (const component of components) {
-        let best;
-        for (const selector of component.selectors) {
-            // A normalized public CSS-module selector can be valid for theme browsing yet
-            // still match several unrelated runtime module families. The native bridge
-            // marks that condition explicitly; do not treat it as component ownership.
-            if (component.moduleIdentityReliable === false && !selector.includes('data-component'))
-                continue;
-            const trustedHashes = component.moduleIdentityHashes ?? [];
-            if (trustedHashes.length && !selector.includes('data-component')) {
-                const elementHashes = [...element.classList].map(cssModuleSignature).filter((value) => value !== null).map((value) => value.hash);
-                if (elementHashes.length && !elementHashes.some((hash) => trustedHashes.includes(hash)))
-                    continue;
-            }
-            let matchesElement = false;
-            try {
-                matchesElement = element.matches(selector);
-            }
-            catch {
-                continue;
-            }
-            if (!matchesElement)
-                continue;
-            const count = countMatches(root, selector);
-            if (!best || count < best.matches || count === best.matches && selector.length > best.selector.length)
-                best = { selector, matches: count };
-        }
-        if (best)
-            matches.push({ component, selector: best.selector, count: best.matches });
-    }
-    const selectorOwners = new Map();
-    for (const match of matches)
-        selectorOwners.set(match.selector, (selectorOwners.get(match.selector) ?? 0) + 1);
-    const result = [];
-    for (const match of matches) {
-        // If two public catalog components expose the exact same mounted selector, that
-        // selector cannot tell us which surface owns the node. Do not invent certainty
-        // from label length; module/data-component evidence may still disambiguate it.
-        if ((selectorOwners.get(match.selector) ?? 0) > 1)
-            continue;
-        const breadthPenalty = Math.min(match.count, 100) * 2;
-        result.push({ component: match.component, root: element, evidence: 'registry', score: 2200 + selectorSpecificityScore(match.selector) + componentSpecificityScore(match.component) - breadthPenalty });
-    }
-    return result.sort((a, b) => b.score - a.score);
-}
-function moduleResolutions(element, components) {
-    const result = [];
-    const seenHashes = new Set();
-    const localOwnerCounts = new Map();
-    for (const component of components)
-        for (const name of new Set(component.cssClasses.map((entry) => entry.toLowerCase())))
-            localOwnerCounts.set(name, (localOwnerCounts.get(name) ?? 0) + 1);
-    const selectorOwners = new Map();
-    for (const component of components)
-        for (const selector of new Set(component.selectors))
-            selectorOwners.set(selector, (selectorOwners.get(selector) ?? 0) + 1);
-    for (const signature of [...element.classList].map(cssModuleSignature).filter((value) => value !== null)) {
-        if (seenHashes.has(signature.hash))
-            continue;
-        seenHashes.add(signature.hash);
-        let moduleRoot = element;
-        while (moduleRoot.parentElement && [...moduleRoot.parentElement.classList].some((name) => cssModuleSignature(name)?.hash === signature.hash))
-            moduleRoot = moduleRoot.parentElement;
-        const localNames = new Set();
-        for (const node of [moduleRoot, ...moduleRoot.querySelectorAll('*')].slice(0, 160)) {
-            for (const name of node.classList) {
-                const parsed = cssModuleSignature(name);
-                if (parsed?.hash === signature.hash)
-                    localNames.add(parsed.localName.toLowerCase());
-            }
-        }
-        const scored = components.map((component) => {
-            // Mounted class inventories are useful for Edit Part, but a broad normalized
-            // native selector can span several unrelated CSS modules. When the bridge
-            // observed that ambiguity, do not use that component as a module-identity
-            // guess at all.
-            if (component.moduleIdentityReliable === false)
-                return { component, root: moduleRoot, score: 0 };
-            const trustedHashes = component.moduleIdentityHashes ?? [];
-            if (trustedHashes.length && !trustedHashes.includes(signature.hash))
-                return { component, root: moduleRoot, score: 0 };
-            const names = new Set(component.cssClasses.map((name) => name.toLowerCase()));
-            let overlapScore = 0;
-            for (const name of localNames) {
-                if (!names.has(name))
-                    continue;
-                const owners = localOwnerCounts.get(name) ?? 1;
-                // Shared locals such as manager/row/actions are weak identity evidence;
-                // rarer locals carry more weight. This deliberately avoids rewarding a
-                // component merely because its label is long or contains a generic word.
-                overlapScore += Math.max(4, Math.round(48 / Math.sqrt(owners)));
-            }
-            const label = component.label.toLowerCase();
-            const labelHint = [...localNames].some((name) => (localOwnerCounts.get(name) ?? 99) <= 2 && (label === name || label.includes(name) || name.includes(label))) ? 72 : 0;
-            const registryHint = component.selectors.some((selector) => {
-                if ((selectorOwners.get(selector) ?? 0) > 1)
-                    return false;
-                try {
-                    return moduleRoot.matches(selector);
-                }
-                catch {
-                    return false;
-                }
-            }) ? 180 : 0;
-            const hashHint = trustedHashes.includes(signature.hash) ? 260 : 0;
-            return { component, root: moduleRoot, score: overlapScore + labelHint + registryHint + hashHint };
-        }).filter((entry) => entry.score > 0).sort((a, b) => b.score - a.score);
-        const top = scored[0];
-        if (!top)
-            continue;
-        const runnerUp = scored[1]?.score ?? Number.NEGATIVE_INFINITY;
-        if (top.score >= 48 && top.score - runnerUp >= 24)
-            result.push({ ...top, evidence: 'module', score: 1400 + Math.min(top.score, 900) });
-    }
-    return result.sort((a, b) => b.score - a.score);
-}
-function contextResolutions(element, components, root) {
-    const entries = [];
-    const data = directDataComponent(element, components) ?? syntheticMountedComponent(element);
-    if (data)
-        entries.push({ component: data, root: element, evidence: 'data-component', score: 3200 + componentSpecificityScore(data) });
-    entries.push(...registryResolutions(element, components, root), ...moduleResolutions(element, components));
-    const byId = new Map();
-    for (const entry of entries) {
-        const existing = byId.get(entry.component.id);
-        if (!existing || entry.score > existing.score)
-            byId.set(entry.component.id, entry);
-    }
-    return [...byId.values()].sort((a, b) => b.score - a.score);
-}
-function nativeSelector(component, element, root) {
-    const semantic = element.getAttribute('data-component');
-    // Message-side authoring needs one stable root that can be faceted with :not()/
-    // :has() regardless of whichever CSS-module class a native catalog ranks first.
-    if (semantic && isMessageComponentLabel(semantic))
-        return candidate(root, `[data-component="${escapeAttribute(semantic)}"]`, 'native-registry', 'high', component.id);
-    const registry = component.selectors.find((selector) => { try {
-        return element.matches(selector);
-    }
-    catch {
-        return false;
-    } });
-    if (registry)
-        return candidate(root, (0, selector_utils_1.simplifyRedundantModuleSegments)(registry, root), 'native-registry', 'high', component.id);
-    if (semantic)
-        return candidate(root, `[data-component="${escapeAttribute(semantic)}"]`, 'native-registry', 'high', component.id);
-    const moduleClass = [...element.classList].map(normalizeCssModuleClass).find(Boolean);
-    return moduleClass
-        ? candidate(root, moduleClass.selector, 'css-module', 'medium', component.id, 'Native scope resolved from its CSS-module root.')
-        : candidate(root, createStructuralSelector(element), 'structural', 'low', component.id, 'Native scope currently requires a structural selector.');
-}
-function targetLabel(element) {
-    const tag = element.tagName.toLowerCase();
-    if (element.matches('[class*="_inlineImageBtn_"]'))
-        return 'Inline image button';
-    if (element.matches('[class*="_inlineImageWrap_"]'))
-        return 'Inline image frame';
-    if (tag === 'img' && (element.matches('[class*="_inlineImage_"]') || element.closest('[class*="_inlineImageWrap_"]')))
-        return 'Inline image';
-    const attachmentOwner = element.closest('[class*="_attachment_"], [class*="_attachments_"], [class*="_inlineImageBtn_"], [data-component="MessageAttachments"]');
-    if (attachmentOwner)
-        return tag === 'img' ? 'Attachment image' : element === attachmentOwner ? 'Attachment' : `Attachment · ${tag}`;
-    if (tag === 'img')
-        return 'Image';
-    const local = [...element.classList].map(normalizeCssModuleClass).find(Boolean)?.localName;
-    const friendly = local?.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
-    const name = friendly || element.getAttribute('aria-label') || element.getAttribute('title') || element.getAttribute('name') || (element.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 34);
-    return name ? `${tag} · ${name}` : tag;
-}
-function friendlyLocalName(value) { return value.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()); }
-function contextualScopeLabel(element, component) {
-    const target = targetLabel(element);
-    return component.label.toLowerCase() === 'app' ? `${target} across App panels` : `${target} in ${component.label}`;
-}
-function similarScopeLabel(element, hasNativeContext) {
-    const tag = element.tagName.toLowerCase();
-    if (tag === 'img')
-        return hasNativeContext ? 'Similar images in all panels' : 'DOM scoped · Image';
-    return hasNativeContext ? `Similar ${tag} elements everywhere` : `DOM scoped · ${targetLabel(element)}`;
-}
-function mountedComponentLocalClasses(componentElement) {
-    const names = new Set();
-    for (const node of [componentElement, ...componentElement.querySelectorAll('*')].slice(0, 260)) {
-        for (const className of node.classList) {
-            const parsed = normalizeCssModuleClass(className);
-            if (parsed)
-                names.add(parsed.localName);
-        }
-    }
-    return [...names];
-}
-const MESSAGE_COMPONENT_LABELS = new Set(['BubbleMessage', 'MinimalMessage']);
-function isMessageComponentLabel(label) { return Boolean(label && MESSAGE_COMPONENT_LABELS.has(label)); }
-function userVariantBase(localName, allNames) {
-    if (!localName.endsWith('User') || localName.length <= 4)
-        return undefined;
-    const base = localName.slice(0, -4);
-    return allNames.has(base) ? base : undefined;
-}
-function messageVariantBase(localName, allNames) {
-    const suffix = localName.endsWith('User') ? 'User' : localName.endsWith('Char') ? 'Char' : undefined;
-    if (!suffix || localName.length <= suffix.length)
-        return undefined;
-    const base = localName.slice(0, -suffix.length);
-    const sibling = `${base}${suffix === 'User' ? 'Char' : 'User'}`;
-    return allNames.has(base) || allNames.has(sibling) ? base : undefined;
-}
-function mountedComponentFamilyLocalClasses(componentElement, root) {
-    const label = componentElement.getAttribute('data-component')?.trim();
-    if (!isMessageComponentLabel(label))
-        return mountedComponentLocalClasses(componentElement);
-    const names = new Set();
-    let instances = [componentElement];
-    try {
-        instances = [...root.querySelectorAll(`[data-component="${escapeAttribute(label)}"]`)];
-    }
-    catch { /* keep current instance */ }
-    for (const instance of instances.slice(0, 40))
-        for (const name of mountedComponentLocalClasses(instance))
-            names.add(name);
-    return [...names];
-}
-function rememberLocalHash(target, localName, hash) {
-    const hashes = target.get(localName) ?? new Set();
-    hashes.add(hash);
-    target.set(localName, hashes);
-}
-function localHashesOnElement(element, localName) {
-    const hashes = new Set();
-    if (!element)
-        return hashes;
-    for (const className of element.classList) {
-        const parsed = cssModuleSignature(className);
-        if (parsed?.localName === localName)
-            hashes.add(parsed.hash);
-    }
-    return hashes;
-}
-function sameModuleVariant(localName, variantName, element, context) {
-    const sourceHashes = localHashesOnElement(element, localName);
-    const variantHashes = context.localHashes.get(variantName);
-    if (!sourceHashes.size || !variantHashes?.size)
-        return false;
-    return [...sourceHashes].some((hash) => variantHashes.has(hash));
-}
-function messageLocalFamily(localName, element, context) {
-    const base = messageVariantBase(localName, context.localNames) ?? localName;
-    const charLocal = `${base}Char`;
-    const userLocal = `${base}User`;
-    const baseAvailable = context.localNames.has(base) && (localName === base || sameModuleVariant(localName, base, element, context));
-    const charAvailable = context.localNames.has(charLocal) && (localName === charLocal || sameModuleVariant(localName, charLocal, element, context));
-    const userAvailable = context.localNames.has(userLocal) && (localName === userLocal || sameModuleVariant(localName, userLocal, element, context));
-    if (!charAvailable && !userAvailable)
-        return undefined;
-    const assistant = charAvailable ? charLocal : baseAvailable ? base : localName;
-    const user = userAvailable ? userLocal : baseAvailable ? base : localName;
-    if (assistant === user)
-        return undefined;
-    return { base, source: localName, assistant, user };
-}
-function userMarkerPriority(value) {
-    if (value === 'user')
-        return 1000;
-    if (value === 'cardUser' || value === 'messageUser' || value === 'bubbleUser')
-        return 900;
-    if (value === 'nameUser')
-        return 800;
-    if (value === 'contentUser')
-        return 700;
-    return value.endsWith('User') ? 500 : 0;
-}
-function resolveMessageSideContext(componentElement, root, component) {
-    const label = componentElement.getAttribute('data-component')?.trim();
-    if (!isMessageComponentLabel(label))
-        return undefined;
-    const rootSelector = `[data-component="${escapeAttribute(label)}"]`;
-    let instances = [componentElement];
-    try {
-        instances = [...root.querySelectorAll(rootSelector)];
-    }
-    catch { /* keep current */ }
-    const localNames = new Set(component?.cssClasses ?? []);
-    const localHashes = new Map();
-    const directMarkers = new Set();
-    const descendantMarkers = new Set();
-    for (const localName of component?.cssClasses ?? []) {
-        if (!userMarkerPriority(localName))
-            continue;
-        if (localName === 'user' || localName === 'cardUser' || localName === 'messageUser' || localName === 'bubbleUser')
-            directMarkers.add(localName);
-        else
-            descendantMarkers.add(localName);
-    }
-    for (const instance of instances.slice(0, 40)) {
-        for (const className of instance.classList) {
-            const signature = cssModuleSignature(className);
-            const parsed = normalizeCssModuleClass(className);
-            if (!parsed)
-                continue;
-            localNames.add(parsed.localName);
-            if (signature)
-                rememberLocalHash(localHashes, signature.localName, signature.hash);
-            if (userMarkerPriority(parsed.localName))
-                directMarkers.add(parsed.localName);
-        }
-        for (const node of [...instance.querySelectorAll('*')].slice(0, 260))
-            for (const className of node.classList) {
-                const signature = cssModuleSignature(className);
-                const parsed = normalizeCssModuleClass(className);
-                if (!parsed)
-                    continue;
-                localNames.add(parsed.localName);
-                if (signature)
-                    rememberLocalHash(localHashes, signature.localName, signature.hash);
-                if (userMarkerPriority(parsed.localName))
-                    descendantMarkers.add(parsed.localName);
-            }
-    }
-    const directMarker = [...directMarkers].sort((a, b) => userMarkerPriority(b) - userMarkerPriority(a) || a.localeCompare(b))[0];
-    const descendantMarker = [...descendantMarkers].sort((a, b) => userMarkerPriority(b) - userMarkerPriority(a) || a.localeCompare(b))[0];
-    const marker = directMarker ?? descendantMarker;
-    if (!marker)
-        return undefined;
-    const markerSelector = `[class*="_${escapeAttribute(marker)}_"]`;
-    const userRootSelector = directMarker ? `${rootSelector}${markerSelector}` : `${rootSelector}:has(${markerSelector})`;
-    const assistantRootSelector = directMarker ? `${rootSelector}:not(${markerSelector})` : `${rootSelector}:not(:has(${markerSelector}))`;
-    let currentSide = 'assistant';
-    try {
-        currentSide = componentElement.matches(userRootSelector) ? 'user' : 'assistant';
-    }
-    catch { /* assistant fallback */ }
-    return { element: componentElement, componentLabel: label, rootSelector, assistantRootSelector, userRootSelector, currentSide, localNames, localHashes };
-}
-function selectorLocalNames(selector) {
-    return [...selector.matchAll(/\[class\*=["']_([A-Za-z][A-Za-z0-9_-]*?)_["']\]/g)].map((match) => match[1]);
-}
-function replaceLocalName(selector, from, to) {
-    if (from === to)
-        return selector;
-    return selector.replaceAll(`_${from}_`, `_${to}_`);
-}
-function selectorInsideMessageRoot(selector, context, sideRoot) {
-    return (0, selector_utils_1.splitSelectorList)(selector).map((branch) => {
-        if (branch.startsWith(context.rootSelector))
-            return `${sideRoot}${branch.slice(context.rootSelector.length)}`;
-        return `${sideRoot} ${branch}`;
-    }).join(',\n');
-}
-function firstElement(root, selector) { try {
-    return root.querySelector(selector) ?? undefined;
-}
-catch {
-    return undefined;
-} }
-function expandMessageSideScope(scope, context, root) {
-    if (scope.persistence !== 'persistent' || scope.type === 'selector-candidate')
-        return [scope];
-    const belongs = scope.componentId?.includes(context.componentLabel)
-        || scope.nativeComponentId?.includes(context.componentLabel)
-        || scope.selector.includes(context.rootSelector)
-        || Boolean(scope.element && context.element.contains(scope.element));
-    if (!belongs && scope.type !== 'similar-elements' && scope.type !== 'context-local')
-        return [scope];
-    const locals = selectorLocalNames(scope.localSelector ?? scope.selector);
-    let family;
-    for (const local of locals) {
-        family = messageLocalFamily(local, scope.element, context);
-        if (family)
-            break;
-    }
-    let assistantSource = scope.selector;
-    let userSource = scope.selector;
-    if (family) {
-        assistantSource = replaceLocalName(assistantSource, family.source, family.assistant);
-        userSource = replaceLocalName(userSource, family.source, family.user);
-    }
-    const assistantSelector = selectorInsideMessageRoot(assistantSource, context, context.assistantRootSelector);
-    const userSelector = selectorInsideMessageRoot(userSource, context, context.userRootSelector);
-    const bothSelector = assistantSelector === userSelector ? assistantSelector : `${assistantSelector},\n${userSelector}`;
-    const familyId = scope.messageFamilyId ?? scope.id;
-    const label = family ? scope.label.replace(/\s+(?:User|Char)$/i, '') : scope.label.replace(/\s+User$/i, '');
-    const make = (messageSide, selector, id) => ({
-        ...scope, id, selector, label, matchCount: countMatches(root, selector), messageSide, messageFamilyId: familyId,
-        element: messageSide === 'assistant' ? firstElement(root, assistantSelector) ?? scope.element : messageSide === 'user' ? firstElement(root, userSelector) ?? scope.element : scope.element ?? firstElement(root, bothSelector),
-        warning: scope.warning,
-    });
-    return [make('both', bothSelector, scope.id), make('assistant', assistantSelector, `${scope.id}:assistant`), make('user', userSelector, `${scope.id}:user`)];
-}
-function expandMessageSideScopes(scopes, context, root) {
-    return dedupeScopes(scopes.flatMap((scope) => expandMessageSideScope(scope, context, root)));
-}
-function syntheticMountedComponent(element) {
-    const componentLabel = element.getAttribute('data-component')?.trim();
-    if (componentLabel) {
-        const id = `mounted:${componentLabel}`;
-        return {
-            id, label: componentLabel, area: 'Mounted DOM', sources: ['css'], selectors: [`[data-component="${escapeAttribute(componentLabel)}"]`],
-            cssClasses: mountedComponentLocalClasses(element), nativeKey: id,
-        };
-    }
-    // Spindle drawer tabs are stable semantic surface boundaries even when the
-    // mounted Lumiverse subtree has no data-component root of its own. Treat the
-    // tab id as authoritative context so generic module locals such as manager/row
-    // cannot rename Personas to an unrelated catalog component.
-    const drawerTab = element.getAttribute('data-spindle-drawer-tab')?.trim();
-    if (!drawerTab)
-        return undefined;
-    const label = friendlyLocalName(drawerTab);
-    const id = `mounted:drawer:${drawerTab}`;
-    return {
-        id, label, area: 'Spindle drawer', sources: ['css'], selectors: [`[data-spindle-drawer-tab="${escapeAttribute(drawerTab)}"]`],
-        cssClasses: mountedComponentLocalClasses(element), nativeKey: id,
-    };
-}
-function disambiguatedComponentPartSelector(componentElement, element, localName, contextSelector, root) {
-    const localSelector = `[class*="_${escapeAttribute(localName)}_"]`;
-    const plain = element === componentElement ? `${contextSelector}${localSelector}` : (0, selector_utils_1.composeContextSelector)(contextSelector, localSelector);
-    if (!plain)
-        return undefined;
-    let localMatches = 0;
-    try {
-        localMatches = (componentElement.matches(localSelector) ? 1 : 0) + componentElement.querySelectorAll(localSelector).length;
-    }
-    catch {
-        return plain;
-    }
-    if (localMatches <= 1)
-        return plain;
-    const targetSignature = [...element.classList].map(cssModuleSignature).find((entry) => entry?.localName === localName);
-    if (!targetSignature)
-        return plain;
-    let current = element.parentElement;
-    while (current && current !== componentElement) {
-        const anchor = [...current.classList]
-            .map((className) => ({ signature: cssModuleSignature(className), normalized: normalizeCssModuleClass(className) }))
-            .find((entry) => entry.signature?.hash === targetSignature.hash && entry.normalized?.localName !== localName);
-        if (anchor?.normalized) {
-            const anchoredLocal = `${anchor.normalized.selector} > ${localSelector}`;
-            const anchored = (0, selector_utils_1.composeContextSelector)(contextSelector, anchoredLocal);
-            if (anchored && countMatches(root, anchored) > 0)
-                return anchored;
-        }
-        current = current.parentElement;
-    }
-    return plain;
-}
-function componentPartScopes(component, componentElement, root, contextSelector) {
-    const scopes = [];
-    const allLocalNames = [...new Set([...component.cssClasses, ...mountedComponentFamilyLocalClasses(componentElement, root)])];
-    const allNameSet = new Set(allLocalNames);
-    const messageComponent = isMessageComponentLabel(componentElement.getAttribute('data-component') ?? undefined);
-    const localNames = allLocalNames.filter((name) => name !== 'user' && !(messageComponent ? messageVariantBase(name, allNameSet) : userVariantBase(name, allNameSet)));
-    for (const localName of localNames) {
-        const localSelector = `[class*="_${escapeAttribute(localName)}_"]`;
-        let element = null;
-        try {
-            element = componentElement.matches(localSelector) ? componentElement : componentElement.querySelector(localSelector);
-            if (!element && isMessageComponentLabel(componentElement.getAttribute('data-component') ?? undefined))
-                element = root.querySelector((0, selector_utils_1.composeContextSelector)(contextSelector, localSelector) ?? localSelector);
-        }
-        catch {
-            element = null;
-        }
-        if (!element)
-            continue;
-        const composed = disambiguatedComponentPartSelector(componentElement, element, localName, contextSelector, root);
-        if (!composed)
-            continue;
-        const selector = (0, selector_utils_1.simplifyRedundantModuleSegments)(composed, root);
-        scopes.push({
-            ...candidate(root, selector, 'native-context-local', 'medium', component.id, `Targets the ${friendlyLocalName(localName)} part inside ${component.label}.`),
-            id: `part:${component.id}:${localName}`, label: friendlyLocalName(localName), type: 'native-part', componentId: component.id,
-            persistence: 'persistent', source: 'native-aware', nativeContextSelector: contextSelector, localSelector, element,
-        });
-    }
-    return dedupeScopes(scopes).slice(0, 64);
-}
-function levelLabel(element, picked) {
-    const component = element.getAttribute('data-component');
-    if (component)
-        return component;
-    const drawerTab = element.getAttribute('data-spindle-drawer-tab');
-    if (drawerTab)
-        return friendlyLocalName(drawerTab);
-    const composerAction = element.getAttribute('data-composer-action') ?? element.getAttribute('data-toolbar-action');
-    if (composerAction)
-        return `Composer action · ${composerAction}`;
-    const spindleMount = element.getAttribute('data-spindle-mount');
-    if (spindleMount === 'chat_toolbar')
-        return 'Extension toolbar mount';
-    const local = [...element.classList].map(normalizeCssModuleClass).find(Boolean)?.localName;
-    if (local)
-        return local.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
-    const aria = element.getAttribute('aria-label');
-    if (aria)
-        return aria;
-    const title = element.getAttribute('title');
-    if (title)
-        return title;
-    const name = element.getAttribute('name');
-    if (name)
-        return name;
-    const tag = element.tagName.toLowerCase();
-    return picked && tag === 'img' ? 'Image' : tag;
-}
-function meaningfulLevel(element) {
-    return Boolean(element.id || element.getAttribute('data-component') || element.getAttribute('data-spindle-drawer-tab') || element.getAttribute('data-part') || element.getAttribute('data-composer-action') || element.getAttribute('data-toolbar-action') || element.getAttribute('data-spindle-mount') || element.getAttribute('aria-label') || element.getAttribute('title') || element.getAttribute('name') || element.getAttribute('role') || element.matches(INTERACTIVE) || [...element.classList].some((name) => normalizeCssModuleClass(name)));
-}
-function ancestorElements(element, maxDepth = 10) {
-    const levels = [element];
-    let current = element.parentElement;
-    let depth = 0;
-    while (current && current !== document.body && current !== document.documentElement && depth < maxDepth) {
-        if (meaningfulLevel(current))
-            levels.push(current);
-        if (current.hasAttribute('data-component'))
-            break;
-        current = current.parentElement;
-        depth += 1;
-    }
-    return levels;
-}
-function nearestStableAnchor(element) {
-    for (let current = element.parentElement; current && current !== document.body; current = current.parentElement) {
-        const composerAction = composerActionSemantic(current);
-        if (composerAction && composerAction.owner === current)
-            return { element: current, selector: composerAction.selector };
-        const spindleMount = current.getAttribute('data-spindle-mount');
-        if (spindleMount)
-            return { element: current, selector: `[data-spindle-mount="${escapeAttribute(spindleMount)}"]` };
-        const drawerTab = current.getAttribute('data-spindle-drawer-tab');
-        if (drawerTab)
-            return { element: current, selector: `[data-spindle-drawer-tab="${escapeAttribute(drawerTab)}"]` };
-        const semantic = current.getAttribute('data-component') ? `[data-component="${escapeAttribute(current.getAttribute('data-component'))}"]` : undefined;
-        const module = [...current.classList].map(normalizeCssModuleClass).find(Boolean)?.selector;
-        if (module || semantic)
-            return { element: current, selector: module ?? semantic };
-    }
-    return undefined;
-}
-function anchoredLeafCandidate(element, root) {
-    const anchor = nearestStableAnchor(element);
-    if (!anchor)
-        return undefined;
-    const tag = element.tagName.toLowerCase();
-    const descendant = element === anchor.element ? '' : ` ${tag}`;
-    return candidate(root, `${anchor.selector}${descendant}`, 'css-module', 'medium', undefined, `Anchored to the stable ${levelLabel(anchor.element, false)} wrapper.`);
-}
-/**
- * CSS-module locals such as `avatar`, `row`, and `content` are often reused by
- * unrelated Lumiverse surfaces. When a picked node has its own module class,
- * preserve one nearby module ancestor whenever that ancestor actually narrows
- * the live match set. This turns `App > Avatar` into e.g.
- * `App > CharacterCard > Avatar` instead of styling every `_avatar_` below App.
- */
-function anchoredModulePathCandidate(element, root) {
-    // A real data-component owner is already a strong semantic boundary. Do not make
-    // message/native selectors needlessly brittle by inserting incidental wrappers
-    // such as Header Left between MinimalMessage and Avatar. This helper is for the
-    // broad CSS-module-owned surfaces (notably App) where the local class alone is
-    // otherwise shared across unrelated UI families.
-    if (element.closest('[data-component]'))
-        return undefined;
-    const leafClass = [...element.classList].map((name) => ({ parsed: cssModuleSignature(name), normalized: normalizeCssModuleClass(name) })).find((entry) => entry.parsed && entry.normalized);
-    if (!leafClass?.parsed || !leafClass.normalized)
-        return undefined;
-    const leaf = leafClass.normalized;
-    const leafHash = leafClass.parsed.hash;
-    const leafCount = countMatches(root, leaf.selector);
-    let fallback;
-    let current = element.parentElement;
-    let depth = 0;
-    while (current && current !== document.body && current !== document.documentElement && depth < 7) {
-        const moduleClasses = [...current.classList]
-            .map((name) => ({ parsed: cssModuleSignature(name), normalized: normalizeCssModuleClass(name) }))
-            .filter((entry) => Boolean(entry.parsed && entry.normalized));
-        const sameModule = moduleClasses.find((entry) => entry.parsed.hash === leafHash && entry.normalized.selector !== leaf.selector);
-        const anyAnchor = sameModule ?? moduleClasses.find((entry) => entry.normalized.selector !== leaf.selector);
-        if (anyAnchor) {
-            const selector = `${anyAnchor.normalized.selector} ${leaf.selector}`;
-            const matchCount = countMatches(root, selector);
-            if (matchCount > 0 && (leafCount === 0 || matchCount < leafCount)) {
-                const scoped = candidate(root, selector, 'native-context-local', 'medium', undefined, `Anchored to the nearby ${friendlyLocalName(anyAnchor.normalized.localName)} wrapper so this reused part stays local.`);
-                // Same CSS-module hash is the strongest evidence that the wrapper and leaf
-                // belong to one authored UI family. Prefer it over a merely narrowing
-                // ancestor from another module.
-                if (sameModule)
-                    return scoped;
-                fallback ??= scoped;
-            }
-        }
-        current = current.parentElement;
-        depth += 1;
-    }
-    return fallback;
-}
-function resolveElement(rawElement, components, root = document) {
-    const element = normalizeMeaningfulTarget(rawElement);
-    let targetCandidates = rankSelectorCandidates(dedupe([
-        ...semanticCandidates(element, root), ...cssClassCandidates(element, root),
-        candidate(root, createStructuralSelector(element), 'volatile', 'low', undefined, 'Temporary mounted-node identity; it may disappear after rerendering.'),
-    ]));
-    const modulePath = anchoredModulePathCandidate(element, root);
-    if (modulePath)
-        targetCandidates = rankSelectorCandidates(dedupe([...targetCandidates, modulePath]));
-    const anchored = anchoredLeafCandidate(element, root);
-    if (anchored)
-        targetCandidates = rankSelectorCandidates(dedupe([...targetCandidates, anchored]));
-    const localRecommended = targetCandidates.find((entry) => entry.strategy !== 'volatile') ?? targetCandidates[0];
-    const discoveredContexts = [];
-    let contextDepth = 0;
-    for (let current = element; current && current !== document.documentElement; current = current.parentElement, contextDepth += 1) {
-        for (const resolution of contextResolutions(current, components, root)) {
-            if (resolution.root !== current)
-                continue;
-            const existing = discoveredContexts.find((entry) => entry.component.id === resolution.component.id);
-            const next = { component: resolution.component, element: current, direct: current === element, depth: contextDepth, score: resolution.score, evidence: resolution.evidence };
-            if (!existing)
-                discoveredContexts.push(next);
-            else if (next.score - next.depth * 28 > existing.score - existing.depth * 28)
-                Object.assign(existing, next);
-        }
-    }
-    // Module-family inference is a fallback, not authority. If a real non-generic
-    // data-component/public-registry owner exists around the same pick, suppress
-    // conflicting module-only guesses instead of letting a shared local such as
-    // `manager` rename Persona UI to QwenCustomVoiceManager.
-    const trustedSpecific = discoveredContexts.filter((entry) => entry.evidence !== 'module' && !isGenericComponent(entry.component));
-    const usableContexts = discoveredContexts.filter((entry) => {
-        if (entry.evidence !== 'module' || !trustedSpecific.length)
-            return true;
-        return !trustedSpecific.some((trusted) => trusted.element === entry.element || trusted.element.contains(entry.element));
-    });
-    const evidenceTier = (entry) => {
-        const generic = isGenericComponent(entry.component);
-        if (entry.evidence === 'data-component')
-            return generic ? 22 : 50;
-        if (entry.evidence === 'registry')
-            return generic ? 20 : 40;
-        return generic ? 10 : 30;
-    };
-    const contextRank = (entry) => evidenceTier(entry) * 100_000 + Math.min(entry.score, 9_999) - entry.depth * 28;
-    // Specific semantic/public-registry ownership beats heuristic module overlap.
-    // A specific module family may still outrank generic App when no stronger
-    // surface boundary exists, preserving CharacterBrowser/PersonaBrowser scoping.
-    const contexts = [...usableContexts].sort((a, b) => contextRank(b) - contextRank(a) || a.depth - b.depth || a.component.label.localeCompare(b.component.label));
-    const nearest = contexts[0];
-    const breadcrumb = [...usableContexts]
-        .sort((a, b) => b.depth - a.depth || contextRank(b) - contextRank(a))
-        .map((entry) => entry.component)
-        .filter((component, index, all) => all.findIndex((entry) => entry.id === component.id) === index);
-    const mounted = targetCandidates.find((entry) => entry.strategy === 'volatile') ?? localRecommended;
-    const scopes = [{ ...mounted, id: 'mounted', label: `This mounted ${element.tagName.toLowerCase()} · Temporary`, type: 'mounted-element', persistence: 'volatile', source: nearest ? 'native-aware' : 'dom-scoped', element }];
-    const contextualScopes = [];
-    if (localRecommended.strategy !== 'volatile') {
-        for (const context of contexts) {
-            if (context.direct)
-                continue;
-            const contextCandidate = nativeSelector(context.component, context.element, root);
-            if (contextCandidate.strategy === 'structural')
-                continue;
-            const composedRaw = (0, selector_utils_1.composeContextSelector)(contextCandidate.selector, localRecommended.selector);
-            if (!composedRaw)
-                continue;
-            const composed = (0, selector_utils_1.simplifyRedundantModuleSegments)(composedRaw, root);
-            contextualScopes.push({
-                ...candidate(root, composed, 'native-context-local', localRecommended.stability === 'low' ? 'medium' : localRecommended.stability, context.component.id, `Targets the local element only inside ${context.component.label}.`),
-                id: `context:${context.component.id}`, label: contextualScopeLabel(element, context.component),
-                type: 'context-local', componentId: context.component.id, persistence: 'persistent', source: 'native-aware',
-                nativeContextSelector: contextCandidate.selector, localSelector: localRecommended.selector, element,
-            });
-        }
-    }
-    scopes.push(...contextualScopes);
-    if (localRecommended.strategy !== 'volatile')
-        scopes.push({ ...localRecommended, id: 'similar', label: similarScopeLabel(element, Boolean(nearest)), type: 'similar-elements', persistence: 'persistent', source: nearest ? 'native-aware' : 'dom-scoped', element });
-    const levelScopes = [];
-    const levels = [];
-    for (const [index, levelElement] of ancestorElements(element).entries()) {
-        let levelCandidates = rankSelectorCandidates(dedupe([...semanticCandidates(levelElement, root), ...cssClassCandidates(levelElement, root)]));
-        const modulePath = anchoredModulePathCandidate(levelElement, root);
-        if (modulePath)
-            levelCandidates = rankSelectorCandidates(dedupe([...levelCandidates, modulePath]));
-        const leaf = anchoredLeafCandidate(levelElement, root);
-        if (leaf)
-            levelCandidates = rankSelectorCandidates(dedupe([...levelCandidates, leaf]));
-        const levelContext = contexts.find((context) => context.element === levelElement) ?? contexts.find((context) => context.element.contains(levelElement));
-        const local = levelCandidates[0];
-        if (local && levelContext && levelContext.element !== levelElement) {
-            const contextCandidate = nativeSelector(levelContext.component, levelContext.element, root);
-            const composedRaw = contextCandidate.strategy !== 'structural' ? (0, selector_utils_1.composeContextSelector)(contextCandidate.selector, local.selector) : null;
-            const composed = composedRaw ? (0, selector_utils_1.simplifyRedundantModuleSegments)(composedRaw, root) : null;
-            if (composed)
-                levelCandidates = rankSelectorCandidates(dedupe([candidate(root, composed, 'native-context-local', local.stability, levelContext.component.id, `Targets ${levelLabel(levelElement, index === 0)} inside ${levelContext.component.label}.`), ...levelCandidates]));
-        }
-        if (!levelCandidates.length)
-            levelCandidates = [candidate(root, createStructuralSelector(levelElement), 'volatile', 'low', undefined, 'Temporary mounted-node identity; it may disappear after rerendering.')];
-        const recommendedLevel = levelCandidates.find((entry) => entry.strategy !== 'volatile') ?? levelCandidates[0];
-        const scopeId = index === 0 && contextualScopes.length && recommendedLevel.strategy === 'native-context-local' ? contextualScopes[0].id : index === 0 && recommendedLevel.selector === localRecommended.selector && localRecommended.strategy !== 'volatile' ? 'similar' : `level:${index}`;
-        if (!scopes.some((scope) => scope.id === scopeId))
-            levelScopes.push({ ...recommendedLevel, id: scopeId, label: `${levelLabel(levelElement, index === 0)}${index === 0 ? ' · Picked' : ' · Ancestor'}`, type: 'context-local', componentId: levelContext?.component.id, persistence: recommendedLevel.strategy === 'volatile' ? 'volatile' : 'persistent', source: levelContext ? 'native-aware' : 'dom-scoped', element: levelElement });
-        levels.push({ id: `target:${index}`, element: levelElement, label: levelLabel(levelElement, index === 0), relation: index === 0 ? 'picked' : 'ancestor', selectorCandidates: levelCandidates, recommended: recommendedLevel, nativeComponentId: levelContext?.component.id, scopeId });
-        // Keep every selector shape discovered on this exact DOM node available to the
-        // inspector. Scope answers "how broadly should this edit apply?" while these
-        // candidate scopes answer "which selector on this same node should identify it?".
-        // This is especially important for native roots that carry data-component plus
-        // multiple CSS-module classes (for example BubbleMessage's painted/ghost layers).
-        for (const [candidateIndex, selectorCandidate] of levelCandidates.entries()) {
-            scopes.push({
-                ...selectorCandidate,
-                id: `selector:${index}:${candidateIndex}`,
-                label: `${levelLabel(levelElement, index === 0)} selector`,
-                type: 'selector-candidate',
-                componentId: levelContext?.component.id,
-                persistence: selectorCandidate.strategy === 'volatile' ? 'volatile' : 'persistent',
-                source: levelContext ? 'native-aware' : 'dom-scoped',
-                element: levelElement,
-            });
-        }
-    }
-    scopes.push(...levelScopes);
-    let nearestPartScopes = [];
-    if (nearest) {
-        const contextCandidate = nativeSelector(nearest.component, nearest.element, root);
-        if (contextCandidate.strategy !== 'structural') {
-            nearestPartScopes = componentPartScopes(nearest.component, nearest.element, root, contextCandidate.selector);
-            scopes.push(...nearestPartScopes);
-        }
-    }
-    for (const context of contexts) {
-        const selector = nativeSelector(context.component, context.element, root);
-        if (selector.strategy === 'structural')
-            continue;
-        // Edit Part is component anatomy, not a duplicate of Browse Inside. Keep the
-        // mounted part catalog for every native component context in the target ladder
-        // so moving to a different rung can swap the available part inventory instead
-        // of leaving the nearest component's parts frozen in place.
-        const isNearestContext = Boolean(nearest && context.component.id === nearest.component.id && context.element === nearest.element);
-        if (!isNearestContext)
-            scopes.push(...componentPartScopes(context.component, context.element, root, selector.selector));
-        scopes.push({ ...selector, id: `native:${context.component.id}`, label: context.component.label, type: context.direct ? 'native-component' : 'native-ancestor', componentId: context.component.id, persistence: 'persistent', source: 'native-aware', element: context.element });
-    }
-    const direct = contexts.find((entry) => entry.direct);
-    // When data-component and a CSS-module class live on the same node, edit the
-    // first actual class on that node. This mirrors what a person sees in DevTools
-    // and avoids landing on an abstract component shell that owns no painted box.
-    const directLocal = direct ? [...direct.element.classList].map(normalizeCssModuleClass).find((entry) => entry && direct.component.cssClasses.includes(entry.localName)) : undefined;
-    const directPart = direct
-        ? (directLocal ? nearestPartScopes.find((part) => part.id === `part:${direct.component.id}:${directLocal.localName}`) : undefined)
-            ?? nearestPartScopes.find((part) => part.element === direct.element)
-        : undefined;
-    let activeScopeId = direct ? directPart?.id ?? `native:${direct.component.id}` : contextualScopes[0]?.id ?? (localRecommended.strategy !== 'volatile' ? 'similar' : 'mounted');
-    let scopeCandidates = dedupeScopes(scopes);
-    const messageContextEntry = contexts.find((entry) => isMessageComponentLabel(entry.component.label));
-    const messageSideContext = messageContextEntry ? resolveMessageSideContext(messageContextEntry.element, root, messageContextEntry.component) : undefined;
-    if (messageSideContext) {
-        scopeCandidates = expandMessageSideScopes(scopeCandidates, messageSideContext, root);
-        const originalActive = scopeCandidates.find((entry) => entry.id === activeScopeId);
-        const familyId = originalActive?.messageFamilyId ?? originalActive?.id;
-        const sideActive = familyId ? scopeCandidates.find((entry) => entry.messageFamilyId === familyId && entry.messageSide === messageSideContext.currentSide) : undefined;
-        if (sideActive)
-            activeScopeId = sideActive.id;
-    }
-    const recommended = scopeCandidates.find((scope) => scope.id === activeScopeId) ?? localRecommended;
-    return {
-        target: { element, tagName: element.tagName.toLowerCase(), label: targetLabel(element), candidates: targetCandidates, recommended },
-        nativeContext: nearest ? { component: nearest.component, breadcrumb } : undefined,
-        scopeCandidates, targetLevels: levels, activeScopeId,
-        layoutContext: (0, layout_context_1.inspectLayoutContext)(element, components), sizeController: (0, layout_context_1.detectSizeController)(element, scopeCandidates),
-        element, component: nearest?.component, breadcrumb, candidates: targetCandidates, recommended, tagName: element.tagName.toLowerCase(),
-    };
-}
-function dedupeScopes(scopes) { return [...new Map(scopes.map((scope) => [scope.id, scope])).values()]; }
-/** Reconnect a fresh DOM pick to the most specific existing persistent scope. */
-function reconcileSelectionWithOverrides(selection, overrides) {
-    const bySelector = new Map(overrides.map((override) => [override.target.selector, override]));
-    const styled = selection.scopeCandidates.filter((scope) => scope.persistence === 'persistent' && bySelector.has(scope.selector));
-    for (const scope of styled) {
-        const existing = bySelector.get(scope.selector);
-        scope.styledOverrideId = existing?.id;
-        scope.styledPacketCount = existing ? Object.values(existing.states).reduce((count, packets) => count + (packets?.length ?? 0), 0) : 0;
-    }
-    // Restoration is exact: an override on a breadcrumb/ancestor is context, never
-    // permission to replace the clicked target. Only the already-selected scope can resume.
-    const active = styled.find((scope) => scope.id === selection.activeScopeId);
-    return { selection, activeOverride: active ? bySelector.get(active.selector) : undefined, styledScopeIds: styled.map((scope) => scope.id) };
-}
-function resolveCatalogComponent(component, root = document) {
-    const semanticSelector = `[data-component=\"${escapeAttribute(component.label)}\"]`;
-    const candidates = component.selectors.map((selector) => candidate(root, selector, 'native-registry', 'high', component.id));
-    if (countMatches(root, semanticSelector) > 0 && !component.selectors.includes(semanticSelector))
-        candidates.unshift(candidate(root, semanticSelector, 'native-registry', 'high', component.id));
-    for (const className of component.cssClasses) {
-        const selector = `[class*="_${escapeAttribute(className)}_"]`;
-        if (countMatches(root, selector) > 0)
-            candidates.push(candidate(root, selector, 'css-module', 'medium', component.id, 'Resolved from the component’s native CSS-module local class.'));
-    }
-    const ranked = rankSelectorCandidates(dedupe(candidates));
-    const recommended = ranked.find((entry) => entry.matchCount > 0) ?? ranked[0] ?? candidate(root, `[data-component="${escapeAttribute(component.label)}"]`, 'native-registry', 'high', component.id, 'This native component is not currently mounted.');
-    let mountedElement;
-    try {
-        mountedElement = root.querySelector(recommended.selector) ?? undefined;
-    }
-    catch {
-        mountedElement = undefined;
-    }
-    const scope = { ...recommended, id: `native:${component.id}`, label: component.label, type: 'native-component', componentId: component.id, persistence: 'persistent', source: 'native-aware', element: mountedElement };
-    const parts = mountedElement ? componentPartScopes(component, mountedElement, root, recommended.selector) : [];
-    const preferredPart = parts.find((part) => part.element === mountedElement);
-    return {
-        target: { element: mountedElement, tagName: mountedElement?.tagName.toLowerCase(), label: component.label, candidates: ranked.length ? ranked : [recommended], recommended },
-        nativeContext: { component, breadcrumb: [component] }, scopeCandidates: [scope, ...parts], targetLevels: mountedElement ? [{ id: 'target:0', element: mountedElement, label: component.label, relation: 'picked', selectorCandidates: ranked.length ? ranked : [recommended], recommended, nativeComponentId: component.id, scopeId: scope.id }] : [], activeScopeId: preferredPart?.id ?? scope.id,
-        component, breadcrumb: [component], candidates: ranked.length ? ranked : [recommended], recommended, element: mountedElement, tagName: mountedElement?.tagName.toLowerCase(),
-    };
-}
-
-};
-__modules["src/inspector/picker"] = function(module,exports,__require){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ElementPicker = void 0;
-const selector_resolver_1 = __require("src/registry/selector-resolver");
-function px(style, property) {
-    const value = Number.parseFloat(style.getPropertyValue(property));
-    return Number.isFinite(value) ? value : 0;
-}
-function rect(left, top, width, height) {
-    return { left, top, width: Math.max(0, width), height: Math.max(0, height), right: left + Math.max(0, width), bottom: top + Math.max(0, height), x: left, y: top, toJSON: () => ({}) };
-}
-class ElementPicker {
-    overlay;
-    label;
-    selectedOverlay;
-    selectedLabel;
-    guideLayer;
-    active = false;
-    hoverTarget = null;
-    selectedTarget = null;
-    groupTargets = [];
-    groupParent = null;
-    selectedFrame = 0;
-    selectedResizeObserver = null;
-    guideMode = 'outline';
-    guideBoundary = null;
-    options = null;
-    clickSuppressionTimer = null;
-    constructor(ctx) {
-        this.overlay = ctx.dom.createElement('div', { 'data-theme-studio-inspector': 'overlay', 'aria-hidden': 'true' });
-        this.label = ctx.dom.createElement('div', { 'data-theme-studio-inspector': 'label', 'aria-hidden': 'true' });
-        this.selectedOverlay = ctx.dom.createElement('div', { 'data-theme-studio-inspector': 'selected-overlay', 'aria-hidden': 'true' });
-        this.selectedLabel = ctx.dom.createElement('div', { 'data-theme-studio-inspector': 'selected-label', 'aria-hidden': 'true' });
-        this.guideLayer = ctx.dom.createElement('div', { 'data-theme-studio-inspector': 'guide-layer', 'aria-hidden': 'true' });
-        this.overlay.hidden = true;
-        this.label.hidden = true;
-        this.selectedOverlay.hidden = true;
-        this.selectedLabel.hidden = true;
-        this.guideLayer.hidden = true;
-        document.body.append(this.guideLayer, this.overlay, this.label, this.selectedOverlay, this.selectedLabel);
-    }
-    get isActive() { return this.active; }
-    start(options) {
-        this.stop(false);
-        this.hideHover();
-        this.active = true;
-        this.options = options;
-        document.addEventListener('pointermove', this.handlePointerMove, true);
-        document.addEventListener('pointerdown', this.handlePointerDown, true);
-        document.addEventListener('keydown', this.handleKeyDown, true);
-        document.documentElement.style.cursor = 'crosshair';
-    }
-    cancel() {
-        if (!this.active)
-            return;
-        const callback = this.options?.onCancel;
-        this.stop(false);
-        callback?.();
-    }
-    highlight(element, mode = this.guideMode, boundary = null) {
-        this.groupTargets = [];
-        this.groupParent = null;
-        this.selectedTarget = element;
-        this.guideMode = mode;
-        this.guideBoundary = boundary;
-        this.updateSelectedListeners(Boolean(element));
-        if (element) {
-            this.updateSelected();
-            // Float/sheet reparenting and target changes can land in the same layout
-            // tick. Re-measure after the browser has completed two paint/layout turns.
-            this.scheduleSelectedRefresh(true);
-        }
-        else
-            this.hideSelected();
-    }
-    highlightGroup(elements, parent = null) {
-        this.selectedTarget = null;
-        this.groupTargets = elements.filter((element) => element.isConnected);
-        this.groupParent = parent?.isConnected ? parent : this.groupTargets[0]?.parentElement ?? null;
-        this.selectedOverlay.hidden = true;
-        this.selectedLabel.hidden = true;
-        this.updateSelectedListeners(this.groupTargets.length > 0);
-        this.updateSelected();
-        this.scheduleSelectedRefresh(true);
-    }
-    setGuideMode(mode) {
-        this.guideMode = mode;
-        if (this.selectedTarget) {
-            this.updateSelected();
-            this.scheduleSelectedRefresh(true);
-        }
-    }
-    clearHighlight() { this.selectedTarget = null; this.groupTargets = []; this.groupParent = null; this.guideBoundary = null; this.updateSelectedListeners(false); this.hideSelected(); }
-    destroy() {
-        this.stop(false);
-        this.clearHighlight();
-        if (this.clickSuppressionTimer)
-            clearTimeout(this.clickSuppressionTimer);
-        document.removeEventListener('click', this.suppressSelectionClick, true);
-        this.overlay.remove();
-        this.label.remove();
-        this.selectedOverlay.remove();
-        this.selectedLabel.remove();
-        this.guideLayer.remove();
-    }
-    handlePointerMove = (event) => {
-        if (!this.active)
-            return;
-        const element = document.elementFromPoint(event.clientX, event.clientY);
-        if (!element || this.isStudioOwned(element)) {
-            this.hoverTarget = null;
-            this.hideHover();
-            return;
-        }
-        this.hoverTarget = (0, selector_resolver_1.normalizeMeaningfulTarget)(element);
-        this.updateOverlay(this.hoverTarget, this.overlay, this.label);
-    };
-    handlePointerDown = (event) => {
-        if (!this.active)
-            return;
-        const element = document.elementFromPoint(event.clientX, event.clientY);
-        if (!element || this.isStudioOwned(element))
-            return;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        const callback = this.options?.onSelect;
-        document.addEventListener('click', this.suppressSelectionClick, { capture: true, once: true });
-        this.clickSuppressionTimer = setTimeout(() => {
-            document.removeEventListener('click', this.suppressSelectionClick, true);
-            this.clickSuppressionTimer = null;
-        }, 500);
-        this.hoverTarget = null;
-        this.hideHover();
-        const selected = (0, selector_resolver_1.normalizeMeaningfulTarget)(element);
-        // The main editor is a persistent DevTools-style picker. The compact
-        // widget intentionally uses one-shot picking for a faster phone flow.
-        if (this.options?.persistent === false)
-            this.stop(false);
-        callback?.(selected);
-    };
-    suppressSelectionClick = (event) => {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        if (this.clickSuppressionTimer)
-            clearTimeout(this.clickSuppressionTimer);
-        this.clickSuppressionTimer = null;
-    };
-    handleKeyDown = (event) => {
-        if (event.key !== 'Escape' || !this.active)
-            return;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        this.cancel();
-    };
-    handleViewportChange = () => { this.scheduleSelectedRefresh(false); };
-    handleVisibilityChange = () => {
-        if (document.visibilityState !== 'hidden')
-            this.scheduleSelectedRefresh(true);
-    };
-    handlePageShow = () => { this.scheduleSelectedRefresh(true); };
-    scheduleSelectedRefresh(afterLayout) {
-        if ((!this.selectedTarget && !this.groupTargets.length) || typeof window === 'undefined')
-            return;
-        if (this.selectedFrame)
-            window.cancelAnimationFrame(this.selectedFrame);
-        this.selectedFrame = window.requestAnimationFrame(() => {
-            this.selectedFrame = 0;
-            if (!afterLayout) {
-                if (this.selectedTarget || this.groupTargets.length)
-                    this.updateSelected();
-                return;
-            }
-            this.selectedFrame = window.requestAnimationFrame(() => {
-                this.selectedFrame = 0;
-                if (this.selectedTarget || this.groupTargets.length)
-                    this.updateSelected();
-            });
-        });
-    }
-    syncSelectedObserverTargets() {
-        this.selectedResizeObserver?.disconnect();
-        if ((!this.selectedTarget && !this.groupTargets.length) || typeof ResizeObserver === 'undefined')
-            return;
-        if (!this.selectedResizeObserver)
-            this.selectedResizeObserver = new ResizeObserver(() => this.scheduleSelectedRefresh(false));
-        const candidates = [this.selectedTarget, this.selectedTarget?.parentElement, this.guideBoundary, this.groupParent, ...this.groupTargets].filter((entry) => Boolean(entry?.isConnected));
-        for (const element of new Set(candidates))
-            this.selectedResizeObserver.observe(element);
-    }
-    isStudioOwned(element) { return Boolean(element.closest('[data-theme-studio-root], [data-theme-studio-inspector], [data-theme-studio-widget]')); }
-    updateSelected() {
-        if (this.groupTargets.length) {
-            this.renderGroupGeometry();
-            return;
-        }
-        if (!this.selectedTarget)
-            return;
-        this.updateOverlay(this.selectedTarget, this.selectedOverlay, this.selectedLabel, 'below');
-        this.renderGeometry(this.selectedTarget);
-    }
-    renderGroupGeometry() {
-        this.guideLayer.replaceChildren();
-        const members = this.groupTargets.filter((element) => element.isConnected);
-        if (!members.length) {
-            this.guideLayer.hidden = true;
-            return;
-        }
-        this.guideLayer.hidden = false;
-        const parent = this.groupParent?.isConnected ? this.groupParent : members[0].parentElement;
-        if (parent) {
-            const parentRect = parent.getBoundingClientRect();
-            if (parentRect.width > 0 && parentRect.height > 0)
-                this.appendGuide('layout-parent', parentRect, 'Group parent');
-        }
-        members.forEach((element, index) => {
-            const targetRect = element.getBoundingClientRect();
-            if (targetRect.width <= 0 || targetRect.height <= 0)
-                return;
-            const guide = this.appendGuide('layout-selected-child', targetRect, `${index + 1}`);
-            guide.setAttribute('data-group-member', String(index + 1));
-        });
-    }
-    updateOverlay(target, overlay, label, placement = 'auto') {
-        if (!target.isConnected) {
-            overlay.hidden = true;
-            label.hidden = true;
-            return;
-        }
-        const targetRect = target.getBoundingClientRect();
-        if (targetRect.width <= 0 || targetRect.height <= 0 || targetRect.bottom <= 0 || targetRect.right <= 0 || targetRect.top >= window.innerHeight || targetRect.left >= window.innerWidth) {
-            overlay.hidden = true;
-            label.hidden = true;
-            return;
-        }
-        overlay.hidden = false;
-        overlay.style.transform = `translate(${Math.round(targetRect.left)}px, ${Math.round(targetRect.top)}px)`;
-        overlay.style.width = `${Math.round(targetRect.width)}px`;
-        overlay.style.height = `${Math.round(targetRect.height)}px`;
-        label.hidden = false;
-        label.textContent = this.describe(target, targetRect);
-        const belowTop = targetRect.bottom + 5;
-        const labelTop = placement === 'below'
-            ? (belowTop < window.innerHeight - 28 ? belowTop : Math.max(4, targetRect.top - 28))
-            : (targetRect.top > 32 ? targetRect.top - 28 : belowTop);
-        // Measure after setting the label text so thin/full-width targets do not
-        // push the badge off the right edge of the viewport.
-        const labelWidth = Math.max(0, label.getBoundingClientRect().width);
-        const maxLeft = Math.max(4, window.innerWidth - labelWidth - 4);
-        const labelLeft = Math.max(4, Math.min(maxLeft, targetRect.left));
-        label.style.transform = `translate(${Math.round(labelLeft)}px, ${Math.round(labelTop)}px)`;
-    }
-    renderGeometry(target) {
-        this.guideLayer.replaceChildren();
-        if (this.guideMode === 'outline' || !target.isConnected) {
-            this.guideLayer.hidden = true;
-            return;
-        }
-        const targetRect = target.getBoundingClientRect();
-        if (targetRect.width <= 0 || targetRect.height <= 0) {
-            this.guideLayer.hidden = true;
-            return;
-        }
-        this.guideLayer.hidden = false;
-        if (this.guideMode === 'box')
-            this.renderBoxModel(target, targetRect);
-        else if (this.guideMode === 'size')
-            this.renderSizeGuide(target, targetRect);
-        else
-            this.renderLayoutGuide(target, targetRect);
-    }
-    appendGuide(kind, targetRect, text) {
-        const node = document.createElement('div');
-        node.setAttribute('data-guide-kind', kind);
-        node.style.left = `${Math.round(targetRect.left)}px`;
-        node.style.top = `${Math.round(targetRect.top)}px`;
-        node.style.width = `${Math.round(targetRect.width)}px`;
-        node.style.height = `${Math.round(targetRect.height)}px`;
-        if (text) {
-            const label = document.createElement('span');
-            label.textContent = text;
-            node.append(label);
-        }
-        this.guideLayer.append(node);
-        return node;
-    }
-    renderBoxModel(target, targetRect) {
-        const style = getComputedStyle(target);
-        const mt = px(style, 'margin-top'), mr = px(style, 'margin-right'), mb = px(style, 'margin-bottom'), ml = px(style, 'margin-left');
-        const bt = px(style, 'border-top-width'), br = px(style, 'border-right-width'), bb = px(style, 'border-bottom-width'), bl = px(style, 'border-left-width');
-        const pt = px(style, 'padding-top'), pr = px(style, 'padding-right'), pb = px(style, 'padding-bottom'), pl = px(style, 'padding-left');
-        this.appendGuide('margin', rect(targetRect.left - ml, targetRect.top - mt, targetRect.width + ml + mr, targetRect.height + mt + mb), `margin ${Math.round(mt)} ${Math.round(mr)} ${Math.round(mb)} ${Math.round(ml)}`);
-        this.appendGuide('border', targetRect, `border ${Math.round(Math.max(bt, br, bb, bl))}px`);
-        const paddingRect = rect(targetRect.left + bl, targetRect.top + bt, targetRect.width - bl - br, targetRect.height - bt - bb);
-        this.appendGuide('padding', paddingRect, `padding ${Math.round(pt)} ${Math.round(pr)} ${Math.round(pb)} ${Math.round(pl)}`);
-        const contentRect = rect(paddingRect.left + pl, paddingRect.top + pt, paddingRect.width - pl - pr, paddingRect.height - pt - pb);
-        this.appendGuide('content', contentRect, `${Math.round(contentRect.width)} × ${Math.round(contentRect.height)}`);
-    }
-    renderSizeGuide(target, targetRect) {
-        const parent = this.guideBoundary?.isConnected ? this.guideBoundary : target.parentElement;
-        if (parent?.isConnected) {
-            const parentRect = parent.getBoundingClientRect();
-            if (parentRect.width > 0 && parentRect.height > 0)
-                this.appendGuide('containing-block', parentRect, `${this.guideBoundary ? 'boundary' : 'parent'} · ${Math.round(parentRect.width)} × ${Math.round(parentRect.height)}`);
-        }
-        this.appendGuide('size', targetRect, `${Math.round(targetRect.width)} × ${Math.round(targetRect.height)}`);
-        const centerX = targetRect.left + targetRect.width / 2, centerY = targetRect.top + targetRect.height / 2;
-        const x = this.appendGuide('dimension-x', rect(targetRect.left, centerY, targetRect.width, 1));
-        x.style.setProperty('--guide-length', `${Math.round(targetRect.width)}px`);
-        const y = this.appendGuide('dimension-y', rect(centerX, targetRect.top, 1, targetRect.height));
-        y.style.setProperty('--guide-length', `${Math.round(targetRect.height)}px`);
-    }
-    renderLayoutGuide(target, targetRect) {
-        const ownDisplay = getComputedStyle(target).display;
-        const parent = target.parentElement;
-        const parentDisplay = parent ? getComputedStyle(parent).display : '';
-        const isOwnLayout = /^(inline-)?(flex|grid)$/.test(ownDisplay);
-        const layoutElement = isOwnLayout ? target : parent && /^(inline-)?(flex|grid)$/.test(parentDisplay) ? parent : target;
-        const style = getComputedStyle(layoutElement);
-        const layoutRect = layoutElement.getBoundingClientRect();
-        const isFlex = style.display.includes('flex'), isGrid = style.display.includes('grid');
-        this.appendGuide('layout-parent', layoutRect, isFlex ? `flex · ${style.flexDirection} · gap ${style.gap}` : isGrid ? `grid · ${style.gridTemplateColumns}` : `${style.display || 'block'} layout`);
-        const children = [...layoutElement.children].filter((child) => {
-            const childRect = child.getBoundingClientRect();
-            return childRect.width > 0 && childRect.height > 0;
-        }).slice(0, 40);
-        for (const child of children) {
-            const childRect = child.getBoundingClientRect();
-            const guide = this.appendGuide(child === target ? 'layout-selected-child' : 'layout-child', childRect);
-            if (child === target)
-                guide.setAttribute('data-selected', 'true');
-        }
-        if (isGrid && children.length) {
-            const xLines = new Set(), yLines = new Set();
-            for (const child of children) {
-                const r = child.getBoundingClientRect();
-                xLines.add(Math.round(r.left));
-                xLines.add(Math.round(r.right));
-                yLines.add(Math.round(r.top));
-                yLines.add(Math.round(r.bottom));
-            }
-            for (const x of xLines)
-                if (x > layoutRect.left + 1 && x < layoutRect.right - 1)
-                    this.appendGuide('grid-line-x', rect(x, layoutRect.top, 1, layoutRect.height));
-            for (const y of yLines)
-                if (y > layoutRect.top + 1 && y < layoutRect.bottom - 1)
-                    this.appendGuide('grid-line-y', rect(layoutRect.left, y, layoutRect.width, 1));
-        }
-        if (isFlex && children.length > 1) {
-            const column = style.flexDirection.startsWith('column');
-            const ordered = children.map((child) => child.getBoundingClientRect()).sort((a, b) => column ? a.top - b.top : a.left - b.left);
-            for (let index = 0; index < ordered.length - 1; index += 1) {
-                const a = ordered[index], b = ordered[index + 1];
-                if (column && b.top > a.bottom)
-                    this.appendGuide('flex-gap', rect(Math.max(layoutRect.left, Math.min(a.left, b.left)), a.bottom, Math.min(layoutRect.width, Math.max(a.width, b.width)), b.top - a.bottom), `${Math.round(b.top - a.bottom)}px gap`);
-                if (!column && b.left > a.right)
-                    this.appendGuide('flex-gap', rect(a.right, Math.max(layoutRect.top, Math.min(a.top, b.top)), b.left - a.right, Math.min(layoutRect.height, Math.max(a.height, b.height))), `${Math.round(b.left - a.right)}px gap`);
-            }
-        }
-        if (isFlex) {
-            const column = style.flexDirection.startsWith('column');
-            const reverse = style.flexDirection.endsWith('reverse');
-            const axis = document.createElement('div');
-            axis.setAttribute('data-guide-kind', 'flex-axis');
-            axis.setAttribute('data-axis', column ? 'column' : 'row');
-            axis.setAttribute('data-reverse', String(reverse));
-            if (column) {
-                axis.style.left = `${Math.round(layoutRect.left + layoutRect.width / 2)}px`;
-                axis.style.top = `${Math.round(layoutRect.top + 8)}px`;
-                axis.style.height = `${Math.max(0, Math.round(layoutRect.height - 16))}px`;
-            }
-            else {
-                axis.style.left = `${Math.round(layoutRect.left + 8)}px`;
-                axis.style.top = `${Math.round(layoutRect.top + layoutRect.height / 2)}px`;
-                axis.style.width = `${Math.max(0, Math.round(layoutRect.width - 16))}px`;
-            }
-            this.guideLayer.append(axis);
-        }
-        if (!isFlex && !isGrid && target !== layoutElement)
-            this.appendGuide('layout-selected-child', targetRect, 'selected');
-    }
-    describe(element, targetRect) {
-        const component = element.getAttribute('data-component');
-        const moduleClass = [...element.classList].map((name) => name.match(/^_([A-Za-z][A-Za-z0-9_-]*?)_[A-Za-z0-9]{4,}_[0-9]+$/)?.[1]).find(Boolean);
-        const aria = element.getAttribute('aria-label');
-        const identity = component
-            ?? moduleClass?.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
-            ?? aria
-            ?? element.tagName.toLowerCase();
-        return `${identity}  ·  ${Math.round(targetRect.width)} × ${Math.round(targetRect.height)}`;
-    }
-    hideHover() { this.overlay.hidden = true; this.label.hidden = true; }
-    hideSelected() { this.selectedOverlay.hidden = true; this.selectedLabel.hidden = true; this.guideLayer.hidden = true; this.guideLayer.replaceChildren(); }
-    updateSelectedListeners(enabled) {
-        document.removeEventListener('scroll', this.handleViewportChange, true);
-        window.removeEventListener('resize', this.handleViewportChange, true);
-        window.removeEventListener('orientationchange', this.handleViewportChange, true);
-        document.removeEventListener('visibilitychange', this.handleVisibilityChange, true);
-        window.removeEventListener('pageshow', this.handlePageShow, true);
-        window.visualViewport?.removeEventListener('resize', this.handleViewportChange);
-        window.visualViewport?.removeEventListener('scroll', this.handleViewportChange);
-        if (enabled) {
-            document.addEventListener('scroll', this.handleViewportChange, true);
-            window.addEventListener('resize', this.handleViewportChange, true);
-            window.addEventListener('orientationchange', this.handleViewportChange, true);
-            document.addEventListener('visibilitychange', this.handleVisibilityChange, true);
-            window.addEventListener('pageshow', this.handlePageShow, true);
-            window.visualViewport?.addEventListener('resize', this.handleViewportChange);
-            window.visualViewport?.addEventListener('scroll', this.handleViewportChange);
-            this.syncSelectedObserverTargets();
-        }
-        else {
-            this.selectedResizeObserver?.disconnect();
-            if (this.selectedFrame) {
-                window.cancelAnimationFrame(this.selectedFrame);
-                this.selectedFrame = 0;
-            }
-        }
-    }
-    stop(notifyCancel) {
-        if (!this.active)
-            return;
-        this.active = false;
-        this.hoverTarget = null;
-        document.removeEventListener('pointermove', this.handlePointerMove, true);
-        document.removeEventListener('pointerdown', this.handlePointerDown, true);
-        document.removeEventListener('keydown', this.handleKeyDown, true);
-        document.documentElement.style.cursor = '';
-        this.hideHover();
-        const callback = notifyCancel ? this.options?.onCancel : undefined;
-        this.options = null;
-        callback?.();
-    }
-}
-exports.ElementPicker = ElementPicker;
-
-};
-__modules["src/project/persistence"] = function(module,exports,__require){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ProjectPersistence = void 0;
-function isRecord(value) {
-    return typeof value === 'object' && value !== null;
-}
-function isBackendMessage(value) {
-    return isRecord(value)
-        && typeof value.type === 'string'
-        && value.type.startsWith('theme_studio:')
-        && typeof value.requestId === 'string';
-}
-class ProjectPersistence {
-    ctx;
-    saveTimer = null;
-    pendingState = null;
-    pending = new Map();
-    unsubscribe;
-    constructor(ctx) {
-        this.ctx = ctx;
-        this.unsubscribe = ctx.onBackendMessage((payload) => {
-            if (!isBackendMessage(payload))
-                return;
-            const request = this.pending.get(payload.requestId);
-            if (!request)
-                return;
-            this.pending.delete(payload.requestId);
-            if (payload.type === 'theme_studio:state_error')
-                request.reject(new Error(payload.error));
-            else
-                request.resolve(payload.type === 'theme_studio:state_loaded' ? payload.state : undefined);
-        });
-    }
-    load() {
-        return this.request({ type: 'theme_studio:load_state' });
-    }
-    scheduleSave(state) {
-        this.pendingState = structuredClone(state);
-        if (this.saveTimer)
-            clearTimeout(this.saveTimer);
-        this.saveTimer = setTimeout(() => {
-            this.saveTimer = null;
-            void this.flush().catch((error) => console.error('[Theme Studio] Save failed', error));
-        }, 350);
-    }
-    async flush() {
-        if (this.saveTimer) {
-            clearTimeout(this.saveTimer);
-            this.saveTimer = null;
-        }
-        const state = this.pendingState;
-        if (!state)
-            return;
-        this.pendingState = null;
-        await this.request({ type: 'theme_studio:save_state', state });
-    }
-    async destroy() {
-        try {
-            await this.flush();
-        }
-        finally {
-            this.unsubscribe();
-            for (const request of this.pending.values())
-                request.reject(new Error('Theme Studio unloaded'));
-            this.pending.clear();
-        }
-    }
-    request(payload) {
-        const requestId = portableRandomUUID();
-        return new Promise((resolve, reject) => {
-            this.pending.set(requestId, { resolve, reject });
-            this.ctx.sendToBackend({ ...payload, requestId });
-            setTimeout(() => {
-                const pending = this.pending.get(requestId);
-                if (!pending)
-                    return;
-                this.pending.delete(requestId);
-                pending.reject(new Error('Theme Studio storage request timed out'));
-            }, 10_000);
-        });
-    }
-}
-exports.ProjectPersistence = ProjectPersistence;
-
-};
-__modules["src/project/values"] = function(module,exports,__require){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.finite = finite;
-exports.bounded = bounded;
-exports.alpha = alpha;
-exports.percentage = percentage;
-exports.normalizedAngle = normalizedAngle;
-exports.isDimensionUnit = isDimensionUnit;
-exports.normalizeDimension = normalizeDimension;
-exports.compileDimension = compileDimension;
-function finite(value, fallback = 0) { return typeof value === 'number' && Number.isFinite(value) ? value : fallback; }
-function bounded(value, fallback, min, max) { return Math.max(min, Math.min(max, finite(value, fallback))); }
-function alpha(value, fallback = 1) { return bounded(value, fallback, 0, 1); }
-function percentage(value, fallback = 0) { return bounded(value, fallback, 0, 100); }
-function normalizedAngle(value, fallback = 0) { const number = finite(value, fallback); return ((number % 360) + 360) % 360; }
-function isDimensionUnit(value) { return ['px', 'rem', '%', 'vw', 'vh', 'em'].includes(String(value)); }
-function normalizeDimension(value, fallback = { mode: 'native' }) {
-    if (typeof value !== 'object' || value === null)
-        return structuredClone(fallback);
-    const record = value;
-    if (record.mode === 'native' || record.mode === 'auto')
-        return { mode: 'native' };
-    if (record.mode === 'content' || record.mode === 'fit')
-        return { mode: 'content' };
-    if (record.mode === 'parent' || record.mode === 'fill')
-        return { mode: 'parent' };
-    if (record.mode === 'fixed')
-        return { mode: 'fixed', value: bounded(record.value, 0, -100_000, 100_000), unit: isDimensionUnit(record.unit) ? record.unit : 'px' };
-    return structuredClone(fallback);
-}
-function compileDimension(value) {
-    if (value.mode !== 'fixed')
-        return value.mode === 'native' ? '' : value.mode === 'content' ? 'fit-content' : '100%';
-    const number = Math.round(finite(value.value, 0) * 1000) / 1000;
-    return `${number}${value.unit}`;
-}
-
-};
-__modules["src/project/migrations"] = function(module,exports,__require){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.normalizePacket = normalizePacket;
-exports.normalizeState = normalizeState;
-const model_1 = __require("src/project/model");
-const values_1 = __require("src/project/values");
-const selector_utils_1 = __require("src/registry/selector-utils");
-function record(value) { return typeof value === 'object' && value !== null && !Array.isArray(value); }
-function string(value, fallback = '') { return typeof value === 'string' ? value : fallback; }
-function identifier(value) { return string(value.id) || portableRandomUUID(); }
-const MESSAGE_COMPONENT_RE = /(?:^|[\/:_-])(BubbleMessage|MinimalMessage)(?:$|[\/:_-])/i;
-function legacyMessageComponentLabel(targetValue, value) {
-    const native = string(targetValue.nativeComponentId ?? value.nativeComponentId ?? value.componentId);
-    const explicit = string(targetValue.nativeContextSelector);
-    const label = string(targetValue.label ?? value.label);
-    if (/BubbleMessage/i.test(native) || /data-component=["\']BubbleMessage["\']/i.test(explicit) || /\bBubbleMessage\b/i.test(label))
-        return 'BubbleMessage';
-    if (/MinimalMessage/i.test(native) || /data-component=["\']MinimalMessage["\']/i.test(explicit) || /\bMinimalMessage\b/i.test(label))
-        return 'MinimalMessage';
-    const match = native.match(MESSAGE_COMPONENT_RE);
-    return match?.[1] === 'BubbleMessage' || match?.[1] === 'MinimalMessage' ? match[1] : undefined;
-}
-const EXPLICIT_GLOBAL_SCOPE_RE = /\b(similar|everywhere|global|all similar)\b/i;
-const CSS_MODULE_SELECTOR_RE = /\[class\*=["\']_[A-Za-z][A-Za-z0-9_-]*?_["\']\]/;
-function repairLegacyMessageSelector(selector, targetValue, value, _sourceVersion) {
-    const component = legacyMessageComponentLabel(targetValue, value);
-    if (!component)
-        return selector;
-    const label = string(targetValue.label ?? value.label);
-    // This is an invariant repair, not a one-shot version migration. V27.2 could
-    // normalize a stranded selector into schema v15 before it had enough metadata
-    // to repair it, which made the version gate permanently preserve the leak. Any
-    // message-owned, non-global CSS-module target must remain under its message root.
-    if (EXPLICIT_GLOBAL_SCOPE_RE.test(label))
-        return selector;
-    if (!CSS_MODULE_SELECTOR_RE.test(selector))
-        return selector;
-    const rooted = new RegExp(`^\\[data-component=["']${component}["']\\]`, 'i');
-    return selector.split(/,(?![^()]*\))/).map((branch) => {
-        const trimmed = branch.trim();
-        return rooted.test(trimmed) ? trimmed : `[data-component="${component}"] ${trimmed}`;
-    }).join(',\n');
-}
-function messageComponentFromTarget(target) {
-    const probe = {
-        nativeComponentId: target.nativeComponentId,
-        nativeContextSelector: target.nativeContextSelector,
-        label: target.label,
-    };
-    const explicit = legacyMessageComponentLabel(probe, probe);
-    if (explicit)
-        return explicit;
-    if (/\[data-component=["']BubbleMessage["']\]/i.test(target.selector))
-        return 'BubbleMessage';
-    if (/\[data-component=["']MinimalMessage["']\]/i.test(target.selector))
-        return 'MinimalMessage';
-    return undefined;
-}
-function repairV274FalseMessageRehome(entry, sourceVersion) {
-    // V27.4's project-wide orphan inference was too eager: if a project contained one
-    // message family, it could prepend that message root to unrelated native targets
-    // such as ChatView's Bar Wrapper / Chat Toolbar. Those poisoned records are
-    // identifiable because the selector says "message-owned" while the surviving
-    // native component metadata says otherwise.
-    if (sourceVersion !== 17)
-        return entry;
-    const target = entry.target;
-    const selectorRoot = target.selector.match(/^\s*\[data-component=["'](BubbleMessage|MinimalMessage)["']\]\s+/i)?.[1];
-    if (!selectorRoot || !target.localSelector || !CSS_MODULE_SELECTOR_RE.test(target.localSelector))
-        return entry;
-    const nativeProbe = {
-        nativeComponentId: target.nativeComponentId,
-        nativeContextSelector: undefined,
-        label: undefined,
-    };
-    const nativeMessage = legacyMessageComponentLabel(nativeProbe, nativeProbe);
-    if (!target.nativeComponentId || nativeMessage)
-        return entry;
-    const savedContext = target.nativeContextSelector?.trim();
-    const savedContextMessage = savedContext
-        ? legacyMessageComponentLabel({ nativeContextSelector: savedContext }, {})
-        : undefined;
-    const selector = savedContext && !savedContextMessage
-        ? `${savedContext} ${target.localSelector}`
-        : target.localSelector;
-    return {
-        ...entry,
-        target: {
-            ...target,
-            selector,
-            nativeContextSelector: savedContext && !savedContextMessage ? savedContext : undefined,
-        },
-    };
-}
-function repairProjectMessageScopeOrphans(overrides, sourceVersion) {
-    const repaired = overrides.map((entry) => repairV274FalseMessageRehome(entry, sourceVersion));
-    const projectComponents = new Set(repaired.map((entry) => messageComponentFromTarget(entry.target)).filter((entry) => Boolean(entry)));
-    // If a historical save already discarded the target's native component id, infer
-    // only when the project itself has one unambiguous message family. Crucially, an
-    // explicit non-message native owner is never rehomed just because that project
-    // also contains MinimalMessage/BubbleMessage styles.
-    if (projectComponents.size !== 1)
-        return repaired;
-    const component = [...projectComponents][0];
-    const rootSelector = `[data-component="${component}"]`;
-    const rooted = new RegExp(`^\\[data-component=["']${component}["']\\]`, 'i');
-    return repaired.map((entry) => {
-        const target = entry.target;
-        const label = target.label ?? '';
-        if (EXPLICIT_GLOBAL_SCOPE_RE.test(label) || !CSS_MODULE_SELECTOR_RE.test(target.selector))
-            return entry;
-        if (/\[data-component=["'](?:BubbleMessage|MinimalMessage)["']\]/i.test(target.selector))
-            return entry;
-        const explicitNativeOwnership = Boolean(target.nativeComponentId?.trim() || target.nativeContextSelector?.trim());
-        if (explicitNativeOwnership && !messageComponentFromTarget(target))
-            return entry;
-        const looksContextual = target.source === 'native-aware' || target.strategy === 'native-context-local' || /\b(ancestor|picked|part)\b/i.test(label);
-        if (!looksContextual)
-            return entry;
-        const selector = target.selector.split(/,(?![^()]*\))/).map((branch) => {
-            const trimmed = branch.trim();
-            return rooted.test(trimmed) ? trimmed : `${rootSelector} ${trimmed}`;
-        }).join(',\n');
-        return {
-            ...entry,
-            target: {
-                ...target, selector, source: 'native-aware',
-                nativeComponentId: target.nativeComponentId ?? `mounted:${component}`,
-                nativeContextSelector: target.nativeContextSelector ?? rootSelector,
-                localSelector: target.localSelector ?? target.selector,
-            },
-        };
-    });
-}
-function repairRedundantContextComposition(overrides) {
-    // Some native registry/local-part combinations arrived already rooted, then the
-    // old composer rooted them a second time. Repair only when the target's saved
-    // context/local decomposition can reconstruct the canonical selector exactly.
-    // This now also catches the V27.9 image shape `App > App > Avatar > img`, where
-    // localSelector itself was fine but the complete contextual selector was wrapped
-    // one additional time. Recursive Row > Row remains legal without that proof.
-    return overrides.map((entry) => {
-        const target = entry.target;
-        const repaired = (0, selector_utils_1.canonicalizeSavedContextSelector)(target.selector, target.nativeContextSelector, target.localSelector);
-        return repaired === target.selector.trim() ? entry : { ...entry, target: { ...target, selector: repaired } };
-    });
-}
-function repairV275TransparentSparseBorders(overrides, sourceVersion) {
-    // Read Style intentionally stores sparse authored deltas, but v27.5 compiled Border
-    // through one shorthand. If the source row had no visible border, its observed color
-    // alpha was often 0. Editing only Width + Color therefore produced a perfectly scoped
-    // `border: 20px solid rgba(..., 0)` — visually indistinguishable from a dead selector.
-    // A color edit on a fully transparent observed border is treated as paint activation.
-    if (sourceVersion > 18)
-        return overrides;
-    const repairStacks = (stacks) => Object.fromEntries(Object.entries(stacks).map(([state, packets]) => [state, (packets ?? []).map((packet) => {
-            if (packet.type !== 'border' || packet.editedFields === undefined)
-                return packet;
-            const edited = new Set(packet.editedFields);
-            if (!edited.has('color') || edited.has('alpha') || packet.alpha > .001)
-                return packet;
-            return { ...packet, alpha: 1, editedFields: [...edited, 'alpha'] };
-        })]));
-    return overrides.map((entry) => ({
-        ...entry,
-        states: repairStacks(entry.states),
-        ...(entry.mobileStates ? { mobileStates: repairStacks(entry.mobileStates) } : {}),
-    }));
-}
-function box(value) { return record(value) ? { linked: value.linked !== false, top: (0, values_1.bounded)(value.top, 0, 0, 500), right: (0, values_1.bounded)(value.right, 0, 0, 500), bottom: (0, values_1.bounded)(value.bottom, 0, 0, 500), left: (0, values_1.bounded)(value.left, 0, 0, 500), unit: 'px' } : undefined; }
-function gradient(value) {
-    if (!record(value))
-        return (0, model_1.createGradient)();
-    const stops = (Array.isArray(value.stops) ? value.stops : []).filter(record).map((stop) => ({ color: string(stop.color, '#000000'), alpha: (0, values_1.alpha)(stop.alpha), position: (0, values_1.percentage)(stop.position) }));
-    return { type: 'linear', angle: (0, values_1.bounded)(value.angle, 135, -100_000, 100_000), stops: stops.length >= 2 ? stops : (0, model_1.createGradient)().stops };
-}
-function normalizePacketBase(value) {
-    if (!record(value))
-        return null;
-    const id = identifier(value);
-    if (value.type === 'background') {
-        const solid = record(value.solid) ? value.solid : {};
-        const image = record(value.image) ? value.image : {};
-        return { id, type: 'background', mode: value.mode === 'gradient' || value.mode === 'image' ? value.mode : 'solid', solid: { color: string(solid.color, '#5f4b8b'), alpha: (0, values_1.alpha)(solid.alpha) }, gradient: gradient(value.gradient), image: { assetPath: string(image.assetPath), size: image.size === 'contain' || image.size === 'auto' ? image.size : 'cover', positionX: (0, values_1.percentage)(image.positionX, 50), positionY: (0, values_1.percentage)(image.positionY, 50), repeat: ['repeat', 'repeat-x', 'repeat-y'].includes(String(image.repeat)) ? image.repeat : 'no-repeat', blendMode: ['normal', 'multiply', 'screen', 'overlay', 'soft-light'].includes(String(image.blendMode)) ? image.blendMode : undefined, renderMode: image.renderMode === 'mask' ? 'mask' : 'image', maskColor: string(image.maskColor, '#ffffff'), maskAlpha: (0, values_1.alpha)(image.maskAlpha, 1), hideContents: image.hideContents === true } };
-    }
-    if (value.type === 'pattern')
-        return {
-            id, type: 'pattern',
-            pattern: ['grid', 'checker', 'diamonds', 'stripes', 'grain'].includes(String(value.pattern)) ? value.pattern : 'dots',
-            color: string(value.color, '#ffffff'),
-            alpha: (0, values_1.alpha)(value.alpha, .12),
-            scale: (0, values_1.bounded)(value.scale, 18, 4, 240),
-            angle: (0, values_1.bounded)(value.angle, 45, -3600, 3600),
-        };
-    if (value.type === 'text') {
-        const solid = record(value.solid) ? value.solid : { color: value.color, alpha: value.alpha };
-        const shadow = record(value.shadow) ? value.shadow : undefined;
-        return {
-            id, type: 'text', colorMode: value.colorMode === 'gradient' ? 'gradient' : 'solid',
-            // Pre-v37 solid Text Style always forced WebKit fill. Preserve that on reload; new packets default to cascade-safe ink.
-            inkMode: value.inkMode === 'cascade' ? 'cascade' : 'force',
-            solid: { color: string(solid.color, '#f4eef8'), alpha: (0, values_1.alpha)(solid.alpha) }, gradient: gradient(value.gradient),
-            strokeWidth: value.strokeWidth === undefined ? 0 : (0, values_1.bounded)(value.strokeWidth, 0, 0, 100),
-            strokeColor: typeof value.strokeColor === 'string' ? value.strokeColor : '#000000',
-            strokeAlpha: value.strokeAlpha === undefined ? 1 : (0, values_1.alpha)(value.strokeAlpha),
-            outlineMode: value.outlineMode === 'outside' ? 'outside' : 'edge',
-            shadow: shadow ? { x: (0, values_1.bounded)(shadow.x, 0, -10000, 10000), y: (0, values_1.bounded)(shadow.y, 2, -10000, 10000), blur: (0, values_1.bounded)(shadow.blur, 8, 0, 1000), color: string(shadow.color, '#000000'), alpha: (0, values_1.alpha)(shadow.alpha, .35) } : undefined,
-        };
-    }
-    if (value.type === 'content')
-        return { id, type: 'content', value: string(value.value, 'LABEL').slice(0, 4000), source: value.source === 'title' || value.source === 'aria-label' ? value.source : 'literal' };
-    if (value.type === 'typography')
-        return {
-            id, type: 'typography',
-            fontSize: value.fontSize === undefined ? undefined : (0, values_1.bounded)(value.fontSize, 15, 1, 10000),
-            fontSizeUnit: value.fontSizeUnit === 'rem' ? 'rem' : 'px',
-            fontFamily: typeof value.fontFamily === 'string' ? value.fontFamily : undefined,
-            fontWeight: typeof value.fontWeight === 'number' || typeof value.fontWeight === 'string' ? value.fontWeight : undefined,
-            fontStyle: value.fontStyle === 'italic' ? 'italic' : value.fontStyle === 'normal' ? 'normal' : undefined,
-            textAlign: ['left', 'center', 'right', 'justify'].includes(String(value.textAlign)) ? value.textAlign : undefined,
-            lineHeight: value.lineHeight === undefined ? undefined : (0, values_1.bounded)(value.lineHeight, 1.4, 0.1, 20),
-            letterSpacing: value.letterSpacing === undefined ? undefined : (0, values_1.bounded)(value.letterSpacing, 0, -1000, 1000),
-            transform: ['uppercase', 'lowercase', 'capitalize'].includes(String(value.transform)) ? value.transform : 'none',
-        };
-    if (value.type === 'text-entry')
-        return {
-            id, type: 'text-entry',
-            insetX: (0, values_1.bounded)(value.insetX, 12, 0, 500),
-            insetY: (0, values_1.bounded)(value.insetY, 9, 0, 500),
-            fontSize: value.fontSize === undefined ? undefined : (0, values_1.bounded)(value.fontSize, 15, 1, 10000),
-            fontSizeUnit: value.fontSizeUnit === 'rem' ? 'rem' : 'px',
-            fontFamily: typeof value.fontFamily === 'string' ? value.fontFamily : undefined,
-            fontWeight: typeof value.fontWeight === 'number' || typeof value.fontWeight === 'string' ? value.fontWeight : undefined,
-            fontStyle: value.fontStyle === 'italic' ? 'italic' : value.fontStyle === 'normal' ? 'normal' : undefined,
-            lineHeight: value.lineHeight === undefined ? undefined : (0, values_1.bounded)(value.lineHeight, 1.5, 0.1, 20),
-            letterSpacing: value.letterSpacing === undefined ? undefined : (0, values_1.bounded)(value.letterSpacing, 0, -1000, 1000),
-            placeholderColor: string(value.placeholderColor, '#72777a'),
-            placeholderAlpha: (0, values_1.alpha)(value.placeholderAlpha, .65),
-            placeholderStyle: value.placeholderStyle === 'normal' ? 'normal' : 'italic',
-            placeholderWeight: typeof value.placeholderWeight === 'number' || typeof value.placeholderWeight === 'string' ? value.placeholderWeight : 400,
-        };
-    if (value.type === 'border')
-        return { id, type: 'border', width: (0, values_1.bounded)(value.width, 1, 0, 1000), style: ['dashed', 'dotted', 'double', 'none'].includes(String(value.style)) ? value.style : 'solid', color: string(value.color, '#ffffff'), alpha: (0, values_1.alpha)(value.alpha) };
-    if (value.type === 'corners')
-        return { id, type: 'corners', linked: value.linked !== false, topLeft: (0, values_1.bounded)(value.topLeft, 0, 0, 99999), topRight: (0, values_1.bounded)(value.topRight, 0, 0, 99999), bottomRight: (0, values_1.bounded)(value.bottomRight, 0, 0, 99999), bottomLeft: (0, values_1.bounded)(value.bottomLeft, 0, 0, 99999), unit: 'px' };
-    if (value.type === 'spacing')
-        return { id, type: 'spacing', padding: box(value.padding), margin: box(value.margin), gap: value.gap === undefined ? undefined : (0, values_1.bounded)(value.gap, 0, 0, 10000) };
-    if (value.type === 'shadow')
-        return { id, type: 'shadow', x: (0, values_1.bounded)(value.x, 0, -10000, 10000), y: (0, values_1.bounded)(value.y, 8, -10000, 10000), blur: (0, values_1.bounded)(value.blur, 20, 0, 10000), spread: (0, values_1.bounded)(value.spread, 0, -10000, 10000), color: string(value.color, '#000000'), alpha: (0, values_1.alpha)(value.alpha, 0.25), inset: value.inset === true };
-    if (value.type === 'glass')
-        return { id, type: 'glass', tintColor: typeof value.tintColor === 'string' ? value.tintColor : undefined, tintAlpha: value.tintAlpha === undefined ? undefined : (0, values_1.alpha)(value.tintAlpha), blur: (0, values_1.bounded)(value.blur, 14, 0, 1000), saturation: (0, values_1.bounded)(value.saturation, 1.15, 0, 10), borderColor: typeof value.borderColor === 'string' ? value.borderColor : undefined, borderAlpha: value.borderAlpha === undefined ? undefined : (0, values_1.alpha)(value.borderAlpha), borderWidth: value.borderWidth === undefined ? undefined : (0, values_1.bounded)(value.borderWidth, 1, 0, 1000), shadowStrength: value.shadowStrength === undefined ? undefined : (0, values_1.alpha)(value.shadowStrength), innerHighlight: value.innerHighlight === undefined ? undefined : (0, values_1.alpha)(value.innerHighlight) };
-    if (value.type === 'opacity')
-        return { id, type: 'opacity', value: (0, values_1.alpha)(value.value) };
-    if (value.type === 'visibility')
-        return { id, type: 'visibility', mode: value.mode === 'invisible' ? 'invisible' : value.mode === 'visible' ? 'visible' : 'gone' };
-    if (value.type === 'composer-icons') {
-        const rawCustom = record(value.customIcons) ? value.customIcons : {};
-        const customIcons = {};
-        for (const action of model_1.COMPOSER_ICON_ACTIONS) {
-            const svg = (0, model_1.normalizeSvgSource)(rawCustom[action]);
-            if (svg)
-                customIcons[action] = svg;
-        }
-        return { id, type: 'composer-icons', family: ['manga', 'editorial', 'journal', 'visual-novel'].includes(String(value.family)) ? value.family : 'native', size: (0, values_1.bounded)(value.size, 14, 8, 32), ...(Object.keys(customIcons).length ? { customIcons } : {}) };
-    }
-    if (value.type === 'svg-asset') {
-        const svg = (0, model_1.normalizeSvgSource)(value.svg) ?? '';
-        return { id, type: 'svg-asset', svg, assetId: typeof value.assetId === 'string' ? value.assetId : undefined, assetName: typeof value.assetName === 'string' ? value.assetName.slice(0, 80) : undefined, renderMode: value.renderMode === 'image' ? 'image' : 'mask', color: string(value.color, '#ffffff'), alpha: (0, values_1.alpha)(value.alpha), fit: value.fit === 'cover' ? 'cover' : 'contain', positionX: (0, values_1.percentage)(value.positionX, 50), positionY: (0, values_1.percentage)(value.positionY, 50) };
-    }
-    if (value.type === 'media-flow')
-        return { id, type: 'media-flow', mode: value.mode === 'full' ? 'full' : value.mode === 'natural' ? 'natural' : 'native', unclipped: value.unclipped === true };
-    if (value.type === 'image') {
-        const fade = record(value.fade) ? value.fade : {};
-        const custom = record(value.customMask) ? value.customMask : undefined;
-        const edge = (raw, fallback) => {
-            const source = record(raw) ? raw : {};
-            const solidUntil = Math.max(0, Math.min(99, (0, values_1.percentage)(source.solidUntil, fallback.solidUntil)));
-            const fadeUntil = Math.max(solidUntil + 1, Math.min(100, (0, values_1.percentage)(source.fadeUntil, fallback.fadeUntil)));
-            return { enabled: source.enabled === undefined ? fallback.enabled : source.enabled === true, solidUntil, fadeUntil };
-        };
-        const customMask = custom ? {
-            horizontal: { ...edge(custom.horizontal, { enabled: true, solidUntil: 25, fadeUntil: 90 }), side: record(custom.horizontal) && custom.horizontal.side === 'left' ? 'left' : 'right' },
-            top: edge(custom.top, { enabled: true, solidUntil: 85, fadeUntil: 100 }),
-            bottom: edge(custom.bottom, { enabled: true, solidUntil: 55, fadeUntil: 100 }),
-            combine: ['add', 'subtract', 'exclude'].includes(String(custom.combine)) ? custom.combine : 'intersect',
-        } : undefined;
-        const maskMode = ['native', 'none', 'fade', 'custom'].includes(String(value.maskMode)) ? value.maskMode : undefined;
-        return { id, type: 'image', brightness: (0, values_1.bounded)(value.brightness, 1, 0, 4), saturation: (0, values_1.bounded)(value.saturation, 1, 0, 4), contrast: (0, values_1.bounded)(value.contrast, 1, 0, 4), grayscale: (0, values_1.bounded)(value.grayscale, 0, 0, 1), hueRotate: (0, values_1.bounded)(value.hueRotate, 0, -3600, 3600), blur: (0, values_1.bounded)(value.blur, 0, 0, 100), sourceQuality: value.sourceQuality === 'full' ? 'full' : value.sourceQuality === 'auto' ? 'auto' : 'native', objectFit: ['cover', 'contain', 'fill', 'scale-down'].includes(String(value.objectFit)) ? value.objectFit : 'native', objectPositionX: (0, values_1.percentage)(value.objectPositionX, 50), objectPositionY: (0, values_1.percentage)(value.objectPositionY, 50), fillFrame: value.fillFrame === true, offsetX: (0, values_1.bounded)(value.offsetX, 0, -10000, 10000), offsetY: (0, values_1.bounded)(value.offsetY, 0, -10000, 10000), maskMode, customMask, fade: { direction: ['top', 'right', 'bottom', 'left', 'radial'].includes(String(fade.direction)) ? fade.direction : 'none', amount: (0, values_1.percentage)(fade.amount, 28) } };
-    }
-    if (value.type === 'position') {
-        const top = value.top === undefined ? undefined : (0, values_1.bounded)(value.top, 0, -100000, 100000), right = value.right === undefined ? undefined : (0, values_1.bounded)(value.right, 0, -100000, 100000), bottom = value.bottom === undefined ? undefined : (0, values_1.bounded)(value.bottom, 0, -100000, 100000), left = value.left === undefined ? undefined : (0, values_1.bounded)(value.left, 0, -100000, 100000);
-        const nudgeX = value.nudgeX === undefined ? (left ?? 0) - (right ?? 0) : (0, values_1.bounded)(value.nudgeX, 0, -100000, 100000);
-        const nudgeY = value.nudgeY === undefined ? (top ?? 0) - (bottom ?? 0) : (0, values_1.bounded)(value.nudgeY, 0, -100000, 100000);
-        return { id, type: 'position', mode: ['nudge', 'anchored', 'sticky', 'screen'].includes(String(value.mode)) ? value.mode : 'flow', top, right, bottom, left, nudgeX, nudgeY, unit: value.unit === 'rem' || value.unit === '%' ? value.unit : 'px', layer: ['raised', 'overlay', 'custom'].includes(String(value.layer)) ? value.layer : 'normal', zIndex: value.zIndex === undefined ? undefined : (0, values_1.bounded)(value.zIndex, 0, -2147483647, 2147483647), flowAlign: value.flowAlign === 'center' ? 'center' : 'native', anchorSelector: typeof value.anchorSelector === 'string' && value.anchorSelector.trim() ? value.anchorSelector : undefined, anchorLabel: typeof value.anchorLabel === 'string' && value.anchorLabel.trim() ? value.anchorLabel : undefined };
-    }
-    if (value.type === 'transform')
-        return {
-            id, type: 'transform',
-            rotate: (0, values_1.bounded)(value.rotate, 0, -3600, 3600),
-            scaleLinked: value.scaleLinked !== false,
-            scaleX: (0, values_1.bounded)(value.scaleX, 1, 0.01, 20),
-            scaleY: (0, values_1.bounded)(value.scaleY, value.scaleLinked === false ? 1 : (0, values_1.bounded)(value.scaleX, 1, 0.01, 20), 0.01, 20),
-            skewX: (0, values_1.bounded)(value.skewX, 0, -89, 89),
-            skewY: (0, values_1.bounded)(value.skewY, 0, -89, 89),
-        };
-    if (value.type === 'alignment')
-        return { id, type: 'alignment', text: ['left', 'center', 'right'].includes(String(value.text)) ? value.text : undefined, horizontal: ['start', 'center', 'end', 'space-between'].includes(String(value.horizontal)) ? value.horizontal : undefined, vertical: ['start', 'center', 'end'].includes(String(value.vertical)) ? value.vertical : undefined };
-    if (value.type === 'layout') {
-        const displays = ['normal', 'block', 'inline', 'inline-block', 'flex', 'inline-flex', 'grid', 'inline-grid', 'contents', 'none'];
-        const directions = ['row', 'column', 'row-reverse', 'column-reverse'];
-        const wraps = ['nowrap', 'wrap', 'wrap-reverse'];
-        const columns = record(value.gridColumns) ? value.gridColumns : {};
-        const gridColumns = columns.mode === 'count' ? { mode: 'count', count: (0, values_1.bounded)(columns.count, 2, 1, 24) }
-            : columns.mode === 'auto-fit' ? { mode: 'auto-fit', min: (0, values_1.normalizeDimension)(columns.min, { mode: 'fixed', value: 180, unit: 'px' }) }
-                : { mode: 'auto' };
-        return { id, type: 'layout', display: displays.includes(value.display) ? value.display : 'normal', direction: directions.includes(value.direction) ? value.direction : 'row', wrap: wraps.includes(value.wrap) ? value.wrap : 'nowrap', justify: ['center', 'end', 'space-between', 'space-around', 'space-evenly'].includes(String(value.justify)) ? value.justify : 'start', align: ['start', 'end', 'stretch'].includes(String(value.align)) ? value.align : 'center', gap: value.gap === undefined ? undefined : (0, values_1.normalizeDimension)(value.gap, { mode: 'fixed', value: 8, unit: 'px' }), gridColumns };
-    }
-    if (value.type === 'layout-item')
-        return { id, type: 'layout-item', sizeInParent: value.sizeInParent === 'fill' || value.sizeInParent === 'fixed' ? value.sizeInParent : 'natural', grow: value.grow === undefined ? undefined : (0, values_1.bounded)(value.grow, 0, 0, 100), shrink: value.shrink === undefined ? undefined : (0, values_1.bounded)(value.shrink, 1, 0, 100), basis: value.basis === undefined ? undefined : (0, values_1.normalizeDimension)(value.basis), alignSelf: ['auto', 'start', 'center', 'end', 'stretch'].includes(String(value.alignSelf)) ? value.alignSelf : 'auto', order: value.order === undefined ? undefined : (0, values_1.bounded)(value.order, 0, -10000, 10000) };
-    if (value.type === 'placement')
-        return { id, type: 'placement', horizontal: ['start', 'center', 'end', 'stretch'].includes(String(value.horizontal)) ? value.horizontal : 'native', vertical: ['start', 'center', 'end', 'stretch'].includes(String(value.vertical)) ? value.vertical : 'native' };
-    if (value.type === 'size') {
-        const boundary = record(value.boundary) && string(value.boundary.selector).trim() ? { selector: string(value.boundary.selector), label: string(value.boundary.label, 'Boundary') } : undefined;
-        return { id, type: 'size', width: value.width === undefined ? undefined : (0, values_1.normalizeDimension)(value.width), height: value.height === undefined ? undefined : (0, values_1.normalizeDimension)(value.height), minWidth: value.minWidth === undefined ? undefined : (0, values_1.normalizeDimension)(value.minWidth), maxWidth: value.maxWidth === undefined ? undefined : (0, values_1.normalizeDimension)(value.maxWidth), minHeight: value.minHeight === undefined ? undefined : (0, values_1.normalizeDimension)(value.minHeight), maxHeight: value.maxHeight === undefined ? undefined : (0, values_1.normalizeDimension)(value.maxHeight), aspectRatio: record(value.aspectRatio) ? { width: (0, values_1.bounded)(value.aspectRatio.width, 1, 0.001, 10000), height: (0, values_1.bounded)(value.aspectRatio.height, 1, 0.001, 10000) } : undefined, boundary, mobileSafe: value.mobileSafe !== false };
-    }
-    return null;
-}
-function normalizePacket(value) {
-    const packet = normalizePacketBase(value);
-    if (!packet || !record(value))
-        return packet;
-    if (Array.isArray(value.editedFields)) {
-        packet.editedFields = [...new Set(value.editedFields.filter((entry) => typeof entry === 'string' && Boolean(entry.trim())).map((entry) => entry.trim()))];
-    }
-    return packet;
-}
-function legacyTypographyPacket(value) {
-    if (!record(value) || value.type !== 'text')
-        return null;
-    const hasTypography = value.fontSize !== undefined || value.fontFamily !== undefined || value.fontWeight !== undefined || value.fontStyle !== undefined || value.textAlign !== undefined || value.lineHeight !== undefined || value.letterSpacing !== undefined;
-    if (!hasTypography)
-        return null;
-    return {
-        id: `${identifier(value)}_typography`, type: 'typography',
-        fontSize: value.fontSize === undefined ? undefined : (0, values_1.bounded)(value.fontSize, 15, 1, 10000),
-        fontSizeUnit: value.fontSizeUnit === 'rem' ? 'rem' : 'px',
-        fontFamily: typeof value.fontFamily === 'string' ? value.fontFamily : undefined,
-        fontWeight: typeof value.fontWeight === 'number' || typeof value.fontWeight === 'string' ? value.fontWeight : undefined,
-        fontStyle: value.fontStyle === 'italic' ? 'italic' : value.fontStyle === 'normal' ? 'normal' : undefined,
-        textAlign: ['left', 'center', 'right', 'justify'].includes(String(value.textAlign)) ? value.textAlign : undefined,
-        lineHeight: value.lineHeight === undefined ? undefined : (0, values_1.bounded)(value.lineHeight, 1.4, 0.1, 20),
-        letterSpacing: value.letterSpacing === undefined ? undefined : (0, values_1.bounded)(value.letterSpacing, 0, -1000, 1000),
-        transform: 'none',
-    };
-}
-function packetList(value) {
-    const result = [];
-    for (const raw of Array.isArray(value) ? value : []) {
-        const packet = normalizePacket(raw);
-        if (packet)
-            result.push(packet);
-        const typography = legacyTypographyPacket(raw);
-        if (typography)
-            result.push(typography);
-    }
-    return result;
-}
-function states(value) {
-    if (record(value.states)) {
-        const result = { normal: packetList(value.states.normal) };
-        for (const state of model_1.STYLE_STATES.slice(1)) {
-            const list = packetList(value.states[state]);
-            if (list.length)
-                result[state] = list;
-        }
-        return result;
-    }
-    return { normal: packetList(value.packets) };
-}
-function override(value, sourceVersion = 0) {
-    if (!record(value))
-        return null;
-    const targetValue = record(value.target) ? value.target : value;
-    const rawSelector = string(targetValue.selector);
-    if (!rawSelector.trim())
-        return null;
-    const selector = repairLegacyMessageSelector(rawSelector, targetValue, value, sourceVersion);
-    const allowedStrategies = ['semantic', 'native-context-local', 'native-registry', 'studio-registry', 'css-module', 'exact-class', 'structural', 'volatile'];
-    const strategy = allowedStrategies.includes(String(targetValue.strategy ?? value.selectorStrategy)) ? String(targetValue.strategy ?? value.selectorStrategy) : 'structural';
-    const nativeComponentId = string(targetValue.nativeComponentId ?? value.nativeComponentId ?? value.componentId) || undefined;
-    const explicitSource = targetValue.source === 'native-aware' || targetValue.source === 'dom-scoped' ? targetValue.source : undefined;
-    const source = explicitSource ?? (nativeComponentId ? 'native-aware' : 'dom-scoped');
-    return { id: identifier(value), target: { selector, strategy, stability: targetValue.stability === 'high' || targetValue.stability === 'medium' ? targetValue.stability : strategy === 'structural' || strategy === 'volatile' ? 'low' : 'medium', persistence: targetValue.persistence === 'volatile' ? 'volatile' : 'persistent', source, label: string(targetValue.label) || undefined, nativeComponentId, nativeContextSelector: string(targetValue.nativeContextSelector) || undefined, localSelector: string(targetValue.localSelector) || undefined, overrideStrength: targetValue.overrideStrength === 'strong' ? 'strong' : 'normal' }, states: states(value), ...(record(value.mobileStates) ? { mobileStates: states({ states: value.mobileStates }) } : {}) };
-}
-function storedTarget(value) {
-    if (!record(value))
-        return null;
-    const selector = string(value.selector).trim();
-    if (!selector)
-        return null;
-    const allowedStrategies = ['semantic', 'native-context-local', 'native-registry', 'studio-registry', 'css-module', 'exact-class', 'structural', 'volatile'];
-    const strategy = allowedStrategies.includes(String(value.strategy)) ? String(value.strategy) : 'structural';
-    const nativeComponentId = string(value.nativeComponentId) || undefined;
-    const explicitSource = value.source === 'native-aware' || value.source === 'dom-scoped' ? value.source : undefined;
-    return {
-        selector, strategy,
-        stability: value.stability === 'high' || value.stability === 'medium' ? value.stability : strategy === 'structural' || strategy === 'volatile' ? 'low' : 'medium',
-        persistence: value.persistence === 'volatile' ? 'volatile' : 'persistent',
-        source: explicitSource ?? (nativeComponentId ? 'native-aware' : 'dom-scoped'),
-        label: string(value.label) || undefined, nativeComponentId, nativeContextSelector: string(value.nativeContextSelector) || undefined,
-        localSelector: string(value.localSelector) || undefined, overrideStrength: value.overrideStrength === 'strong' ? 'strong' : 'normal',
-    };
-}
-function layoutGroupState(value, fallback) {
-    const entry = record(value) ? value : {};
-    const mode = entry.mode === 'row' || entry.mode === 'column' || entry.mode === 'grid' ? entry.mode : fallback?.mode ?? 'row';
-    const justify = ['start', 'center', 'end', 'stretch'].includes(String(entry.justify)) ? entry.justify : fallback?.justify ?? 'stretch';
-    const align = ['start', 'center', 'end', 'stretch'].includes(String(entry.align)) ? entry.align : fallback?.align ?? 'stretch';
-    return {
-        mode, columns: (0, values_1.bounded)(entry.columns, fallback?.columns ?? 2, 1, 12),
-        gap: (0, values_1.normalizeDimension)(entry.gap, fallback?.gap ?? { mode: 'fixed', value: 8, unit: 'px' }),
-        justify, align, otherSiblings: entry.otherSiblings === 'join-layout' || entry.otherSiblings === 'full-width' ? entry.otherSiblings : fallback?.otherSiblings ?? 'full-width',
-    };
-}
-function layoutGroupStyleBucket(value, fallback) {
-    const entry = record(value) ? value : {};
-    const contentsValue = record(entry.contents) ? entry.contents : {};
-    const contents = {};
-    for (const target of ['icons', 'text', 'buttons', 'images']) {
-        const parsed = packetList(contentsValue[target]);
-        if (parsed.length)
-            contents[target] = parsed;
-        else if (fallback?.contents[target]?.length)
-            contents[target] = structuredClone(fallback.contents[target]);
-    }
-    return {
-        members: packetList(entry.members).length ? packetList(entry.members) : structuredClone(fallback?.members ?? []),
-        contents,
-        frame: packetList(entry.frame).length ? packetList(entry.frame) : structuredClone(fallback?.frame ?? []),
-    };
-}
-function layoutGroup(value) {
-    if (!record(value))
-        return null;
-    const parent = storedTarget(value.parent);
-    if (!parent || parent.persistence !== 'persistent')
-        return null;
-    const members = (Array.isArray(value.members) ? value.members : []).filter(record).map((entry) => {
-        const target = storedTarget(entry.target);
-        if (!target || target.persistence !== 'persistent')
-            return null;
-        return { id: identifier(entry), label: string(entry.label, target.label ?? 'Item').slice(0, 120), target };
-    }).filter((entry) => entry !== null);
-    const unique = [...new Map(members.map((entry) => [entry.target.selector, entry])).values()];
-    if (unique.length < 2)
-        return null;
-    const base = layoutGroupState(value.base);
-    const stylesValue = record(value.styles) ? value.styles : null;
-    const baseStyles = layoutGroupStyleBucket(stylesValue?.base);
-    const styles = stylesValue ? { base: baseStyles, ...(record(stylesValue.mobile) ? { mobile: layoutGroupStyleBucket(stylesValue.mobile, baseStyles) } : {}) } : undefined;
-    const recipeSourceValue = record(value.recipeSource) ? value.recipeSource : null;
-    const recipeSource = recipeSourceValue && string(recipeSourceValue.presetId).trim() && string(recipeSourceValue.groupId).trim()
-        ? { presetId: string(recipeSourceValue.presetId).slice(0, 160), groupId: string(recipeSourceValue.groupId).slice(0, 160) }
-        : undefined;
-    return { id: identifier(value), name: string(value.name, unique.map((entry) => entry.label).join(' + ')).slice(0, 120), parent, members: unique, base, ...(record(value.mobile) ? { mobile: layoutGroupState(value.mobile, base) } : {}), ...(styles ? { styles } : {}), ...(recipeSource ? { recipeSource } : {}) };
-}
-function recipeSlot(value) {
-    if (!record(value))
-        return null;
-    const target = storedTarget(value.target);
-    if (!target || target.persistence !== 'persistent')
-        return null;
-    const allowedTypes = new Set(['background', 'pattern', 'text', 'typography', 'text-entry', 'border', 'corners', 'spacing', 'shadow', 'glass', 'opacity', 'visibility', 'composer-icons', 'svg-asset', 'media-flow', 'image', 'position', 'transform', 'alignment', 'layout', 'layout-item', 'placement', 'size']);
-    const type = string(value.type);
-    if (!allowedTypes.has(type))
-        return null;
-    const base = normalizePacketBase(value.base);
-    const layers = (Array.isArray(value.layers) ? value.layers : []).filter(record).map((entry) => {
-        const presetId = string(entry.presetId).trim();
-        const packet = normalizePacketBase(entry.packet);
-        if (!presetId || !packet || packet.type !== type)
-            return null;
-        return { presetId: presetId.slice(0, 160), packet };
-    }).filter((entry) => entry !== null);
-    const normalizedBase = base && base.type === type ? base : undefined;
-    if (!layers.length)
-        return null;
-    const scope = value.scope === 'mobile' ? 'mobile' : 'base';
-    return { id: identifier(value), target, type, scope, ...(normalizedBase ? { base: normalizedBase } : {}), layers };
-}
-function font(value) {
-    if (!record(value) || !record(value.source) || value.source.type !== 'theme-asset' || !string(value.family).trim() || !string(value.source.path).trim())
-        return null;
-    return { id: identifier(value), family: string(value.family).slice(0, 120), source: { type: 'theme-asset', path: string(value.source.path) }, weight: typeof value.weight === 'number' || typeof value.weight === 'string' ? value.weight : 400, style: value.style === 'italic' ? 'italic' : 'normal', display: ['block', 'fallback', 'optional'].includes(String(value.display)) ? value.display : 'swap' };
-}
-function svgAsset(value) {
-    if (!record(value))
-        return null;
-    const svg = (0, model_1.normalizeSvgSource)(value.svg);
-    if (!svg)
-        return null;
-    return { id: identifier(value), name: (string(value.name).trim() || 'Saved SVG').slice(0, 80), svg, createdAt: (0, values_1.bounded)(value.createdAt, Date.now(), 0, Number.MAX_SAFE_INTEGER) };
-}
-function project(value) {
-    if (!record(value) || !string(value.id))
-        return null;
-    const sourceVersion = (0, values_1.bounded)(value.version, 0, 0, Number.MAX_SAFE_INTEGER);
-    const now = Date.now();
-    const boostValue = record(value.boost) ? value.boost : {};
-    const paletteValue = record(boostValue.palette) ? boostValue.palette : {};
-    const legacyValue = record(boostValue.legacyPalette) ? boostValue.legacyPalette : {};
-    const legacyPalette = {};
-    for (const role of ['primary', 'secondary', 'accent', 'surface', 'text', 'muted', 'border']) {
-        const entry = paletteValue[role];
-        if (record(entry) && string(entry.color))
-            legacyPalette[role] = { color: string(entry.color), alpha: (0, values_1.alpha)(entry.alpha) };
-    }
-    for (const role of ['primary', 'secondary', 'accent', 'surface', 'text', 'muted', 'border']) {
-        const entry = legacyValue[role];
-        if (record(entry) && string(entry.color))
-            legacyPalette[role] = { color: string(entry.color), alpha: (0, values_1.alpha)(entry.alpha) };
-    }
-    const typography = record(boostValue.typography) ? boostValue.typography : {};
-    const invert = record(boostValue.smartInvert) ? boostValue.smartInvert : {};
-    const defaultBoost = (0, model_1.createBoost)();
-    const primaryValue = record(boostValue.primary) ? boostValue.primary : legacyPalette.primary;
-    const secondaryValue = record(boostValue.secondary) ? boostValue.secondary : legacyPalette.secondary;
-    const hasLegacyIntent = Object.keys(legacyPalette).length > 0 || typeof typography.fontFamily === 'string' || typography.scale !== undefined || invert.enabled === true;
-    const legacyEnabled = boostValue.enabled === true || (boostValue.enabled === undefined && hasLegacyIntent);
-    const typographyEnabled = boostValue.typographyEnabled === true || (boostValue.typographyEnabled === undefined && legacyEnabled && (typeof typography.fontFamily === 'string' || typography.scale !== undefined));
-    const colorsEnabled = boostValue.colorsEnabled === true || (boostValue.colorsEnabled === undefined && legacyEnabled);
-    const canvasEnabled = boostValue.canvasEnabled === true;
-    const boost = {
-        enabled: legacyEnabled || colorsEnabled || typographyEnabled || canvasEnabled,
-        colorsEnabled, typographyEnabled, canvasEnabled,
-        mode: boostValue.mode === 'smart-invert' || (boostValue.mode === undefined && invert.enabled === true) ? 'smart-invert' : 'recolor',
-        primary: record(primaryValue) && string(primaryValue.color) ? { color: string(primaryValue.color), alpha: (0, values_1.alpha)(primaryValue.alpha) } : defaultBoost.primary,
-        secondary: record(secondaryValue) && string(secondaryValue.color) ? { color: string(secondaryValue.color), alpha: (0, values_1.alpha)(secondaryValue.alpha) } : structuredClone(defaultBoost.secondary),
-        contrast: (0, values_1.bounded)(boostValue.contrast, defaultBoost.contrast, -1, 1), brightness: (0, values_1.bounded)(boostValue.brightness, defaultBoost.brightness, -1, 1), originalSaturation: (0, values_1.bounded)(boostValue.originalSaturation, defaultBoost.originalSaturation, 0, 1), canvasOpacity: (0, values_1.bounded)(boostValue.canvasOpacity, defaultBoost.canvasOpacity, 0, 1),
-        wallpaperTreatmentEnabled: boostValue.wallpaperTreatmentEnabled === true,
-        wallpaperOpacity: (0, values_1.bounded)(boostValue.wallpaperOpacity, defaultBoost.wallpaperOpacity, 0, 1),
-        wallpaperBlur: (0, values_1.bounded)(boostValue.wallpaperBlur, defaultBoost.wallpaperBlur, 0, 48),
-        wallpaperSaturation: (0, values_1.bounded)(boostValue.wallpaperSaturation, defaultBoost.wallpaperSaturation, 0, 3),
-        wallpaperContrast: (0, values_1.bounded)(boostValue.wallpaperContrast, defaultBoost.wallpaperContrast, 0.25, 3),
-        wallpaperBrightness: (0, values_1.bounded)(boostValue.wallpaperBrightness, defaultBoost.wallpaperBrightness, 0.1, 3),
-        protectControls: boostValue.protectControls !== false,
-        typography: { fontFamily: typeof typography.fontFamily === 'string' ? typography.fontFamily : undefined, scale: typography.scale === undefined ? undefined : (0, values_1.bounded)(typography.scale, 1, 0.25, 4) },
-        legacyPalette: Object.keys(legacyPalette).length ? legacyPalette : undefined,
-        shuffleSeed: (0, values_1.bounded)(boostValue.shuffleSeed, defaultBoost.shuffleSeed, 1, 0x7fffffff),
-    };
-    const componentOverrides = repairRedundantContextComposition(repairV275TransparentSparseBorders(repairProjectMessageScopeOrphans((Array.isArray(value.componentOverrides) ? value.componentOverrides : []).map((entry) => override(entry, sourceVersion)).filter((entry) => entry !== null), sourceVersion), sourceVersion));
-    return { version: model_1.PROJECT_VERSION, id: string(value.id), name: (string(value.name).trim() || 'Untitled Theme').slice(0, 120), tokens: (Array.isArray(value.tokens) ? value.tokens : []).filter(record).filter((entry) => typeof entry.variable === 'string' && typeof entry.value === 'string').map((entry) => ({ variable: String(entry.variable), value: String(entry.value) })), componentOverrides, layoutGroups: (Array.isArray(value.layoutGroups) ? value.layoutGroups : []).map(layoutGroup).filter((entry) => entry !== null), recipeSlots: (Array.isArray(value.recipeSlots) ? value.recipeSlots : []).map(recipeSlot).filter((entry) => entry !== null), customCss: string(value.customCss), assets: (Array.isArray(value.assets) ? value.assets : []).filter(record).filter((entry) => typeof entry.path === 'string').map((entry) => ({ assetId: typeof entry.assetId === 'string' ? entry.assetId : undefined, path: String(entry.path), name: typeof entry.name === 'string' ? entry.name : undefined, mimeType: typeof entry.mimeType === 'string' ? entry.mimeType : undefined, contentUrl: typeof entry.contentUrl === 'string' ? entry.contentUrl : undefined })), nativeAssetBundleId: typeof value.nativeAssetBundleId === 'string' ? value.nativeAssetBundleId : undefined, fonts: (Array.isArray(value.fonts) ? value.fonts : []).map(font).filter((entry) => entry !== null), presets: (Array.isArray(value.presets) ? value.presets : []).filter(record).map((entry) => ({ id: identifier(entry), name: string(entry.name, 'Untitled preset').slice(0, 120), states: Object.fromEntries(model_1.STYLE_STATES.map((state) => [state, packetList(record(entry.states) ? entry.states[state] : undefined)]).filter(([, list]) => list.length)) })), svgAssets: (Array.isArray(value.svgAssets) ? value.svgAssets : Array.isArray(value.composerSvgs) ? value.composerSvgs : []).map(svgAsset).filter((entry) => entry !== null), boost, createdAt: (0, values_1.bounded)(value.createdAt, now, 0, Number.MAX_SAFE_INTEGER), updatedAt: (0, values_1.bounded)(value.updatedAt, now, 0, Number.MAX_SAFE_INTEGER) };
-}
-function savedStyleBundle(value) {
-    if (!record(value))
-        return null;
-    const overrides = (Array.isArray(value.overrides) ? value.overrides : []).map((entry) => override(entry, model_1.STATE_VERSION)).filter((entry) => entry !== null);
-    if (!overrides.length)
-        return null;
-    const now = Date.now();
-    return {
-        id: identifier(value),
-        name: (string(value.name).trim() || 'Saved style').slice(0, 120),
-        scope: value.scope === 'bundle' ? 'bundle' : value.scope === 'component' ? 'component' : 'target',
-        sourceLabel: string(value.sourceLabel).trim().slice(0, 160) || undefined,
-        sourceProjectName: string(value.sourceProjectName).trim().slice(0, 120) || undefined,
-        overrides,
-        createdAt: (0, values_1.bounded)(value.createdAt, now, 0, Number.MAX_SAFE_INTEGER),
-        updatedAt: (0, values_1.bounded)(value.updatedAt, now, 0, Number.MAX_SAFE_INTEGER),
-    };
-}
-/** Migrate Phase One/Two data to targets + state stacks without rewriting old selectors. */
-function normalizeState(value) {
-    if (!record(value))
-        return (0, model_1.createInitialState)();
-    const projects = (Array.isArray(value.projects) ? value.projects : []).map(project).filter((entry) => entry !== null);
-    if (!projects.length)
-        return (0, model_1.createInitialState)();
-    const requested = string(value.activeProjectId);
-    return { version: model_1.STATE_VERSION, activeProjectId: projects.some((entry) => entry.id === requested) ? requested : projects[0].id, projects, savedStyles: (Array.isArray(value.savedStyles) ? value.savedStyles : []).map(savedStyleBundle).filter((entry) => entry !== null) };
-}
-
-};
-__modules["src/compiler/color"] = function(module,exports,__require){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseHexColor = parseHexColor;
-exports.colorWithAlpha = colorWithAlpha;
-function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
-/** Small, dependency-free parser for the hex formats emitted by native color inputs. */
-function parseHexColor(value) {
-    const hex = value.trim().replace(/^#/, '');
-    if (![3, 4, 6, 8].includes(hex.length) || !/^[0-9a-f]+$/i.test(hex))
-        return null;
-    const expanded = hex.length <= 4 ? [...hex].map((char) => char + char).join('') : hex;
-    return {
-        r: Number.parseInt(expanded.slice(0, 2), 16),
-        g: Number.parseInt(expanded.slice(2, 4), 16),
-        b: Number.parseInt(expanded.slice(4, 6), 16),
-        alpha: expanded.length === 8 ? Number.parseInt(expanded.slice(6, 8), 16) / 255 : 1,
-    };
-}
-function formatAlpha(value) {
-    return String(Math.round(clamp(Number.isFinite(value) ? value : 1, 0, 1) * 1000) / 1000);
-}
-function colorWithAlpha(value, alpha = 1) {
-    const parsed = parseHexColor(value);
-    if (!parsed)
-        return alpha >= 1 && value.trim() && !/[;{}]/.test(value) ? value.trim() : 'transparent';
-    const combined = parsed.alpha * clamp(Number.isFinite(alpha) ? alpha : 1, 0, 1);
-    if (combined >= 0.9995 && parsed.alpha >= 0.9995)
-        return value.trim();
-    return `rgba(${parsed.r}, ${parsed.g}, ${parsed.b}, ${formatAlpha(combined)})`;
-}
-
-};
-__modules["src/project/smart-invert"] = function(module,exports,__require){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.smartInvertColor = smartInvertColor;
-exports.inferColorRole = inferColorRole;
-exports.isMediaElement = isMediaElement;
-exports.synthesizeSmartInvertPackets = synthesizeSmartInvertPackets;
-exports.invertBoostColor = invertBoostColor;
-const color_1 = __require("src/compiler/color");
-const model_1 = __require("src/project/model");
-function rgbToHsl(r, g, b) {
-    const [rn, gn, bn] = [r, g, b].map((value) => value / 255);
-    const max = Math.max(rn, gn, bn);
-    const min = Math.min(rn, gn, bn);
-    let h = 0;
-    const l = (max + min) / 2;
-    const delta = max - min;
-    const s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
-    if (delta) {
-        if (max === rn)
-            h = 60 * (((gn - bn) / delta) % 6);
-        else if (max === gn)
-            h = 60 * ((bn - rn) / delta + 2);
-        else
-            h = 60 * ((rn - gn) / delta + 4);
-    }
-    return { h: h < 0 ? h + 360 : h, s, l };
-}
-function hslToRgb({ h, s, l }) {
-    const c = (1 - Math.abs(2 * l - 1)) * s;
-    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-    const m = l - c / 2;
-    const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
-    return [r, g, b].map((value) => Math.round((value + m) * 255));
-}
-function hex(r, g, b) { return `#${[r, g, b].map((value) => value.toString(16).padStart(2, '0')).join('')}`; }
-function smartInvertColor(color, role, config) {
-    const parsed = (0, color_1.parseHexColor)(color);
-    if (!parsed || config.strength <= 0)
-        return color;
-    const source = rgbToHsl(parsed.r, parsed.g, parsed.b);
-    let targetLightness = 1 - source.l;
-    if (role === 'surface')
-        targetLightness = source.l >= 0.5 ? 0.12 : 0.9;
-    if (role === 'text')
-        targetLightness = source.l >= 0.5 ? 0.12 : 0.92;
-    if (role === 'border')
-        targetLightness = source.l >= 0.5 ? 0.28 : 0.7;
-    if (role === 'accent' && config.preserveAccents)
-        targetLightness = Math.max(0.38, Math.min(0.68, targetLightness));
-    const strength = Math.max(0, Math.min(1, config.strength));
-    const transformed = { ...source, l: source.l + (targetLightness - source.l) * strength };
-    return hex(...hslToRgb(transformed));
-}
-function inferColorRole(property, color) {
-    if (property === 'background-color')
-        return 'surface';
-    if (property === 'color')
-        return 'text';
-    const parsed = (0, color_1.parseHexColor)(color);
-    if (!parsed)
-        return 'unknown';
-    return rgbToHsl(parsed.r, parsed.g, parsed.b).s > 0.45 ? 'accent' : 'border';
-}
-function isMediaElement(element) { return ['IMG', 'VIDEO', 'CANVAS', 'PICTURE', 'SOURCE'].includes(element.tagName) || Boolean(element.closest('picture')); }
-function cssRgbToHex(value) {
-    if (!value || value === 'transparent')
-        return null;
-    const hexColor = (0, color_1.parseHexColor)(value);
-    if (hexColor)
-        return hex(hexColor.r, hexColor.g, hexColor.b);
-    const match = value.trim().match(/^rgba?\((.*)\)$/i);
-    if (!match)
-        return null;
-    const parts = match[1].replace('/', ' ').split(/[\s,]+/).filter(Boolean).map(Number);
-    if (parts.length < 3 || parts.slice(0, 3).some((part) => !Number.isFinite(part)) || (parts[3] !== undefined && parts[3] <= 0))
-        return null;
-    return hex(...parts.slice(0, 3).map((part) => Math.max(0, Math.min(255, Math.round(part)))));
-}
-/** Convert computed presentation into ordinary editable packets; no runtime filters or computed objects are persisted. */
-function synthesizeSmartInvertPackets(presentation, config) {
-    const result = [];
-    const background = cssRgbToHex(presentation.backgroundColor);
-    if (background) {
-        const packet = (0, model_1.createStylePacket)('background');
-        if (packet.type === 'background') {
-            packet.solid.color = smartInvertColor(background, 'surface', config);
-            result.push(packet);
-        }
-    }
-    const foreground = cssRgbToHex(presentation.color);
-    if (foreground) {
-        const packet = (0, model_1.createStylePacket)('text');
-        if (packet.type === 'text') {
-            packet.solid.color = smartInvertColor(foreground, 'text', config);
-            result.push(packet);
-        }
-    }
-    const border = cssRgbToHex(presentation.borderColor);
-    if (border) {
-        const packet = (0, model_1.createStylePacket)('border');
-        if (packet.type === 'border') {
-            packet.color = smartInvertColor(border, inferColorRole('border-color', border), config);
-            result.push(packet);
-        }
-    }
-    return result;
-}
-function invertBoostColor(value, role, config) { return { ...value, color: smartInvertColor(value.color, role, config) }; }
-
-};
-__modules["src/project/store"] = function(module,exports,__require){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ProjectStore = void 0;
-const model_1 = __require("src/project/model");
-const migrations_1 = __require("src/project/migrations");
-const model_2 = __require("src/project/model");
-const smart_invert_1 = __require("src/project/smart-invert");
-function allEmpty(states) { return model_1.STYLE_STATES.every((state) => !(states[state]?.length)); }
-function responsiveStacks(override, scope) {
-    if (!override)
-        return { normal: [] };
-    return scope === 'mobile' ? (override.mobileStates ?? { normal: [] }) : override.states;
-}
-function assignResponsiveStacks(override, scope, states) {
-    return scope === 'mobile' ? { ...override, mobileStates: states } : { ...override, states };
-}
-function overrideEmpty(override) {
-    return allEmpty(override.states) && (!override.mobileStates || allEmpty(override.mobileStates));
-}
-function upsertInto(states, state, packet) {
-    const list = [...(states[state] ?? [])];
-    const index = list.findIndex((entry) => entry.type === packet.type);
-    if (index < 0)
-        list.push(structuredClone(packet));
-    else
-        list[index] = structuredClone(packet);
-    return { ...states, [state]: list };
-}
-function cloneOverrideForSavedStyle(source) {
-    const clone = structuredClone(source);
-    clone.id = (0, model_1.newId)('saved-override');
-    for (const state of model_1.STYLE_STATES) {
-        for (const packet of clone.states[state] ?? [])
-            packet.id = (0, model_1.newId)('packet');
-        for (const packet of clone.mobileStates?.[state] ?? [])
-            packet.id = (0, model_1.newId)('packet');
-    }
-    return clone;
-}
-function mergeSavedOverride(existing, saved) {
-    const incoming = cloneOverrideForSavedStyle(saved);
-    incoming.id = existing?.id ?? (0, model_1.newId)('override');
-    const mergeStacks = (base, extra) => {
-        let result = structuredClone(base ?? { normal: [] });
-        for (const state of model_1.STYLE_STATES) {
-            for (const packet of extra?.[state] ?? [])
-                result = upsertInto(result, state, { ...structuredClone(packet), id: (0, model_1.newId)('packet') });
-        }
-        return result;
-    };
-    const states = mergeStacks(existing?.states, incoming.states);
-    const mobileStates = mergeStacks(existing?.mobileStates, incoming.mobileStates);
-    return {
-        ...(existing ?? incoming),
-        id: existing?.id ?? (0, model_1.newId)('override'),
-        target: structuredClone(incoming.target),
-        states,
-        ...(allEmpty(mobileStates) ? { mobileStates: undefined } : { mobileStates }),
-    };
-}
-class ProjectStore {
-    state = (0, model_1.createInitialState)();
-    listeners = new Set();
-    get snapshot() { return this.state; }
-    get activeProject() { return this.state.projects.find((project) => project.id === this.state.activeProjectId) ?? this.state.projects[0]; }
-    hydrate(value) { this.state = (0, migrations_1.normalizeState)(value); this.emit(); }
-    subscribe(listener) { this.listeners.add(listener); return () => this.listeners.delete(listener); }
-    selectProject(projectId) { if (this.state.projects.some((project) => project.id === projectId)) {
-        this.state = { ...this.state, activeProjectId: projectId };
-        this.emit();
-    } }
-    create(name) { const project = (0, model_1.createProject)(name ?? `Theme ${this.state.projects.length + 1}`); this.state = { ...this.state, activeProjectId: project.id, projects: [...this.state.projects, project] }; this.emit(); return project; }
-    duplicate(projectId = this.activeProject.id) {
-        const source = this.state.projects.find((project) => project.id === projectId);
-        if (!source)
-            return null;
-        const copy = structuredClone(source);
-        const now = Date.now();
-        copy.id = (0, model_1.newId)('project');
-        copy.name = `${source.name} Copy`;
-        copy.createdAt = now;
-        copy.updatedAt = now;
-        const packetIdMap = new Map();
-        for (const override of copy.componentOverrides) {
-            override.id = (0, model_1.newId)('override');
-            for (const state of model_1.STYLE_STATES) {
-                for (const packet of override.states[state] ?? []) {
-                    const next = (0, model_1.newId)('packet');
-                    packetIdMap.set(packet.id, next);
-                    packet.id = next;
-                }
-                for (const packet of override.mobileStates?.[state] ?? []) {
-                    const next = (0, model_1.newId)('packet');
-                    packetIdMap.set(packet.id, next);
-                    packet.id = next;
-                }
-            }
-        }
-        for (const group of copy.layoutGroups) {
-            group.id = (0, model_1.newId)('group');
-            for (const member of group.members)
-                member.id = (0, model_1.newId)('group-member');
-            for (const bucket of [group.styles?.base, group.styles?.mobile]) {
-                if (!bucket)
-                    continue;
-                for (const packet of bucket.members)
-                    packet.id = (0, model_1.newId)('packet');
-                for (const list of Object.values(bucket.contents))
-                    for (const packet of list ?? [])
-                        packet.id = (0, model_1.newId)('packet');
-                for (const packet of bucket.frame)
-                    packet.id = (0, model_1.newId)('packet');
-            }
-        }
-        for (const slot of copy.recipeSlots) {
-            slot.id = (0, model_1.newId)('recipe-slot');
-            if (slot.base)
-                slot.base.id = packetIdMap.get(slot.base.id) ?? (0, model_1.newId)('packet');
-            for (const layer of slot.layers)
-                layer.packet.id = packetIdMap.get(layer.packet.id) ?? (0, model_1.newId)('packet');
-        }
-        copy.fonts.forEach((font) => { font.id = (0, model_1.newId)('font'); });
-        copy.presets.forEach((preset) => { preset.id = (0, model_1.newId)('preset'); });
-        copy.svgAssets.forEach((svg) => { svg.id = (0, model_1.newId)('svg-asset'); });
-        this.state = { ...this.state, activeProjectId: copy.id, projects: [...this.state.projects, copy] };
-        this.emit();
-        return copy;
-    }
-    rename(projectId, name) { const trimmed = name.trim().slice(0, 120); if (trimmed)
-        this.updateProject(projectId, (project) => ({ ...project, name: trimmed })); }
-    delete(projectId) { if (this.state.projects.length <= 1)
-        return; const projects = this.state.projects.filter((project) => project.id !== projectId); this.state = { ...this.state, projects, activeProjectId: this.state.activeProjectId === projectId ? projects[0].id : this.state.activeProjectId }; this.emit(); }
-    setCustomCss(value) { this.updateActive((project) => ({ ...project, customCss: value })); }
-    setNativeAssetBundleId(bundleId) { this.updateActive((project) => ({ ...project, nativeAssetBundleId: bundleId || undefined })); }
-    setAssets(assets) { this.updateActive((project) => ({ ...project, assets: structuredClone(assets) })); }
-    setRecipeSlots(slots) { this.updateActive((project) => ({ ...project, recipeSlots: structuredClone(slots) })); }
-    upsertPacket(target, packet, state = 'normal', scope = 'base') {
-        if (target.persistence === 'volatile')
-            return;
-        const normalized = (0, migrations_1.normalizePacket)(packet);
-        if (!normalized)
-            return;
-        this.updateActive((project) => {
-            const index = project.componentOverrides.findIndex((override) => override.target.selector === target.selector);
-            const componentOverrides = [...project.componentOverrides];
-            if (index < 0) {
-                const base = { id: (0, model_1.newId)('override'), target: structuredClone(target), states: { normal: [] } };
-                componentOverrides.push(assignResponsiveStacks(base, scope, upsertInto({ normal: [] }, state, normalized)));
-            }
-            else {
-                // Editing a target is an explicit local action. Move that override to the
-                // end of the generated Design cascade so equal-authority Strong rules are
-                // deterministic: the thing the user touched most recently wins.
-                const source = componentOverrides[index];
-                const updated = assignResponsiveStacks({ ...source, target: structuredClone(target) }, scope, upsertInto(responsiveStacks(source, scope), state, normalized));
-                componentOverrides.splice(index, 1);
-                componentOverrides.push(updated);
-            }
-            return { ...project, componentOverrides };
-        });
-    }
-    retargetOverride(overrideId, target) {
-        if (target.persistence === 'volatile')
-            return;
-        this.updateActive((project) => {
-            const source = project.componentOverrides.find((override) => override.id === overrideId);
-            if (!source)
-                return project;
-            const destination = project.componentOverrides.find((override) => override.id !== overrideId && override.target.selector === target.selector);
-            if (!destination)
-                return { ...project, componentOverrides: project.componentOverrides.map((override) => override.id === overrideId ? { ...override, target: structuredClone(target) } : override) };
-            const states = structuredClone(destination.states);
-            for (const state of model_1.STYLE_STATES)
-                for (const packet of source.states[state] ?? [])
-                    Object.assign(states, upsertInto(states, state, packet));
-            const mobileStates = structuredClone(destination.mobileStates ?? { normal: [] });
-            for (const state of model_1.STYLE_STATES)
-                for (const packet of source.mobileStates?.[state] ?? [])
-                    Object.assign(mobileStates, upsertInto(mobileStates, state, packet));
-            return { ...project, componentOverrides: project.componentOverrides.filter((override) => override.id !== source.id).map((override) => override.id === destination.id ? { ...override, target: structuredClone(target), states, ...(allEmpty(mobileStates) ? { mobileStates: undefined } : { mobileStates }) } : override) };
-        });
-    }
-    setOverrideStrength(overrideId, strength) {
-        this.updateActive((project) => {
-            const index = project.componentOverrides.findIndex((override) => override.id === overrideId);
-            if (index < 0)
-                return project;
-            const componentOverrides = [...project.componentOverrides];
-            const source = componentOverrides[index];
-            componentOverrides.splice(index, 1);
-            componentOverrides.push({ ...source, target: { ...source.target, overrideStrength: strength } });
-            return { ...project, componentOverrides };
-        });
-    }
-    restoreTarget(selectors) {
-        const set = new Set(selectors.filter(Boolean));
-        if (!set.size)
-            return;
-        this.updateActive((project) => ({
-            ...project,
-            componentOverrides: project.componentOverrides.filter((override) => !set.has(override.target.selector)),
-            // Restore is an explicit ownership reset. Do not leave recipe provenance
-            // behind for a target whose authored Theme Studio state has been removed.
-            recipeSlots: project.recipeSlots.filter((slot) => !set.has(slot.target.selector)),
-        }));
-    }
-    removePacket(overrideId, packetId, state = 'normal', scope = 'base') {
-        this.updateActive((project) => {
-            const source = project.componentOverrides.find((override) => override.id === overrideId);
-            const stacks = responsiveStacks(source, scope);
-            const removing = (stacks[state] ?? []).find((packet) => packet.id === packetId);
-            const componentOverrides = project.componentOverrides.map((override) => {
-                if (override.id !== overrideId)
-                    return override;
-                const overrideStacks = responsiveStacks(override, scope);
-                const updated = assignResponsiveStacks(override, scope, { ...overrideStacks, [state]: (overrideStacks[state] ?? []).filter((packet) => packet.id !== packetId) });
-                return scope === 'mobile' && updated.mobileStates && allEmpty(updated.mobileStates) ? { ...updated, mobileStates: undefined } : updated;
-            }).filter((override) => !overrideEmpty(override));
-            return {
-                ...project,
-                componentOverrides,
-                // A manual packet delete means Theme Studio no longer owns this recipe
-                // slot. Reset/apply history must not resurrect a layer the user removed.
-                recipeSlots: source && removing
-                    ? project.recipeSlots.filter((slot) => !(slot.target.selector === source.target.selector && slot.type === removing.type && slot.scope === scope))
-                    : project.recipeSlots,
-            };
-        });
-    }
-    copyStatePackets(overrideId, from, to, scope = 'base') {
-        if (from === to)
-            return;
-        this.updateActive((project) => ({ ...project, componentOverrides: project.componentOverrides.map((override) => {
-                if (override.id !== overrideId)
-                    return override;
-                const stacks = responsiveStacks(override, scope);
-                return assignResponsiveStacks(override, scope, { ...stacks, [to]: (0, model_1.clonePacketStack)(stacks[from] ?? []) });
-            }) }));
-    }
-    resetState(overrideId, state, scope = 'base') {
-        this.updateActive((project) => ({ ...project, componentOverrides: project.componentOverrides.map((override) => {
-                if (override.id !== overrideId)
-                    return override;
-                const stacks = responsiveStacks(override, scope);
-                const updated = assignResponsiveStacks(override, scope, { ...stacks, [state]: [] });
-                return scope === 'mobile' && updated.mobileStates && allEmpty(updated.mobileStates) ? { ...updated, mobileStates: undefined } : updated;
-            }).filter((override) => !overrideEmpty(override)) }));
-    }
-    clonePacketStack(overrideId, state = 'normal', scope = 'base') {
-        return (0, model_1.clonePacketStack)(responsiveStacks(this.activeProject.componentOverrides.find((override) => override.id === overrideId), scope)[state] ?? []);
-    }
-    applyPacketStack(target, packets, state = 'normal') {
-        if (target.persistence === 'volatile')
-            return;
-        this.updateActive((project) => {
-            const existing = project.componentOverrides.find((override) => override.target.selector === target.selector);
-            const cloned = (0, model_1.clonePacketStack)(packets).map(migrations_1.normalizePacket).filter((packet) => packet !== null);
-            const states = { ...(existing?.states ?? { normal: [] }), [state]: cloned };
-            if (!existing)
-                return { ...project, componentOverrides: [...project.componentOverrides, { id: (0, model_1.newId)('override'), target: structuredClone(target), states }] };
-            const componentOverrides = project.componentOverrides.filter((override) => override.id !== existing.id);
-            componentOverrides.push({ ...existing, target: structuredClone(target), states });
-            return { ...project, componentOverrides };
-        });
-    }
-    addLayoutGroup(input) {
-        const group = { ...structuredClone(input), id: (0, model_1.newId)('group'), members: input.members.map((member) => ({ ...structuredClone(member), id: member.id || (0, model_1.newId)('group-member') })) };
-        this.updateActive((project) => ({ ...project, layoutGroups: [...project.layoutGroups, group] }));
-        return group;
-    }
-    updateLayoutGroup(groupId, updater) {
-        this.updateActive((project) => ({ ...project, layoutGroups: project.layoutGroups.map((group) => group.id === groupId ? structuredClone(updater(structuredClone(group))) : group) }));
-    }
-    updateLayoutGroupState(groupId, scope, patch) {
-        this.updateLayoutGroup(groupId, (group) => {
-            if (scope === 'base')
-                return { ...group, base: { ...group.base, ...structuredClone(patch) } };
-            const mobile = group.mobile ?? structuredClone(group.base);
-            return { ...group, mobile: { ...mobile, ...structuredClone(patch) } };
-        });
-    }
-    clearLayoutGroupMobile(groupId) { this.updateLayoutGroup(groupId, (group) => ({ ...group, mobile: undefined })); }
-    removeLayoutGroup(groupId) { this.updateActive((project) => ({ ...project, layoutGroups: project.layoutGroups.filter((group) => group.id !== groupId) })); }
-    savePreset(name, states) {
-        const preset = { id: (0, model_1.newId)('preset'), name: name.trim().slice(0, 120) || 'Untitled preset', states: Object.fromEntries(Object.entries(states).map(([state, packets]) => [state, (0, model_1.clonePacketStack)(packets ?? [])])) };
-        this.updateActive((project) => ({ ...project, presets: [...project.presets, preset] }));
-        return preset;
-    }
-    saveStyle(name, overrides, options = {}) {
-        const usable = overrides.filter((entry) => entry.target.persistence === 'persistent');
-        if (!usable.length)
-            return null;
-        const now = Date.now();
-        const saved = {
-            id: (0, model_1.newId)('saved-style'),
-            name: name.trim().slice(0, 120) || 'Saved style',
-            scope: options.scope ?? 'target',
-            sourceLabel: options.sourceLabel?.trim().slice(0, 160) || undefined,
-            sourceProjectName: this.activeProject.name,
-            overrides: usable.map(cloneOverrideForSavedStyle),
-            createdAt: now,
-            updatedAt: now,
-        };
-        this.state = { ...this.state, savedStyles: [...this.state.savedStyles, saved] };
-        this.emit();
-        return saved;
-    }
-    renameSavedStyle(styleId, name) {
-        const trimmed = name.trim().slice(0, 120);
-        if (!trimmed)
-            return;
-        const now = Date.now();
-        this.state = { ...this.state, savedStyles: this.state.savedStyles.map((entry) => entry.id === styleId ? { ...entry, name: trimmed, updatedAt: now } : entry) };
-        this.emit();
-    }
-    removeSavedStyle(styleId) {
-        this.state = { ...this.state, savedStyles: this.state.savedStyles.filter((entry) => entry.id !== styleId) };
-        this.emit();
-    }
-    applySavedStyle(styleId) {
-        const saved = this.state.savedStyles.find((entry) => entry.id === styleId);
-        if (!saved)
-            return false;
-        this.updateActive((project) => {
-            const componentOverrides = [...project.componentOverrides];
-            for (const source of saved.overrides) {
-                const index = componentOverrides.findIndex((entry) => entry.target.selector === source.target.selector);
-                const existing = index >= 0 ? componentOverrides[index] : undefined;
-                const merged = mergeSavedOverride(existing, source);
-                if (index >= 0)
-                    componentOverrides.splice(index, 1);
-                componentOverrides.push(merged);
-            }
-            return { ...project, componentOverrides };
-        });
-        return true;
-    }
-    registerFont(input) {
-        const font = { ...structuredClone(input), id: (0, model_1.newId)('font') };
-        this.updateActive((project) => ({ ...project, fonts: [...project.fonts.filter((entry) => entry.family !== font.family), font] }));
-        return font;
-    }
-    removeFont(fontId) { this.updateActive((project) => ({ ...project, fonts: project.fonts.filter((font) => font.id !== fontId) })); }
-    saveSvgAsset(name, source) {
-        const svg = (0, model_2.normalizeSvgSource)(source);
-        if (!svg)
-            return null;
-        const entry = { id: (0, model_1.newId)('svg-asset'), name: name.trim().slice(0, 80) || `SVG ${this.activeProject.svgAssets.length + 1}`, svg, createdAt: Date.now() };
-        this.updateActive((project) => ({ ...project, svgAssets: [...project.svgAssets, entry] }));
-        return entry;
-    }
-    removeSvgAsset(svgId) { this.updateActive((project) => ({ ...project, svgAssets: project.svgAssets.filter((entry) => entry.id !== svgId) })); }
-    /** v34 compatibility aliases; saved SVGs are project-wide as of v35. */
-    saveComposerSvg(name, source) { return this.saveSvgAsset(name, source); }
-    removeComposerSvg(svgId) { this.removeSvgAsset(svgId); }
-    /** Phase Four compatibility editor; legacy roles are explicit post-transform overrides. */
-    setBoostPaletteRole(role, value) { this.updateActive((project) => ({ ...project, boost: { ...project.boost, enabled: true, legacyPalette: { ...project.boost.legacyPalette, [role]: value ? structuredClone(value) : undefined } } })); }
-    setBoostEnabled(enabled) { this.updateActive((project) => ({ ...project, boost: { ...project.boost, enabled } })); }
-    setBoostColorsEnabled(colorsEnabled) { this.updateActive((project) => { const { typographyEnabled, canvasEnabled } = project.boost; return { ...project, boost: { ...project.boost, colorsEnabled, enabled: colorsEnabled || typographyEnabled || canvasEnabled } }; }); }
-    setBoostTypographyEnabled(typographyEnabled) { this.updateActive((project) => { const { colorsEnabled, canvasEnabled } = project.boost; return { ...project, boost: { ...project.boost, typographyEnabled, enabled: colorsEnabled || typographyEnabled || canvasEnabled } }; }); }
-    setBoostCanvasEnabled(canvasEnabled) { this.updateActive((project) => { const { colorsEnabled, typographyEnabled } = project.boost; return { ...project, boost: { ...project.boost, canvasEnabled, enabled: colorsEnabled || typographyEnabled || canvasEnabled } }; }); }
-    setBoostCanvasOpacity(canvasOpacity) { this.updateActive((project) => ({ ...project, boost: { ...project.boost, canvasEnabled: true, enabled: true, canvasOpacity: Math.max(0, Math.min(1, Number.isFinite(canvasOpacity) ? canvasOpacity : 1)) } })); }
-    setBoostWallpaperTreatmentEnabled(wallpaperTreatmentEnabled) {
-        this.updateActive((project) => ({ ...project, boost: { ...project.boost, wallpaperTreatmentEnabled, canvasEnabled: true, enabled: true } }));
-    }
-    updateBoostWallpaperTreatment(value) {
-        this.updateActive((project) => ({ ...project, boost: { ...project.boost, ...structuredClone(value), wallpaperTreatmentEnabled: true, canvasEnabled: true, enabled: true } }));
-    }
-    setBoostProtectControls(protectControls) { this.updateActive((project) => ({ ...project, boost: { ...project.boost, protectControls } })); }
-    setBoostMode(mode) { this.updateActive((project) => ({ ...project, boost: { ...project.boost, enabled: true, colorsEnabled: true, mode } })); }
-    updateBoostParameters(value) {
-        this.updateActive((project) => ({ ...project, boost: { ...project.boost, ...structuredClone(value), enabled: true, colorsEnabled: true } }));
-    }
-    setBoostFont(fontFamily, scale) { this.updateActive((project) => ({ ...project, boost: { ...project.boost, enabled: true, typographyEnabled: true, typography: { fontFamily: fontFamily?.trim() || undefined, scale } } })); }
-    resetBoost() { this.updateActive((project) => ({ ...project, boost: (0, model_1.createBoost)() })); }
-    applySmartInvertToBoost(_config) { this.setBoostMode('smart-invert'); }
-    shuffleBoost(fontChoices = []) {
-        this.updateActive((project) => {
-            let seed = (project.boost.shuffleSeed * 48271) % 0x7fffffff;
-            const random = () => (seed = (seed * 48271) % 0x7fffffff) / 0x7fffffff;
-            const hsl = (h, s, l) => {
-                const a = s * Math.min(l, 1 - l);
-                const f = (n) => { const k = (n + h / 30) % 12; return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
-                return `#${[f(0), f(8), f(4)].map((channel) => Math.round(channel * 255).toString(16).padStart(2, '0')).join('')}`;
-            };
-            const hue = random() * 360;
-            const primary = { color: hsl(hue, 0.62 + random() * 0.28, 0.48 + random() * 0.14), alpha: 1 };
-            const secondary = { color: hsl((hue + 90 + random() * 180) % 360, 0.48 + random() * 0.32, 0.42 + random() * 0.18), alpha: 1 };
-            const fontFamily = fontChoices.length ? fontChoices[Math.floor(random() * fontChoices.length)] : project.boost.typography.fontFamily;
-            return { ...project, boost: { ...project.boost, enabled: true, colorsEnabled: true, typographyEnabled: Boolean(fontFamily) || project.boost.typographyEnabled, mode: 'recolor', primary, secondary, contrast: random() * 0.7 - 0.2, brightness: random() * 0.34 - 0.17, originalSaturation: random() * 0.45, typography: { ...project.boost.typography, fontFamily }, shuffleSeed: seed } };
-        });
-    }
-    applyCapturedPackets(target, packets, state = 'normal', scope = 'base') {
-        if (target.persistence === 'volatile' || !packets.length)
-            return;
-        this.updateActive((project) => {
-            const existing = project.componentOverrides.find((override) => override.target.selector === target.selector);
-            let stacks = responsiveStacks(existing, scope);
-            for (const packet of packets)
-                stacks = upsertInto(stacks, state, packet);
-            if (!existing) {
-                const base = { id: (0, model_1.newId)('override'), target: structuredClone(target), states: { normal: [] } };
-                return { ...project, componentOverrides: [...project.componentOverrides, assignResponsiveStacks(base, scope, stacks)] };
-            }
-            const componentOverrides = project.componentOverrides.filter((override) => override.id !== existing.id);
-            componentOverrides.push(assignResponsiveStacks({ ...existing, target: structuredClone(target) }, scope, stacks));
-            return { ...project, componentOverrides };
-        });
-    }
-    applySmartInvertToTarget(target, presentation, config, state = 'normal', scope = 'base') {
-        if (target.persistence === 'volatile')
-            return;
-        const packets = (0, smart_invert_1.synthesizeSmartInvertPackets)(presentation, config);
-        this.updateActive((project) => {
-            const existing = project.componentOverrides.find((override) => override.target.selector === target.selector);
-            let stacks = responsiveStacks(existing, scope);
-            for (const packet of packets)
-                stacks = upsertInto(stacks, state, packet);
-            if (!existing) {
-                const base = { id: (0, model_1.newId)('override'), target: structuredClone(target), states: { normal: [] } };
-                return { ...project, componentOverrides: [...project.componentOverrides, assignResponsiveStacks(base, scope, stacks)] };
-            }
-            const componentOverrides = project.componentOverrides.filter((override) => override.id !== existing.id);
-            componentOverrides.push(assignResponsiveStacks({ ...existing, target: structuredClone(target) }, scope, stacks));
-            return { ...project, componentOverrides };
-        });
-    }
-    updateActive(updater) { this.updateProject(this.state.activeProjectId, updater); }
-    updateProject(projectId, updater) { this.state = { ...this.state, projects: this.state.projects.map((project) => project.id === projectId ? { ...updater(project), updatedAt: Date.now() } : project) }; this.emit(); }
-    emit() { for (const listener of this.listeners)
-        listener(this.state); }
-}
-exports.ProjectStore = ProjectStore;
-
-};
-__modules["src/preview/live-stylesheet"] = function(module,exports,__require){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.LiveStylesheet = void 0;
-exports.resolvePreviewAssetUrls = resolvePreviewAssetUrls;
-exports.sanitizeCustomCss = sanitizeCustomCss;
-function escapeCssUrl(value) {
-    return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/[\r\n\f]/g, '');
-}
-/**
- * Native theme CSS owns canonical ./assets/... references, but Theme Studio's
- * live <style> tags do not execute inside that bundle. Resolve only known
- * canonical asset paths to their runtime contentUrl while previewing. Project
- * state, generated CSS, and native export stay canonical.
- */
-function resolvePreviewAssetUrls(css, assets) {
-    const urls = new Map();
-    for (const asset of assets) {
-        const path = asset.path?.trim();
-        const contentUrl = asset.contentUrl?.trim();
-        if (!path || !contentUrl)
-            continue;
-        // Lumiverse's canonical asset CSS uses ./assets/..., but older/manual Theme
-        // Studio fields often contain assets/... without the leading dot. Treat both
-        // spellings as the same public bundle asset during live preview.
-        const bare = path.replace(/^\.\//, '');
-        urls.set(path, contentUrl);
-        urls.set(bare, contentUrl);
-        urls.set(`./${bare}`, contentUrl);
-    }
-    if (!urls.size || !css.includes('url('))
-        return css;
-    return css.replace(/url\(\s*(["']?)([^"')]+)\1\s*\)/gi, (match, _quote, rawPath) => {
-        const contentUrl = urls.get(String(rawPath).trim());
-        return contentUrl ? `url("${escapeCssUrl(contentUrl)}")` : match;
-    });
-}
-function sanitizeCustomCss(css) {
-    return css
-        .replace(/@import\s+[^;]+;/gi, '/* @import stripped by Theme Studio */')
-        .replace(/url\(\s*(['"]?)javascript:[^)'"\s]*\1\s*\)/gi, '/* unsafe url stripped */')
-        .replace(/url\(\s*(['"]?)https?:\/\/[^)'"\s]+\1\s*\)/gi, '/* external url stripped */');
-}
-function validateCss(css) {
-    try {
-        const sheet = new CSSStyleSheet();
-        sheet.replaceSync(css);
-        return { valid: true };
-    }
-    catch (error) {
-        return { valid: false, error: error instanceof Error ? error.message : 'Invalid CSS' };
-    }
-}
-/** Owns isolated replace-in-place stylesheets for committed Design, transient Design scrubs, and Custom CSS. */
-class LiveStylesheet {
-    generated;
-    transient;
-    custom;
-    transientFrame = null;
-    transientPending = '';
-    themeAssets = [];
-    constructor(ctx) {
-        this.generated = ctx.dom.createElement('style', {
-            'data-theme-studio-preview': 'generated',
-        });
-        this.transient = ctx.dom.createElement('style', {
-            'data-theme-studio-preview': 'transient-design',
-        });
-        this.custom = ctx.dom.createElement('style', {
-            'data-theme-studio-preview': 'custom',
-        });
-        // Custom CSS deliberately stays last. A transient slider preview should
-        // preview Design intent without unexpectedly outranking handwritten CSS.
-        document.head.append(this.generated, this.transient, this.custom);
-    }
-    setThemeAssets(assets) {
-        this.themeAssets = [...assets].map((asset) => ({ path: asset.path, contentUrl: asset.contentUrl }));
-    }
-    resolveAssets(css) { return resolvePreviewAssetUrls(css, this.themeAssets); }
-    updateGenerated(css) {
-        const resolved = this.resolveAssets(css);
-        const result = validateCss(resolved);
-        if (result.valid)
-            this.generated.textContent = resolved;
-        return result;
-    }
-    updateTransient(css) {
-        // Generated Design preview CSS is trusted compiler output. Coalesce pointer
-        // scrubs to one stylesheet mutation per animation frame so a slider can stay
-        // genuinely live without turning the document style system into a rave.
-        this.transientPending = css;
-        if (this.transientFrame === null) {
-            const apply = () => {
-                this.transientFrame = null;
-                const pending = this.resolveAssets(this.transientPending);
-                const result = validateCss(pending);
-                if (result.valid)
-                    this.transient.textContent = pending;
-            };
-            this.transientFrame = typeof requestAnimationFrame === 'function' ? requestAnimationFrame(apply) : setTimeout(apply, 0);
-        }
-        return { valid: true };
-    }
-    clearTransient() {
-        if (this.transientFrame !== null) {
-            if (typeof cancelAnimationFrame === 'function')
-                cancelAnimationFrame(this.transientFrame);
-            else
-                clearTimeout(this.transientFrame);
-            this.transientFrame = null;
-        }
-        this.transientPending = '';
-        this.transient.textContent = '';
-    }
-    updateCustom(css) {
-        const sanitized = sanitizeCustomCss(css);
-        const resolved = this.resolveAssets(sanitized);
-        const result = validateCss(resolved);
-        if (result.valid)
-            this.custom.textContent = resolved;
-        return result;
-    }
-    destroy() {
-        this.clearTransient();
-        this.generated.remove();
-        this.transient.remove();
-        this.custom.remove();
-    }
-}
-exports.LiveStylesheet = LiveStylesheet;
-
-};
-__modules["src/compiler/boost"] = function(module,exports,__require){
+// Palette frontend bundle generated from TypeScript sources without external runtime dependencies.
+// Public extension version 1.0.2 · project schema v42.
+const __paletteModules = {
+"src/compiler/boost.ts": function(module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.inspectBoostCssValue = inspectBoostCssValue;
@@ -3259,7 +14,7 @@ exports.compileMutedFamily = compileMutedFamily;
 exports.compileBorderFamily = compileBorderFamily;
 exports.deriveLegacyBoostOverrides = deriveLegacyBoostOverrides;
 exports.deriveBoostTokenOverrides = deriveBoostTokenOverrides;
-const color_1 = __require("src/compiler/color");
+const color_1 = require("./color");
 const clamp = (value, min = 0, max = 1) => Math.max(min, Math.min(max, Number.isFinite(value) ? value : min));
 const byte = (value) => Math.round(clamp(value, 0, 255));
 const channel = (value) => byte(value).toString(16).padStart(2, '0');
@@ -3543,8 +298,41 @@ function deriveLegacyBoostOverrides(boost) { const result = {}, compile = { prim
 } return result; }
 function deriveBoostTokenOverrides(boost, baseline = {}) { return boost.enabled ? transformThemeVariables(baseline, boost).variables : {}; }
 
-};
-__modules["src/compiler/compiler"] = function(module,exports,__require){
+},
+"src/compiler/color.ts": function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.parseHexColor = parseHexColor;
+exports.colorWithAlpha = colorWithAlpha;
+function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+/** Small, dependency-free parser for the hex formats emitted by native color inputs. */
+function parseHexColor(value) {
+    const hex = value.trim().replace(/^#/, '');
+    if (![3, 4, 6, 8].includes(hex.length) || !/^[0-9a-f]+$/i.test(hex))
+        return null;
+    const expanded = hex.length <= 4 ? [...hex].map((char) => char + char).join('') : hex;
+    return {
+        r: Number.parseInt(expanded.slice(0, 2), 16),
+        g: Number.parseInt(expanded.slice(2, 4), 16),
+        b: Number.parseInt(expanded.slice(4, 6), 16),
+        alpha: expanded.length === 8 ? Number.parseInt(expanded.slice(6, 8), 16) / 255 : 1,
+    };
+}
+function formatAlpha(value) {
+    return String(Math.round(clamp(Number.isFinite(value) ? value : 1, 0, 1) * 1000) / 1000);
+}
+function colorWithAlpha(value, alpha = 1) {
+    const parsed = parseHexColor(value);
+    if (!parsed)
+        return alpha >= 1 && value.trim() && !/[;{}]/.test(value) ? value.trim() : 'transparent';
+    const combined = parsed.alpha * clamp(Number.isFinite(alpha) ? alpha : 1, 0, 1);
+    if (combined >= 0.9995 && parsed.alpha >= 0.9995)
+        return value.trim();
+    return `rgba(${parsed.r}, ${parsed.g}, ${parsed.b}, ${formatAlpha(combined)})`;
+}
+
+},
+"src/compiler/compiler.ts": function(module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.compileBackgroundPacket = compileBackgroundPacket;
@@ -3562,6 +350,7 @@ exports.compileGlassPacket = compileGlassPacket;
 exports.compileOpacityPacket = compileOpacityPacket;
 exports.compileVisibilityPacket = compileVisibilityPacket;
 exports.compileImageCustomMask = compileImageCustomMask;
+exports.compileMaskPacket = compileMaskPacket;
 exports.compileImagePacket = compileImagePacket;
 exports.compilePositionPacket = compilePositionPacket;
 exports.compileTransformPacket = compileTransformPacket;
@@ -3584,11 +373,11 @@ exports.compileThemeGlobalLayers = compileThemeGlobalLayers;
 exports.compileThemeProject = compileThemeProject;
 exports.compilePreviewThemeProject = compilePreviewThemeProject;
 exports.compileTheme = compileTheme;
-const model_1 = __require("src/project/model");
-const values_1 = __require("src/project/values");
-const color_1 = __require("src/compiler/color");
-const boost_1 = __require("src/compiler/boost");
-const selector_utils_1 = __require("src/registry/selector-utils");
+const model_1 = require("../project/model");
+const values_1 = require("../project/values");
+const color_1 = require("./color");
+const boost_1 = require("./boost");
+const selector_utils_1 = require("../registry/selector-utils");
 function clamp(value, min, max) { return Math.max(min, Math.min(max, Number.isFinite(value) ? value : min)); }
 function number(value, digits = 2) { const finite = Number.isFinite(value) ? value : 0; return String(Math.round(finite * (10 ** digits)) / (10 ** digits)); }
 function angle(value) { return Math.round(((Number.isFinite(value) ? value : 0) % 360 + 360) % 360); }
@@ -3674,6 +463,8 @@ function declarationOwnedBy(packet, property) {
                 return ownsField(packet, 'brightness', 'saturation', 'contrast', 'grayscale', 'hueRotate', 'blur');
             if (['object-fit', 'object-position', 'width', 'height', 'display'].includes(property))
                 return ownsField(packet, 'objectFit', 'objectPositionX', 'objectPositionY', 'fillFrame');
+            return false;
+        case 'mask':
             if (property === 'mask-image' || property === '-webkit-mask-image')
                 return ownsField(packet, 'maskMode', 'customMask', 'fade');
             if (property === 'mask-composite' || property === '-webkit-mask-composite')
@@ -3970,8 +761,24 @@ function compileImageCustomMask(mask) {
     const webkit = mask.combine === 'subtract' ? 'source-out' : mask.combine === 'exclude' ? 'xor' : mask.combine === 'add' ? 'source-over' : 'source-in';
     return { image: layers.join(', '), standardComposite: Array(layers.length - 1).fill(standard).join(', '), webkitComposite: Array(layers.length - 1).fill(webkit).join(', ') };
 }
-function effectiveImageMaskMode(packet) {
+function effectiveMaskMode(packet) {
     return packet.maskMode ?? (packet.fade.direction !== 'none' ? 'fade' : 'native');
+}
+function compileMaskPacket(packet) {
+    const mode = effectiveMaskMode(packet);
+    const fade = clamp(packet.fade.amount, 0, 100), keep = number(100 - fade);
+    const easyMask = packet.fade.direction === 'right' ? `linear-gradient(to right, #000 0%, #000 ${keep}%, transparent 100%)`
+        : packet.fade.direction === 'left' ? `linear-gradient(to left, #000 0%, #000 ${keep}%, transparent 100%)`
+            : packet.fade.direction === 'bottom' ? `linear-gradient(to bottom, #000 0%, #000 ${keep}%, transparent 100%)`
+                : packet.fade.direction === 'top' ? `linear-gradient(to top, #000 0%, #000 ${keep}%, transparent 100%)`
+                    : packet.fade.direction === 'radial' ? `radial-gradient(circle at center, #000 0%, #000 ${keep}%, transparent 100%)` : '';
+    const custom = mode === 'custom' && packet.customMask ? compileImageCustomMask(packet.customMask) : undefined;
+    const mask = mode === 'none' ? 'none' : mode === 'fade' ? easyMask : mode === 'custom' ? (custom?.image ?? 'none') : '';
+    return lines([
+        mask ? ['mask-image', mask] : null, mask ? ['-webkit-mask-image', mask] : null,
+        custom?.standardComposite ? ['mask-composite', custom.standardComposite] : null,
+        custom?.webkitComposite ? ['-webkit-mask-composite', custom.webkitComposite] : null,
+    ]);
 }
 function compileImagePacket(packet) {
     const filters = [];
@@ -3987,15 +794,6 @@ function compileImagePacket(packet) {
         filters.push(`hue-rotate(${number(packet.hueRotate)}deg)`);
     if (packet.blur > .0001)
         filters.push(`blur(${number(clamp(packet.blur, 0, 100))}px)`);
-    const mode = effectiveImageMaskMode(packet);
-    const fade = clamp(packet.fade.amount, 0, 100), keep = number(100 - fade);
-    const easyMask = packet.fade.direction === 'right' ? `linear-gradient(to right, #000 0%, #000 ${keep}%, transparent 100%)`
-        : packet.fade.direction === 'left' ? `linear-gradient(to left, #000 0%, #000 ${keep}%, transparent 100%)`
-            : packet.fade.direction === 'bottom' ? `linear-gradient(to bottom, #000 0%, #000 ${keep}%, transparent 100%)`
-                : packet.fade.direction === 'top' ? `linear-gradient(to top, #000 0%, #000 ${keep}%, transparent 100%)`
-                    : packet.fade.direction === 'radial' ? `radial-gradient(circle at center, #000 0%, #000 ${keep}%, transparent 100%)` : '';
-    const custom = mode === 'custom' && packet.customMask ? compileImageCustomMask(packet.customMask) : undefined;
-    const mask = mode === 'none' ? 'none' : mode === 'fade' ? easyMask : mode === 'custom' ? (custom?.image ?? 'none') : '';
     return lines([
         filters.length ? ['filter', filters.join(' ')] : null,
         packet.objectFit !== 'native' ? ['object-fit', packet.objectFit] : null,
@@ -4003,9 +801,6 @@ function compileImagePacket(packet) {
         packet.fillFrame && packet.objectFit !== 'native' ? ['height', '100%'] : null,
         packet.fillFrame && packet.objectFit !== 'native' ? ['display', 'block'] : null,
         packet.objectFit !== 'native' ? ['object-position', `${number(clamp(packet.objectPositionX, 0, 100))}% ${number(clamp(packet.objectPositionY, 0, 100))}%`] : null,
-        mask ? ['mask-image', mask] : null, mask ? ['-webkit-mask-image', mask] : null,
-        custom?.standardComposite ? ['mask-composite', custom.standardComposite] : null,
-        custom?.webkitComposite ? ['-webkit-mask-composite', custom.webkitComposite] : null,
     ]);
 }
 function compilePositionPacket(packet) {
@@ -4134,7 +929,7 @@ function compileSvgAssetPacket(packet) {
         ['-webkit-mask-position', position], ['mask-position', position],
     ]);
 }
-const packetOrder = ['visibility', 'background', 'pattern', 'media-flow', 'image', 'svg-asset', 'composer-icons', 'content', 'text', 'typography', 'text-entry', 'border', 'corners', 'spacing', 'shadow', 'glass', 'opacity', 'position', 'transform', 'alignment', 'layout-item', 'layout', 'placement', 'size'];
+const packetOrder = ['visibility', 'background', 'pattern', 'media-flow', 'image', 'mask', 'svg-asset', 'composer-icons', 'content', 'text', 'typography', 'text-entry', 'border', 'corners', 'spacing', 'shadow', 'glass', 'opacity', 'position', 'transform', 'alignment', 'layout-item', 'layout', 'placement', 'size'];
 function compilePacket(packet, all) {
     let declaration = '';
     switch (packet.type) {
@@ -4182,6 +977,9 @@ function compilePacket(packet, all) {
             break;
         case 'image':
             declaration = compileImagePacket(packet);
+            break;
+        case 'mask':
+            declaration = compileMaskPacket(packet);
             break;
         case 'svg-asset':
             declaration = compileSvgAssetPacket(packet);
@@ -4257,10 +1055,11 @@ const SLOT_LABELS = {
     pattern: 'Pattern',
     'media-flow': 'Media Flow',
     image: 'Image',
+    mask: 'Mask',
     'composer-icons': 'Composer Icons',
     'svg-asset': 'SVG Asset',
     content: 'Generated Content',
-    text: 'Text Style',
+    text: 'Ink',
     typography: 'Typography',
     'text-entry': 'Text Entry',
     border: 'Border',
@@ -4745,8 +1544,8 @@ function compileThemeProject(project, nativeVariables = {}) { return compileProj
 function compilePreviewThemeProject(project, options = {}, nativeVariables = {}) { return compileProject(project, options, nativeVariables); }
 function compileTheme(project, nativeVariables = {}) { return { css: compileThemeProject(project, nativeVariables), customCss: project.customCss, assets: structuredClone(project.assets), tokenOverrides: structuredClone(project.tokens), metadata: { name: project.name } }; }
 
-};
-__modules["src/compiler/validation"] = function(module,exports,__require){
+},
+"src/compiler/validation.ts": function(module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateOverride = validateOverride;
@@ -4796,8 +1595,606 @@ function validateOverride(override, context = {}) {
     return warnings;
 }
 
+},
+"src/frontend.ts": function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.setup = setup;
+const picker_1 = require("./inspector/picker");
+const persistence_1 = require("./project/persistence");
+const store_1 = require("./project/store");
+const live_stylesheet_1 = require("./preview/live-stylesheet");
+const studio_1 = require("./ui/studio");
+const styles_1 = require("./ui/styles");
+const guide_1 = require("./ui/guide");
+const theme_runtime_1 = require("./nativeBridge/theme-runtime");
+const image_source_runtime_1 = require("./preview/image-source-runtime");
+const GUIDE_JUMP_TARGETS = {
+    'palette-guide-start': 'Start here',
+    'palette-guide-pick': 'Pick & scope',
+    'palette-guide-packets': 'Style packets',
+    'palette-guide-groups': 'Groups',
+    'palette-guide-read': 'Read styles',
+    'palette-guide-reuse': 'Reuse',
+    'palette-guide-boost': 'Boost',
+    'palette-guide-code': 'Widget & Code',
+    'palette-guide-css': 'CSS field guide',
+    'palette-guide-debug': 'Debugging',
 };
-__modules["src/nativeBridge/assets"] = function(module,exports,__require){
+function installGuideJumpNavigation() {
+    const onClick = (event) => {
+        const target = event.target;
+        if (!(target instanceof Element))
+            return;
+        const link = target.closest('a[href^="#palette-guide-"]');
+        if (!link)
+            return;
+        const fragment = link.getAttribute('href')?.slice(1) ?? '';
+        const headingText = GUIDE_JUMP_TARGETS[fragment];
+        if (!headingText)
+            return;
+        const heading = [...document.querySelectorAll('h1,h2,h3,h4,h5,h6')]
+            .find((candidate) => candidate.textContent?.trim().startsWith(headingText) && candidate.getClientRects().length > 0);
+        if (!heading)
+            return;
+        event.preventDefault();
+        heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    document.addEventListener('click', onClick, true);
+    return () => document.removeEventListener('click', onClick, true);
+}
+const ICON = `
+<svg viewBox="12 16 76 68" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <g fill="currentColor">
+    <path d="m83.328 74.188h-46.203c1.9531-0.59375 3.9062-1.4844 5.5469-2.7188 0.3125-0.10938 0.54688-0.32812 0.73438-0.57812 0.54688-0.48438 1.0625-1 1.5-1.5781 1.8281-2.4531 2.3594-5.4219 1.6562-8.0781 0.39062 0.0625 0.78125 0.10938 1.1875 0.10938h0.15625c2.0625-0.046875 3.9531-0.90625 5.3438-2.4062l17.469-18.812c2.3906-2.5781 2.3125-6.5469-0.17188-9.0469s-6.4688-2.5625-9.0469-0.17188l-18.812 17.469c-1.5156 1.3906-2.375 3.2969-2.4062 5.3438 0 0.46875 0.03125 0.9375 0.10938 1.3906-2.7969-0.6875-5.8594 0-8.0312 2.1875-2.8125 2.8125-2.7969 6.0781-2.7969 8.7188 0 2.375-0.046875 3.875-1.2344 5.0625-0.95312 0.95312-0.84375 1.8594-0.70312 2.3281 0.078125 0.25 0.23438 0.51562 0.46875 0.78125h-11.438c-0.85938 0-1.5625 0.70312-1.5625 1.5625v4c0 0.85938 0.70312 1.5625 1.5625 1.5625h66.672c0.85938 0 1.5625-0.70312 1.5625-1.5625v-4c0-0.85938-0.70312-1.5625-1.5625-1.5625zm-50.641-8.1719v-0.78125c0.59375-0.26562 1.4219-0.53125 2.0625-0.32812 0.1875 0.0625 0.73438 0.23438 1.1719 1.375 0.78125 2 1.7031 3.2656 2.5938 4.0625-2.4844 1.1406-5.2969 1.6562-6.9844 1.6875 1.1719-1.9062 1.1562-4.0781 1.1562-6.0312zm33.266-33.719c0.875 0 1.7344 0.32812 2.4062 1 1.2969 1.2969 1.3281 3.3594 0.09375 4.7031l-0.98438 1.0625-4.875-4.875 1.0625-0.98438c0.65625-0.60938 1.4844-0.90625 2.3125-0.90625zm-21.141 18.375 15.469-14.359 5.0312 5.0312-14.359 15.469c-0.8125 0.875-1.9219 1.375-3.1094 1.4062-1.1875 0.0625-2.3281-0.42188-3.1719-1.2656s-1.2969-1.9688-1.2656-3.1719c0.03125-1.1875 0.51562-2.2969 1.4062-3.1094zm-6.4688 7.2812c1.375 0 2.7344 0.51562 3.7812 1.5625 2.0469 2.0469 2.1719 5.3906 0.28125 7.9219-0.28125 0.375-0.60938 0.71875-0.96875 1.0312-0.59375-0.125-1.6406-0.89062-2.5938-3.3281-0.82812-2.1094-2.1875-2.9219-3.1719-3.2344-0.89062-0.26562-1.7656-0.23438-2.5625-0.078125 0.26562-0.8125 0.71875-1.5781 1.4531-2.3125 1.0469-1.0469 2.4062-1.5625 3.7812-1.5625zm43.422 20.234h-63.531v-0.875h63.547v0.875z"/>
+    <path d="m28.625 28.828c3 0 5.4531 2.4375 5.4531 5.4531 0 0.85938 0.70312 1.5625 1.5625 1.5625s1.5625-0.70312 1.5625-1.5625c0-3 2.4375-5.4531 5.4531-5.4531 0.85938 0 1.5625-0.70312 1.5625-1.5625s-0.70312-1.5625-1.5625-1.5625c-3 0-5.4531-2.4375-5.4531-5.4531 0-0.85938-0.70312-1.5625-1.5625-1.5625s-1.5625 0.70312-1.5625 1.5625c0 3-2.4375 5.4531-5.4531 5.4531-0.85938 0-1.5625 0.70312-1.5625 1.5625s0.70312 1.5625 1.5625 1.5625zm7-3.6406c0.5625 0.8125 1.2656 1.5156 2.0781 2.0781-0.8125 0.5625-1.5156 1.2812-2.0781 2.0781-0.5625-0.8125-1.2812-1.5156-2.0781-2.0781 0.8125-0.5625 1.5156-1.2812 2.0781-2.0781z"/>
+    <path d="m25.703 40.234c1.3906 0 2.5156 1.125 2.5156 2.5156 0 0.85938 0.70312 1.5625 1.5625 1.5625s1.5625-0.70312 1.5625-1.5625c0-1.3906 1.125-2.5156 2.5156-2.5156 0.85938 0 1.5625-0.70312 1.5625-1.5625s-0.70312-1.5625-1.5625-1.5625c-1.3906 0-2.5156-1.125-2.5156-2.5156 0-0.85938-0.70312-1.5625-1.5625-1.5625s-1.5625 0.70312-1.5625 1.5625c0 1.3906-1.125 2.5156-2.5156 2.5156-0.85938 0-1.5625 0.70312-1.5625 1.5625s0.70312 1.5625 1.5625 1.5625zm4.0781-1.75 0.1875 0.1875-0.1875 0.1875-0.1875-0.1875 0.1875-0.1875z"/>
+    <path d="m42.312 33.469c0 0.35938-0.29688 0.65625-0.65625 0.65625-0.85938 0-1.5625 0.70312-1.5625 1.5625s0.70312 1.5625 1.5625 1.5625c0.35938 0 0.65625 0.29688 0.65625 0.65625 0 0.85938 0.70312 1.5625 1.5625 1.5625s1.5625-0.70312 1.5625-1.5625c0-0.35938 0.29688-0.65625 0.65625-0.65625 0.85938 0 1.5625-0.70312 1.5625-1.5625s-0.70312-1.5625-1.5625-1.5625c-0.35938 0-0.65625-0.29688-0.65625-0.65625 0-0.85938-0.70312-1.5625-1.5625-1.5625s-1.5625 0.70312-1.5625 1.5625z"/>
+  </g>
+</svg>`;
+async function setup(ctx) {
+    ctx.deferReady();
+    const removeStyle = ctx.dom.addStyle(styles_1.THEME_STUDIO_CSS);
+    const removeGuideJumpNavigation = installGuideJumpNavigation();
+    const tab = ctx.ui.registerDrawerTab({
+        id: 'studio',
+        title: 'Palette',
+        shortName: 'Palette',
+        headerTitle: 'Palette',
+        description: 'Build, remix, and reuse visual styles across Lumiverse.',
+        keywords: ['palette', 'theme', 'visual', 'css', 'design', 'picker', 'styles', 'components'],
+        iconSvg: ICON,
+        guide: {
+            title: 'Palette',
+            markdown: guide_1.THEME_STUDIO_GUIDE,
+        },
+    });
+    // Own the tab's internal viewport. Spindle drawers can nest overflow containers;
+    // a definite flex/height chain keeps Palette's one scroll surface usable
+    // for wheel, trackpad, and touch instead of letting the editor grow under it.
+    tab.root.classList.add('ts-tab-host');
+    const store = new store_1.ProjectStore();
+    const persistence = new persistence_1.ProjectPersistence(ctx);
+    try {
+        store.hydrate(await persistence.load());
+    }
+    catch (error) {
+        console.warn('[Palette] Could not load persisted projects; using a fresh local project.', error);
+    }
+    const preview = new live_stylesheet_1.LiveStylesheet(ctx);
+    const picker = new picker_1.ElementPicker(ctx);
+    const themeRuntime = new theme_runtime_1.ThemeRuntimeBridge(ctx);
+    const imageSourceRuntime = new image_source_runtime_1.ImageSourceRuntime(store);
+    // Keep the editor in a movable mount so Palette can undock into its own
+    // floating inspector without cloning state or creating a second UI instance.
+    const studioMount = document.createElement('div');
+    studioMount.className = 'ts-studio-mount';
+    tab.root.append(studioMount);
+    const studio = new studio_1.ThemeStudioUI(ctx, studioMount, store, picker, preview, themeRuntime);
+    const unsubscribePersistence = store.subscribe((state) => persistence.scheduleSave(state));
+    // Boost is world state, not part of every local Design edit.  Only touch the
+    // native Theme API when the active project's Boost payload actually changes;
+    // otherwise a width slider would repeatedly clear/reapply the whole app theme.
+    let boostSignature = JSON.stringify(store.activeProject.boost);
+    let boostProjectId = store.snapshot.activeProjectId;
+    const unsubscribeTheme = store.subscribe((state) => {
+        const boost = state.projects.find((project) => project.id === state.activeProjectId)?.boost ?? store.activeProject.boost;
+        const nextSignature = JSON.stringify(boost);
+        const projectChanged = state.activeProjectId !== boostProjectId;
+        boostProjectId = state.activeProjectId;
+        if (!projectChanged && nextSignature === boostSignature)
+            return;
+        boostSignature = nextSignature;
+        const update = projectChanged && boost.enabled ? themeRuntime.syncFromCanonicalSource(boost) : themeRuntime.sync(boost);
+        void update.catch((error) => console.warn('[Palette] Live Boost update failed.', error));
+    });
+    // Always canonicalize the native source once, even when the currently selected
+    // project has Boost off. Otherwise an old hot-reload root layer can survive an
+    // unboosted startup, lose its marker, and later become the first enabled
+    // project's source. The worker generateVariables() map is our source firewall.
+    try {
+        await themeRuntime.refreshBaseline();
+        await themeRuntime.sync(store.activeProject.boost);
+    }
+    catch (error) {
+        console.warn('[Palette] Initial live Boost update failed.', error);
+    }
+    await studio.initialize();
+    ctx.ready();
+    // Native theme installation can finish a beat after extension setup. Keep the
+    // first rendered Boost in place while a short worker-only source watch rebases
+    // it if Lumiverse's canonical generateVariables() output changes during boot.
+    if (store.activeProject.boost.enabled)
+        void themeRuntime.stabilizeStartupSource().catch((error) => console.warn('[Palette] Startup Boost source stabilization failed.', error));
+    let stopped = false;
+    return async () => {
+        if (stopped)
+            return;
+        stopped = true;
+        picker.destroy();
+        studio.destroy();
+        preview.destroy();
+        imageSourceRuntime.destroy();
+        unsubscribeTheme();
+        try {
+            await themeRuntime.destroy();
+        }
+        catch (error) {
+            console.warn('[Palette] Live Boost cleanup failed.', error);
+        }
+        unsubscribePersistence();
+        try {
+            await persistence.destroy();
+        }
+        catch (error) {
+            console.warn('[Palette] Final persistence flush failed during unload.', error);
+        }
+        tab.destroy();
+        removeGuideJumpNavigation();
+        removeStyle();
+        ctx.dom.cleanup();
+    };
+}
+
+},
+"src/inspector/picker.ts": function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ElementPicker = void 0;
+const selector_resolver_1 = require("../registry/selector-resolver");
+function px(style, property) {
+    const value = Number.parseFloat(style.getPropertyValue(property));
+    return Number.isFinite(value) ? value : 0;
+}
+function rect(left, top, width, height) {
+    return { left, top, width: Math.max(0, width), height: Math.max(0, height), right: left + Math.max(0, width), bottom: top + Math.max(0, height), x: left, y: top, toJSON: () => ({}) };
+}
+class ElementPicker {
+    overlay;
+    label;
+    selectedOverlay;
+    selectedLabel;
+    guideLayer;
+    active = false;
+    hoverTarget = null;
+    selectedTarget = null;
+    groupTargets = [];
+    groupParent = null;
+    selectedFrame = 0;
+    selectedResizeObserver = null;
+    guideMode = 'outline';
+    guideBoundary = null;
+    options = null;
+    clickSuppressionTimer = null;
+    constructor(ctx) {
+        this.overlay = ctx.dom.createElement('div', { 'data-theme-studio-inspector': 'overlay', 'aria-hidden': 'true' });
+        this.label = ctx.dom.createElement('div', { 'data-theme-studio-inspector': 'label', 'aria-hidden': 'true' });
+        this.selectedOverlay = ctx.dom.createElement('div', { 'data-theme-studio-inspector': 'selected-overlay', 'aria-hidden': 'true' });
+        this.selectedLabel = ctx.dom.createElement('div', { 'data-theme-studio-inspector': 'selected-label', 'aria-hidden': 'true' });
+        this.guideLayer = ctx.dom.createElement('div', { 'data-theme-studio-inspector': 'guide-layer', 'aria-hidden': 'true' });
+        this.overlay.hidden = true;
+        this.label.hidden = true;
+        this.selectedOverlay.hidden = true;
+        this.selectedLabel.hidden = true;
+        this.guideLayer.hidden = true;
+        document.body.append(this.guideLayer, this.overlay, this.label, this.selectedOverlay, this.selectedLabel);
+    }
+    get isActive() { return this.active; }
+    start(options) {
+        this.stop(false);
+        this.hideHover();
+        this.active = true;
+        this.options = options;
+        document.addEventListener('pointermove', this.handlePointerMove, true);
+        document.addEventListener('pointerdown', this.handlePointerDown, true);
+        document.addEventListener('keydown', this.handleKeyDown, true);
+        document.documentElement.style.cursor = 'crosshair';
+    }
+    cancel() {
+        if (!this.active)
+            return;
+        const callback = this.options?.onCancel;
+        this.stop(false);
+        callback?.();
+    }
+    highlight(element, mode = this.guideMode, boundary = null) {
+        this.groupTargets = [];
+        this.groupParent = null;
+        this.selectedTarget = element;
+        this.guideMode = mode;
+        this.guideBoundary = boundary;
+        this.updateSelectedListeners(Boolean(element));
+        if (element) {
+            this.updateSelected();
+            // Float/sheet reparenting and target changes can land in the same layout
+            // tick. Re-measure after the browser has completed two paint/layout turns.
+            this.scheduleSelectedRefresh(true);
+        }
+        else
+            this.hideSelected();
+    }
+    highlightGroup(elements, parent = null) {
+        this.selectedTarget = null;
+        this.groupTargets = elements.filter((element) => element.isConnected);
+        this.groupParent = parent?.isConnected ? parent : this.groupTargets[0]?.parentElement ?? null;
+        this.selectedOverlay.hidden = true;
+        this.selectedLabel.hidden = true;
+        this.updateSelectedListeners(this.groupTargets.length > 0);
+        this.updateSelected();
+        this.scheduleSelectedRefresh(true);
+    }
+    setGuideMode(mode) {
+        this.guideMode = mode;
+        if (this.selectedTarget) {
+            this.updateSelected();
+            this.scheduleSelectedRefresh(true);
+        }
+    }
+    clearHighlight() { this.selectedTarget = null; this.groupTargets = []; this.groupParent = null; this.guideBoundary = null; this.updateSelectedListeners(false); this.hideSelected(); }
+    destroy() {
+        this.stop(false);
+        this.clearHighlight();
+        if (this.clickSuppressionTimer)
+            clearTimeout(this.clickSuppressionTimer);
+        document.removeEventListener('click', this.suppressSelectionClick, true);
+        this.overlay.remove();
+        this.label.remove();
+        this.selectedOverlay.remove();
+        this.selectedLabel.remove();
+        this.guideLayer.remove();
+    }
+    handlePointerMove = (event) => {
+        if (!this.active)
+            return;
+        const element = document.elementFromPoint(event.clientX, event.clientY);
+        if (!element || this.isStudioOwned(element)) {
+            this.hoverTarget = null;
+            this.hideHover();
+            return;
+        }
+        this.hoverTarget = (0, selector_resolver_1.normalizeMeaningfulTarget)(element);
+        this.updateOverlay(this.hoverTarget, this.overlay, this.label);
+    };
+    handlePointerDown = (event) => {
+        if (!this.active)
+            return;
+        const element = document.elementFromPoint(event.clientX, event.clientY);
+        if (!element || this.isStudioOwned(element))
+            return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const callback = this.options?.onSelect;
+        document.addEventListener('click', this.suppressSelectionClick, { capture: true, once: true });
+        this.clickSuppressionTimer = setTimeout(() => {
+            document.removeEventListener('click', this.suppressSelectionClick, true);
+            this.clickSuppressionTimer = null;
+        }, 500);
+        this.hoverTarget = null;
+        this.hideHover();
+        const selected = (0, selector_resolver_1.normalizeMeaningfulTarget)(element);
+        // The main editor is a persistent DevTools-style picker. The compact
+        // widget intentionally uses one-shot picking for a faster phone flow.
+        if (this.options?.persistent === false)
+            this.stop(false);
+        callback?.(selected);
+    };
+    suppressSelectionClick = (event) => {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (this.clickSuppressionTimer)
+            clearTimeout(this.clickSuppressionTimer);
+        this.clickSuppressionTimer = null;
+    };
+    handleKeyDown = (event) => {
+        if (event.key !== 'Escape' || !this.active)
+            return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        this.cancel();
+    };
+    handleViewportChange = () => { this.scheduleSelectedRefresh(false); };
+    handleVisibilityChange = () => {
+        if (document.visibilityState !== 'hidden')
+            this.scheduleSelectedRefresh(true);
+    };
+    handlePageShow = () => { this.scheduleSelectedRefresh(true); };
+    scheduleSelectedRefresh(afterLayout) {
+        if ((!this.selectedTarget && !this.groupTargets.length) || typeof window === 'undefined')
+            return;
+        if (this.selectedFrame)
+            window.cancelAnimationFrame(this.selectedFrame);
+        this.selectedFrame = window.requestAnimationFrame(() => {
+            this.selectedFrame = 0;
+            if (!afterLayout) {
+                if (this.selectedTarget || this.groupTargets.length)
+                    this.updateSelected();
+                return;
+            }
+            this.selectedFrame = window.requestAnimationFrame(() => {
+                this.selectedFrame = 0;
+                if (this.selectedTarget || this.groupTargets.length)
+                    this.updateSelected();
+            });
+        });
+    }
+    syncSelectedObserverTargets() {
+        this.selectedResizeObserver?.disconnect();
+        if ((!this.selectedTarget && !this.groupTargets.length) || typeof ResizeObserver === 'undefined')
+            return;
+        if (!this.selectedResizeObserver)
+            this.selectedResizeObserver = new ResizeObserver(() => this.scheduleSelectedRefresh(false));
+        const candidates = [this.selectedTarget, this.selectedTarget?.parentElement, this.guideBoundary, this.groupParent, ...this.groupTargets].filter((entry) => Boolean(entry?.isConnected));
+        for (const element of new Set(candidates))
+            this.selectedResizeObserver.observe(element);
+    }
+    isStudioOwned(element) { return Boolean(element.closest('[data-theme-studio-root], [data-theme-studio-inspector], [data-theme-studio-widget]')); }
+    updateSelected() {
+        if (this.groupTargets.length) {
+            this.renderGroupGeometry();
+            return;
+        }
+        if (!this.selectedTarget)
+            return;
+        this.updateOverlay(this.selectedTarget, this.selectedOverlay, this.selectedLabel, 'below');
+        this.renderGeometry(this.selectedTarget);
+    }
+    renderGroupGeometry() {
+        this.guideLayer.replaceChildren();
+        const members = this.groupTargets.filter((element) => element.isConnected);
+        if (!members.length) {
+            this.guideLayer.hidden = true;
+            return;
+        }
+        this.guideLayer.hidden = false;
+        const parent = this.groupParent?.isConnected ? this.groupParent : members[0].parentElement;
+        if (parent) {
+            const parentRect = parent.getBoundingClientRect();
+            if (parentRect.width > 0 && parentRect.height > 0)
+                this.appendGuide('layout-parent', parentRect, 'Group parent');
+        }
+        members.forEach((element, index) => {
+            const targetRect = element.getBoundingClientRect();
+            if (targetRect.width <= 0 || targetRect.height <= 0)
+                return;
+            const guide = this.appendGuide('layout-selected-child', targetRect, `${index + 1}`);
+            guide.setAttribute('data-group-member', String(index + 1));
+        });
+    }
+    updateOverlay(target, overlay, label, placement = 'auto') {
+        if (!target.isConnected) {
+            overlay.hidden = true;
+            label.hidden = true;
+            return;
+        }
+        const targetRect = target.getBoundingClientRect();
+        if (targetRect.width <= 0 || targetRect.height <= 0 || targetRect.bottom <= 0 || targetRect.right <= 0 || targetRect.top >= window.innerHeight || targetRect.left >= window.innerWidth) {
+            overlay.hidden = true;
+            label.hidden = true;
+            return;
+        }
+        overlay.hidden = false;
+        overlay.style.transform = `translate(${Math.round(targetRect.left)}px, ${Math.round(targetRect.top)}px)`;
+        overlay.style.width = `${Math.round(targetRect.width)}px`;
+        overlay.style.height = `${Math.round(targetRect.height)}px`;
+        label.hidden = false;
+        label.textContent = this.describe(target, targetRect);
+        const belowTop = targetRect.bottom + 5;
+        const labelTop = placement === 'below'
+            ? (belowTop < window.innerHeight - 28 ? belowTop : Math.max(4, targetRect.top - 28))
+            : (targetRect.top > 32 ? targetRect.top - 28 : belowTop);
+        // Measure after setting the label text so thin/full-width targets do not
+        // push the badge off the right edge of the viewport.
+        const labelWidth = Math.max(0, label.getBoundingClientRect().width);
+        const maxLeft = Math.max(4, window.innerWidth - labelWidth - 4);
+        const labelLeft = Math.max(4, Math.min(maxLeft, targetRect.left));
+        label.style.transform = `translate(${Math.round(labelLeft)}px, ${Math.round(labelTop)}px)`;
+    }
+    renderGeometry(target) {
+        this.guideLayer.replaceChildren();
+        if (this.guideMode === 'outline' || !target.isConnected) {
+            this.guideLayer.hidden = true;
+            return;
+        }
+        const targetRect = target.getBoundingClientRect();
+        if (targetRect.width <= 0 || targetRect.height <= 0) {
+            this.guideLayer.hidden = true;
+            return;
+        }
+        this.guideLayer.hidden = false;
+        if (this.guideMode === 'box')
+            this.renderBoxModel(target, targetRect);
+        else if (this.guideMode === 'size')
+            this.renderSizeGuide(target, targetRect);
+        else
+            this.renderLayoutGuide(target, targetRect);
+    }
+    appendGuide(kind, targetRect, text) {
+        const node = document.createElement('div');
+        node.setAttribute('data-guide-kind', kind);
+        node.style.left = `${Math.round(targetRect.left)}px`;
+        node.style.top = `${Math.round(targetRect.top)}px`;
+        node.style.width = `${Math.round(targetRect.width)}px`;
+        node.style.height = `${Math.round(targetRect.height)}px`;
+        if (text) {
+            const label = document.createElement('span');
+            label.textContent = text;
+            node.append(label);
+        }
+        this.guideLayer.append(node);
+        return node;
+    }
+    renderBoxModel(target, targetRect) {
+        const style = getComputedStyle(target);
+        const mt = px(style, 'margin-top'), mr = px(style, 'margin-right'), mb = px(style, 'margin-bottom'), ml = px(style, 'margin-left');
+        const bt = px(style, 'border-top-width'), br = px(style, 'border-right-width'), bb = px(style, 'border-bottom-width'), bl = px(style, 'border-left-width');
+        const pt = px(style, 'padding-top'), pr = px(style, 'padding-right'), pb = px(style, 'padding-bottom'), pl = px(style, 'padding-left');
+        this.appendGuide('margin', rect(targetRect.left - ml, targetRect.top - mt, targetRect.width + ml + mr, targetRect.height + mt + mb), `margin ${Math.round(mt)} ${Math.round(mr)} ${Math.round(mb)} ${Math.round(ml)}`);
+        this.appendGuide('border', targetRect, `border ${Math.round(Math.max(bt, br, bb, bl))}px`);
+        const paddingRect = rect(targetRect.left + bl, targetRect.top + bt, targetRect.width - bl - br, targetRect.height - bt - bb);
+        this.appendGuide('padding', paddingRect, `padding ${Math.round(pt)} ${Math.round(pr)} ${Math.round(pb)} ${Math.round(pl)}`);
+        const contentRect = rect(paddingRect.left + pl, paddingRect.top + pt, paddingRect.width - pl - pr, paddingRect.height - pt - pb);
+        this.appendGuide('content', contentRect, `${Math.round(contentRect.width)} × ${Math.round(contentRect.height)}`);
+    }
+    renderSizeGuide(target, targetRect) {
+        const parent = this.guideBoundary?.isConnected ? this.guideBoundary : target.parentElement;
+        if (parent?.isConnected) {
+            const parentRect = parent.getBoundingClientRect();
+            if (parentRect.width > 0 && parentRect.height > 0)
+                this.appendGuide('containing-block', parentRect, `${this.guideBoundary ? 'boundary' : 'parent'} · ${Math.round(parentRect.width)} × ${Math.round(parentRect.height)}`);
+        }
+        this.appendGuide('size', targetRect, `${Math.round(targetRect.width)} × ${Math.round(targetRect.height)}`);
+        const centerX = targetRect.left + targetRect.width / 2, centerY = targetRect.top + targetRect.height / 2;
+        const x = this.appendGuide('dimension-x', rect(targetRect.left, centerY, targetRect.width, 1));
+        x.style.setProperty('--guide-length', `${Math.round(targetRect.width)}px`);
+        const y = this.appendGuide('dimension-y', rect(centerX, targetRect.top, 1, targetRect.height));
+        y.style.setProperty('--guide-length', `${Math.round(targetRect.height)}px`);
+    }
+    renderLayoutGuide(target, targetRect) {
+        const ownDisplay = getComputedStyle(target).display;
+        const parent = target.parentElement;
+        const parentDisplay = parent ? getComputedStyle(parent).display : '';
+        const isOwnLayout = /^(inline-)?(flex|grid)$/.test(ownDisplay);
+        const layoutElement = isOwnLayout ? target : parent && /^(inline-)?(flex|grid)$/.test(parentDisplay) ? parent : target;
+        const style = getComputedStyle(layoutElement);
+        const layoutRect = layoutElement.getBoundingClientRect();
+        const isFlex = style.display.includes('flex'), isGrid = style.display.includes('grid');
+        this.appendGuide('layout-parent', layoutRect, isFlex ? `flex · ${style.flexDirection} · gap ${style.gap}` : isGrid ? `grid · ${style.gridTemplateColumns}` : `${style.display || 'block'} layout`);
+        const children = [...layoutElement.children].filter((child) => {
+            const childRect = child.getBoundingClientRect();
+            return childRect.width > 0 && childRect.height > 0;
+        }).slice(0, 40);
+        for (const child of children) {
+            const childRect = child.getBoundingClientRect();
+            const guide = this.appendGuide(child === target ? 'layout-selected-child' : 'layout-child', childRect);
+            if (child === target)
+                guide.setAttribute('data-selected', 'true');
+        }
+        if (isGrid && children.length) {
+            const xLines = new Set(), yLines = new Set();
+            for (const child of children) {
+                const r = child.getBoundingClientRect();
+                xLines.add(Math.round(r.left));
+                xLines.add(Math.round(r.right));
+                yLines.add(Math.round(r.top));
+                yLines.add(Math.round(r.bottom));
+            }
+            for (const x of xLines)
+                if (x > layoutRect.left + 1 && x < layoutRect.right - 1)
+                    this.appendGuide('grid-line-x', rect(x, layoutRect.top, 1, layoutRect.height));
+            for (const y of yLines)
+                if (y > layoutRect.top + 1 && y < layoutRect.bottom - 1)
+                    this.appendGuide('grid-line-y', rect(layoutRect.left, y, layoutRect.width, 1));
+        }
+        if (isFlex && children.length > 1) {
+            const column = style.flexDirection.startsWith('column');
+            const ordered = children.map((child) => child.getBoundingClientRect()).sort((a, b) => column ? a.top - b.top : a.left - b.left);
+            for (let index = 0; index < ordered.length - 1; index += 1) {
+                const a = ordered[index], b = ordered[index + 1];
+                if (column && b.top > a.bottom)
+                    this.appendGuide('flex-gap', rect(Math.max(layoutRect.left, Math.min(a.left, b.left)), a.bottom, Math.min(layoutRect.width, Math.max(a.width, b.width)), b.top - a.bottom), `${Math.round(b.top - a.bottom)}px gap`);
+                if (!column && b.left > a.right)
+                    this.appendGuide('flex-gap', rect(a.right, Math.max(layoutRect.top, Math.min(a.top, b.top)), b.left - a.right, Math.min(layoutRect.height, Math.max(a.height, b.height))), `${Math.round(b.left - a.right)}px gap`);
+            }
+        }
+        if (isFlex) {
+            const column = style.flexDirection.startsWith('column');
+            const reverse = style.flexDirection.endsWith('reverse');
+            const axis = document.createElement('div');
+            axis.setAttribute('data-guide-kind', 'flex-axis');
+            axis.setAttribute('data-axis', column ? 'column' : 'row');
+            axis.setAttribute('data-reverse', String(reverse));
+            if (column) {
+                axis.style.left = `${Math.round(layoutRect.left + layoutRect.width / 2)}px`;
+                axis.style.top = `${Math.round(layoutRect.top + 8)}px`;
+                axis.style.height = `${Math.max(0, Math.round(layoutRect.height - 16))}px`;
+            }
+            else {
+                axis.style.left = `${Math.round(layoutRect.left + 8)}px`;
+                axis.style.top = `${Math.round(layoutRect.top + layoutRect.height / 2)}px`;
+                axis.style.width = `${Math.max(0, Math.round(layoutRect.width - 16))}px`;
+            }
+            this.guideLayer.append(axis);
+        }
+        if (!isFlex && !isGrid && target !== layoutElement)
+            this.appendGuide('layout-selected-child', targetRect, 'selected');
+    }
+    describe(element, targetRect) {
+        const component = element.getAttribute('data-component');
+        const moduleClass = [...element.classList].map((name) => name.match(/^_([A-Za-z][A-Za-z0-9_-]*?)_[A-Za-z0-9]{4,}_[0-9]+$/)?.[1]).find(Boolean);
+        const aria = element.getAttribute('aria-label');
+        const identity = component
+            ?? moduleClass?.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+            ?? aria
+            ?? element.tagName.toLowerCase();
+        return `${identity}  ·  ${Math.round(targetRect.width)} × ${Math.round(targetRect.height)}`;
+    }
+    hideHover() { this.overlay.hidden = true; this.label.hidden = true; }
+    hideSelected() { this.selectedOverlay.hidden = true; this.selectedLabel.hidden = true; this.guideLayer.hidden = true; this.guideLayer.replaceChildren(); }
+    updateSelectedListeners(enabled) {
+        document.removeEventListener('scroll', this.handleViewportChange, true);
+        window.removeEventListener('resize', this.handleViewportChange, true);
+        window.removeEventListener('orientationchange', this.handleViewportChange, true);
+        document.removeEventListener('visibilitychange', this.handleVisibilityChange, true);
+        window.removeEventListener('pageshow', this.handlePageShow, true);
+        window.visualViewport?.removeEventListener('resize', this.handleViewportChange);
+        window.visualViewport?.removeEventListener('scroll', this.handleViewportChange);
+        if (enabled) {
+            document.addEventListener('scroll', this.handleViewportChange, true);
+            window.addEventListener('resize', this.handleViewportChange, true);
+            window.addEventListener('orientationchange', this.handleViewportChange, true);
+            document.addEventListener('visibilitychange', this.handleVisibilityChange, true);
+            window.addEventListener('pageshow', this.handlePageShow, true);
+            window.visualViewport?.addEventListener('resize', this.handleViewportChange);
+            window.visualViewport?.addEventListener('scroll', this.handleViewportChange);
+            this.syncSelectedObserverTargets();
+        }
+        else {
+            this.selectedResizeObserver?.disconnect();
+            if (this.selectedFrame) {
+                window.cancelAnimationFrame(this.selectedFrame);
+                this.selectedFrame = 0;
+            }
+        }
+    }
+    stop(notifyCancel) {
+        if (!this.active)
+            return;
+        this.active = false;
+        this.hoverTarget = null;
+        document.removeEventListener('pointermove', this.handlePointerMove, true);
+        document.removeEventListener('pointerdown', this.handlePointerDown, true);
+        document.removeEventListener('keydown', this.handleKeyDown, true);
+        document.documentElement.style.cursor = '';
+        this.hideHover();
+        const callback = notifyCancel ? this.options?.onCancel : undefined;
+        this.options = null;
+        callback?.();
+    }
+}
+exports.ElementPicker = ElementPicker;
+
+},
+"src/nativeBridge/assets.ts": function(module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.adaptNativeAsset = adaptNativeAsset;
@@ -4852,8 +2249,8 @@ async function uploadNativeThemeAsset(ctx, file, bundleId) {
     return adaptNativeAsset(uploaded);
 }
 
-};
-__modules["src/nativeBridge/capabilities"] = function(module,exports,__require){
+},
+"src/nativeBridge/capabilities.ts": function(module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.THEME_AUTHORING_CAPABILITIES = void 0;
@@ -4887,8 +2284,8 @@ function getNativeThemeCapabilities(ctx) {
     };
 }
 
-};
-__modules["src/nativeBridge/components"] = function(module,exports,__require){
+},
+"src/nativeBridge/components.ts": function(module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.adaptNativeComponentMetadata = adaptNativeComponentMetadata;
@@ -4978,90 +2375,27 @@ function findNativeComponent(components, idOrLabel) {
     return components.find((component) => component.id.toLowerCase() === normalized || component.label.toLowerCase() === normalized);
 }
 
-};
-__modules["src/nativeBridge/variables"] = function(module,exports,__require){
+},
+"src/nativeBridge/fonts.ts": function(module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.listNativeThemeVariables = listNativeThemeVariables;
-exports.nativeVariableMap = nativeVariableMap;
-exports.resolveNativeThemeVariable = resolveNativeThemeVariable;
-exports.findKnownThemeVariable = findKnownThemeVariable;
-function listNativeThemeVariables(ctx) {
-    return ctx.theme.catalog.listVariables().map((entry) => ({
-        name: entry.name,
-        defaultValue: entry.defaultValue,
-        value: entry.value ?? entry.defaultValue,
-        category: entry.category,
-    }));
-}
-function nativeVariableMap(variables) {
-    return Object.fromEntries(variables.flatMap((entry) => {
-        const value = entry.value ?? entry.defaultValue;
-        return value ? [[entry.name, value]] : [];
-    }));
-}
-function resolveNativeThemeVariable(variables, name) {
-    const entry = variables.find((candidate) => candidate.name === name);
-    return entry?.value ?? entry?.defaultValue;
-}
-function findKnownThemeVariable(variables, value) {
-    const normalized = value.replaceAll(' ', '').toLowerCase();
-    return variables.find((entry) => entry.value?.replaceAll(' ', '').toLowerCase() === normalized);
+exports.knownTypographyChoices = knownTypographyChoices;
+function clean(value) { return value.trim().replace(/^['"]|['"]$/g, ''); }
+function knownTypographyChoices(project, variables = []) {
+    const choices = new Set(['system-ui', 'Segoe UI', 'Arial', 'Verdana', 'Trebuchet MS', 'Georgia', 'Century Gothic']);
+    const native = variables.find((entry) => entry.name === '--lumiverse-font-family');
+    const nativeValue = native?.value ?? native?.defaultValue;
+    if (nativeValue)
+        nativeValue.split(',').map(clean).filter(Boolean).forEach((family) => choices.add(family));
+    project?.fonts.forEach((font) => choices.add(font.family));
+    if (typeof document !== 'undefined' && document.fonts)
+        document.fonts.forEach((font) => { if (font.family)
+            choices.add(clean(font.family)); });
+    return [...choices];
 }
 
-};
-__modules["src/nativeBridge/themes"] = function(module,exports,__require){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.projectToNativeDraft = projectToNativeDraft;
-exports.exportLumitheme = exportLumitheme;
-exports.importLumitheme = importLumitheme;
-exports.sendToLumiverse = sendToLumiverse;
-const compiler_1 = __require("src/compiler/compiler");
-const variables_1 = __require("src/nativeBridge/variables");
-function joinCss(parts) { return parts.map((value) => value.trim()).filter(Boolean).join('\n\n'); }
-function projectToNativeDraft(project, components, variables) {
-    const componentIds = new Set(components.map((component) => component.id));
-    const grouped = new Map();
-    // Boost is live extension world-state, not persistent theme CSS. Baking it into a native
-    // .lumitheme makes the installed :root declarations compete with later live Boost edits.
-    const globalParts = [(0, compiler_1.compileThemeGlobalLayers)(project, (0, variables_1.nativeVariableMap)(variables), false)];
-    for (const override of project.componentOverrides) {
-        const css = (0, compiler_1.compileComponentOverride)(override);
-        if (!css.trim())
-            continue;
-        const nativeId = override.target.nativeComponentId;
-        if (nativeId && componentIds.has(nativeId)) {
-            const list = grouped.get(nativeId) ?? [];
-            list.push(css);
-            grouped.set(nativeId, list);
-        }
-        else
-            globalParts.push(css);
-    }
-    if (project.customCss.trim())
-        globalParts.push(`/* Palette · Custom CSS */\n${project.customCss.trim()}`);
-    return {
-        name: project.name,
-        author: 'Palette',
-        description: 'Authored visually in Lumiverse Palette.',
-        globalCSS: joinCss(globalParts),
-        components: Object.fromEntries([...grouped].map(([id, css]) => [id, { css: joinCss(css), enabled: true }])),
-        assetBundleId: project.nativeAssetBundleId ?? null,
-    };
-}
-async function exportLumitheme(ctx, draft) {
-    return ctx.theme.packs.exportDraft(draft);
-}
-async function importLumitheme(ctx, bytes) {
-    return ctx.theme.packs.importArchive(bytes);
-}
-async function sendToLumiverse(ctx, draft, saveToLibrary = true) {
-    return ctx.theme.packs.installDraft(draft, { apply: true, saveToLibrary });
-}
-
-};
-__modules["src/nativeBridge/index"] = function(module,exports,__require){
+},
+"src/nativeBridge/index.ts": function(module, exports, require) {
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -5078,604 +2412,23 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-__exportStar(__require("src/nativeBridge/assets"), exports);
-__exportStar(__require("src/nativeBridge/capabilities"), exports);
-__exportStar(__require("src/nativeBridge/components"), exports);
-__exportStar(__require("src/nativeBridge/themes"), exports);
-__exportStar(__require("src/nativeBridge/variables"), exports);
+__exportStar(require("./assets"), exports);
+__exportStar(require("./capabilities"), exports);
+__exportStar(require("./components"), exports);
+__exportStar(require("./themes"), exports);
+__exportStar(require("./variables"), exports);
 
-};
-__modules["src/project/reverse-engineer"] = function(module,exports,__require){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.collectAuthoredSources = collectAuthoredSources;
-exports.collectAuthoredProperties = collectAuthoredProperties;
-exports.reverseEngineerElement = reverseEngineerElement;
-const model_1 = __require("src/project/model");
-function splitTopLevel(value, delimiter = ',') {
-    const result = [];
-    let depth = 0;
-    let quote = '';
-    let start = 0;
-    for (let index = 0; index < value.length; index += 1) {
-        const char = value[index];
-        if (quote) {
-            if (char === '\\')
-                index += 1;
-            else if (char === quote)
-                quote = '';
-            continue;
-        }
-        if (char === '"' || char === "'") {
-            quote = char;
-            continue;
-        }
-        if (char === '(')
-            depth += 1;
-        else if (char === ')')
-            depth = Math.max(0, depth - 1);
-        else if (char === delimiter && depth === 0) {
-            result.push(value.slice(start, index).trim());
-            start = index + 1;
-        }
-    }
-    result.push(value.slice(start).trim());
-    return result.filter(Boolean);
-}
-function selectorMatchesSurface(element, selectorText, pseudo) {
-    for (const raw of splitTopLevel(selectorText)) {
-        const hasBefore = /::before\b/.test(raw);
-        const hasAfter = /::after\b/.test(raw);
-        if (pseudo === '::before' && !hasBefore)
-            continue;
-        if (pseudo === '::after' && !hasAfter)
-            continue;
-        if (!pseudo && (hasBefore || hasAfter))
-            continue;
-        const base = raw.replace(/::(?:before|after)\b/g, '');
-        try {
-            if (element.matches(base))
-                return true;
-        }
-        catch { /* selector may use unsupported syntax */ }
-    }
-    return false;
-}
-function walkRules(rules, element, pseudo, result) {
-    for (const rule of Array.from(rules)) {
-        if (typeof CSSStyleRule !== 'undefined' && rule instanceof CSSStyleRule) {
-            if (!selectorMatchesSurface(element, rule.selectorText, pseudo))
-                continue;
-            for (const property of Array.from(rule.style))
-                result.add(property.toLowerCase());
-            continue;
-        }
-        const nested = rule.cssRules;
-        if (!nested)
-            continue;
-        const condition = rule.conditionText;
-        if (typeof CSSMediaRule !== 'undefined' && rule instanceof CSSMediaRule && condition && typeof matchMedia === 'function' && !matchMedia(condition).matches)
-            continue;
-        walkRules(nested, element, pseudo, result);
-    }
-}
-function sourceLabel(sheet) {
-    if (sheet.href) {
-        try {
-            return new URL(sheet.href, document.baseURI).pathname.split('/').pop() || sheet.href;
-        }
-        catch {
-            return sheet.href;
-        }
-    }
-    const owner = sheet.ownerNode;
-    if (owner instanceof HTMLStyleElement)
-        return owner.id ? `style#${owner.id}` : owner.getAttribute('data-theme-studio-generated') !== null ? 'Theme Studio generated' : 'inline <style>';
-    return 'stylesheet';
-}
-function walkSourceRules(rules, sheet, element, pseudo, result, condition) {
-    for (const rule of Array.from(rules)) {
-        if (typeof CSSStyleRule !== 'undefined' && rule instanceof CSSStyleRule) {
-            if (!selectorMatchesSurface(element, rule.selectorText, pseudo))
-                continue;
-            const properties = Array.from(rule.style).map((property) => property.toLowerCase());
-            if (!properties.length)
-                continue;
-            result.push({ selector: rule.selectorText, properties, important: properties.filter((property) => rule.style.getPropertyPriority(property) === 'important'), source: sourceLabel(sheet), condition });
-            continue;
-        }
-        const nested = rule.cssRules;
-        if (!nested)
-            continue;
-        const nextCondition = rule.conditionText || condition;
-        if (typeof CSSMediaRule !== 'undefined' && rule instanceof CSSMediaRule && nextCondition && typeof matchMedia === 'function' && !matchMedia(nextCondition).matches)
-            continue;
-        walkSourceRules(nested, sheet, element, pseudo, result, nextCondition);
-    }
-}
-function collectAuthoredSources(element, pseudo = '') {
-    const result = [];
-    if (!pseudo && element instanceof HTMLElement && element.style.length) {
-        const properties = Array.from(element.style).map((property) => property.toLowerCase());
-        result.push({ selector: 'element.style', properties, important: properties.filter((property) => element.style.getPropertyPriority(property) === 'important'), source: 'inline style' });
-    }
-    const sheets = [...Array.from(document.styleSheets)];
-    const adopted = document.adoptedStyleSheets;
-    if (adopted)
-        sheets.push(...adopted);
-    for (const sheet of sheets) {
-        try {
-            if (sheet.cssRules)
-                walkSourceRules(sheet.cssRules, sheet, element, pseudo, result);
-        }
-        catch { /* inaccessible stylesheet */ }
-    }
-    return result;
-}
-function collectAuthoredProperties(element, pseudo = '') {
-    const result = new Set();
-    if (!pseudo && element instanceof HTMLElement)
-        for (const property of Array.from(element.style))
-            result.add(property.toLowerCase());
-    const sheets = [...Array.from(document.styleSheets)];
-    const adopted = document.adoptedStyleSheets;
-    if (adopted)
-        sheets.push(...adopted);
-    for (const sheet of sheets) {
-        try {
-            if (sheet.cssRules)
-                walkRules(sheet.cssRules, element, pseudo, result);
-        }
-        catch { /* cross-origin/inaccessible stylesheet */ }
-    }
-    return result;
-}
-function hasAny(properties, names) {
-    for (const name of names) {
-        const lower = name.toLowerCase();
-        if (properties.has(lower))
-            return true;
-        if (lower.endsWith('-*')) {
-            const prefix = lower.slice(0, -1);
-            if ([...properties].some((property) => property.startsWith(prefix)))
-                return true;
-        }
-    }
-    return false;
-}
-function px(value) {
-    const match = value.trim().match(/^(-?(?:\d+\.?\d*|\.\d+))px$/i);
-    return match ? Number(match[1]) : null;
-}
-function numeric(value) { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : null; }
-function percentPosition(value) {
-    const bits = value.trim().split(/\s+/);
-    if (bits.length < 2)
-        return null;
-    const parse = (input) => input.endsWith('%') ? Number(input.slice(0, -1)) : null;
-    const x = parse(bits[0]), y = parse(bits[1]);
-    return x !== null && y !== null && Number.isFinite(x) && Number.isFinite(y) ? [x, y] : null;
-}
-function rgba(value) {
-    const trimmed = value.trim().toLowerCase();
-    if (!trimmed || trimmed === 'transparent')
-        return null;
-    const hex = trimmed.match(/^#([0-9a-f]{6})([0-9a-f]{2})?$/i);
-    if (hex)
-        return { color: `#${hex[1]}`, alpha: hex[2] ? parseInt(hex[2], 16) / 255 : 1 };
-    const rgb = trimmed.match(/^rgba?\((.*)\)$/i);
-    if (!rgb)
-        return null;
-    const body = rgb[1].replace('/', ' ');
-    const parts = body.split(/[\s,]+/).filter(Boolean);
-    if (parts.length < 3)
-        return null;
-    const channels = parts.slice(0, 3).map((part) => part.endsWith('%') ? Math.round(Number(part.slice(0, -1)) * 2.55) : Number(part));
-    if (channels.some((part) => !Number.isFinite(part)))
-        return null;
-    const alphaRaw = parts[3] === undefined ? 1 : parts[3].endsWith('%') ? Number(parts[3].slice(0, -1)) / 100 : Number(parts[3]);
-    const color = `#${channels.map((part) => Math.max(0, Math.min(255, Math.round(part))).toString(16).padStart(2, '0')).join('')}`;
-    return { color, alpha: Number.isFinite(alphaRaw) ? Math.max(0, Math.min(1, alphaRaw)) : 1 };
-}
-function parseFirstShadow(value) {
-    if (!value || value === 'none')
-        return null;
-    const first = splitTopLevel(value)[0] ?? '';
-    const colorMatch = first.match(/rgba?\([^)]*\)|#[0-9a-f]{6,8}/i);
-    const color = colorMatch ? rgba(colorMatch[0]) : null;
-    const withoutColor = colorMatch ? first.replace(colorMatch[0], '') : first;
-    const numbers = withoutColor.match(/-?(?:\d+\.?\d*|\.\d+)px/g)?.map((entry) => Number(entry.slice(0, -2))) ?? [];
-    if (numbers.length < 2)
-        return null;
-    return { x: numbers[0], y: numbers[1], blur: Math.max(0, numbers[2] ?? 0), spread: numbers[3] ?? 0, color: color?.color ?? '#000000', alpha: color?.alpha ?? 1, inset: /\binset\b/i.test(first) };
-}
-function parseFilterNumber(value, name, fallback) {
-    const match = value.match(new RegExp(`${name}\\(([-+.\\d]+)(%|deg|px)?\\)`, 'i'));
-    if (!match)
-        return fallback;
-    const number = Number(match[1]);
-    if (!Number.isFinite(number))
-        return fallback;
-    return match[2] === '%' ? number / 100 : number;
-}
-function parseMaskEdgeLayer(value) {
-    const direction = value.match(/linear-gradient\(\s*to\s+(left|right|top|bottom)\s*,/i)?.[1]?.toLowerCase();
-    if (!direction)
-        return null;
-    const percentages = [...value.matchAll(/(-?(?:\d+\.?\d*|\.\d+))%/g)].map((match) => Number(match[1])).filter(Number.isFinite);
-    if (percentages.length < 3)
-        return null;
-    return { direction, solidUntil: Math.max(0, Math.min(99, percentages[1])), fadeUntil: Math.max(1, Math.min(100, percentages[2])) };
-}
-function readMaskIntoPacket(style, packet) {
-    const webkitMask = style.getPropertyValue('-webkit-mask-image').trim();
-    const standardMask = style.maskImage.trim();
-    const raw = webkitMask && webkitMask !== 'none'
-        ? webkitMask
-        : standardMask && standardMask !== 'none'
-            ? standardMask
-            : webkitMask || standardMask;
-    if (!raw)
-        return;
-    if (raw === 'none') {
-        packet.maskMode = 'none';
-        return;
-    }
-    const layers = splitTopLevel(raw);
-    const parsed = layers.map(parseMaskEdgeLayer);
-    if (layers.length === 1 && /radial-gradient/i.test(raw)) {
-        packet.maskMode = 'fade';
-        packet.fade.direction = 'radial';
-        return;
-    }
-    if (layers.length === 1 && parsed[0] && parsed[0].fadeUntil >= 99.5) {
-        packet.maskMode = 'fade';
-        packet.fade.direction = parsed[0].direction;
-        packet.fade.amount = Math.max(0, Math.min(100, 100 - parsed[0].solidUntil));
-        return;
-    }
-    if (parsed.every(Boolean)) {
-        const custom = {
-            horizontal: { enabled: false, side: 'right', solidUntil: 25, fadeUntil: 90 },
-            top: { enabled: false, solidUntil: 85, fadeUntil: 100 },
-            bottom: { enabled: false, solidUntil: 55, fadeUntil: 100 },
-            combine: 'intersect',
-        };
-        for (const layer of parsed) {
-            if (layer.direction === 'left' || layer.direction === 'right')
-                custom.horizontal = { enabled: true, side: layer.direction, solidUntil: layer.solidUntil, fadeUntil: layer.fadeUntil };
-            else
-                custom[layer.direction] = { enabled: true, solidUntil: layer.solidUntil, fadeUntil: layer.fadeUntil };
-        }
-        const standard = (style.getPropertyValue('mask-composite') || '').toLowerCase();
-        const webkit = (style.getPropertyValue('-webkit-mask-composite') || '').toLowerCase();
-        custom.combine = standard.includes('exclude') || webkit.includes('xor') ? 'exclude'
-            : standard.includes('subtract') || webkit.includes('source-out') ? 'subtract'
-                : standard.includes('add') || webkit.includes('source-over') ? 'add' : 'intersect';
-        packet.maskMode = 'custom';
-        packet.customMask = custom;
-        return;
-    }
-    // We can see a mask but cannot safely translate its grammar into sliders. Keep it
-    // native/observed rather than pretending Theme Studio owns something it cannot round-trip.
-    packet.maskMode = 'native';
-}
-function parseGradient(value) {
-    const match = value.match(/linear-gradient\((.*)\)/i);
-    if (!match)
-        return null;
-    const bits = splitTopLevel(match[1]);
-    if (bits.length < 2)
-        return null;
-    let angle = 180;
-    if (/^-?[\d.]+deg$/i.test(bits[0])) {
-        angle = Number(bits.shift().slice(0, -3));
-    }
-    else if (/^to\s+/i.test(bits[0])) {
-        const direction = bits.shift().toLowerCase();
-        angle = direction.includes('right') ? 90 : direction.includes('left') ? 270 : direction.includes('top') ? 0 : 180;
-    }
-    const stops = bits.map((bit, index) => {
-        const colorMatch = bit.match(/rgba?\([^)]*\)|#[0-9a-f]{6,8}/i);
-        if (!colorMatch)
-            return null;
-        const color = rgba(colorMatch[0]);
-        if (!color)
-            return null;
-        const positionMatch = bit.slice((colorMatch.index ?? 0) + colorMatch[0].length).match(/(-?[\d.]+)%/);
-        const position = positionMatch ? Number(positionMatch[1]) : bits.length === 1 ? 0 : (index / (bits.length - 1)) * 100;
-        return { ...color, position: Math.max(0, Math.min(100, position)) };
-    }).filter((entry) => Boolean(entry));
-    return stops.length >= 2 ? { angle: Number.isFinite(angle) ? angle : 180, stops } : null;
-}
-function computedFallbackHas(style, group) {
-    switch (group) {
-        case 'background': return style.backgroundColor !== 'rgba(0, 0, 0, 0)' || style.backgroundImage !== 'none';
-        case 'text': return Boolean(style.color);
-        case 'border': return parseFloat(style.borderTopWidth) > 0 && style.borderTopStyle !== 'none';
-        case 'corners': return [style.borderTopLeftRadius, style.borderTopRightRadius, style.borderBottomRightRadius, style.borderBottomLeftRadius].some((value) => (px(value) ?? 0) > 0);
-        case 'spacing': return [...['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft']].some((key) => Math.abs(px(style[key]) ?? 0) > .01) || Math.abs(px(style.gap) ?? 0) > .01;
-        case 'shadow': return style.boxShadow !== 'none';
-        case 'glass': return (style.backdropFilter || style.getPropertyValue('-webkit-backdrop-filter') || 'none') !== 'none';
-        case 'opacity': return Math.abs(Number(style.opacity) - 1) > .001;
-        case 'layout': return ['flex', 'inline-flex', 'grid', 'inline-grid'].includes(style.display);
-        case 'position': return style.position !== 'static' || style.zIndex !== 'auto';
-        case 'visibility': return style.display === 'none' || style.visibility === 'hidden';
-        default: return false;
-    }
-}
-function reverseEngineerElement(element, pseudo = '') {
-    const style = getComputedStyle(element, pseudo || null);
-    const authored = collectAuthoredProperties(element, pseudo);
-    const fallback = authored.size === 0;
-    const packets = [];
-    const wants = (group, properties) => hasAny(authored, properties) || (fallback && computedFallbackHas(style, group));
-    const backgroundGradient = parseGradient(style.backgroundImage);
-    const backgroundColor = rgba(style.backgroundColor);
-    const textGradient = (style.backgroundClip === 'text' || style.webkitBackgroundClip === 'text') ? backgroundGradient : null;
-    if (wants('background', ['background', 'background-*']) && !textGradient) {
-        const packet = (0, model_1.createStylePacket)('background');
-        if (packet.type === 'background') {
-            if (backgroundGradient) {
-                packet.mode = 'gradient';
-                packet.gradient = { type: 'linear', ...backgroundGradient };
-            }
-            else if (backgroundColor) {
-                packet.mode = 'solid';
-                packet.solid = backgroundColor;
-            }
-            else
-                packet.mode = 'solid';
-            packets.push(packet);
-        }
-    }
-    if (wants('text', ['color', '-webkit-text-fill-color', 'text-shadow', '-webkit-text-stroke', '-webkit-text-stroke-width', '-webkit-text-stroke-color', 'background-clip', '-webkit-background-clip']) || textGradient) {
-        const packet = (0, model_1.createStylePacket)('text');
-        if (packet.type === 'text') {
-            const foreground = rgba(style.color);
-            if (textGradient) {
-                packet.colorMode = 'gradient';
-                packet.gradient = { type: 'linear', ...textGradient };
-            }
-            else if (foreground) {
-                packet.colorMode = 'solid';
-                packet.solid = foreground;
-            }
-            if (!textGradient && authored.has('-webkit-text-fill-color'))
-                packet.inkMode = 'force';
-            const strokeWidth = px(style.webkitTextStrokeWidth);
-            const strokeColor = rgba(style.webkitTextStrokeColor);
-            if (strokeWidth && strokeWidth > 0) {
-                packet.strokeWidth = strokeWidth;
-                packet.strokeColor = strokeColor?.color ?? '#000000';
-                packet.strokeAlpha = strokeColor?.alpha ?? 1;
-            }
-            const shadow = parseFirstShadow(style.textShadow);
-            if (shadow)
-                packet.shadow = { x: shadow.x, y: shadow.y, blur: shadow.blur, color: shadow.color, alpha: shadow.alpha };
-            packets.push(packet);
-        }
-    }
-    if (hasAny(authored, ['font', 'font-*', 'text-align', 'line-height', 'letter-spacing', 'text-transform']) || fallback) {
-        const packet = (0, model_1.createStylePacket)('typography');
-        if (packet.type === 'typography') {
-            const size = px(style.fontSize) ?? 15;
-            packet.fontSize = size;
-            packet.fontSizeUnit = 'px';
-            packet.fontFamily = style.fontFamily.split(',')[0]?.trim().replace(/^['"]|['"]$/g, '') || undefined;
-            packet.fontWeight = numeric(style.fontWeight) ?? style.fontWeight;
-            packet.fontStyle = style.fontStyle === 'italic' ? 'italic' : 'normal';
-            packet.textAlign = style.textAlign === 'center' || style.textAlign === 'right' || style.textAlign === 'justify' ? style.textAlign : 'left';
-            const linePx = px(style.lineHeight);
-            if (linePx && size > 0)
-                packet.lineHeight = Math.max(.1, Math.min(20, linePx / size));
-            packet.letterSpacing = style.letterSpacing === 'normal' ? 0 : (px(style.letterSpacing) ?? 0);
-            packet.transform = ['uppercase', 'lowercase', 'capitalize'].includes(style.textTransform) ? style.textTransform : 'none';
-            packets.push(packet);
-        }
-    }
-    if (wants('border', ['border', 'border-*'])) {
-        const width = px(style.borderTopWidth) ?? 0;
-        const color = rgba(style.borderTopColor);
-        const packet = (0, model_1.createStylePacket)('border');
-        if (packet.type === 'border') {
-            packet.width = width;
-            packet.style = ['solid', 'dashed', 'dotted', 'double', 'none'].includes(style.borderTopStyle) ? style.borderTopStyle : 'solid';
-            if (color) {
-                packet.color = color.color;
-                packet.alpha = color.alpha;
-            }
-            ;
-            packets.push(packet);
-        }
-    }
-    if (wants('corners', ['border-radius', 'border-*-radius'])) {
-        const packet = (0, model_1.createStylePacket)('corners');
-        if (packet.type === 'corners') {
-            packet.topLeft = px(style.borderTopLeftRadius) ?? 0;
-            packet.topRight = px(style.borderTopRightRadius) ?? 0;
-            packet.bottomRight = px(style.borderBottomRightRadius) ?? 0;
-            packet.bottomLeft = px(style.borderBottomLeftRadius) ?? 0;
-            packet.linked = packet.topLeft === packet.topRight && packet.topLeft === packet.bottomRight && packet.topLeft === packet.bottomLeft;
-            packets.push(packet);
-        }
-    }
-    if (wants('spacing', ['padding', 'padding-*', 'margin', 'margin-*', 'gap', 'row-gap', 'column-gap'])) {
-        const packet = (0, model_1.createStylePacket)('spacing');
-        if (packet.type === 'spacing') {
-            const box = (prefix) => {
-                const values = [style[`${prefix}Top`], style[`${prefix}Right`], style[`${prefix}Bottom`], style[`${prefix}Left`]].map((value) => px(value) ?? 0);
-                return { linked: values.every((value) => value === values[0]), top: values[0], right: values[1], bottom: values[2], left: values[3], unit: 'px' };
-            };
-            if (hasAny(authored, ['padding', 'padding-*']) || fallback)
-                packet.padding = box('padding');
-            if (hasAny(authored, ['margin', 'margin-*']) || fallback)
-                packet.margin = box('margin');
-            const gap = px(style.gap);
-            if (gap !== null && (hasAny(authored, ['gap', 'row-gap', 'column-gap']) || fallback))
-                packet.gap = gap;
-            packets.push(packet);
-        }
-    }
-    if (wants('shadow', ['box-shadow'])) {
-        const shadow = parseFirstShadow(style.boxShadow);
-        if (shadow) {
-            const packet = (0, model_1.createStylePacket)('shadow');
-            if (packet.type === 'shadow') {
-                Object.assign(packet, shadow);
-                packets.push(packet);
-            }
-        }
-    }
-    if (wants('glass', ['backdrop-filter', '-webkit-backdrop-filter'])) {
-        const filter = style.backdropFilter || style.getPropertyValue('-webkit-backdrop-filter') || '';
-        const packet = (0, model_1.createStylePacket)('glass');
-        if (packet.type === 'glass') {
-            packet.blur = parseFilterNumber(filter, 'blur', 0);
-            packet.saturation = parseFilterNumber(filter, 'saturate', 1);
-            packet.borderWidth = 0;
-            packet.shadowStrength = 0;
-            packet.innerHighlight = 0;
-            packets.push(packet);
-        }
-    }
-    if (wants('opacity', ['opacity'])) {
-        const value = Number(style.opacity);
-        if (Number.isFinite(value)) {
-            const packet = (0, model_1.createStylePacket)('opacity');
-            if (packet.type === 'opacity') {
-                packet.value = value;
-                packets.push(packet);
-            }
-        }
-    }
-    if (wants('visibility', ['visibility', 'display'])) {
-        const packet = (0, model_1.createStylePacket)('visibility');
-        if (packet.type === 'visibility') {
-            packet.mode = style.display === 'none' ? 'gone' : style.visibility === 'hidden' ? 'invisible' : 'visible';
-            if (packet.mode !== 'visible' || hasAny(authored, ['visibility']))
-                packets.push(packet);
-        }
-    }
-    const mediaElement = ['IMG', 'VIDEO', 'CANVAS', 'PICTURE'].includes(element.tagName);
-    const authoredMask = hasAny(authored, ['mask-image', '-webkit-mask-image', 'mask-composite', '-webkit-mask-composite']);
-    const authoredMediaImage = mediaElement && hasAny(authored, ['filter', 'object-fit', 'object-position', 'width', 'height']);
-    if (!pseudo && (authoredMask || authoredMediaImage)) {
-        const packet = (0, model_1.createStylePacket)('image');
-        if (packet.type === 'image') {
-            if (mediaElement) {
-                const filter = style.filter || '';
-                packet.brightness = parseFilterNumber(filter, 'brightness', 1);
-                packet.saturation = parseFilterNumber(filter, 'saturate', 1);
-                packet.contrast = parseFilterNumber(filter, 'contrast', 1);
-                packet.grayscale = parseFilterNumber(filter, 'grayscale', 0);
-                packet.hueRotate = parseFilterNumber(filter, 'hue-rotate', 0);
-                packet.blur = parseFilterNumber(filter, 'blur', 0);
-                if (['cover', 'contain', 'fill', 'scale-down'].includes(style.objectFit))
-                    packet.objectFit = style.objectFit;
-                const position = percentPosition(style.objectPosition);
-                if (position)
-                    [packet.objectPositionX, packet.objectPositionY] = position;
-                if (style.width === '100%' && style.height === '100%')
-                    packet.fillFrame = true;
-            }
-            if (authoredMask)
-                readMaskIntoPacket(style, packet);
-            packets.push(packet);
-        }
-    }
-    if (wants('position', ['position', 'top', 'right', 'bottom', 'left', 'translate', 'z-index'])) {
-        const packet = (0, model_1.createStylePacket)('position');
-        if (packet.type === 'position') {
-            packet.mode = style.position === 'relative' ? 'nudge' : style.position === 'absolute' ? 'anchored' : style.position === 'sticky' ? 'sticky' : style.position === 'fixed' ? 'screen' : 'flow';
-            const readOffset = (value) => value === 'auto' ? undefined : px(value) ?? undefined;
-            if (packet.mode === 'nudge') {
-                const translate = style.translate.trim().split(/\s+/);
-                packet.nudgeX = px(translate[0] ?? '') ?? 0;
-                packet.nudgeY = px(translate[1] ?? '') ?? 0;
-            }
-            else {
-                packet.top = readOffset(style.top);
-                packet.right = readOffset(style.right);
-                packet.bottom = readOffset(style.bottom);
-                packet.left = readOffset(style.left);
-            }
-            const z = numeric(style.zIndex);
-            if (z !== null && z !== 0) {
-                packet.layer = 'custom';
-                packet.zIndex = z;
-            }
-            packets.push(packet);
-        }
-    }
-    if (wants('layout', ['display', 'flex-*', 'justify-content', 'align-items', 'gap', 'grid-template-columns'])) {
-        if (['flex', 'inline-flex', 'grid', 'inline-grid'].includes(style.display)) {
-            const packet = (0, model_1.createStylePacket)('layout');
-            if (packet.type === 'layout') {
-                packet.display = style.display;
-                if (style.display.includes('flex')) {
-                    packet.direction = style.flexDirection;
-                    packet.wrap = style.flexWrap;
-                }
-                const map = (value) => value === 'flex-start' ? 'start' : value === 'flex-end' ? 'end' : value;
-                packet.justify = map(style.justifyContent);
-                packet.align = map(style.alignItems);
-                const gap = px(style.gap);
-                if (gap !== null)
-                    packet.gap = { mode: 'fixed', value: gap, unit: 'px' };
-                packets.push(packet);
-            }
-        }
-    }
-    if (!pseudo && hasAny(authored, ['flex-grow', 'flex-shrink', 'flex-basis', 'align-self', 'order'])) {
-        const packet = (0, model_1.createStylePacket)('layout-item');
-        if (packet.type === 'layout-item') {
-            const grow = numeric(style.flexGrow) ?? 0, shrink = numeric(style.flexShrink) ?? 1, basis = px(style.flexBasis);
-            packet.sizeInParent = grow >= 1 && shrink >= 1 && (style.flexBasis === '0px' || style.flexBasis === '0%') ? 'fill' : basis !== null ? 'fixed' : 'natural';
-            packet.grow = grow;
-            packet.shrink = shrink;
-            if (basis !== null)
-                packet.basis = { mode: 'fixed', value: basis, unit: 'px' };
-            packet.alignSelf = style.alignSelf === 'flex-start' ? 'start' : style.alignSelf === 'flex-end' ? 'end' : ['auto', 'center', 'stretch'].includes(style.alignSelf) ? style.alignSelf : 'auto';
-            packet.order = numeric(style.order) ?? 0;
-            packets.push(packet);
-        }
-    }
-    if (!pseudo && hasAny(authored, ['width', 'height', 'min-width', 'max-width', 'min-height', 'max-height', 'aspect-ratio'])) {
-        const packet = (0, model_1.createStylePacket)('size');
-        if (packet.type === 'size') {
-            const dimension = (value) => { const parsed = px(value); return parsed === null ? undefined : { mode: 'fixed', value: parsed, unit: 'px' }; };
-            if (hasAny(authored, ['width']))
-                packet.width = dimension(style.width);
-            if (hasAny(authored, ['height']))
-                packet.height = dimension(style.height);
-            if (hasAny(authored, ['min-width']))
-                packet.minWidth = dimension(style.minWidth);
-            if (hasAny(authored, ['max-width']))
-                packet.maxWidth = dimension(style.maxWidth);
-            if (hasAny(authored, ['min-height']))
-                packet.minHeight = dimension(style.minHeight);
-            if (hasAny(authored, ['max-height']))
-                packet.maxHeight = dimension(style.maxHeight);
-            const ratio = style.aspectRatio.match(/^([\d.]+)\s*\/\s*([\d.]+)$/);
-            if (ratio)
-                packet.aspectRatio = { width: Number(ratio[1]), height: Number(ratio[2]) };
-            packets.push(packet);
-        }
-    }
-    return { packets, authoredProperties: [...authored].sort(), usedComputedFallback: fallback, sources: collectAuthoredSources(element, pseudo) };
-}
-
-};
-__modules["src/nativeBridge/theme-runtime"] = function(module,exports,__require){
+},
+"src/nativeBridge/theme-runtime.ts": function(module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ThemeRuntimeBridge = void 0;
 exports.typographyAuthorityVariables = typographyAuthorityVariables;
 exports.cssColorToHex = cssColorToHex;
 exports.materializeBoostBaseline = materializeBoostBaseline;
-const boost_1 = __require("src/compiler/boost");
-const color_1 = __require("src/compiler/color");
+const boost_1 = require("../compiler/boost");
+const color_1 = require("../compiler/color");
+const random_id_1 = require("../utils/random-id");
 function themeBaselineFingerprint(baseline) {
     const info = baseline.info ?? {};
     const infoKey = JSON.stringify({ accent: info.accent, mode: info.mode, enableGlass: info.enableGlass, radiusScale: info.radiusScale, fontScale: info.fontScale, uiScale: info.uiScale });
@@ -6295,7 +3048,7 @@ class ThemeRuntimeBridge {
         }
     }
     request(payload) {
-        const requestId = portableRandomUUID();
+        const requestId = (0, random_id_1.portableRandomUUID)();
         return new Promise((resolve, reject) => {
             this.pending.set(requestId, { resolve: resolve, reject });
             this.ctx.sendToBackend({ ...payload, requestId });
@@ -6308,66 +3061,90 @@ class ThemeRuntimeBridge {
 }
 exports.ThemeRuntimeBridge = ThemeRuntimeBridge;
 
-};
-__modules["src/nativeBridge/fonts"] = function(module,exports,__require){
+},
+"src/nativeBridge/themes.ts": function(module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.knownTypographyChoices = knownTypographyChoices;
-function clean(value) { return value.trim().replace(/^['"]|['"]$/g, ''); }
-function knownTypographyChoices(project, variables = []) {
-    const choices = new Set(['system-ui', 'Segoe UI', 'Arial', 'Verdana', 'Trebuchet MS', 'Georgia', 'Century Gothic']);
-    const native = variables.find((entry) => entry.name === '--lumiverse-font-family');
-    const nativeValue = native?.value ?? native?.defaultValue;
-    if (nativeValue)
-        nativeValue.split(',').map(clean).filter(Boolean).forEach((family) => choices.add(family));
-    project?.fonts.forEach((font) => choices.add(font.family));
-    if (typeof document !== 'undefined' && document.fonts)
-        document.fonts.forEach((font) => { if (font.family)
-            choices.add(clean(font.family)); });
-    return [...choices];
+exports.projectToNativeDraft = projectToNativeDraft;
+exports.exportLumitheme = exportLumitheme;
+exports.importLumitheme = importLumitheme;
+exports.sendToLumiverse = sendToLumiverse;
+const compiler_1 = require("../compiler/compiler");
+const variables_1 = require("./variables");
+function joinCss(parts) { return parts.map((value) => value.trim()).filter(Boolean).join('\n\n'); }
+function projectToNativeDraft(project, components, variables) {
+    const componentIds = new Set(components.map((component) => component.id));
+    const grouped = new Map();
+    // Boost is live extension world-state, not persistent theme CSS. Baking it into a native
+    // .lumitheme makes the installed :root declarations compete with later live Boost edits.
+    const globalParts = [(0, compiler_1.compileThemeGlobalLayers)(project, (0, variables_1.nativeVariableMap)(variables), false)];
+    for (const override of project.componentOverrides) {
+        const css = (0, compiler_1.compileComponentOverride)(override);
+        if (!css.trim())
+            continue;
+        const nativeId = override.target.nativeComponentId;
+        if (nativeId && componentIds.has(nativeId)) {
+            const list = grouped.get(nativeId) ?? [];
+            list.push(css);
+            grouped.set(nativeId, list);
+        }
+        else
+            globalParts.push(css);
+    }
+    if (project.customCss.trim())
+        globalParts.push(`/* Palette · Custom CSS */\n${project.customCss.trim()}`);
+    return {
+        name: project.name,
+        author: 'Palette',
+        description: 'Authored visually in Lumiverse Palette.',
+        globalCSS: joinCss(globalParts),
+        components: Object.fromEntries([...grouped].map(([id, css]) => [id, { css: joinCss(css), enabled: true }])),
+        assetBundleId: project.nativeAssetBundleId ?? null,
+    };
+}
+async function exportLumitheme(ctx, draft) {
+    return ctx.theme.packs.exportDraft(draft);
+}
+async function importLumitheme(ctx, bytes) {
+    return ctx.theme.packs.importArchive(bytes);
+}
+async function sendToLumiverse(ctx, draft, saveToLibrary = true) {
+    return ctx.theme.packs.installDraft(draft, { apply: true, saveToLibrary });
 }
 
-};
-__modules["src/presets/ornaments"] = function(module,exports,__require){
+},
+"src/nativeBridge/variables.ts": function(module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BUILTIN_ORNAMENTS = void 0;
-exports.builtinOrnament = builtinOrnament;
-function svgData(svg) {
-    return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+exports.listNativeThemeVariables = listNativeThemeVariables;
+exports.nativeVariableMap = nativeVariableMap;
+exports.resolveNativeThemeVariable = resolveNativeThemeVariable;
+exports.findKnownThemeVariable = findKnownThemeVariable;
+function listNativeThemeVariables(ctx) {
+    return ctx.theme.catalog.listVariables().map((entry) => ({
+        name: entry.name,
+        defaultValue: entry.defaultValue,
+        value: entry.value ?? entry.defaultValue,
+        category: entry.category,
+    }));
 }
-const ornament = (id, label, viewBox, body, keywords = []) => ({
-    id,
-    label,
-    assetPath: svgData(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">${body}</svg>`),
-    keywords,
-});
-exports.BUILTIN_ORNAMENTS = [
-    ornament('manga-anger', 'Temper mark', '0 0 512 512', '<g transform="translate(0 512) scale(.1 -.1)" fill="white" stroke="none"><path d="M1973 4763l-202-106 51-96c28-53 71-134 96-181 276-522 565-803 918-892 127-32 339-32 474 1 217 53 456 173 675 339 146 111 336 276 331 289-3 7-70 89-148 182l-143 168-70-59c-317-267-476-371-676-440-86-30-104-32-214-32-102 0-128 3-174 22-209 88-366 277-609 737-49 93-94 170-98 172-5 1-100-45-211-104z"/><path d="M889 4208c-80-68-160-135-178-150l-32-28 83-97c139-163 163-194 242-311 214-316 266-560 164-769-94-193-315-362-786-602-56-29-102-57-102-63 0-9 82-170 172-335l39-73 82 41c587 295 867 524 1017 833 72 147 94 248 93 421-1 354-140 652-521 1112-64 78-119 142-122 143-3 0-71-55-151-122z"/><path d="M4455 3274c-349-186-538-316-691-477-213-222-308-443-307-717 1-351 164-692 550-1144 52-61 97-110 100-110 2 1 83 68 179 149l175 147-23 29c-13 15-71 86-130 157-228 275-348 495-379 700-16 108-2 191 50 298 92 185 274 329 703 556l187 99-80 152c-44 84-92 176-107 205-14 28-31 52-37 52-5 0-91-44-190-96z"/><path d="M1860 1671c-217-48-451-161-680-329-83-61-360-291-360-299 0-4 78-98 271-327l27-31 118 101c327 276 553 403 766 433 77 11 185 0 249-25 74-29 172-100 247-178 118-124 200-251 363-559 51-95 93-173 94-175 2-2 401 204 413 213 5 4-174 339-240 450-136 231-304 429-463 548-91 69-226 136-335 168-108 31-350 36-470 10z"/></g>', ['manga', 'anger', 'anime', 'temper', 'vein']),
-    ornament('impact-burst', 'Impact burst', '0 0 48 48', '<path fill="white" d="m24 2 4.3 12.8L40 8l-6.8 11.7L46 24l-12.8 4.3L40 40l-11.7-6.8L24 46l-4.3-12.8L8 40l6.8-11.7L2 24l12.8-4.3L8 8l11.7 6.8z"/>', ['burst', 'impact', 'comic', 'star']),
-    ornament('four-spark', 'Four-point sparkle', '0 0 48 48', '<g fill="white"><path d="m24 2 3.8 18.2L46 24l-18.2 3.8L24 46l-3.8-18.2L2 24l18.2-3.8z"/><path opacity=".55" d="m9 3 1.6 6.4L17 11l-6.4 1.6L9 19l-1.6-6.4L1 11l6.4-1.6z"/></g>', ['sparkle', 'star', 'shine']),
-    ornament('sweat-drop', 'Sweat drop', '0 0 32 48', '<path fill="white" d="M18 2C14 11 7 19 7 29c0 9 5 15 12 15s11-6 10-14C28 21 22 11 18 2Z"/>', ['sweat', 'drop', 'anime', 'comic']),
-    ornament('washi-tape', 'Washi tape', '0 0 96 36', '<path fill="white" d="M5 6 91 2l-3 31-83 1L1 25l4-6-4-6z"/><path fill="black" opacity=".13" d="m17 7 3 26h7L24 6zm24-1 2 27h8L48 5zm26-2 1 28h7L73 4z"/>', ['tape', 'washi', 'journal', 'scrapbook']),
-    ornament('paperclip', 'Paper clip', '0 0 40 56', '<path d="M28 8 13 34c-4 7-1 15 5 18 6 3 13 0 17-7L49 20" transform="translate(-9 -5)" fill="none" stroke="white" stroke-width="5" stroke-linecap="round"/><path d="m28 13-13 23c-2 4-1 8 3 10 4 2 8 0 10-4l12-21" transform="translate(-9 -5)" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"/>', ['paperclip', 'clip', 'journal', 'office']),
-    ornament('postage-star', 'Postage star', '0 0 64 64', '<path fill="white" fill-rule="evenodd" d="M8 4h48v56H8V4Zm6 7v42h36V11H14Zm18 4 4.1 10.7 11.4.6-8.9 7.2 3 11-9.6-6.2-9.6 6.2 3-11-8.9-7.2 11.4-.6L32 15Z"/>', ['stamp', 'postage', 'star', 'journal']),
-    ornament('postage-edge', 'Postage edge', '0 0 64 64', '<path fill="white" fill-rule="evenodd" d="M0 0H64V64H0Z M11 0a3 3 0 1 1-6 0 3 3 0 1 1 6 0Z M23 0a3 3 0 1 1-6 0 3 3 0 1 1 6 0Z M35 0a3 3 0 1 1-6 0 3 3 0 1 1 6 0Z M47 0a3 3 0 1 1-6 0 3 3 0 1 1 6 0Z M59 0a3 3 0 1 1-6 0 3 3 0 1 1 6 0Z M11 64a3 3 0 1 1-6 0 3 3 0 1 1 6 0Z M23 64a3 3 0 1 1-6 0 3 3 0 1 1 6 0Z M35 64a3 3 0 1 1-6 0 3 3 0 1 1 6 0Z M47 64a3 3 0 1 1-6 0 3 3 0 1 1 6 0Z M59 64a3 3 0 1 1-6 0 3 3 0 1 1 6 0Z M0 11a3 3 0 1 1 0-6 3 3 0 1 1 0 6Z M0 23a3 3 0 1 1 0-6 3 3 0 1 1 0 6Z M0 35a3 3 0 1 1 0-6 3 3 0 1 1 0 6Z M0 47a3 3 0 1 1 0-6 3 3 0 1 1 0 6Z M0 59a3 3 0 1 1 0-6 3 3 0 1 1 0 6Z M64 11a3 3 0 1 1 0-6 3 3 0 1 1 0 6Z M64 23a3 3 0 1 1 0-6 3 3 0 1 1 0 6Z M64 35a3 3 0 1 1 0-6 3 3 0 1 1 0 6Z M64 47a3 3 0 1 1 0-6 3 3 0 1 1 0 6Z M64 59a3 3 0 1 1 0-6 3 3 0 1 1 0 6Z"/>', ['stamp', 'postage', 'perforated', 'edge', 'editorial']),
-    ornament('editorial-quill', 'Editorial quill', '0 0 64 64', '<g fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round"><path d="M54 7C42 8 30 13 21 22 13 30 10 40 10 52c6-8 13-14 22-18 9-4 16-12 22-27Z" stroke-width="4"/><path d="M11 53c10-12 20-23 34-34M20 43l-7-1M28 34l-8-3M37 26l-7-5M30 36l3 8M39 27l4 6" stroke-width="3"/></g>', ['quill', 'feather', 'writing', 'ink', 'editorial']),
-    ornament('tiny-flower', 'Tiny flower', '0 0 48 48', '<g fill="white"><ellipse cx="24" cy="12" rx="7" ry="11"/><ellipse cx="36" cy="24" rx="11" ry="7"/><ellipse cx="24" cy="36" rx="7" ry="11"/><ellipse cx="12" cy="24" rx="11" ry="7"/><circle cx="24" cy="24" r="6"/></g>', ['flower', 'botanical', 'cute']),
-    ornament('scribble-heart', 'Scribble heart', '0 0 64 56', '<path d="M32 50S5 34 5 17C5 5 20 1 32 14 44 1 59 5 59 17c0 17-27 33-27 33Z" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 19c2-7 9-9 15-3" fill="none" stroke="white" stroke-width="2" opacity=".65"/>', ['heart', 'scribble', 'journal', 'cute']),
-    ornament('vn-corners', 'VN corner brackets', '0 0 120 64', '<g fill="none" stroke="white" stroke-width="1.8" stroke-linecap="square"><path d="M2 18V2h28M90 2h28v16M118 46v16H90M30 62H2V46"/><path opacity=".42" d="M7 23V7h18M95 7h18v16M113 41v16H95M25 57H7V41"/></g>', ['visual', 'novel', 'vn', 'corner', 'bracket', 'frame']),
-    ornament('vn-wide-corners', 'VN wide corner cap', '0 0 1000 64', '<g fill="none" stroke="white" stroke-width="3" stroke-linecap="square"><path d="M4 60V4h218M778 4h218v56"/><path opacity=".42" d="M18 52V18h154M828 18h154v34"/><path opacity=".24" d="M230 4h112M658 4h112"/></g>', ['visual', 'novel', 'vn', 'wide', 'corner', 'frame', 'cap', 'top']),
-    ornament('vn-mobile-corners', 'VN mobile corner cap', '0 0 400 64', '<g fill="none" stroke="white" stroke-width="3" stroke-linecap="square"><path d="M4 60V4h104M292 4h104v56"/><path opacity=".42" d="M16 52V16h74M310 16h74v36"/><path opacity=".24" d="M116 4h38M246 4h38"/></g>', ['visual', 'novel', 'vn', 'mobile', 'corner', 'frame', 'cap']),
-    ornament('vn-heart-jewel', 'VN heart jewel', '0 0 64 40', '<g fill="white"><path d="M32 37S12 25 12 13c0-8 10-11 20-2 10-9 20-6 20 2 0 12-20 24-20 24Z"/><path opacity=".48" d="M4 20 10 14l6 6-6 6-6-6Zm44 0 6-6 6 6-6 6-6-6Z"/></g>', ['visual', 'novel', 'vn', 'heart', 'jewel', 'romance']),
-    ornament('vn-arrow-left', 'VN arrow left', '0 0 64 32', '<path fill="white" d="M25 4 7 16l18 12v-8h30v-8H25V4Z"/>', ['visual', 'novel', 'vn', 'arrow', 'previous', 'left']),
-    ornament('vn-arrow-right', 'VN arrow right', '0 0 64 32', '<path fill="white" d="m39 4 18 12-18 12v-8H9v-8h30V4Z"/>', ['visual', 'novel', 'vn', 'arrow', 'next', 'right']),
-    ornament('star-divider', 'Star divider', '0 0 120 20', '<g fill="white"><path opacity=".4" d="M4 9h42v2H4zm70 0h42v2H74z"/><path d="m60 1 2.4 6.6L69 10l-6.6 2.4L60 19l-2.4-6.6L51 10l6.6-2.4z"/></g>', ['divider', 'separator', 'star', 'chapter']),
-];
-function builtinOrnament(id) {
-    return exports.BUILTIN_ORNAMENTS.find((entry) => entry.id === id);
+function nativeVariableMap(variables) {
+    return Object.fromEntries(variables.flatMap((entry) => {
+        const value = entry.value ?? entry.defaultValue;
+        return value ? [[entry.name, value]] : [];
+    }));
+}
+function resolveNativeThemeVariable(variables, name) {
+    const entry = variables.find((candidate) => candidate.name === name);
+    return entry?.value ?? entry?.defaultValue;
+}
+function findKnownThemeVariable(variables, value) {
+    const normalized = value.replaceAll(' ', '').toLowerCase();
+    return variables.find((entry) => entry.value?.replaceAll(' ', '').toLowerCase() === normalized);
 }
 
-};
-__modules["src/presets/common-parts"] = function(module,exports,__require){
+},
+"src/presets/common-parts.ts": function(module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.COMMON_PART_PRESETS = exports.COMMON_PART_CATEGORIES = exports.KNOWN_PART_ROLES = void 0;
@@ -6375,8 +3152,8 @@ exports.textInkModeForRole = textInkModeForRole;
 exports.applyTextInkPolicyForRole = applyTextInkPolicyForRole;
 exports.targetForKnownRole = targetForKnownRole;
 exports.presetRoles = presetRoles;
-const model_1 = __require("src/project/model");
-const ornaments_1 = __require("src/presets/ornaments");
+const model_1 = require("../project/model");
+const ornaments_1 = require("./ornaments");
 function packet(type) {
     return (0, model_1.createStylePacket)(type);
 }
@@ -6623,8 +3400,10 @@ function heroCompositionSteps(options) {
                 image.fillFrame = true;
                 image.objectPositionX = options.focusX;
                 image.objectPositionY = options.focusY;
-                image.fade = { direction: 'bottom', amount: options.fadeAmount };
-                return [image];
+                const imageMask = packet('mask');
+                imageMask.maskMode = 'fade';
+                imageMask.fade = { direction: 'bottom', amount: options.fadeAmount };
+                return [image, imageMask];
             } },
         { role: 'meta.row', createPackets: () => {
                 const position = packet('position');
@@ -7398,7 +4177,7 @@ exports.COMMON_PART_PRESETS = [
                     size.height = { mode: 'fixed', value: 170, unit: 'px' };
                     const background = packet('background');
                     background.solid = { color: '#000000', alpha: .42 };
-                    const mask = packet('image');
+                    const mask = packet('mask');
                     mask.maskMode = 'none';
                     return [visibility, layout, position, size, background, mask];
                 }, createMobilePackets: () => { const size = packet('size'); size.width = { mode: 'parent' }; size.height = { mode: 'fixed', value: 142, unit: 'px' }; return [size]; } },
@@ -7557,11 +4336,11 @@ exports.COMMON_PART_PRESETS = [
         steps: [
             { role: 'message.frame', primary: true, createPackets: () => { const background = packet('background'); background.solid = { color: '#050506', alpha: .94 }; const border = packet('border'); border.width = 2; border.color = '#ffffff'; border.alpha = .94; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 8, right: 8, bottom: 12, left: 8, unit: 'px' }; return [background, border, corners, spacing]; }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 6, right: 6, bottom: 10, left: 6, unit: 'px' }; return [spacing]; } },
             { role: 'header.root', createPackets: () => { const size = packet('size'); size.minHeight = { mode: 'fixed', value: 216, unit: 'px' }; const position = packet('position'); position.mode = 'nudge'; position.layer = 'normal'; return [size, position]; }, createMobilePackets: () => { const size = packet('size'); size.minHeight = { mode: 'fixed', value: 166, unit: 'px' }; return [size]; } },
-            { role: 'header.accent', createPackets: () => { const pattern = packet('pattern'); pattern.pattern = 'stripes'; pattern.color = '#ffffff'; pattern.alpha = .13; pattern.scale = 10; pattern.angle = 45; const mask = packet('image'); mask.maskMode = 'custom'; mask.customMask = { horizontal: { enabled: true, side: 'left', solidUntil: 25, fadeUntil: 90 }, top: { enabled: true, solidUntil: 55, fadeUntil: 100 }, bottom: { enabled: true, solidUntil: 85, fadeUntil: 100 }, combine: 'intersect' }; return [pattern, mask]; }, createMobilePackets: () => { const pattern = packet('pattern'); pattern.pattern = 'stripes'; pattern.color = '#ffffff'; pattern.alpha = .09; pattern.scale = 9; pattern.angle = 45; return [pattern]; } },
+            { role: 'header.accent', createPackets: () => { const pattern = packet('pattern'); pattern.pattern = 'stripes'; pattern.color = '#ffffff'; pattern.alpha = .13; pattern.scale = 10; pattern.angle = 45; const mask = packet('mask'); mask.maskMode = 'custom'; mask.customMask = { horizontal: { enabled: true, side: 'left', solidUntil: 25, fadeUntil: 90 }, top: { enabled: true, solidUntil: 55, fadeUntil: 100 }, bottom: { enabled: true, solidUntil: 85, fadeUntil: 100 }, combine: 'intersect' }; return [pattern, mask]; }, createMobilePackets: () => { const pattern = packet('pattern'); pattern.pattern = 'stripes'; pattern.color = '#ffffff'; pattern.alpha = .09; pattern.scale = 9; pattern.angle = 45; return [pattern]; } },
             { role: 'header.left', createPackets: () => { const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.align = 'stretch'; layout.justify = 'end'; layout.gap = { mode: 'fixed', value: 0, unit: 'px' }; const size = packet('size'); size.width = { mode: 'parent' }; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 34, right: 0, bottom: 0, left: 0, unit: 'px' }; return [layout, size, spacing]; }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 30, right: 0, bottom: 0, left: 0, unit: 'px' }; return [spacing]; } },
             { role: 'avatar.frame', createPackets: () => { const size = packet('size'); size.width = { mode: 'parent' }; size.height = { mode: 'fixed', value: 166, unit: 'px' }; const border = packet('border'); border.width = 0; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 0; return [size, border, corners]; }, createMobilePackets: () => { const size = packet('size'); size.width = { mode: 'parent' }; size.height = { mode: 'fixed', value: 118, unit: 'px' }; return [size]; } },
-            { role: 'avatar.image', createPackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 52; image.objectPositionY = 46; image.grayscale = .88; image.contrast = 1.2; image.saturation = .38; image.fade = { direction: 'bottom', amount: 30 }; return [image]; }, createMobilePackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 50; image.objectPositionY = 46; image.grayscale = .94; image.contrast = 1.22; image.saturation = .28; image.fade = { direction: 'bottom', amount: 36 }; return [image]; } },
-            { role: 'avatar.backdrop', createPackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 44; image.objectPositionY = 28; image.grayscale = 1; image.saturation = 0; image.contrast = 1.34; image.brightness = .5; image.blur = .35; image.fade = { direction: 'radial', amount: 58 }; const opacity = packet('opacity'); opacity.value = .22; return [image, opacity]; } },
+            { role: 'avatar.image', createPackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 52; image.objectPositionY = 46; image.grayscale = .88; image.contrast = 1.2; image.saturation = .38; const imageMask = packet('mask'); imageMask.maskMode = 'fade'; imageMask.fade = { direction: 'bottom', amount: 30 }; return [image, imageMask]; }, createMobilePackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 50; image.objectPositionY = 46; image.grayscale = .94; image.contrast = 1.22; image.saturation = .28; const imageMask = packet('mask'); imageMask.maskMode = 'fade'; imageMask.fade = { direction: 'bottom', amount: 36 }; return [image, imageMask]; } },
+            { role: 'avatar.backdrop', createPackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 44; image.objectPositionY = 28; image.grayscale = 1; image.saturation = 0; image.contrast = 1.34; image.brightness = .5; image.blur = .35; const imageMask = packet('mask'); imageMask.maskMode = 'fade'; imageMask.fade = { direction: 'radial', amount: 58 }; const opacity = packet('opacity'); opacity.value = .22; return [image, imageMask, opacity]; } },
             { role: 'name.character', createPackets: () => { const t = packet('typography'); t.fontSize = 25; t.fontWeight = 900; t.fontStyle = 'italic'; t.transform = 'uppercase'; t.letterSpacing = 1.65; t.lineHeight = 1; const text = packet('text'); text.solid = { color: '#ffffff', alpha: 1 }; text.strokeWidth = 1; text.strokeColor = '#000000'; text.strokeAlpha = .84; const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['header.root'].selectors[0].selector; position.anchorLabel = 'Header'; position.left = 12; position.bottom = 13; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 10; return [t, text, position]; }, createMobilePackets: () => { const t = packet('typography'); t.fontSize = 19; t.fontWeight = 900; t.fontStyle = 'italic'; t.transform = 'uppercase'; t.letterSpacing = 1.25; t.lineHeight = 1; const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['header.root'].selectors[0].selector; position.anchorLabel = 'Header'; position.left = 8; position.bottom = 9; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 10; return [t, position]; } },
             { role: 'user.frame', createPackets: () => [], createMobilePackets: () => { const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'parent' }; return [size]; } },
             { role: 'user.bubble', createPackets: () => [], createMobilePackets: () => { const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'parent' }; return [size]; } },
@@ -7590,9 +4369,9 @@ exports.COMMON_PART_PRESETS = [
             { role: 'minimal.header.assistant', createPackets: () => { const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.align = 'start'; layout.justify = 'start'; layout.gap = { mode: 'fixed', value: 5, unit: 'px' }; const place = packet('placement'); place.horizontal = 'start'; const border = packet('border'); border.width = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 6, right: 0, bottom: 8, left: 0, unit: 'px' }; const size = packet('size'); size.width = { mode: 'content' }; return [layout, place, border, spacing, size]; }, createMobilePackets: () => { const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.align = 'start'; layout.justify = 'start'; layout.gap = { mode: 'fixed', value: 2, unit: 'px' }; const place = packet('placement'); place.horizontal = 'start'; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 5, right: 4, bottom: 8, left: 62, unit: 'px' }; const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'parent' }; size.minHeight = { mode: 'fixed', value: 60, unit: 'px' }; return [layout, place, spacing, size]; } },
             { role: 'minimal.header.user', createPackets: () => { const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.align = 'start'; layout.justify = 'start'; layout.gap = { mode: 'fixed', value: 5, unit: 'px' }; const place = packet('placement'); place.horizontal = 'end'; const border = packet('border'); border.width = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 6, right: 0, bottom: 8, left: 0, unit: 'px' }; const size = packet('size'); size.width = { mode: 'content' }; return [layout, place, border, spacing, size]; }, createMobilePackets: () => { const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.align = 'start'; layout.justify = 'start'; layout.gap = { mode: 'fixed', value: 2, unit: 'px' }; const place = packet('placement'); place.horizontal = 'start'; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 5, right: 62, bottom: 8, left: 4, unit: 'px' }; const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'parent' }; size.minHeight = { mode: 'fixed', value: 60, unit: 'px' }; return [layout, place, spacing, size]; } },
             { role: 'minimal.avatar.assistant.frame', createPackets: () => { const position = packet('position'); position.mode = 'sticky'; position.top = 18; position.unit = 'px'; position.layer = 'raised'; const item = packet('layout-item'); item.alignSelf = 'start'; const size = packet('size'); size.width = { mode: 'fixed', value: 168, unit: 'px' }; size.height = { mode: 'fixed', value: 390, unit: 'px' }; size.maxHeight = { mode: 'fixed', value: 62, unit: 'vh' }; const border = packet('border'); border.width = 2; border.color = '#ffffff'; border.alpha = .9; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 0; return [position, item, size, border, corners]; }, createMobilePackets: () => { const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.assistant.frame'].selectors[0].selector; position.anchorLabel = 'Minimal assistant frame'; position.top = 8; position.left = 10; position.unit = 'px'; position.layer = 'raised'; const size = packet('size'); size.width = { mode: 'fixed', value: 48, unit: 'px' }; size.height = { mode: 'fixed', value: 58, unit: 'px' }; size.maxHeight = { mode: 'native' }; return [position, size]; } },
-            { role: 'minimal.avatar.assistant.image', createPackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 50; image.objectPositionY = 50; image.grayscale = .82; image.saturation = .34; image.contrast = 1.2; image.brightness = .92; image.fade = { direction: 'bottom', amount: 12 }; return [image]; }, createMobilePackets: () => { const image = packet('image'); image.sourceQuality = 'native'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 50; image.objectPositionY = 50; image.grayscale = .9; image.saturation = .24; image.contrast = 1.18; image.fade = { direction: 'none', amount: 0 }; return [image]; } },
+            { role: 'minimal.avatar.assistant.image', createPackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 50; image.objectPositionY = 50; image.grayscale = .82; image.saturation = .34; image.contrast = 1.2; image.brightness = .92; const imageMask = packet('mask'); imageMask.maskMode = 'fade'; imageMask.fade = { direction: 'bottom', amount: 12 }; return [image, imageMask]; }, createMobilePackets: () => { const image = packet('image'); image.sourceQuality = 'native'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 50; image.objectPositionY = 50; image.grayscale = .9; image.saturation = .24; image.contrast = 1.18; return [image]; } },
             { role: 'minimal.avatar.user.frame', createPackets: () => { const position = packet('position'); position.mode = 'sticky'; position.top = 18; position.unit = 'px'; position.layer = 'raised'; const item = packet('layout-item'); item.alignSelf = 'start'; const size = packet('size'); size.width = { mode: 'fixed', value: 168, unit: 'px' }; size.height = { mode: 'fixed', value: 390, unit: 'px' }; size.maxHeight = { mode: 'fixed', value: 62, unit: 'vh' }; const border = packet('border'); border.width = 2; border.color = '#ffffff'; border.alpha = .9; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 0; return [position, item, size, border, corners]; }, createMobilePackets: () => { const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.user.frame'].selectors[0].selector; position.anchorLabel = 'Minimal user frame'; position.top = 8; position.right = 10; position.unit = 'px'; position.layer = 'raised'; const size = packet('size'); size.width = { mode: 'fixed', value: 48, unit: 'px' }; size.height = { mode: 'fixed', value: 58, unit: 'px' }; size.maxHeight = { mode: 'native' }; return [position, size]; } },
-            { role: 'minimal.avatar.user.image', createPackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 50; image.objectPositionY = 50; image.grayscale = .82; image.saturation = .34; image.contrast = 1.2; image.brightness = .92; image.fade = { direction: 'bottom', amount: 12 }; return [image]; }, createMobilePackets: () => { const image = packet('image'); image.sourceQuality = 'native'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 50; image.objectPositionY = 50; image.grayscale = .9; image.saturation = .24; image.contrast = 1.18; image.fade = { direction: 'none', amount: 0 }; return [image]; } },
+            { role: 'minimal.avatar.user.image', createPackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 50; image.objectPositionY = 50; image.grayscale = .82; image.saturation = .34; image.contrast = 1.2; image.brightness = .92; const imageMask = packet('mask'); imageMask.maskMode = 'fade'; imageMask.fade = { direction: 'bottom', amount: 12 }; return [image, imageMask]; }, createMobilePackets: () => { const image = packet('image'); image.sourceQuality = 'native'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 50; image.objectPositionY = 50; image.grayscale = .9; image.saturation = .24; image.contrast = 1.18; return [image]; } },
             { role: 'minimal.name', createPackets: () => { const t = packet('typography'); t.fontSize = 18; t.fontWeight = 900; t.transform = 'uppercase'; t.letterSpacing = 1.45; t.lineHeight = 1; t.textAlign = 'left'; const item = packet('layout-item'); item.alignSelf = 'start'; const text = packet('text'); text.solid = { color: '#ffffff', alpha: 1 }; return [t, item, text]; }, createMobilePackets: () => { const t = packet('typography'); t.fontSize = 15; t.fontWeight = 900; t.transform = 'uppercase'; t.letterSpacing = 1.05; t.lineHeight = 1.05; t.textAlign = 'left'; const place = packet('placement'); place.horizontal = 'start'; return [t, place]; } },
             { role: 'minimal.name.user', createPackets: () => { const t = packet('typography'); t.fontSize = 18; t.fontWeight = 900; t.transform = 'uppercase'; t.letterSpacing = 1.45; t.lineHeight = 1; t.textAlign = 'left'; const item = packet('layout-item'); item.alignSelf = 'start'; const text = packet('text'); text.solid = { color: '#ffffff', alpha: 1 }; return [t, item, text]; }, createMobilePackets: () => { const t = packet('typography'); t.fontSize = 15; t.fontWeight = 900; t.transform = 'uppercase'; t.letterSpacing = 1.05; t.lineHeight = 1.05; t.textAlign = 'left'; const place = packet('placement'); place.horizontal = 'start'; return [t, place]; } },
             { role: 'minimal.meta.assistant.pill', createPackets: () => { const t = packet('typography'); t.fontSize = 8; t.fontWeight = 800; t.transform = 'uppercase'; t.letterSpacing = 1.15; t.textAlign = 'left'; const item = packet('layout-item'); item.alignSelf = 'start'; const text = packet('text'); text.solid = { color: '#ffffff', alpha: .66 }; const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const border = packet('border'); border.width = 0; return [t, item, text, bg, border]; }, createMobilePackets: () => { const t = packet('typography'); t.fontSize = 7; t.fontWeight = 800; t.transform = 'uppercase'; t.letterSpacing = .85; t.textAlign = 'left'; const place = packet('placement'); place.horizontal = 'start'; return [t, place]; } },
@@ -8338,8 +5117,8 @@ exports.COMMON_PART_PRESETS = [
             { role: 'header.root', createPackets: () => { const size = packet('size'); size.minHeight = { mode: 'fixed', value: 204, unit: 'px' }; const border = packet('border'); border.width = 0; return [size, border]; }, createMobilePackets: () => { const size = packet('size'); size.minHeight = { mode: 'fixed', value: 156, unit: 'px' }; return [size]; } },
             { role: 'header.left', createPackets: () => { const size = packet('size'); size.width = { mode: 'fixed', value: 82, unit: '%' }; size.maxWidth = { mode: 'parent' }; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'row'; layout.align = 'end'; layout.justify = 'start'; layout.gap = { mode: 'fixed', value: 20, unit: 'px' }; return [size, layout]; }, createMobilePackets: () => { const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'parent' }; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.align = 'stretch'; layout.justify = 'end'; layout.gap = { mode: 'fixed', value: 8, unit: 'px' }; return [size, layout]; } },
             { role: 'avatar.frame', createPackets: () => { const size = packet('size'); size.width = { mode: 'fixed', value: 66, unit: '%' }; size.height = { mode: 'fixed', value: 188, unit: 'px' }; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 0; const border = packet('border'); border.width = 0; return [size, corners, border]; }, createMobilePackets: () => { const size = packet('size'); size.width = { mode: 'parent' }; size.height = { mode: 'fixed', value: 116, unit: 'px' }; return [size]; } },
-            { role: 'avatar.image', createPackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 56; image.objectPositionY = 30; image.saturation = .62; image.contrast = 1.04; image.brightness = .94; image.fade = { direction: 'right', amount: 26 }; return [image]; }, createMobilePackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 54; image.objectPositionY = 28; image.saturation = .58; image.contrast = 1.05; image.brightness = .94; image.fade = { direction: 'bottom', amount: 38 }; return [image]; } },
-            { role: 'avatar.backdrop', createPackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 42; image.objectPositionY = 28; image.grayscale = .5; image.saturation = .38; image.contrast = 1.02; image.brightness = .46; image.blur = 1.1; image.fade = { direction: 'radial', amount: 64 }; const opacity = packet('opacity'); opacity.value = .13; return [image, opacity]; } },
+            { role: 'avatar.image', createPackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 56; image.objectPositionY = 30; image.saturation = .62; image.contrast = 1.04; image.brightness = .94; const imageMask = packet('mask'); imageMask.maskMode = 'fade'; imageMask.fade = { direction: 'right', amount: 26 }; return [image, imageMask]; }, createMobilePackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 54; image.objectPositionY = 28; image.saturation = .58; image.contrast = 1.05; image.brightness = .94; const imageMask = packet('mask'); imageMask.maskMode = 'fade'; imageMask.fade = { direction: 'bottom', amount: 38 }; return [image, imageMask]; } },
+            { role: 'avatar.backdrop', createPackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 42; image.objectPositionY = 28; image.grayscale = .5; image.saturation = .38; image.contrast = 1.02; image.brightness = .46; image.blur = 1.1; const imageMask = packet('mask'); imageMask.maskMode = 'fade'; imageMask.fade = { direction: 'radial', amount: 64 }; const opacity = packet('opacity'); opacity.value = .13; return [image, imageMask, opacity]; } },
             { role: 'meta.row', createPackets: () => { const size = packet('size'); size.width = { mode: 'fixed', value: 30, unit: '%' }; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.align = 'start'; layout.justify = 'end'; layout.gap = { mode: 'fixed', value: 7, unit: 'px' }; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 0, right: 0, bottom: 8, left: 2, unit: 'px' }; return [size, layout, spacing]; }, createMobilePackets: () => { const size = packet('size'); size.width = { mode: 'parent' }; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.align = 'start'; layout.justify = 'end'; layout.gap = { mode: 'fixed', value: 4, unit: 'px' }; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 0, right: 4, bottom: 2, left: 4, unit: 'px' }; return [size, layout, spacing]; } },
             { role: 'name.character', createPackets: () => { const t = packet('typography'); t.fontFamily = 'Georgia'; t.fontSize = 36; t.fontWeight = 700; t.lineHeight = .94; t.letterSpacing = -.7; t.textAlign = 'left'; const text = packet('text'); text.solid = { color: '#ece8df', alpha: 1 }; return [t, text]; }, createMobilePackets: () => { const t = packet('typography'); t.fontFamily = 'Georgia'; t.fontSize = 25; t.fontWeight = 700; t.lineHeight = 1; t.letterSpacing = -.3; t.textAlign = 'left'; return [t]; } },
             { role: 'name.user', createPackets: () => { const t = packet('typography'); t.fontFamily = 'Georgia'; t.fontSize = 14; t.fontWeight = 700; t.lineHeight = 1.05; const text = packet('text'); text.solid = { color: '#92a6b3', alpha: .92 }; return [t, text]; } },
@@ -8882,10 +5661,10 @@ exports.COMMON_PART_PRESETS = [
     {
         id: 'journal-page-pager', category: 'actions', section: 'Journal', name: 'Page pager', description: 'Keep swipe navigation readable on cream paper with fixed dark ink and a quiet stationery rule.', preview: 'actions-quiet',
         steps: [
-            { role: 'message.swipes', primary: true, tuneText: false, createPackets: () => { const background = packet('background'); background.solid = { color: '#b9d0c9', alpha: .92 }; const border = packet('border'); border.width = 2; border.color = '#fffdf7'; border.alpha = .92; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 999; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 3, right: 8, bottom: 3, left: 8, unit: 'px' }; spacing.gap = 4; const t = packet('typography'); t.fontFamily = 'Georgia'; t.fontSize = 10; t.fontWeight = 700; t.letterSpacing = .35; const ink = packet('text'); ink.solid = { color: '#46504e', alpha: .94 }; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 5; shadow.blur = 10; shadow.spread = -7; shadow.color = '#1c2725'; shadow.alpha = .24; return [background, border, corners, spacing, t, ink, shadow]; } },
+            { role: 'message.swipes', primary: true, tuneText: false, createPackets: () => { const background = packet('background'); background.solid = { color: '#b9d0c9', alpha: .92 }; const border = packet('border'); border.width = 2; border.color = '#fffdf7'; border.alpha = .92; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 999; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 3, right: 8, bottom: 3, left: 8, unit: 'px' }; spacing.gap = 4; const t = packet('typography'); t.fontFamily = 'Georgia'; t.fontSize = 10; t.fontWeight = 700; t.letterSpacing = .35; const text = packet('text'); text.solid = { color: '#46504e', alpha: .94 }; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 5; shadow.blur = 10; shadow.spread = -7; shadow.color = '#1c2725'; shadow.alpha = .24; return [background, border, corners, spacing, t, text, shadow]; } },
             { role: 'assistant.swipes', tuneText: false, createPackets: () => [], createMobilePackets: () => { const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'row'; layout.wrap = 'nowrap'; layout.justify = 'end'; layout.align = 'center'; layout.gap = { mode: 'fixed', value: 8, unit: 'px' }; const item = packet('layout-item'); item.grow = 0; item.shrink = 1; const placement = packet('placement'); placement.horizontal = 'center'; placement.vertical = 'native'; const size = packet('size'); size.width = { mode: 'parent' }; return [layout, item, placement, size]; } },
-            { role: 'message.swipes.buttons', tuneText: false, createPackets: () => { const ink = packet('text'); ink.solid = { color: '#46504e', alpha: .94 }; const opacity = packet('opacity'); opacity.value = 1; return [ink, opacity]; } },
-            { role: 'message.swipes.counter', tuneText: false, createPackets: () => { const ink = packet('text'); ink.solid = { color: '#46504e', alpha: .96 }; const opacity = packet('opacity'); opacity.value = 1; return [ink, opacity]; } },
+            { role: 'message.swipes.buttons', tuneText: false, createPackets: () => { const text = packet('text'); text.solid = { color: '#46504e', alpha: .94 }; const opacity = packet('opacity'); opacity.value = 1; return [text, opacity]; } },
+            { role: 'message.swipes.counter', tuneText: false, createPackets: () => { const text = packet('text'); text.solid = { color: '#46504e', alpha: .96 }; const opacity = packet('opacity'); opacity.value = 1; return [text, opacity]; } },
         ],
     },
     {
@@ -8913,8 +5692,8 @@ exports.COMMON_PART_PRESETS = [
             { role: 'minimal.actions.user.row', tuneText: false, createPackets: () => { const layout = packet('layout'); layout.display = 'grid'; layout.align = 'center'; layout.justify = 'start'; layout.gap = { mode: 'fixed', value: 0, unit: 'px' }; return [layout]; }, createMobilePackets: () => { const layout = packet('layout'); layout.display = 'flex'; layout.align = 'start'; layout.justify = 'center'; layout.gap = { mode: 'fixed', value: 8, unit: 'px' }; return [layout]; } },
             { role: 'minimal.actions.assistant.buttons', tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#b9d0c9', alpha: .92 }; const border = packet('border'); border.width = 3; border.color = '#fffdf7'; border.alpha = .96; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 9; const size = packet('size'); size.width = { mode: 'fixed', value: 32, unit: 'px' }; size.height = { mode: 'fixed', value: 32, unit: 'px' }; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 7; shadow.blur = 12; shadow.spread = -8; shadow.color = '#1c2725'; shadow.alpha = .32; return [bg, border, corners, size, shadow]; }, createMobilePackets: () => { const size = packet('size'); size.width = { mode: 'fixed', value: 20, unit: 'px' }; size.height = { mode: 'fixed', value: 20, unit: 'px' }; const border = packet('border'); border.width = 2; border.color = '#fffdf7'; border.alpha = .94; return [size, border]; } },
             { role: 'minimal.actions.user.buttons', tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#b9d0c9', alpha: .92 }; const border = packet('border'); border.width = 3; border.color = '#8db5b0'; border.alpha = .785; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 9; const size = packet('size'); size.width = { mode: 'fixed', value: 32, unit: 'px' }; size.height = { mode: 'fixed', value: 32, unit: 'px' }; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 7; shadow.blur = 12; shadow.spread = -8; shadow.color = '#8db5b0'; shadow.alpha = .262; return [bg, border, corners, size, shadow]; }, createMobilePackets: () => { const size = packet('size'); size.width = { mode: 'fixed', value: 20, unit: 'px' }; size.height = { mode: 'fixed', value: 20, unit: 'px' }; const border = packet('border'); border.width = 2; border.color = '#8db5b0'; border.alpha = .769; return [size, border]; } },
-            { role: 'minimal.actions.assistant.controls', tuneText: false, createPackets: () => { const ink = packet('text'); ink.solid = { color: '#46504e', alpha: .88 }; return [ink]; } },
-            { role: 'minimal.actions.user.controls', tuneText: false, createPackets: () => { const ink = packet('text'); ink.solid = { color: '#46504e', alpha: .88 }; return [ink]; } },
+            { role: 'minimal.actions.assistant.controls', tuneText: false, createPackets: () => { const text = packet('text'); text.solid = { color: '#46504e', alpha: .88 }; return [text]; } },
+            { role: 'minimal.actions.user.controls', tuneText: false, createPackets: () => { const text = packet('text'); text.solid = { color: '#46504e', alpha: .88 }; return [text]; } },
         ],
     },
     {
@@ -8990,7 +5769,7 @@ exports.COMMON_PART_PRESETS = [
             { role: 'assistant.header', tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const border = packet('border'); border.width = 0; const layout = packet('layout'); layout.display = 'block'; const size = packet('size'); size.width = { mode: 'parent' }; size.height = { mode: 'fixed', value: 238, unit: 'px' }; const item = packet('layout-item'); item.alignSelf = 'stretch'; item.order = 0; return [bg, border, layout, size, item]; }, createMobilePackets: () => { const size = packet('size'); size.width = { mode: 'parent' }; size.height = { mode: 'fixed', value: 176, unit: 'px' }; return [size]; } },
             { role: 'assistant.header.left', createPackets: () => { const layout = packet('layout'); layout.display = 'contents'; return [layout]; } },
             { role: 'assistant.meta.row', tuneText: false, createPackets: () => { const layout = packet('layout'); layout.display = 'contents'; return [layout]; } },
-            { role: 'assistant.avatar', createPackets: () => { const visibility = packet('visibility'); visibility.mode = 'visible'; const bg = packet('background'); bg.solid = { color: '#020205', alpha: 1 }; const border = packet('border'); border.width = 0; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 14; const size = packet('size'); size.width = { mode: 'parent' }; size.height = { mode: 'fixed', value: 238, unit: 'px' }; const position = packet('position'); position.mode = 'flow'; position.flowAlign = 'center'; const item = packet('layout-item'); item.alignSelf = 'stretch'; item.order = 0; const image = packet('image'); image.fade.direction = 'bottom'; image.fade.amount = 34; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 18; shadow.blur = 38; shadow.spread = -24; shadow.color = '#000000'; shadow.alpha = .5; return [visibility, bg, border, corners, size, position, item, image, shadow]; }, createMobilePackets: () => { const size = packet('size'); size.width = { mode: 'parent' }; size.height = { mode: 'fixed', value: 176, unit: 'px' }; const image = packet('image'); image.fade.direction = 'bottom'; image.fade.amount = 38; return [size, image]; } },
+            { role: 'assistant.avatar', createPackets: () => { const visibility = packet('visibility'); visibility.mode = 'visible'; const bg = packet('background'); bg.solid = { color: '#020205', alpha: 1 }; const border = packet('border'); border.width = 0; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 14; const size = packet('size'); size.width = { mode: 'parent' }; size.height = { mode: 'fixed', value: 238, unit: 'px' }; const position = packet('position'); position.mode = 'flow'; position.flowAlign = 'center'; const item = packet('layout-item'); item.alignSelf = 'stretch'; item.order = 0; const mask = packet('mask'); mask.maskMode = 'fade'; mask.fade = { direction: 'bottom', amount: 34 }; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 18; shadow.blur = 38; shadow.spread = -24; shadow.color = '#000000'; shadow.alpha = .5; return [visibility, bg, border, corners, size, position, item, mask, shadow]; }, createMobilePackets: () => { const size = packet('size'); size.width = { mode: 'parent' }; size.height = { mode: 'fixed', value: 176, unit: 'px' }; const mask = packet('mask'); mask.maskMode = 'fade'; mask.fade = { direction: 'bottom', amount: 38 }; return [size, mask]; } },
             { role: 'assistant.avatar.image', createPackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 50; image.objectPositionY = 50; image.brightness = .96; image.saturation = 1.05; image.contrast = 1.05; return [image]; }, createMobilePackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 50; image.objectPositionY = 50; image.brightness = .94; image.saturation = 1.04; image.contrast = 1.04; return [image]; } },
             { role: 'assistant.backdrop.frame', createPackets: () => { const visibility = packet('visibility'); visibility.mode = 'gone'; return [visibility]; }, createMobilePackets: () => { const visibility = packet('visibility'); visibility.mode = 'gone'; return [visibility]; } },
             { role: 'assistant.backdrop.image', createPackets: () => { const visibility = packet('visibility'); visibility.mode = 'gone'; return [visibility]; }, createMobilePackets: () => { const visibility = packet('visibility'); visibility.mode = 'gone'; return [visibility]; } },
@@ -9122,38 +5901,38 @@ exports.COMMON_PART_PRESETS = [
             { role: 'minimal.prose.codeblock', tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#070b10', alpha: .9 }; const border = packet('border'); border.width = 1; border.color = '#78c6d8'; border.alpha = .22; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 3; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 9, right: 11, bottom: 9, left: 11, unit: 'px' }; const t = packet('typography'); t.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'; t.fontSize = 11.5; t.lineHeight = 1.5; const text = packet('text'); text.solid = { color: '#d8e7eb', alpha: .93 }; return [bg, border, corners, spacing, t, text]; } },
         ],
     },
-  {
-    id: 'visual-novel-minimal-route-log', category: 'message', section: 'Visual Novel', name: 'ADV dialogue stage', description: 'Turn Minimal assistant messages into a classic VN dialogue screen: centered portrait, fading character banner, floating name plate and meta, translucent patterned dialogue frame, and transparent system furniture.', preview: 'bubble-glass',
-    steps: [
-      { role: 'minimal.assistant.frame', primary: true, tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const pattern = packet('pattern'); pattern.pattern = 'stripes'; pattern.color = '#7da9e3'; pattern.alpha = .06; pattern.scale = 9; pattern.angle = 0; const border = packet('border'); border.width = 2; border.color = '#7da9e3'; border.alpha = .2; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 14, right: 10, bottom: 18, left: 10, unit: 'px' }; spacing.margin = { linked: false, top: 0, right: 0, bottom: 18, left: 0, unit: 'px' }; const position = packet('position'); position.mode = 'flow'; position.flowAlign = 'center'; const size = packet('size'); size.width = { mode: 'fixed', value: 92, unit: '%' }; size.maxWidth = { mode: 'fixed', value: 1040, unit: 'px' }; size.minWidth = { mode: 'fixed', value: 0, unit: 'px' }; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.align = 'center'; layout.justify = 'start'; layout.gap = { mode: 'fixed', value: 0, unit: 'px' }; return [bg, pattern, border, corners, spacing, position, size, layout] }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 8, right: 5, bottom: 13, left: 5, unit: 'px' }; spacing.margin = { linked: false, top: 0, right: 0, bottom: 10, left: 0, unit: 'px' }; const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'parent' }; size.minWidth = { mode: 'fixed', value: 0, unit: 'px' }; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.align = 'center'; return [spacing, size, layout] } },
-      { role: 'minimal.decorative-rail.assistant', tuneText: false, createPackets: () => { const visibility = packet('visibility'); visibility.mode = 'visible'; const layout = packet('layout'); layout.display = 'block'; const content = packet('content'); content.value = ''; const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 180; bg.gradient.stops = [{ color: '#2b5f82', alpha: .34, position: 0 }, { color: '#6b5d93', alpha: .18, position: 40 }, { color: '#11101c', alpha: .045, position: 76 }, { color: '#000000', alpha: 0, position: 100 }]; const pattern = packet('pattern'); pattern.pattern = 'diamonds'; pattern.color = '#d8f4ff'; pattern.alpha = .022; pattern.scale = 22; pattern.angle = 0; const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.assistant.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN assistant stage'; position.top = 0; position.left = 0; position.right = 0; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 0; const size = packet('size'); size.height = { mode: 'fixed', value: 232, unit: 'px' }; return [visibility, layout, content, bg, pattern, position, size] }, createMobilePackets: () => { const size = packet('size'); size.height = { mode: 'fixed', value: 154, unit: 'px' }; return [size] } },
-      { role: 'minimal.corner-ornament.assistant', createPackets: () => { const bg = packet('background'); bg.mode = 'image'; bg.image.assetPath = ornamentPath('vn-heart-jewel'); bg.image.size = 'contain'; bg.image.positionX = 50; bg.image.positionY = 50; bg.image.repeat = 'no-repeat'; bg.image.renderMode = 'mask'; bg.image.maskColor = '#b88cff'; bg.image.maskAlpha = .56; bg.image.hideContents = false; const content = packet('content'); content.value = ''; const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.assistant.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN assistant stage'; position.top = 198; position.left = 60; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 9; const size = packet('size'); size.width = { mode: 'fixed', value: 34, unit: 'px' }; size.height = { mode: 'fixed', value: 22, unit: 'px' }; return [content, bg, position, size] }, createMobilePackets: () => { const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.assistant.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN assistant stage'; position.top = 119; position.left = 12; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 9; const size = packet('size'); size.width = { mode: 'fixed', value: 28, unit: 'px' }; size.height = { mode: 'fixed', value: 18, unit: 'px' }; return [position, size] } },
-      { role: 'minimal.bubble.assistant', tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const border = packet('border'); border.width = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 0, right: 0, bottom: 0, left: 0, unit: 'px' }; const layout = packet('layout'); layout.display = 'block'; const item = packet('layout-item'); item.sizeInParent = 'fill'; const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'parent' }; size.minWidth = { mode: 'fixed', value: 0, unit: 'px' }; return [bg, border, spacing, layout, item, size] } },
-      { role: 'minimal.avatar.assistant.frame', createPackets: () => { const position = packet('position'); position.mode = 'nudge'; position.flowAlign = 'center'; position.nudgeX = 0; position.nudgeY = 0; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 8; const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 145; bg.gradient.stops = [{ color: '#102334', alpha: .98, position: 0 }, { color: '#191327', alpha: .98, position: 100 }]; const border = packet('border'); border.width = 2; border.color = '#b88cff'; border.alpha = .7; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 8; const spacing = packet('spacing'); spacing.padding = { linked: true, top: 3, right: 3, bottom: 3, left: 3, unit: 'px' }; spacing.margin = { linked: false, top: 4, right: 0, bottom: 0, left: 0, unit: 'px' }; const size = packet('size'); size.width = { mode: 'fixed', value: 255, unit: 'px' }; size.height = { mode: 'fixed', value: 180, unit: 'px' }; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 10; shadow.blur = 26; shadow.spread = -12; shadow.color = '#000000'; shadow.alpha = .68; return [position, bg, border, corners, spacing, size, shadow] }, createMobilePackets: () => { const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = KNOWN_PART_ROLES['minimal.assistant.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN assistant stage'; position.top = 10; position.left = 12; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 12; const size = packet('size'); size.width = { mode: 'fixed', value: 84, unit: 'px' }; size.height = { mode: 'fixed', value: 102, unit: 'px' }; const spacing = packet('spacing'); spacing.padding = { linked: true, top: 2, right: 2, bottom: 2, left: 2, unit: 'px' }; spacing.margin = { linked: false, top: 0, right: 0, bottom: 0, left: 0, unit: 'px' }; return [position, size, spacing] } },
-      { role: 'minimal.avatar.assistant.image', createPackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 50; image.objectPositionY = 42; image.brightness = .93; image.saturation = .94; image.contrast = 1.06; image.fade = { direction: 'none', amount: 0 }; return [image] } },
-      { role: 'minimal.header.assistant', tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const border = packet('border'); border.width = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 0, right: 0, bottom: 0, left: 0, unit: 'px' }; spacing.margin = { linked: false, top: 2, right: 0, bottom: 8, left: 0, unit: 'px' }; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'row'; layout.align = 'center'; layout.justify = 'center'; layout.gap = { mode: 'fixed', value: 0, unit: 'px' }; const placement = packet('placement'); placement.horizontal = 'center'; placement.vertical = 'native'; const size = packet('size'); size.width = { mode: 'fixed', value: 76, unit: '%' }; size.maxWidth = { mode: 'fixed', value: 768, unit: 'px' }; size.height = { mode: 'fixed', value: 38, unit: 'px' }; return [bg, border, spacing, layout, placement, size] }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 6, right: 10, bottom: 4, left: 102, unit: 'px' }; spacing.margin = { linked: false, top: 0, right: 0, bottom: 4, left: 0, unit: 'px' }; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.align = 'start'; layout.justify = 'center'; layout.gap = { mode: 'fixed', value: 4, unit: 'px' }; const placement = packet('placement'); placement.horizontal = 'start'; placement.vertical = 'native'; const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'parent' }; size.minHeight = { mode: 'fixed', value: 102, unit: 'px' }; size.height = { mode: 'content' }; return [spacing, layout, placement, size] } },
-      { role: 'minimal.name', tuneText: false, createPackets: () => { const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 90; bg.gradient.stops = [{ color: '#7da9e3', alpha: .97, position: 0 }, { color: '#9ba0e4', alpha: .96, position: 56 }, { color: '#5d4d83', alpha: .96, position: 100 }]; const border = packet('border'); border.width = 1; border.color = '#b88cff'; border.alpha = .58; const corners = packet('corners'); corners.linked = false; corners.topLeft = 7; corners.topRight = 0; corners.bottomRight = 7; corners.bottomLeft = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 5, right: 28, bottom: 5, left: 28, unit: 'px' }; const t = packet('typography'); t.fontFamily = 'Trebuchet MS, ui-sans-serif, system-ui, sans-serif'; t.fontSize = 15; t.fontWeight = 800; t.letterSpacing = .22; t.lineHeight = 1; t.textAlign = 'left'; const text = packet('text'); text.solid = { color: '#f4fbff', alpha: 1 }; text.outlineMode = 'outside'; text.strokeWidth = 1; text.strokeColor = '#000000'; text.strokeAlpha = .57; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 5; shadow.blur = 14; shadow.spread = -7; shadow.color = '#000000'; shadow.alpha = .62; const placement = packet('placement'); placement.horizontal = 'start'; placement.vertical = 'native'; return [bg, border, corners, spacing, t, text, shadow, placement] }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 4, right: 20, bottom: 4, left: 20, unit: 'px' }; const t = packet('typography'); t.fontSize = 13; t.fontWeight = 800; t.lineHeight = 1; return [spacing, t] } },
-      { role: 'minimal.meta.assistant.pill', tuneText: false, createPackets: () => { const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 135; bg.gradient.stops = [{ color: '#9ba0e4', alpha: .96, position: 0 }, { color: '#7da9e3', alpha: .96, position: 100 }]; const border = packet('border'); border.width = 1; border.color = '#b88cff'; border.alpha = .3; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 999; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 4, right: 12, bottom: 4, left: 12, unit: 'px' }; const t = packet('typography'); t.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'; t.fontSize = 7; t.fontWeight = 750; t.transform = 'uppercase'; t.letterSpacing = .72; const text = packet('text'); text.solid = { color: '#070912', alpha: .82 }; return [bg, border, corners, spacing, t, text] }, createMobilePackets: () => { const t = packet('typography'); t.fontSize = 6.3; t.fontWeight = 750; t.letterSpacing = .55; const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.assistant.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN assistant stage'; position.top = 17; position.left = 59; position.unit = '%'; position.layer = 'custom'; position.zIndex = 12; return [t, position] } },
-      { role: 'minimal.content.mount.assistant', tuneText: false, createPackets: () => { const layout = packet('layout'); layout.display = 'block'; const size = packet('size'); size.width = { mode: 'parent' }; size.minWidth = { mode: 'fixed', value: 0, unit: 'px' }; size.maxWidth = { mode: 'parent' }; size.height = { mode: 'content' }; return [layout, size] } },
-      { role: 'minimal.content.assistant', tuneText: false, createPackets: () => { const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 137; bg.gradient.stops = [{ color: '#11243a', alpha: .82, position: 0 }, { color: '#151a31', alpha: .78, position: 54 }, { color: '#21172f', alpha: .8, position: 100 }]; const pattern = packet('pattern'); pattern.pattern = 'diamonds'; pattern.color = '#9ba0e4'; pattern.alpha = .024; pattern.scale = 26; pattern.angle = 0; const border = packet('border'); border.width = 5; border.style = 'double'; border.color = '#b88cff'; border.alpha = .58; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 9; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 19, right: 22, bottom: 42, left: 22, unit: 'px' }; spacing.margin = { linked: false, top: -3, right: 0, bottom: 4, left: 0, unit: 'px' }; const position = packet('position'); position.mode = 'flow'; position.flowAlign = 'center'; position.layer = 'raised'; const size = packet('size'); size.width = { mode: 'fixed', value: 86, unit: '%' }; size.maxWidth = { mode: 'fixed', value: 880, unit: 'px' }; size.minWidth = { mode: 'fixed', value: 0, unit: 'px' }; const text = packet('text'); text.solid = { color: '#edf6f8', alpha: .95 }; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 14; shadow.blur = 34; shadow.spread = -16; shadow.color = '#000000'; shadow.alpha = .66; return [bg, pattern, border, corners, spacing, position, size, text, shadow] }, createMobilePackets: () => { const border = packet('border'); border.width = 3; border.style = 'double'; border.color = '#b88cff'; border.alpha = .56; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 15, right: 14, bottom: 38, left: 14, unit: 'px' }; const size = packet('size'); size.width = { mode: 'fixed', value: 96, unit: '%' }; size.maxWidth = { mode: 'parent' }; return [border, spacing, size] } },
-    ],
-  },
-  {
-    id: 'visual-novel-minimal-user-log', category: 'message', section: 'Visual Novel', name: 'Player dialogue stage', description: 'Transpose the mounted ADV stage onto the player side: the same centered landscape portrait, transparent header, name/meta lane, fading banner, and double-line dialogue window, recolored into the rose route family instead of shrinking into a separate card grammar.', preview: 'bubble-glass',
-    steps: [
-      { role: 'minimal.user.frame', primary: true, tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const pattern = packet('pattern'); pattern.pattern = 'stripes'; pattern.color = '#d79ab4'; pattern.alpha = .06; pattern.scale = 9; pattern.angle = 0; const border = packet('border'); border.width = 2; border.color = '#d79ab4'; border.alpha = .2; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 14, right: 10, bottom: 18, left: 10, unit: 'px' }; spacing.margin = { linked: false, top: 0, right: 0, bottom: 18, left: 0, unit: 'px' }; const position = packet('position'); position.mode = 'flow'; position.flowAlign = 'center'; const size = packet('size'); size.width = { mode: 'fixed', value: 92, unit: '%' }; size.maxWidth = { mode: 'fixed', value: 1040, unit: 'px' }; size.minWidth = { mode: 'fixed', value: 0, unit: 'px' }; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.align = 'center'; layout.justify = 'start'; layout.gap = { mode: 'fixed', value: 0, unit: 'px' }; return [bg, pattern, border, corners, spacing, position, size, layout] }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 8, right: 5, bottom: 13, left: 5, unit: 'px' }; spacing.margin = { linked: false, top: 0, right: 0, bottom: 10, left: 0, unit: 'px' }; const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'parent' }; size.minWidth = { mode: 'fixed', value: 0, unit: 'px' }; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.align = 'center'; return [spacing, size, layout] } },
-      { role: 'minimal.decorative-rail.user', tuneText: false, createPackets: () => { const visibility = packet('visibility'); visibility.mode = 'visible'; const layout = packet('layout'); layout.display = 'block'; const content = packet('content'); content.value = ''; const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 180; bg.gradient.stops = [{ color: '#744765', alpha: .4, position: 0 }, { color: '#66517f', alpha: .19, position: 40 }, { color: '#17111b', alpha: .045, position: 76 }, { color: '#000000', alpha: 0, position: 100 }]; const pattern = packet('pattern'); pattern.pattern = 'diamonds'; pattern.color = '#f3bed2'; pattern.alpha = .024; pattern.scale = 22; pattern.angle = 0; const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.user.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN player stage'; position.top = 0; position.left = 0; position.right = 0; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 0; const size = packet('size'); size.height = { mode: 'fixed', value: 232, unit: 'px' }; return [visibility, layout, content, bg, pattern, position, size] }, createMobilePackets: () => { const size = packet('size'); size.height = { mode: 'fixed', value: 154, unit: 'px' }; return [size] } },
-      { role: 'minimal.corner-ornament.user', createPackets: () => { const bg = packet('background'); bg.mode = 'image'; bg.image.assetPath = ornamentPath('vn-heart-jewel'); bg.image.size = 'contain'; bg.image.positionX = 50; bg.image.positionY = 50; bg.image.repeat = 'no-repeat'; bg.image.renderMode = 'mask'; bg.image.maskColor = '#e7a0bc'; bg.image.maskAlpha = .5; bg.image.hideContents = false; const content = packet('content'); content.value = ''; const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.user.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN player stage'; position.top = 198; position.right = 60; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 9; const size = packet('size'); size.width = { mode: 'fixed', value: 34, unit: 'px' }; size.height = { mode: 'fixed', value: 22, unit: 'px' }; return [content, bg, position, size] }, createMobilePackets: () => { const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.user.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN player stage'; position.top = 119; position.right = 12; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 9; const size = packet('size'); size.width = { mode: 'fixed', value: 28, unit: 'px' }; size.height = { mode: 'fixed', value: 18, unit: 'px' }; return [position, size] } },
-      { role: 'minimal.bubble.user', tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const border = packet('border'); border.width = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 0, right: 0, bottom: 0, left: 0, unit: 'px' }; const layout = packet('layout'); layout.display = 'block'; const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'parent' }; size.minWidth = { mode: 'fixed', value: 0, unit: 'px' }; return [bg, border, spacing, layout, size] } },
-      { role: 'minimal.avatar.user.frame', createPackets: () => { const position = packet('position'); position.mode = 'nudge'; position.flowAlign = 'center'; position.nudgeX = 0; position.nudgeY = 0; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 8; const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 145; bg.gradient.stops = [{ color: '#321927', alpha: .98, position: 0 }, { color: '#1d1528', alpha: .98, position: 100 }]; const border = packet('border'); border.width = 2; border.color = '#e3a2bd'; border.alpha = .7; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 8; const spacing = packet('spacing'); spacing.padding = { linked: true, top: 3, right: 3, bottom: 3, left: 3, unit: 'px' }; spacing.margin = { linked: false, top: 4, right: 0, bottom: 0, left: 0, unit: 'px' }; const size = packet('size'); size.width = { mode: 'fixed', value: 255, unit: 'px' }; size.height = { mode: 'fixed', value: 180, unit: 'px' }; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 10; shadow.blur = 26; shadow.spread = -12; shadow.color = '#000000'; shadow.alpha = .68; return [position, bg, border, corners, spacing, size, shadow] }, createMobilePackets: () => { const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = KNOWN_PART_ROLES['minimal.user.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN player stage'; position.top = 10; position.left = 12; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 12; const size = packet('size'); size.width = { mode: 'fixed', value: 84, unit: 'px' }; size.height = { mode: 'fixed', value: 102, unit: 'px' }; const spacing = packet('spacing'); spacing.padding = { linked: true, top: 2, right: 2, bottom: 2, left: 2, unit: 'px' }; spacing.margin = { linked: false, top: 0, right: 0, bottom: 0, left: 0, unit: 'px' }; return [position, size, spacing] } },
-      { role: 'minimal.avatar.user.image', createPackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 50; image.objectPositionY = 42; image.brightness = .94; image.saturation = .96; image.contrast = 1.06; image.fade = { direction: 'none', amount: 0 }; return [image] } },
-      { role: 'minimal.header.user', tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const border = packet('border'); border.width = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 0, right: 0, bottom: 0, left: 0, unit: 'px' }; spacing.margin = { linked: false, top: 2, right: 0, bottom: 8, left: 0, unit: 'px' }; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'row'; layout.align = 'center'; layout.justify = 'center'; layout.gap = { mode: 'fixed', value: 0, unit: 'px' }; const placement = packet('placement'); placement.horizontal = 'center'; placement.vertical = 'native'; const size = packet('size'); size.width = { mode: 'fixed', value: 76, unit: '%' }; size.maxWidth = { mode: 'fixed', value: 768, unit: 'px' }; size.height = { mode: 'fixed', value: 38, unit: 'px' }; return [bg, border, spacing, layout, placement, size] }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 6, right: 10, bottom: 4, left: 102, unit: 'px' }; spacing.margin = { linked: false, top: 0, right: 0, bottom: 4, left: 0, unit: 'px' }; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.align = 'start'; layout.justify = 'center'; layout.gap = { mode: 'fixed', value: 4, unit: 'px' }; const placement = packet('placement'); placement.horizontal = 'start'; placement.vertical = 'native'; const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'parent' }; size.minHeight = { mode: 'fixed', value: 102, unit: 'px' }; size.height = { mode: 'content' }; return [spacing, layout, placement, size] } },
-      { role: 'minimal.name.user', tuneText: false, createPackets: () => { const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 90; bg.gradient.stops = [{ color: '#d79ab4', alpha: .97, position: 0 }, { color: '#b98bd2', alpha: .96, position: 56 }, { color: '#7e527f', alpha: .96, position: 100 }]; const border = packet('border'); border.width = 1; border.color = '#f0bdd2'; border.alpha = .58; const corners = packet('corners'); corners.linked = false; corners.topLeft = 7; corners.topRight = 0; corners.bottomRight = 7; corners.bottomLeft = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 5, right: 28, bottom: 5, left: 28, unit: 'px' }; const t = packet('typography'); t.fontFamily = 'Trebuchet MS, ui-sans-serif, system-ui, sans-serif'; t.fontSize = 15; t.fontWeight = 800; t.letterSpacing = .22; t.lineHeight = 1; t.textAlign = 'left'; const text = packet('text'); text.solid = { color: '#fff7fb', alpha: 1 }; text.outlineMode = 'outside'; text.strokeWidth = 1; text.strokeColor = '#1a0712'; text.strokeAlpha = .57; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 5; shadow.blur = 14; shadow.spread = -7; shadow.color = '#000000'; shadow.alpha = .62; const placement = packet('placement'); placement.horizontal = 'start'; placement.vertical = 'native'; return [bg, border, corners, spacing, t, text, shadow, placement] }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 4, right: 20, bottom: 4, left: 20, unit: 'px' }; const t = packet('typography'); t.fontSize = 13; t.fontWeight = 800; t.lineHeight = 1; return [spacing, t] } },
-      { role: 'minimal.meta.user.pill', tuneText: false, createPackets: () => { const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 135; bg.gradient.stops = [{ color: '#d79ab4', alpha: .96, position: 0 }, { color: '#b98bd2', alpha: .96, position: 100 }]; const border = packet('border'); border.width = 1; border.color = '#f0bdd2'; border.alpha = .3; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 999; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 4, right: 12, bottom: 4, left: 12, unit: 'px' }; const t = packet('typography'); t.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'; t.fontSize = 7; t.fontWeight = 750; t.transform = 'uppercase'; t.letterSpacing = .72; const text = packet('text'); text.solid = { color: '#160914', alpha: .82 }; return [bg, border, corners, spacing, t, text] }, createMobilePackets: () => { const t = packet('typography'); t.fontSize = 6.3; t.fontWeight = 750; t.letterSpacing = .55; const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.user.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN player stage'; position.top = 17; position.left = 59; position.unit = '%'; position.layer = 'custom'; position.zIndex = 12; return [t, position] } },
-      { role: 'minimal.content.mount.user', tuneText: false, createPackets: () => { const layout = packet('layout'); layout.display = 'block'; const size = packet('size'); size.width = { mode: 'parent' }; size.minWidth = { mode: 'fixed', value: 0, unit: 'px' }; size.maxWidth = { mode: 'parent' }; size.height = { mode: 'content' }; return [layout, size] } },
-      { role: 'minimal.content.user', tuneText: false, createPackets: () => { const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 137; bg.gradient.stops = [{ color: '#321725', alpha: .82, position: 0 }, { color: '#241a31', alpha: .78, position: 54 }, { color: '#182131', alpha: .8, position: 100 }]; const pattern = packet('pattern'); pattern.pattern = 'diamonds'; pattern.color = '#dca1bb'; pattern.alpha = .024; pattern.scale = 26; pattern.angle = 0; const border = packet('border'); border.width = 5; border.style = 'double'; border.color = '#e0a2bd'; border.alpha = .58; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 9; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 19, right: 22, bottom: 42, left: 22, unit: 'px' }; spacing.margin = { linked: false, top: -3, right: 0, bottom: 4, left: 0, unit: 'px' }; const position = packet('position'); position.mode = 'flow'; position.flowAlign = 'center'; position.layer = 'raised'; const size = packet('size'); size.width = { mode: 'fixed', value: 86, unit: '%' }; size.maxWidth = { mode: 'fixed', value: 880, unit: 'px' }; size.minWidth = { mode: 'fixed', value: 0, unit: 'px' }; const text = packet('text'); text.solid = { color: '#f7edf2', alpha: .95 }; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 14; shadow.blur = 34; shadow.spread = -16; shadow.color = '#000000'; shadow.alpha = .66; return [bg, pattern, border, corners, spacing, position, size, text, shadow] }, createMobilePackets: () => { const border = packet('border'); border.width = 3; border.style = 'double'; border.color = '#e0a2bd'; border.alpha = .56; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 15, right: 14, bottom: 38, left: 14, unit: 'px' }; const size = packet('size'); size.width = { mode: 'fixed', value: 96, unit: '%' }; size.maxWidth = { mode: 'parent' }; return [border, spacing, size] } },
-    ],
-  },
+    {
+        id: 'visual-novel-minimal-route-log', category: 'message', section: 'Visual Novel', name: 'ADV dialogue stage', description: 'Turn Minimal assistant messages into a classic VN dialogue screen: centered portrait, fading character banner, floating name plate and meta, translucent patterned dialogue frame, and transparent system furniture.', preview: 'bubble-glass',
+        steps: [
+            { role: 'minimal.assistant.frame', primary: true, tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const pattern = packet('pattern'); pattern.pattern = 'stripes'; pattern.color = '#7da9e3'; pattern.alpha = .06; pattern.scale = 9; pattern.angle = 0; const border = packet('border'); border.width = 2; border.color = '#7da9e3'; border.alpha = .2; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 14, right: 10, bottom: 18, left: 10, unit: 'px' }; spacing.margin = { linked: false, top: 0, right: 0, bottom: 18, left: 0, unit: 'px' }; const position = packet('position'); position.mode = 'flow'; position.flowAlign = 'center'; const size = packet('size'); size.width = { mode: 'fixed', value: 92, unit: '%' }; size.maxWidth = { mode: 'fixed', value: 1040, unit: 'px' }; size.minWidth = { mode: 'fixed', value: 0, unit: 'px' }; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.align = 'center'; layout.justify = 'start'; layout.gap = { mode: 'fixed', value: 0, unit: 'px' }; return [bg, pattern, border, corners, spacing, position, size, layout]; }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 8, right: 5, bottom: 13, left: 5, unit: 'px' }; spacing.margin = { linked: false, top: 0, right: 0, bottom: 10, left: 0, unit: 'px' }; const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'parent' }; size.minWidth = { mode: 'fixed', value: 0, unit: 'px' }; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.align = 'center'; return [spacing, size, layout]; } },
+            { role: 'minimal.decorative-rail.assistant', tuneText: false, createPackets: () => { const visibility = packet('visibility'); visibility.mode = 'visible'; const layout = packet('layout'); layout.display = 'block'; const content = packet('content'); content.value = ''; const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 180; bg.gradient.stops = [{ color: '#2b5f82', alpha: .34, position: 0 }, { color: '#6b5d93', alpha: .18, position: 40 }, { color: '#11101c', alpha: .045, position: 76 }, { color: '#000000', alpha: 0, position: 100 }]; const pattern = packet('pattern'); pattern.pattern = 'diamonds'; pattern.color = '#d8f4ff'; pattern.alpha = .022; pattern.scale = 22; pattern.angle = 0; const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.assistant.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN assistant stage'; position.top = 0; position.left = 0; position.right = 0; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 0; const size = packet('size'); size.height = { mode: 'fixed', value: 232, unit: 'px' }; return [visibility, layout, content, bg, pattern, position, size]; }, createMobilePackets: () => { const size = packet('size'); size.height = { mode: 'fixed', value: 154, unit: 'px' }; return [size]; } },
+            { role: 'minimal.corner-ornament.assistant', createPackets: () => { const bg = packet('background'); bg.mode = 'image'; bg.image.assetPath = ornamentPath('vn-heart-jewel'); bg.image.size = 'contain'; bg.image.positionX = 50; bg.image.positionY = 50; bg.image.repeat = 'no-repeat'; bg.image.renderMode = 'mask'; bg.image.maskColor = '#b88cff'; bg.image.maskAlpha = .56; bg.image.hideContents = false; const content = packet('content'); content.value = ''; const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.assistant.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN assistant stage'; position.top = 198; position.left = 60; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 9; const size = packet('size'); size.width = { mode: 'fixed', value: 34, unit: 'px' }; size.height = { mode: 'fixed', value: 22, unit: 'px' }; return [content, bg, position, size]; }, createMobilePackets: () => { const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.assistant.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN assistant stage'; position.top = 119; position.left = 12; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 9; const size = packet('size'); size.width = { mode: 'fixed', value: 28, unit: 'px' }; size.height = { mode: 'fixed', value: 18, unit: 'px' }; return [position, size]; } },
+            { role: 'minimal.bubble.assistant', tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const border = packet('border'); border.width = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 0, right: 0, bottom: 0, left: 0, unit: 'px' }; const layout = packet('layout'); layout.display = 'block'; const item = packet('layout-item'); item.sizeInParent = 'fill'; const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'parent' }; size.minWidth = { mode: 'fixed', value: 0, unit: 'px' }; return [bg, border, spacing, layout, item, size]; } },
+            { role: 'minimal.avatar.assistant.frame', createPackets: () => { const position = packet('position'); position.mode = 'nudge'; position.flowAlign = 'center'; position.nudgeX = 0; position.nudgeY = 0; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 8; const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 145; bg.gradient.stops = [{ color: '#102334', alpha: .98, position: 0 }, { color: '#191327', alpha: .98, position: 100 }]; const border = packet('border'); border.width = 2; border.color = '#b88cff'; border.alpha = .7; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 8; const spacing = packet('spacing'); spacing.padding = { linked: true, top: 3, right: 3, bottom: 3, left: 3, unit: 'px' }; spacing.margin = { linked: false, top: 4, right: 0, bottom: 0, left: 0, unit: 'px' }; const size = packet('size'); size.width = { mode: 'fixed', value: 255, unit: 'px' }; size.height = { mode: 'fixed', value: 180, unit: 'px' }; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 10; shadow.blur = 26; shadow.spread = -12; shadow.color = '#000000'; shadow.alpha = .68; return [position, bg, border, corners, spacing, size, shadow]; }, createMobilePackets: () => { const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.assistant.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN assistant stage'; position.top = 10; position.left = 12; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 12; const size = packet('size'); size.width = { mode: 'fixed', value: 84, unit: 'px' }; size.height = { mode: 'fixed', value: 102, unit: 'px' }; const spacing = packet('spacing'); spacing.padding = { linked: true, top: 2, right: 2, bottom: 2, left: 2, unit: 'px' }; spacing.margin = { linked: false, top: 0, right: 0, bottom: 0, left: 0, unit: 'px' }; return [position, size, spacing]; } },
+            { role: 'minimal.avatar.assistant.image', createPackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 50; image.objectPositionY = 42; image.brightness = .93; image.saturation = .94; image.contrast = 1.06; return [image]; } },
+            { role: 'minimal.header.assistant', tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const border = packet('border'); border.width = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 0, right: 0, bottom: 0, left: 0, unit: 'px' }; spacing.margin = { linked: false, top: 2, right: 0, bottom: 8, left: 0, unit: 'px' }; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'row'; layout.align = 'center'; layout.justify = 'center'; layout.gap = { mode: 'fixed', value: 0, unit: 'px' }; const placement = packet('placement'); placement.horizontal = 'center'; placement.vertical = 'native'; const size = packet('size'); size.width = { mode: 'fixed', value: 76, unit: '%' }; size.maxWidth = { mode: 'fixed', value: 768, unit: 'px' }; size.height = { mode: 'fixed', value: 38, unit: 'px' }; return [bg, border, spacing, layout, placement, size]; }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 6, right: 10, bottom: 4, left: 102, unit: 'px' }; spacing.margin = { linked: false, top: 0, right: 0, bottom: 4, left: 0, unit: 'px' }; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.align = 'start'; layout.justify = 'center'; layout.gap = { mode: 'fixed', value: 4, unit: 'px' }; const placement = packet('placement'); placement.horizontal = 'start'; placement.vertical = 'native'; const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'parent' }; size.minHeight = { mode: 'fixed', value: 102, unit: 'px' }; size.height = { mode: 'content' }; return [spacing, layout, placement, size]; } },
+            { role: 'minimal.name', tuneText: false, createPackets: () => { const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 90; bg.gradient.stops = [{ color: '#7da9e3', alpha: .97, position: 0 }, { color: '#9ba0e4', alpha: .96, position: 56 }, { color: '#5d4d83', alpha: .96, position: 100 }]; const border = packet('border'); border.width = 1; border.color = '#b88cff'; border.alpha = .58; const corners = packet('corners'); corners.linked = false; corners.topLeft = 7; corners.topRight = 0; corners.bottomRight = 7; corners.bottomLeft = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 5, right: 28, bottom: 5, left: 28, unit: 'px' }; const t = packet('typography'); t.fontFamily = 'Trebuchet MS, ui-sans-serif, system-ui, sans-serif'; t.fontSize = 15; t.fontWeight = 800; t.letterSpacing = .22; t.lineHeight = 1; t.textAlign = 'left'; const text = packet('text'); text.solid = { color: '#f4fbff', alpha: 1 }; text.outlineMode = 'outside'; text.strokeWidth = 1; text.strokeColor = '#000000'; text.strokeAlpha = .57; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 5; shadow.blur = 14; shadow.spread = -7; shadow.color = '#000000'; shadow.alpha = .62; const placement = packet('placement'); placement.horizontal = 'start'; placement.vertical = 'native'; return [bg, border, corners, spacing, t, text, shadow, placement]; }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 4, right: 20, bottom: 4, left: 20, unit: 'px' }; const t = packet('typography'); t.fontSize = 13; t.fontWeight = 800; t.lineHeight = 1; return [spacing, t]; } },
+            { role: 'minimal.meta.assistant.pill', tuneText: false, createPackets: () => { const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 135; bg.gradient.stops = [{ color: '#9ba0e4', alpha: .96, position: 0 }, { color: '#7da9e3', alpha: .96, position: 100 }]; const border = packet('border'); border.width = 1; border.color = '#b88cff'; border.alpha = .3; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 999; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 4, right: 12, bottom: 4, left: 12, unit: 'px' }; const t = packet('typography'); t.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'; t.fontSize = 7; t.fontWeight = 750; t.transform = 'uppercase'; t.letterSpacing = .72; const text = packet('text'); text.solid = { color: '#070912', alpha: .82 }; return [bg, border, corners, spacing, t, text]; }, createMobilePackets: () => { const t = packet('typography'); t.fontSize = 6.3; t.fontWeight = 750; t.letterSpacing = .55; const placement = packet('placement'); placement.horizontal = 'start'; placement.vertical = 'native'; return [t, placement]; } },
+            { role: 'minimal.content.mount.assistant', tuneText: false, createPackets: () => { const layout = packet('layout'); layout.display = 'block'; const size = packet('size'); size.width = { mode: 'parent' }; size.minWidth = { mode: 'fixed', value: 0, unit: 'px' }; size.maxWidth = { mode: 'parent' }; size.height = { mode: 'content' }; return [layout, size]; } },
+            { role: 'minimal.content.assistant', tuneText: false, createPackets: () => { const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 137; bg.gradient.stops = [{ color: '#11243a', alpha: .82, position: 0 }, { color: '#151a31', alpha: .78, position: 54 }, { color: '#21172f', alpha: .8, position: 100 }]; const pattern = packet('pattern'); pattern.pattern = 'diamonds'; pattern.color = '#9ba0e4'; pattern.alpha = .024; pattern.scale = 26; pattern.angle = 0; const border = packet('border'); border.width = 5; border.style = 'double'; border.color = '#b88cff'; border.alpha = .58; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 9; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 19, right: 22, bottom: 42, left: 22, unit: 'px' }; spacing.margin = { linked: false, top: -3, right: 0, bottom: 4, left: 0, unit: 'px' }; const position = packet('position'); position.mode = 'flow'; position.flowAlign = 'center'; position.layer = 'raised'; const size = packet('size'); size.width = { mode: 'fixed', value: 86, unit: '%' }; size.maxWidth = { mode: 'fixed', value: 880, unit: 'px' }; size.minWidth = { mode: 'fixed', value: 0, unit: 'px' }; const text = packet('text'); text.solid = { color: '#edf6f8', alpha: .95 }; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 14; shadow.blur = 34; shadow.spread = -16; shadow.color = '#000000'; shadow.alpha = .66; return [bg, pattern, border, corners, spacing, position, size, text, shadow]; }, createMobilePackets: () => { const border = packet('border'); border.width = 3; border.style = 'double'; border.color = '#b88cff'; border.alpha = .56; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 15, right: 14, bottom: 38, left: 14, unit: 'px' }; const size = packet('size'); size.width = { mode: 'fixed', value: 96, unit: '%' }; size.maxWidth = { mode: 'parent' }; return [border, spacing, size]; } },
+        ],
+    },
+    {
+        id: 'visual-novel-minimal-user-log', category: 'message', section: 'Visual Novel', name: 'Player dialogue stage', description: 'Transpose the mounted ADV stage onto the player side: the same centered landscape portrait, transparent header, name/meta lane, fading banner, and double-line dialogue window, recolored into the rose route family instead of shrinking into a separate card grammar.', preview: 'bubble-glass',
+        steps: [
+            { role: 'minimal.user.frame', primary: true, tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const pattern = packet('pattern'); pattern.pattern = 'stripes'; pattern.color = '#d79ab4'; pattern.alpha = .06; pattern.scale = 9; pattern.angle = 0; const border = packet('border'); border.width = 2; border.color = '#d79ab4'; border.alpha = .2; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 14, right: 10, bottom: 18, left: 10, unit: 'px' }; spacing.margin = { linked: false, top: 0, right: 0, bottom: 18, left: 0, unit: 'px' }; const position = packet('position'); position.mode = 'flow'; position.flowAlign = 'center'; const size = packet('size'); size.width = { mode: 'fixed', value: 92, unit: '%' }; size.maxWidth = { mode: 'fixed', value: 1040, unit: 'px' }; size.minWidth = { mode: 'fixed', value: 0, unit: 'px' }; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.align = 'center'; layout.justify = 'start'; layout.gap = { mode: 'fixed', value: 0, unit: 'px' }; return [bg, pattern, border, corners, spacing, position, size, layout]; }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 8, right: 5, bottom: 13, left: 5, unit: 'px' }; spacing.margin = { linked: false, top: 0, right: 0, bottom: 10, left: 0, unit: 'px' }; const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'parent' }; size.minWidth = { mode: 'fixed', value: 0, unit: 'px' }; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.align = 'center'; return [spacing, size, layout]; } },
+            { role: 'minimal.decorative-rail.user', tuneText: false, createPackets: () => { const visibility = packet('visibility'); visibility.mode = 'visible'; const layout = packet('layout'); layout.display = 'block'; const content = packet('content'); content.value = ''; const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 180; bg.gradient.stops = [{ color: '#744765', alpha: .4, position: 0 }, { color: '#66517f', alpha: .19, position: 40 }, { color: '#17111b', alpha: .045, position: 76 }, { color: '#000000', alpha: 0, position: 100 }]; const pattern = packet('pattern'); pattern.pattern = 'diamonds'; pattern.color = '#f3bed2'; pattern.alpha = .024; pattern.scale = 22; pattern.angle = 0; const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.user.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN player stage'; position.top = 0; position.left = 0; position.right = 0; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 0; const size = packet('size'); size.height = { mode: 'fixed', value: 232, unit: 'px' }; return [visibility, layout, content, bg, pattern, position, size]; }, createMobilePackets: () => { const size = packet('size'); size.height = { mode: 'fixed', value: 154, unit: 'px' }; return [size]; } },
+            { role: 'minimal.corner-ornament.user', createPackets: () => { const bg = packet('background'); bg.mode = 'image'; bg.image.assetPath = ornamentPath('vn-heart-jewel'); bg.image.size = 'contain'; bg.image.positionX = 50; bg.image.positionY = 50; bg.image.repeat = 'no-repeat'; bg.image.renderMode = 'mask'; bg.image.maskColor = '#e7a0bc'; bg.image.maskAlpha = .5; bg.image.hideContents = false; const content = packet('content'); content.value = ''; const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.user.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN player stage'; position.top = 198; position.right = 60; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 9; const size = packet('size'); size.width = { mode: 'fixed', value: 34, unit: 'px' }; size.height = { mode: 'fixed', value: 22, unit: 'px' }; return [content, bg, position, size]; }, createMobilePackets: () => { const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.user.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN player stage'; position.top = 119; position.right = 12; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 9; const size = packet('size'); size.width = { mode: 'fixed', value: 28, unit: 'px' }; size.height = { mode: 'fixed', value: 18, unit: 'px' }; return [position, size]; } },
+            { role: 'minimal.bubble.user', tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const border = packet('border'); border.width = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 0, right: 0, bottom: 0, left: 0, unit: 'px' }; const layout = packet('layout'); layout.display = 'block'; const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'parent' }; size.minWidth = { mode: 'fixed', value: 0, unit: 'px' }; return [bg, border, spacing, layout, size]; } },
+            { role: 'minimal.avatar.user.frame', createPackets: () => { const position = packet('position'); position.mode = 'nudge'; position.flowAlign = 'center'; position.nudgeX = 0; position.nudgeY = 0; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 8; const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 145; bg.gradient.stops = [{ color: '#321927', alpha: .98, position: 0 }, { color: '#1d1528', alpha: .98, position: 100 }]; const border = packet('border'); border.width = 2; border.color = '#e3a2bd'; border.alpha = .7; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 8; const spacing = packet('spacing'); spacing.padding = { linked: true, top: 3, right: 3, bottom: 3, left: 3, unit: 'px' }; spacing.margin = { linked: false, top: 4, right: 0, bottom: 0, left: 0, unit: 'px' }; const size = packet('size'); size.width = { mode: 'fixed', value: 255, unit: 'px' }; size.height = { mode: 'fixed', value: 180, unit: 'px' }; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 10; shadow.blur = 26; shadow.spread = -12; shadow.color = '#000000'; shadow.alpha = .68; return [position, bg, border, corners, spacing, size, shadow]; }, createMobilePackets: () => { const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.user.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN player stage'; position.top = 10; position.left = 12; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 12; const size = packet('size'); size.width = { mode: 'fixed', value: 84, unit: 'px' }; size.height = { mode: 'fixed', value: 102, unit: 'px' }; const spacing = packet('spacing'); spacing.padding = { linked: true, top: 2, right: 2, bottom: 2, left: 2, unit: 'px' }; spacing.margin = { linked: false, top: 0, right: 0, bottom: 0, left: 0, unit: 'px' }; return [position, size, spacing]; } },
+            { role: 'minimal.avatar.user.image', createPackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 50; image.objectPositionY = 42; image.brightness = .94; image.saturation = .96; image.contrast = 1.06; return [image]; } },
+            { role: 'minimal.header.user', tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const border = packet('border'); border.width = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 0, right: 0, bottom: 0, left: 0, unit: 'px' }; spacing.margin = { linked: false, top: 2, right: 0, bottom: 8, left: 0, unit: 'px' }; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'row'; layout.align = 'center'; layout.justify = 'center'; layout.gap = { mode: 'fixed', value: 0, unit: 'px' }; const placement = packet('placement'); placement.horizontal = 'center'; placement.vertical = 'native'; const size = packet('size'); size.width = { mode: 'fixed', value: 76, unit: '%' }; size.maxWidth = { mode: 'fixed', value: 768, unit: 'px' }; size.height = { mode: 'fixed', value: 38, unit: 'px' }; return [bg, border, spacing, layout, placement, size]; }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 6, right: 10, bottom: 4, left: 102, unit: 'px' }; spacing.margin = { linked: false, top: 0, right: 0, bottom: 4, left: 0, unit: 'px' }; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.align = 'start'; layout.justify = 'center'; layout.gap = { mode: 'fixed', value: 4, unit: 'px' }; const placement = packet('placement'); placement.horizontal = 'start'; placement.vertical = 'native'; const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'parent' }; size.minHeight = { mode: 'fixed', value: 102, unit: 'px' }; size.height = { mode: 'content' }; return [spacing, layout, placement, size]; } },
+            { role: 'minimal.name.user', tuneText: false, createPackets: () => { const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 90; bg.gradient.stops = [{ color: '#d79ab4', alpha: .97, position: 0 }, { color: '#b98bd2', alpha: .96, position: 56 }, { color: '#7e527f', alpha: .96, position: 100 }]; const border = packet('border'); border.width = 1; border.color = '#f0bdd2'; border.alpha = .58; const corners = packet('corners'); corners.linked = false; corners.topLeft = 7; corners.topRight = 0; corners.bottomRight = 7; corners.bottomLeft = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 5, right: 28, bottom: 5, left: 28, unit: 'px' }; const t = packet('typography'); t.fontFamily = 'Trebuchet MS, ui-sans-serif, system-ui, sans-serif'; t.fontSize = 15; t.fontWeight = 800; t.letterSpacing = .22; t.lineHeight = 1; t.textAlign = 'left'; const text = packet('text'); text.solid = { color: '#fff7fb', alpha: 1 }; text.outlineMode = 'outside'; text.strokeWidth = 1; text.strokeColor = '#1a0712'; text.strokeAlpha = .57; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 5; shadow.blur = 14; shadow.spread = -7; shadow.color = '#000000'; shadow.alpha = .62; const placement = packet('placement'); placement.horizontal = 'start'; placement.vertical = 'native'; return [bg, border, corners, spacing, t, text, shadow, placement]; }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 4, right: 20, bottom: 4, left: 20, unit: 'px' }; const t = packet('typography'); t.fontSize = 13; t.fontWeight = 800; t.lineHeight = 1; return [spacing, t]; } },
+            { role: 'minimal.meta.user.pill', tuneText: false, createPackets: () => { const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 135; bg.gradient.stops = [{ color: '#d79ab4', alpha: .96, position: 0 }, { color: '#b98bd2', alpha: .96, position: 100 }]; const border = packet('border'); border.width = 1; border.color = '#f0bdd2'; border.alpha = .3; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 999; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 4, right: 12, bottom: 4, left: 12, unit: 'px' }; const t = packet('typography'); t.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'; t.fontSize = 7; t.fontWeight = 750; t.transform = 'uppercase'; t.letterSpacing = .72; const text = packet('text'); text.solid = { color: '#160914', alpha: .82 }; return [bg, border, corners, spacing, t, text]; }, createMobilePackets: () => { const t = packet('typography'); t.fontSize = 6.3; t.fontWeight = 750; t.letterSpacing = .55; const placement = packet('placement'); placement.horizontal = 'start'; placement.vertical = 'native'; return [t, placement]; } },
+            { role: 'minimal.content.mount.user', tuneText: false, createPackets: () => { const layout = packet('layout'); layout.display = 'block'; const size = packet('size'); size.width = { mode: 'parent' }; size.minWidth = { mode: 'fixed', value: 0, unit: 'px' }; size.maxWidth = { mode: 'parent' }; size.height = { mode: 'content' }; return [layout, size]; } },
+            { role: 'minimal.content.user', tuneText: false, createPackets: () => { const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 137; bg.gradient.stops = [{ color: '#321725', alpha: .82, position: 0 }, { color: '#241a31', alpha: .78, position: 54 }, { color: '#182131', alpha: .8, position: 100 }]; const pattern = packet('pattern'); pattern.pattern = 'diamonds'; pattern.color = '#dca1bb'; pattern.alpha = .024; pattern.scale = 26; pattern.angle = 0; const border = packet('border'); border.width = 5; border.style = 'double'; border.color = '#e0a2bd'; border.alpha = .58; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 9; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 19, right: 22, bottom: 42, left: 22, unit: 'px' }; spacing.margin = { linked: false, top: -3, right: 0, bottom: 4, left: 0, unit: 'px' }; const position = packet('position'); position.mode = 'flow'; position.flowAlign = 'center'; position.layer = 'raised'; const size = packet('size'); size.width = { mode: 'fixed', value: 86, unit: '%' }; size.maxWidth = { mode: 'fixed', value: 880, unit: 'px' }; size.minWidth = { mode: 'fixed', value: 0, unit: 'px' }; const text = packet('text'); text.solid = { color: '#f7edf2', alpha: .95 }; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 14; shadow.blur = 34; shadow.spread = -16; shadow.color = '#000000'; shadow.alpha = .66; return [bg, pattern, border, corners, spacing, position, size, text, shadow]; }, createMobilePackets: () => { const border = packet('border'); border.width = 3; border.style = 'double'; border.color = '#e0a2bd'; border.alpha = .56; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 15, right: 14, bottom: 38, left: 14, unit: 'px' }; const size = packet('size'); size.width = { mode: 'fixed', value: 96, unit: '%' }; size.maxWidth = { mode: 'parent' }; return [border, spacing, size]; } },
+        ],
+    },
     {
         id: 'visual-novel-minimal-inner-voice', category: 'message', section: 'Visual Novel', name: 'Inner voice plate', description: 'Mount reasoning as a compact VN plate directly under the speaker name and visually over the dialogue frame, with the expanded thought continuing inside the same translucent surface.', preview: 'actions-glass',
         steps: [
@@ -9165,39 +5944,39 @@ exports.COMMON_PART_PRESETS = [
             { role: 'minimal.thinking.content', tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#0b1020', alpha: .58 }; const border = packet('border'); border.width = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 9, right: 13, bottom: 11, left: 13, unit: 'px' }; const t = packet('typography'); t.fontFamily = 'Trebuchet MS, ui-sans-serif, system-ui, sans-serif'; t.fontSize = 12.3; t.fontStyle = 'italic'; t.lineHeight = 1.56; const text = packet('text'); text.solid = { color: '#d9e8ec', alpha: .84 }; return [bg, border, spacing, t, text]; }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 8, right: 10, bottom: 10, left: 10, unit: 'px' }; const t = packet('typography'); t.fontSize = 11.7; return [spacing, t]; } },
         ],
     },
-  {
-    id: 'visual-novel-minimal-hud', category: 'actions', section: 'Visual Novel', name: 'VN transparent HUD', description: 'Turn Minimal utility furniture into authored VN controls: a narrow Greetings status bar, stacked desktop text-action plates, compact mobile flow controls, ornamental route paging, and SVG-masked previous/next arrows.', preview: 'actions-quiet',
-    steps: [
-      { role: 'minimal.greetings', primary: true, tuneText: false, createPackets: () => { const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 90; bg.gradient.stops = [{ color: '#17364d', alpha: .84, position: 0 }, { color: '#43315b', alpha: .82, position: 100 }]; const border = packet('border'); border.width = 1; border.color = '#9ba0e4'; border.alpha = .42; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 999; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 3, right: 10, bottom: 3, left: 10, unit: 'px' }; spacing.margin = { linked: false, top: 1, right: 0, bottom: 7, left: 0, unit: 'px' }; const t = packet('typography'); t.fontFamily = 'Trebuchet MS, ui-sans-serif, system-ui, sans-serif'; t.fontSize = 7; t.fontWeight = 800; t.transform = 'uppercase'; t.letterSpacing = 4.2; const text = packet('text'); text.solid = { color: '#dff6fa', alpha: .86 }; const position = packet('position'); position.mode = 'flow'; position.flowAlign = 'center'; position.layer = 'raised'; const size = packet('size'); size.width = { mode: 'fixed', value: 74, unit: '%' }; size.maxWidth = { mode: 'fixed', value: 720, unit: 'px' }; return [bg, border, corners, spacing, t, text, position, size] }, createMobilePackets: () => { const size = packet('size'); size.width = { mode: 'fixed', value: 92, unit: '%' }; size.maxWidth = { mode: 'parent' }; const t = packet('typography'); t.fontSize = 6.5; t.fontWeight = 800; t.letterSpacing = 2.2; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 3, right: 8, bottom: 3, left: 8, unit: 'px' }; return [size, t, spacing] } },
-      { role: 'minimal.greetings.content', tuneText: false, createPackets: () => { const spacing = packet('spacing'); spacing.gap = 4; return [spacing] } },
-      { role: 'minimal.greetings.icon', tuneText: false, createPackets: () => { const text = packet('text'); text.solid = { color: '#9fe2ee', alpha: .78 }; return [text] } },
-      { role: 'minimal.greetings.badge', tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#a4e5ef', alpha: .16 }; const border = packet('border'); border.width = 0; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 999; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 1, right: 4, bottom: 1, left: 4, unit: 'px' }; const t = packet('typography'); t.fontSize = 6.5; t.fontWeight = 800; const text = packet('text'); text.solid = { color: '#e9fbff', alpha: .86 }; return [bg, border, corners, spacing, t, text] } },
-      { role: 'minimal.actions.assistant', tuneText: false, createPackets: () => { const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.assistant.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN assistant stage'; position.top = 18; position.right = 18; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 16; const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const border = packet('border'); border.width = 0; const opacity = packet('opacity'); opacity.value = 1; return [position, bg, border, opacity] }, createMobilePackets: () => { const position = packet('position'); position.mode = 'flow'; position.flowAlign = 'center'; position.editedFields = ['mode', 'flowAlign']; position.unit = 'px'; position.layer = 'normal'; const placement = packet('placement'); placement.horizontal = 'center'; placement.vertical = 'native'; const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'parent' }; const spacing = packet('spacing'); spacing.margin = { linked: false, top: 7, right: 0, bottom: 2, left: 0, unit: 'px' }; return [position, placement, size, spacing] } },
-      { role: 'minimal.actions.user', tuneText: false, createPackets: () => { const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.user.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN player stage'; position.top = 18; position.right = 18; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 16; const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const border = packet('border'); border.width = 0; const opacity = packet('opacity'); opacity.value = 1; return [position, bg, border, opacity] }, createMobilePackets: () => { const position = packet('position'); position.mode = 'flow'; position.flowAlign = 'center'; position.editedFields = ['mode', 'flowAlign']; position.unit = 'px'; position.layer = 'normal'; const placement = packet('placement'); placement.horizontal = 'center'; placement.vertical = 'native'; const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'parent' }; const spacing = packet('spacing'); spacing.margin = { linked: false, top: 7, right: 0, bottom: 2, left: 0, unit: 'px' }; return [position, placement, size, spacing] } },
-      { role: 'minimal.actions.assistant.row', tuneText: false, createPackets: () => { const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.wrap = 'nowrap'; layout.align = 'end'; layout.justify = 'start'; layout.gap = { mode: 'fixed', value: 2, unit: 'px' }; return [layout] }, createMobilePackets: () => { const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'row'; layout.wrap = 'wrap'; layout.align = 'center'; layout.justify = 'center'; layout.gap = { mode: 'fixed', value: 6, unit: 'px' }; return [layout] } },
-      { role: 'minimal.actions.user.row', tuneText: false, createPackets: () => { const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.wrap = 'nowrap'; layout.align = 'end'; layout.justify = 'start'; layout.gap = { mode: 'fixed', value: 2, unit: 'px' }; return [layout] }, createMobilePackets: () => { const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'row'; layout.wrap = 'wrap'; layout.align = 'center'; layout.justify = 'center'; layout.gap = { mode: 'fixed', value: 6, unit: 'px' }; return [layout] } },
-      { role: 'minimal.actions.assistant.buttons', tuneText: false, createPackets: () => { const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 180; bg.gradient.stops = [{ color: '#7da9e3', alpha: .94, position: 0 }, { color: '#7658ff', alpha: .9, position: 100 }]; const border = packet('border'); border.width = 1; border.color = '#b88cff'; border.alpha = .58; const corners = packet('corners'); corners.linked = false; corners.topLeft = 4; corners.topRight = 0; corners.bottomRight = 4; corners.bottomLeft = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 3, right: 8, bottom: 3, left: 8, unit: 'px' }; const layout = packet('layout'); layout.display = 'inline-flex'; layout.align = 'center'; layout.justify = 'center'; const size = packet('size'); size.width = { mode: 'content' }; size.height = { mode: 'fixed', value: 20, unit: 'px' }; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 4; shadow.blur = 8; shadow.spread = -5; shadow.color = '#000000'; shadow.alpha = .54; return [bg, border, corners, spacing, layout, size, shadow] }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 2, right: 5, bottom: 2, left: 5, unit: 'px' }; const size = packet('size'); size.width = { mode: 'content' }; size.height = { mode: 'fixed', value: 18, unit: 'px' }; return [spacing, size] } },
-      { role: 'minimal.actions.user.buttons', tuneText: false, createPackets: () => { const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 180; bg.gradient.stops = [{ color: '#d79ab4', alpha: .94, position: 0 }, { color: '#8e5dc3', alpha: .9, position: 100 }]; const border = packet('border'); border.width = 1; border.color = '#f0bdd2'; border.alpha = .58; const corners = packet('corners'); corners.linked = false; corners.topLeft = 4; corners.topRight = 0; corners.bottomRight = 4; corners.bottomLeft = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 3, right: 8, bottom: 3, left: 8, unit: 'px' }; const layout = packet('layout'); layout.display = 'inline-flex'; layout.align = 'center'; layout.justify = 'center'; const size = packet('size'); size.width = { mode: 'content' }; size.height = { mode: 'fixed', value: 20, unit: 'px' }; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 4; shadow.blur = 8; shadow.spread = -5; shadow.color = '#000000'; shadow.alpha = .54; return [bg, border, corners, spacing, layout, size, shadow] }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 2, right: 5, bottom: 2, left: 5, unit: 'px' }; const size = packet('size'); size.width = { mode: 'content' }; size.height = { mode: 'fixed', value: 18, unit: 'px' }; return [spacing, size] } },
-      { role: 'minimal.actions.assistant.icons', tuneText: false, createPackets: () => { const visibility = packet('visibility'); visibility.mode = 'gone'; return [visibility] } },
-      { role: 'minimal.actions.user.icons', tuneText: false, createPackets: () => { const visibility = packet('visibility'); visibility.mode = 'gone'; return [visibility] } },
-      { role: 'minimal.actions.omitted', tuneText: false, createPackets: () => { const visibility = packet('visibility'); visibility.mode = 'gone'; return [visibility] } },
-      { role: 'minimal.actions.edit', tuneText: false, createPackets: () => vnActionTextPackets('EDIT') },
-      { role: 'minimal.actions.copy', tuneText: false, createPackets: () => vnActionTextPackets('COPY') },
-      { role: 'minimal.actions.hide', tuneText: false, createPackets: () => vnActionTextPackets('HIDE') },
-      { role: 'minimal.actions.anchor', tuneText: false, createPackets: () => vnActionTextPackets('ANCHOR') },
-      { role: 'minimal.actions.fork', tuneText: false, createPackets: () => vnActionTextPackets('FORK') },
-      { role: 'minimal.actions.prompt', tuneText: false, createPackets: () => vnActionTextPackets('PROMPT') },
-      { role: 'minimal.actions.delete', tuneText: false, createPackets: () => vnActionTextPackets('DELETE', '#ffe2ee') },
-      { role: 'minimal.swipes', tuneText: false, createPackets: () => { const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 90; bg.gradient.stops = [{ color: '#17364d', alpha: .88, position: 0 }, { color: '#43315b', alpha: .84, position: 100 }]; const border = packet('border'); border.width = 1; border.color = '#99dce8'; border.alpha = .38; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 999; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 3, right: 8, bottom: 3, left: 8, unit: 'px' }; spacing.margin = { linked: false, top: 5, right: 0, bottom: 2, left: 0, unit: 'px' }; spacing.gap = 5; const position = packet('position'); position.mode = 'flow'; position.editedFields = ['mode']; position.unit = 'px'; position.layer = 'normal'; const placement = packet('placement'); placement.horizontal = 'start'; placement.vertical = 'native'; const size = packet('size'); size.width = { mode: 'content' }; return [bg, border, corners, spacing, position, placement, size] }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 2, right: 6, bottom: 2, left: 6, unit: 'px' }; spacing.margin = { linked: false, top: 4, right: 0, bottom: 2, left: 0, unit: 'px' }; const placement = packet('placement'); placement.horizontal = 'center'; placement.vertical = 'native'; return [spacing, placement] } },
-      { role: 'minimal.swipes.buttons', tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const border = packet('border'); border.width = 0; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 999; const spacing = packet('spacing'); spacing.padding = { linked: true, top: 2, right: 2, bottom: 2, left: 2, unit: 'px' }; const size = packet('size'); size.width = { mode: 'fixed', value: 22, unit: 'px' }; size.height = { mode: 'fixed', value: 18, unit: 'px' }; return [bg, border, corners, spacing, size] } },
-      { role: 'minimal.swipes.previous', tuneText: false, createPackets: () => vnArrowPackets('vn-arrow-left') },
-      { role: 'minimal.swipes.next', tuneText: false, createPackets: () => vnArrowPackets('vn-arrow-right') },
-      { role: 'minimal.swipes.counter', tuneText: false, createPackets: () => { const t = packet('typography'); t.fontFamily = 'Trebuchet MS, ui-sans-serif, system-ui, sans-serif'; t.fontSize = 7.5; t.fontWeight = 800; t.letterSpacing = .35; const text = packet('text'); text.solid = { color: '#e6f6f9', alpha: .82 }; return [t, text] } },
-      { role: 'minimal.swipes.ornament', tuneText: false, createPackets: () => { const content = packet('content'); content.value = ''; const bg = packet('background'); bg.mode = 'image'; bg.image.assetPath = ornamentPath('tiny-flower'); bg.image.size = 'contain'; bg.image.positionX = 50; bg.image.positionY = 50; bg.image.repeat = 'no-repeat'; bg.image.renderMode = 'mask'; bg.image.maskColor = '#b7e9f0'; bg.image.maskAlpha = .28; bg.image.hideContents = false; const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.swipes'].selectors[0].selector; position.anchorLabel = 'VN route pager'; position.top = -8; position.right = -7; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 0; const size = packet('size'); size.width = { mode: 'fixed', value: 24, unit: 'px' }; size.height = { mode: 'fixed', value: 24, unit: 'px' }; return [content, bg, position, size] } },
-      { role: 'minimal.long-toggle', tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const border = packet('border'); border.width = 0; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 3, right: 5, bottom: 3, left: 5, unit: 'px' }; const position = packet('position'); position.mode = 'flow'; position.flowAlign = 'center'; const shadow = packet('shadow'); shadow.x = shadow.y = shadow.blur = shadow.spread = 0; shadow.alpha = 0; return [bg, border, corners, spacing, position, shadow] } },
-      { role: 'minimal.long-toggle.label', tuneText: false, createPackets: () => { const t = packet('typography'); t.fontFamily = 'Trebuchet MS, ui-sans-serif, system-ui, sans-serif'; t.fontSize = 9; t.fontWeight = 800; t.transform = 'uppercase'; t.letterSpacing = .65; const text = packet('text'); text.solid = { color: '#9edce7', alpha: .82 }; const spacing = packet('spacing'); spacing.padding = { linked: true, top: 0, right: 0, bottom: 0, left: 0, unit: 'px' }; return [t, text, spacing] } },
-    ],
-  },
+    {
+        id: 'visual-novel-minimal-hud', category: 'actions', section: 'Visual Novel', name: 'VN transparent HUD', description: 'Turn Minimal utility furniture into authored VN controls: a narrow Greetings status bar, stacked desktop text-action plates, compact mobile flow controls, ornamental route paging, and SVG-masked previous/next arrows.', preview: 'actions-quiet',
+        steps: [
+            { role: 'minimal.greetings', primary: true, tuneText: false, createPackets: () => { const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 90; bg.gradient.stops = [{ color: '#17364d', alpha: .84, position: 0 }, { color: '#43315b', alpha: .82, position: 100 }]; const border = packet('border'); border.width = 1; border.color = '#9ba0e4'; border.alpha = .42; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 999; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 3, right: 10, bottom: 3, left: 10, unit: 'px' }; spacing.margin = { linked: false, top: 1, right: 0, bottom: 7, left: 0, unit: 'px' }; const t = packet('typography'); t.fontFamily = 'Trebuchet MS, ui-sans-serif, system-ui, sans-serif'; t.fontSize = 7; t.fontWeight = 800; t.transform = 'uppercase'; t.letterSpacing = 4.2; const text = packet('text'); text.solid = { color: '#dff6fa', alpha: .86 }; const position = packet('position'); position.mode = 'flow'; position.flowAlign = 'center'; position.layer = 'raised'; const size = packet('size'); size.width = { mode: 'fixed', value: 74, unit: '%' }; size.maxWidth = { mode: 'fixed', value: 720, unit: 'px' }; return [bg, border, corners, spacing, t, text, position, size]; }, createMobilePackets: () => { const size = packet('size'); size.width = { mode: 'fixed', value: 92, unit: '%' }; size.maxWidth = { mode: 'parent' }; const t = packet('typography'); t.fontSize = 6.5; t.fontWeight = 800; t.letterSpacing = 2.2; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 3, right: 8, bottom: 3, left: 8, unit: 'px' }; return [size, t, spacing]; } },
+            { role: 'minimal.greetings.content', tuneText: false, createPackets: () => { const spacing = packet('spacing'); spacing.gap = 4; return [spacing]; } },
+            { role: 'minimal.greetings.icon', tuneText: false, createPackets: () => { const text = packet('text'); text.solid = { color: '#9fe2ee', alpha: .78 }; return [text]; } },
+            { role: 'minimal.greetings.badge', tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#a4e5ef', alpha: .16 }; const border = packet('border'); border.width = 0; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 999; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 1, right: 4, bottom: 1, left: 4, unit: 'px' }; const t = packet('typography'); t.fontSize = 6.5; t.fontWeight = 800; const text = packet('text'); text.solid = { color: '#e9fbff', alpha: .86 }; return [bg, border, corners, spacing, t, text]; } },
+            { role: 'minimal.actions.assistant', tuneText: false, createPackets: () => { const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.assistant.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN assistant stage'; position.top = 18; position.right = 18; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 16; const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const border = packet('border'); border.width = 0; const opacity = packet('opacity'); opacity.value = 1; return [position, bg, border, opacity]; }, createMobilePackets: () => { const position = packet('position'); position.mode = 'flow'; position.flowAlign = 'center'; position.editedFields = ['mode', 'flowAlign']; position.unit = 'px'; position.layer = 'normal'; const placement = packet('placement'); placement.horizontal = 'center'; placement.vertical = 'native'; const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'parent' }; const spacing = packet('spacing'); spacing.margin = { linked: false, top: 7, right: 0, bottom: 2, left: 0, unit: 'px' }; return [position, placement, size, spacing]; } },
+            { role: 'minimal.actions.user', tuneText: false, createPackets: () => { const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.user.frame'].selectors[0].selector; position.anchorLabel = 'Minimal VN player stage'; position.top = 18; position.right = 18; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 16; const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const border = packet('border'); border.width = 0; const opacity = packet('opacity'); opacity.value = 1; return [position, bg, border, opacity]; }, createMobilePackets: () => { const position = packet('position'); position.mode = 'flow'; position.flowAlign = 'center'; position.editedFields = ['mode', 'flowAlign']; position.unit = 'px'; position.layer = 'normal'; const placement = packet('placement'); placement.horizontal = 'center'; placement.vertical = 'native'; const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'parent' }; const spacing = packet('spacing'); spacing.margin = { linked: false, top: 7, right: 0, bottom: 2, left: 0, unit: 'px' }; return [position, placement, size, spacing]; } },
+            { role: 'minimal.actions.assistant.row', tuneText: false, createPackets: () => { const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.wrap = 'nowrap'; layout.align = 'end'; layout.justify = 'start'; layout.gap = { mode: 'fixed', value: 2, unit: 'px' }; return [layout]; }, createMobilePackets: () => { const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'row'; layout.wrap = 'wrap'; layout.align = 'center'; layout.justify = 'center'; layout.gap = { mode: 'fixed', value: 6, unit: 'px' }; return [layout]; } },
+            { role: 'minimal.actions.user.row', tuneText: false, createPackets: () => { const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.wrap = 'nowrap'; layout.align = 'end'; layout.justify = 'start'; layout.gap = { mode: 'fixed', value: 2, unit: 'px' }; return [layout]; }, createMobilePackets: () => { const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'row'; layout.wrap = 'wrap'; layout.align = 'center'; layout.justify = 'center'; layout.gap = { mode: 'fixed', value: 6, unit: 'px' }; return [layout]; } },
+            { role: 'minimal.actions.assistant.buttons', tuneText: false, createPackets: () => { const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 180; bg.gradient.stops = [{ color: '#7da9e3', alpha: .94, position: 0 }, { color: '#7658ff', alpha: .9, position: 100 }]; const border = packet('border'); border.width = 1; border.color = '#b88cff'; border.alpha = .58; const corners = packet('corners'); corners.linked = false; corners.topLeft = 4; corners.topRight = 0; corners.bottomRight = 4; corners.bottomLeft = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 3, right: 8, bottom: 3, left: 8, unit: 'px' }; const layout = packet('layout'); layout.display = 'inline-flex'; layout.align = 'center'; layout.justify = 'center'; const size = packet('size'); size.width = { mode: 'content' }; size.height = { mode: 'fixed', value: 20, unit: 'px' }; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 4; shadow.blur = 8; shadow.spread = -5; shadow.color = '#000000'; shadow.alpha = .54; return [bg, border, corners, spacing, layout, size, shadow]; }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 2, right: 5, bottom: 2, left: 5, unit: 'px' }; const size = packet('size'); size.width = { mode: 'content' }; size.height = { mode: 'fixed', value: 18, unit: 'px' }; return [spacing, size]; } },
+            { role: 'minimal.actions.user.buttons', tuneText: false, createPackets: () => { const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 180; bg.gradient.stops = [{ color: '#d79ab4', alpha: .94, position: 0 }, { color: '#8e5dc3', alpha: .9, position: 100 }]; const border = packet('border'); border.width = 1; border.color = '#f0bdd2'; border.alpha = .58; const corners = packet('corners'); corners.linked = false; corners.topLeft = 4; corners.topRight = 0; corners.bottomRight = 4; corners.bottomLeft = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 3, right: 8, bottom: 3, left: 8, unit: 'px' }; const layout = packet('layout'); layout.display = 'inline-flex'; layout.align = 'center'; layout.justify = 'center'; const size = packet('size'); size.width = { mode: 'content' }; size.height = { mode: 'fixed', value: 20, unit: 'px' }; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 4; shadow.blur = 8; shadow.spread = -5; shadow.color = '#000000'; shadow.alpha = .54; return [bg, border, corners, spacing, layout, size, shadow]; }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 2, right: 5, bottom: 2, left: 5, unit: 'px' }; const size = packet('size'); size.width = { mode: 'content' }; size.height = { mode: 'fixed', value: 18, unit: 'px' }; return [spacing, size]; } },
+            { role: 'minimal.actions.assistant.icons', tuneText: false, createPackets: () => { const visibility = packet('visibility'); visibility.mode = 'gone'; return [visibility]; } },
+            { role: 'minimal.actions.user.icons', tuneText: false, createPackets: () => { const visibility = packet('visibility'); visibility.mode = 'gone'; return [visibility]; } },
+            { role: 'minimal.actions.omitted', tuneText: false, createPackets: () => { const visibility = packet('visibility'); visibility.mode = 'gone'; return [visibility]; } },
+            { role: 'minimal.actions.edit', tuneText: false, createPackets: () => vnActionTextPackets('EDIT') },
+            { role: 'minimal.actions.copy', tuneText: false, createPackets: () => vnActionTextPackets('COPY') },
+            { role: 'minimal.actions.hide', tuneText: false, createPackets: () => vnActionTextPackets('HIDE') },
+            { role: 'minimal.actions.anchor', tuneText: false, createPackets: () => vnActionTextPackets('ANCHOR') },
+            { role: 'minimal.actions.fork', tuneText: false, createPackets: () => vnActionTextPackets('FORK') },
+            { role: 'minimal.actions.prompt', tuneText: false, createPackets: () => vnActionTextPackets('PROMPT') },
+            { role: 'minimal.actions.delete', tuneText: false, createPackets: () => vnActionTextPackets('DELETE', '#ffe2ee') },
+            { role: 'minimal.swipes', tuneText: false, createPackets: () => { const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 90; bg.gradient.stops = [{ color: '#17364d', alpha: .88, position: 0 }, { color: '#43315b', alpha: .84, position: 100 }]; const border = packet('border'); border.width = 1; border.color = '#99dce8'; border.alpha = .38; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 999; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 3, right: 8, bottom: 3, left: 8, unit: 'px' }; spacing.margin = { linked: false, top: 5, right: 0, bottom: 2, left: 0, unit: 'px' }; spacing.gap = 5; const position = packet('position'); position.mode = 'flow'; position.editedFields = ['mode']; position.unit = 'px'; position.layer = 'normal'; const placement = packet('placement'); placement.horizontal = 'start'; placement.vertical = 'native'; const size = packet('size'); size.width = { mode: 'content' }; return [bg, border, corners, spacing, position, placement, size]; }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 2, right: 6, bottom: 2, left: 6, unit: 'px' }; spacing.margin = { linked: false, top: 4, right: 0, bottom: 2, left: 0, unit: 'px' }; const placement = packet('placement'); placement.horizontal = 'center'; placement.vertical = 'native'; return [spacing, placement]; } },
+            { role: 'minimal.swipes.buttons', tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const border = packet('border'); border.width = 0; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 999; const spacing = packet('spacing'); spacing.padding = { linked: true, top: 2, right: 2, bottom: 2, left: 2, unit: 'px' }; const size = packet('size'); size.width = { mode: 'fixed', value: 22, unit: 'px' }; size.height = { mode: 'fixed', value: 18, unit: 'px' }; return [bg, border, corners, spacing, size]; } },
+            { role: 'minimal.swipes.previous', tuneText: false, createPackets: () => vnArrowPackets('vn-arrow-left') },
+            { role: 'minimal.swipes.next', tuneText: false, createPackets: () => vnArrowPackets('vn-arrow-right') },
+            { role: 'minimal.swipes.counter', tuneText: false, createPackets: () => { const t = packet('typography'); t.fontFamily = 'Trebuchet MS, ui-sans-serif, system-ui, sans-serif'; t.fontSize = 7.5; t.fontWeight = 800; t.letterSpacing = .35; const text = packet('text'); text.solid = { color: '#e6f6f9', alpha: .82 }; return [t, text]; } },
+            { role: 'minimal.swipes.ornament', tuneText: false, createPackets: () => { const content = packet('content'); content.value = ''; const bg = packet('background'); bg.mode = 'image'; bg.image.assetPath = ornamentPath('tiny-flower'); bg.image.size = 'contain'; bg.image.positionX = 50; bg.image.positionY = 50; bg.image.repeat = 'no-repeat'; bg.image.renderMode = 'mask'; bg.image.maskColor = '#b7e9f0'; bg.image.maskAlpha = .28; bg.image.hideContents = false; const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['minimal.swipes'].selectors[0].selector; position.anchorLabel = 'VN route pager'; position.top = -8; position.right = -7; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 0; const size = packet('size'); size.width = { mode: 'fixed', value: 24, unit: 'px' }; size.height = { mode: 'fixed', value: 24, unit: 'px' }; return [content, bg, position, size]; } },
+            { role: 'minimal.long-toggle', tuneText: false, createPackets: () => { const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const border = packet('border'); border.width = 0; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 0; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 3, right: 5, bottom: 3, left: 5, unit: 'px' }; const position = packet('position'); position.mode = 'flow'; position.flowAlign = 'center'; const shadow = packet('shadow'); shadow.x = shadow.y = shadow.blur = shadow.spread = 0; shadow.alpha = 0; return [bg, border, corners, spacing, position, shadow]; } },
+            { role: 'minimal.long-toggle.label', tuneText: false, createPackets: () => { const t = packet('typography'); t.fontFamily = 'Trebuchet MS, ui-sans-serif, system-ui, sans-serif'; t.fontSize = 9; t.fontWeight = 800; t.transform = 'uppercase'; t.letterSpacing = .65; const text = packet('text'); text.solid = { color: '#9edce7', alpha: .82 }; const spacing = packet('spacing'); spacing.padding = { linked: true, top: 0, right: 0, bottom: 0, left: 0, unit: 'px' }; return [t, text, spacing]; } },
+        ],
+    },
     {
         id: 'visual-novel-user-choice', category: 'message', section: 'Visual Novel', name: 'Selected choice', description: 'Default player-side treatment: a compact RPG-like response window whose MessageContent owns the visible box, while portrait, name plaque, state tab, and micro-controls dock inside that stable frame. It stays deliberately smaller and more interface-like than the assistant stage.', preview: 'bubble-outline',
         steps: [
@@ -9226,7 +6005,7 @@ exports.COMMON_PART_PRESETS = [
         steps: [
             { role: 'user.frame', primary: true, tuneText: false, createPackets: () => { const visibility = packet('visibility'); visibility.mode = 'visible'; const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 215; bg.gradient.stops = [{ color: '#1f1027', alpha: .98, position: 0 }, { color: '#0a0711', alpha: .99, position: 72 }, { color: '#05040a', alpha: .995, position: 100 }]; const border = packet('border'); border.width = 1; border.color = '#f2a6cf'; border.alpha = .24; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 18; const size = packet('size'); size.width = { mode: 'fixed', value: 92, unit: '%' }; size.maxWidth = { mode: 'fixed', value: 980, unit: 'px' }; size.height = { mode: 'content' }; const position = packet('position'); position.mode = 'flow'; position.flowAlign = 'center'; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 12, right: 12, bottom: 12, left: 12, unit: 'px' }; const shadow = packet('shadow'); shadow.x = 0; shadow.y = 18; shadow.blur = 42; shadow.spread = -12; shadow.color = '#000000'; shadow.alpha = .58; return [visibility, bg, border, corners, size, position, spacing, shadow]; }, createMobilePackets: () => { const size = packet('size'); size.width = { mode: 'parent' }; size.maxWidth = { mode: 'native' }; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 7, right: 7, bottom: 7, left: 7, unit: 'px' }; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 14; return [size, spacing, corners]; } },
             { role: 'user.bubble', createPackets: () => { const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const border = packet('border'); border.width = 0; const shadow = packet('shadow'); shadow.x = shadow.y = shadow.blur = shadow.spread = 0; shadow.alpha = 0; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'column'; layout.align = 'stretch'; layout.justify = 'start'; layout.gap = { mode: 'fixed', value: 0, unit: 'px' }; const size = packet('size'); size.width = { mode: 'parent' }; size.height = { mode: 'content' }; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 0, right: 0, bottom: 48, left: 0, unit: 'px' }; return [bg, border, shadow, layout, size, spacing]; }, createMobilePackets: () => { const spacing = packet('spacing'); spacing.padding = { linked: false, top: 0, right: 0, bottom: 44, left: 0, unit: 'px' }; return [spacing]; } },
-            { role: 'user.backdrop.frame', createPackets: () => { const visibility = packet('visibility'); visibility.mode = 'visible'; const layout = packet('layout'); layout.display = 'block'; const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['user.bubble'].selectors[0].selector; position.anchorLabel = 'User cinematic bubble'; position.top = 0; position.left = 0; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 0; const size = packet('size'); size.width = { mode: 'parent' }; size.height = { mode: 'fixed', value: 218, unit: 'px' }; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 14; const bg = packet('background'); bg.solid = { color: '#020205', alpha: 1 }; const mask = packet('image'); mask.maskMode = 'none'; return [visibility, layout, position, size, corners, bg, mask]; }, createMobilePackets: () => { const size = packet('size'); size.width = { mode: 'parent' }; size.height = { mode: 'fixed', value: 170, unit: 'px' }; return [size]; } },
+            { role: 'user.backdrop.frame', createPackets: () => { const visibility = packet('visibility'); visibility.mode = 'visible'; const layout = packet('layout'); layout.display = 'block'; const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['user.bubble'].selectors[0].selector; position.anchorLabel = 'User cinematic bubble'; position.top = 0; position.left = 0; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 0; const size = packet('size'); size.width = { mode: 'parent' }; size.height = { mode: 'fixed', value: 218, unit: 'px' }; const corners = packet('corners'); corners.topLeft = corners.topRight = corners.bottomRight = corners.bottomLeft = 14; const bg = packet('background'); bg.solid = { color: '#020205', alpha: 1 }; const mask = packet('mask'); mask.maskMode = 'none'; return [visibility, layout, position, size, corners, bg, mask]; }, createMobilePackets: () => { const size = packet('size'); size.width = { mode: 'parent' }; size.height = { mode: 'fixed', value: 170, unit: 'px' }; return [size]; } },
             { role: 'user.backdrop.image', createPackets: () => { const image = packet('image'); image.sourceQuality = 'auto'; image.fillFrame = true; image.objectFit = 'cover'; image.objectPositionX = 28; image.objectPositionY = 50; image.brightness = .88; image.saturation = 1.06; image.contrast = 1.05; return [image]; } },
             { role: 'user.backdrop.scrim', createPackets: () => { const visibility = packet('visibility'); visibility.mode = 'visible'; const position = packet('position'); position.mode = 'anchored'; position.anchorSelector = exports.KNOWN_PART_ROLES['user.backdrop.frame'].selectors[0].selector; position.anchorLabel = 'User scene backdrop'; position.bottom = 0; position.left = 0; position.unit = 'px'; position.layer = 'custom'; position.zIndex = 2; const size = packet('size'); size.width = { mode: 'parent' }; size.height = { mode: 'fixed', value: 62, unit: '%' }; const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 180; bg.gradient.stops = [{ color: '#090711', alpha: 0, position: 0 }, { color: '#090711', alpha: .08, position: 28 }, { color: '#100711', alpha: .46, position: 72 }, { color: '#05040a', alpha: .88, position: 100 }]; return [visibility, position, size, bg]; }, createMobilePackets: () => { const size = packet('size'); size.width = { mode: 'parent' }; size.height = { mode: 'fixed', value: 68, unit: '%' }; const bg = packet('background'); bg.mode = 'gradient'; bg.gradient.angle = 180; bg.gradient.stops = [{ color: '#090711', alpha: 0, position: 0 }, { color: '#090711', alpha: .10, position: 24 }, { color: '#100711', alpha: .52, position: 70 }, { color: '#05040a', alpha: .92, position: 100 }]; return [size, bg]; } },
             { role: 'user.header', createPackets: () => { const visibility = packet('visibility'); visibility.mode = 'visible'; const bg = packet('background'); bg.solid = { color: '#000000', alpha: 0 }; const border = packet('border'); border.width = 0; const size = packet('size'); size.width = { mode: 'parent' }; size.height = { mode: 'fixed', value: 218, unit: 'px' }; const layout = packet('layout'); layout.display = 'flex'; layout.direction = 'row'; layout.align = 'end'; layout.justify = 'end'; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 0, right: 24, bottom: 20, left: 24, unit: 'px' }; return [visibility, bg, border, size, layout, spacing]; }, createMobilePackets: () => { const size = packet('size'); size.width = { mode: 'parent' }; size.height = { mode: 'fixed', value: 170, unit: 'px' }; const spacing = packet('spacing'); spacing.padding = { linked: false, top: 0, right: 14, bottom: 14, left: 14, unit: 'px' }; return [size, spacing]; } },
@@ -9257,8 +6036,131 @@ function presetRoles(preset) {
     return [...new Set(ids)].map((id) => exports.KNOWN_PART_ROLES[id]);
 }
 
+},
+"src/presets/message-anatomy.ts": function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MESSAGE_LAYOUT_AUDITS = void 0;
+exports.mountedMessageRole = mountedMessageRole;
+exports.MESSAGE_LAYOUT_AUDITS = {
+    bubble: {
+        id: 'bubble',
+        component: 'BubbleMessage',
+        catalogClasses: ['card', 'user', 'bubble', 'content', 'header', 'headerLeft', 'avatar', 'avatarBg', 'avatarBgImg', 'avatarBgScrim', 'name', 'nameUser', 'nameChar', 'metaWrap', 'metaPill', 'actionsPill'],
+        roles: {
+            frame: [{ selector: '[data-component="BubbleMessage"]', confidence: 'high' }],
+            bubble: [{ selector: '[data-component="BubbleMessage"] [class*="_bubble_"]', confidence: 'high' }],
+            header: [{ selector: '[data-component="BubbleMessage"] [class*="_header_"]:not([class*="_headerLeft_"])', confidence: 'high' }],
+            'header-left': [{ selector: '[data-component="BubbleMessage"] [class*="_headerLeft_"]', confidence: 'high' }],
+            'avatar-frame': [{ selector: '[data-component="BubbleMessage"] [class*="_avatar_"]', confidence: 'high' }],
+            'avatar-image': [{ selector: '[data-component="BubbleMessage"] [class*="_avatar_"] img', confidence: 'high' }],
+            'avatar-backdrop': [{ selector: '[data-component="BubbleMessage"] [class*="_avatarBgImg_"]', confidence: 'high' }],
+            name: [{ selector: '[data-component="BubbleMessage"] [class*="_nameChar_"]', confidence: 'high' }, { selector: '[data-component="BubbleMessage"] [class*="_name_"]', confidence: 'medium' }],
+            'meta-wrap': [{ selector: '[data-component="BubbleMessage"] [class*="_metaWrap_"]', confidence: 'high' }],
+            'meta-pill': [{ selector: '[data-component="BubbleMessage"] [class*="_metaPill_"]', confidence: 'high' }],
+            'meta-number': [{ selector: '[data-component="BubbleMessage"] [class*="_metaPill_"] > [class*="_metaSegment_"]:nth-child(1 of [class*="_metaSegment_"])', confidence: 'high', note: 'Order-derived mounted metadata segment: message number.' }],
+            'meta-timestamp': [{ selector: '[data-component="BubbleMessage"] [class*="_metaPill_"] > [class*="_metaSegment_"]:nth-child(2 of [class*="_metaSegment_"])', confidence: 'high', note: 'Order-derived mounted metadata segment: timestamp.' }],
+            'meta-tokens': [{ selector: '[data-component="BubbleMessage"] [class*="_metaPill_"] > [class*="_metaSegment_"]:nth-child(3 of [class*="_metaSegment_"])', confidence: 'high', note: 'Order-derived mounted metadata segment: token count.' }],
+            content: [{ selector: '[data-component="BubbleMessage"] [data-component="MessageContent"]', confidence: 'high' }, { selector: '[data-component="BubbleMessage"] [class*="_content_"]', confidence: 'medium' }],
+            attachments: [{ selector: '[data-component="BubbleMessage"] :is([class*="_attachments_"], [data-component="MessageAttachments"])', confidence: 'medium', note: 'Attachment surfaces do not currently expose a guaranteed public component id; Theme Studio recognizes the mounted attachment family when present.' }],
+            attachment: [{ selector: '[data-component="BubbleMessage"] :is([class*="_attachment_"], [class*="_inlineImageBtn_"], [class*="_inlineImageWrap_"] )', confidence: 'medium', note: 'Mounted attachment item fallback; current inline-image mounts expose Inline Image Btn/Wrap classes but still no stable public component id.' }],
+            thinking: [{ selector: '[data-component="BubbleMessage"] [class*="_container_"]:has(> button[data-reasoning-toggle="true"])', confidence: 'high', note: 'Current ReasoningBlock is identified by its stable reasoning toggle marker; it does not expose a dedicated data-component root.' }],
+            greetings: [{ selector: '[data-component="BubbleMessage"] button[title="Browse alternate greetings"]', confidence: 'high', note: 'Mounted Lumiverse exposes the launcher as a titled button; the indicator class lives inside it and is not the interactive owner.' }, { selector: '[data-component="BubbleMessage"] button[class*="_indicator_"]', confidence: 'medium' }],
+            swipes: [{ selector: '[data-component="BubbleMessage"] [data-component="SwipeControls"]', confidence: 'high' }],
+            'long-message-toggle': [{ selector: '[data-component="BubbleMessage"] [data-component="MessageContent"] [class*="_longMessageTogglePill_"]', confidence: 'high', note: 'Added in current Lumiverse long-message truncation UI; the control is owned by MessageContent and may mount in either message renderer.' }],
+            actions: [{ selector: '[data-component="BubbleMessage"] [data-component="BubbleActions"][class*="_pill_"]', confidence: 'high', note: 'Mounted BubbleActions exposes its own semantic component root; keep the historical actionsPill class as fallback.' }, { selector: '[data-component="BubbleMessage"] [class*="_actionsPill_"]', confidence: 'medium' }],
+        },
+        absentOrDifferent: [],
+    },
+    minimal: {
+        id: 'minimal',
+        component: 'MinimalMessage',
+        // Runtime catalog roots are enriched from mounted CSS-module class names for stable part scopes.
+        catalogClasses: ['card', 'character', 'user', 'avatar', 'avatarFallback', 'bubble', 'content', 'contentChar', 'contentUser', 'header', 'name', 'nameUser', 'nameChar', 'metaPill', 'metaSegment', 'metaDot', 'actionsWrap'],
+        roles: {
+            frame: [{ selector: '[data-component="MinimalMessage"]', confidence: 'high' }],
+            bubble: [{ selector: '[data-component="MinimalMessage"] [class*="_bubble_"]', confidence: 'high' }],
+            header: [{ selector: '[data-component="MinimalMessage"] [class*="_header_"]', confidence: 'high' }],
+            'avatar-frame': [{ selector: '[data-component="MinimalMessage"] [class*="_avatar_"]', confidence: 'high' }],
+            'avatar-image': [{ selector: '[data-component="MinimalMessage"] [class*="_avatar_"] img', confidence: 'high', note: 'Confirmed in the current staging MinimalMessage source: the avatar wrapper owns a direct img child.' }],
+            name: [{ selector: '[data-component="MinimalMessage"] [class*="_nameChar_"]', confidence: 'high' }, { selector: '[data-component="MinimalMessage"] [class*="_name_"]', confidence: 'medium' }],
+            'meta-pill': [{ selector: '[data-component="MinimalMessage"] [class*="_metaPill_"]', confidence: 'high' }],
+            'meta-number': [{ selector: '[data-component="MinimalMessage"] [class*="_metaPill_"] > [class*="_metaSegment_"]:nth-child(1 of [class*="_metaSegment_"])', confidence: 'high' }],
+            'meta-timestamp': [{ selector: '[data-component="MinimalMessage"] [class*="_metaPill_"] > [class*="_metaSegment_"]:nth-child(2 of [class*="_metaSegment_"])', confidence: 'high' }],
+            'meta-tokens': [{ selector: '[data-component="MinimalMessage"] [class*="_metaPill_"] > [class*="_metaSegment_"]:nth-child(3 of [class*="_metaSegment_"])', confidence: 'high' }],
+            content: [{ selector: '[data-component="MinimalMessage"] [data-component="MessageContent"]', confidence: 'high', note: 'Confirmed in the current staging MinimalMessage source beneath the renderer-local content lane. Mounted mobile QA also confirms an intermediate CSS-module `_content_` / `_contentChar_`-style wrapper can own the renderer lane geometry.' }],
+            attachments: [{ selector: '[data-component="MinimalMessage"] :is([class*="_attachments_"], [data-component="MessageAttachments"])', confidence: 'high', note: 'Confirmed from the current staging MessageAttachments mount used by MinimalMessage.' }],
+            attachment: [{ selector: '[data-component="MinimalMessage"] :is([class*="_attachment_"], [class*="_inlineImageBtn_"], [class*="_inlineImageWrap_"] )', confidence: 'high', note: 'Confirmed current staging inline attachment button/wrapper family under MinimalMessage.' }],
+            thinking: [{ selector: '[data-component="MinimalMessage"] [class*="_container_"]:has(> button[data-reasoning-toggle="true"])', confidence: 'high', note: 'Current ReasoningBlock is identified by its stable reasoning toggle marker; it does not expose a dedicated data-component root.' }],
+            greetings: [{ selector: '[data-component="MinimalMessage"] button[title="Browse alternate greetings"]', confidence: 'high', note: 'Mounted Lumiverse exposes the launcher as a titled button; the indicator class lives inside it and is not the interactive owner.' }, { selector: '[data-component="MinimalMessage"] button[class*="_indicator_"]', confidence: 'medium' }],
+            swipes: [{ selector: '[data-component="MinimalMessage"] [data-component="SwipeControls"]', confidence: 'high' }],
+            'long-message-toggle': [{ selector: '[data-component="MinimalMessage"] [data-component="MessageContent"] [class*="_longMessageTogglePill_"]', confidence: 'high', note: 'Mounted receipt confirms the new Read more control under MinimalMessage MessageContent.' }],
+            actions: [{ selector: '[data-component="MinimalMessage"] [class*="_actionsWrap_"]', confidence: 'high' }],
+        },
+        absentOrDifferent: [
+            'No headerLeft class in the native catalog.',
+            'No metaWrap class; metadata appears to live directly in metaPill/metaSegment.',
+            'No avatar backdrop class.',
+            'Actions use actionsWrap rather than BubbleMessage actionsPill.',
+            'Its composition should be adapted, not forced through BubbleMessage hero choreography.',
+        ],
+    },
 };
-__modules["src/presets/style-library"] = function(module,exports,__require){
+function mountedMessageRole(layout, role) {
+    if (typeof document === 'undefined')
+        return null;
+    for (const candidate of exports.MESSAGE_LAYOUT_AUDITS[layout].roles[role] ?? []) {
+        try {
+            const element = document.querySelector(candidate.selector);
+            if (element)
+                return element;
+        }
+        catch { /* catalog audit selectors are best-effort */ }
+    }
+    return null;
+}
+
+},
+"src/presets/ornaments.ts": function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.BUILTIN_ORNAMENTS = void 0;
+exports.builtinOrnament = builtinOrnament;
+function svgData(svg) {
+    return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+const ornament = (id, label, viewBox, body, keywords = []) => ({
+    id,
+    label,
+    assetPath: svgData(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">${body}</svg>`),
+    keywords,
+});
+exports.BUILTIN_ORNAMENTS = [
+    ornament('manga-anger', 'Temper mark', '0 0 512 512', '<g transform="translate(0 512) scale(.1 -.1)" fill="white" stroke="none"><path d="M1973 4763l-202-106 51-96c28-53 71-134 96-181 276-522 565-803 918-892 127-32 339-32 474 1 217 53 456 173 675 339 146 111 336 276 331 289-3 7-70 89-148 182l-143 168-70-59c-317-267-476-371-676-440-86-30-104-32-214-32-102 0-128 3-174 22-209 88-366 277-609 737-49 93-94 170-98 172-5 1-100-45-211-104z"/><path d="M889 4208c-80-68-160-135-178-150l-32-28 83-97c139-163 163-194 242-311 214-316 266-560 164-769-94-193-315-362-786-602-56-29-102-57-102-63 0-9 82-170 172-335l39-73 82 41c587 295 867 524 1017 833 72 147 94 248 93 421-1 354-140 652-521 1112-64 78-119 142-122 143-3 0-71-55-151-122z"/><path d="M4455 3274c-349-186-538-316-691-477-213-222-308-443-307-717 1-351 164-692 550-1144 52-61 97-110 100-110 2 1 83 68 179 149l175 147-23 29c-13 15-71 86-130 157-228 275-348 495-379 700-16 108-2 191 50 298 92 185 274 329 703 556l187 99-80 152c-44 84-92 176-107 205-14 28-31 52-37 52-5 0-91-44-190-96z"/><path d="M1860 1671c-217-48-451-161-680-329-83-61-360-291-360-299 0-4 78-98 271-327l27-31 118 101c327 276 553 403 766 433 77 11 185 0 249-25 74-29 172-100 247-178 118-124 200-251 363-559 51-95 93-173 94-175 2-2 401 204 413 213 5 4-174 339-240 450-136 231-304 429-463 548-91 69-226 136-335 168-108 31-350 36-470 10z"/></g>', ['manga', 'anger', 'anime', 'temper', 'vein']),
+    ornament('impact-burst', 'Impact burst', '0 0 48 48', '<path fill="white" d="m24 2 4.3 12.8L40 8l-6.8 11.7L46 24l-12.8 4.3L40 40l-11.7-6.8L24 46l-4.3-12.8L8 40l6.8-11.7L2 24l12.8-4.3L8 8l11.7 6.8z"/>', ['burst', 'impact', 'comic', 'star']),
+    ornament('four-spark', 'Four-point sparkle', '0 0 48 48', '<g fill="white"><path d="m24 2 3.8 18.2L46 24l-18.2 3.8L24 46l-3.8-18.2L2 24l18.2-3.8z"/><path opacity=".55" d="m9 3 1.6 6.4L17 11l-6.4 1.6L9 19l-1.6-6.4L1 11l6.4-1.6z"/></g>', ['sparkle', 'star', 'shine']),
+    ornament('sweat-drop', 'Sweat drop', '0 0 32 48', '<path fill="white" d="M18 2C14 11 7 19 7 29c0 9 5 15 12 15s11-6 10-14C28 21 22 11 18 2Z"/>', ['sweat', 'drop', 'anime', 'comic']),
+    ornament('washi-tape', 'Washi tape', '0 0 96 36', '<path fill="white" d="M5 6 91 2l-3 31-83 1L1 25l4-6-4-6z"/><path fill="black" opacity=".13" d="m17 7 3 26h7L24 6zm24-1 2 27h8L48 5zm26-2 1 28h7L73 4z"/>', ['tape', 'washi', 'journal', 'scrapbook']),
+    ornament('paperclip', 'Paper clip', '0 0 40 56', '<path d="M28 8 13 34c-4 7-1 15 5 18 6 3 13 0 17-7L49 20" transform="translate(-9 -5)" fill="none" stroke="white" stroke-width="5" stroke-linecap="round"/><path d="m28 13-13 23c-2 4-1 8 3 10 4 2 8 0 10-4l12-21" transform="translate(-9 -5)" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"/>', ['paperclip', 'clip', 'journal', 'office']),
+    ornament('postage-star', 'Postage star', '0 0 64 64', '<path fill="white" fill-rule="evenodd" d="M8 4h48v56H8V4Zm6 7v42h36V11H14Zm18 4 4.1 10.7 11.4.6-8.9 7.2 3 11-9.6-6.2-9.6 6.2 3-11-8.9-7.2 11.4-.6L32 15Z"/>', ['stamp', 'postage', 'star', 'journal']),
+    ornament('postage-edge', 'Postage edge', '0 0 64 64', '<path fill="white" fill-rule="evenodd" d="M0 0H64V64H0Z M11 0a3 3 0 1 1-6 0 3 3 0 1 1 6 0Z M23 0a3 3 0 1 1-6 0 3 3 0 1 1 6 0Z M35 0a3 3 0 1 1-6 0 3 3 0 1 1 6 0Z M47 0a3 3 0 1 1-6 0 3 3 0 1 1 6 0Z M59 0a3 3 0 1 1-6 0 3 3 0 1 1 6 0Z M11 64a3 3 0 1 1-6 0 3 3 0 1 1 6 0Z M23 64a3 3 0 1 1-6 0 3 3 0 1 1 6 0Z M35 64a3 3 0 1 1-6 0 3 3 0 1 1 6 0Z M47 64a3 3 0 1 1-6 0 3 3 0 1 1 6 0Z M59 64a3 3 0 1 1-6 0 3 3 0 1 1 6 0Z M0 11a3 3 0 1 1 0-6 3 3 0 1 1 0 6Z M0 23a3 3 0 1 1 0-6 3 3 0 1 1 0 6Z M0 35a3 3 0 1 1 0-6 3 3 0 1 1 0 6Z M0 47a3 3 0 1 1 0-6 3 3 0 1 1 0 6Z M0 59a3 3 0 1 1 0-6 3 3 0 1 1 0 6Z M64 11a3 3 0 1 1 0-6 3 3 0 1 1 0 6Z M64 23a3 3 0 1 1 0-6 3 3 0 1 1 0 6Z M64 35a3 3 0 1 1 0-6 3 3 0 1 1 0 6Z M64 47a3 3 0 1 1 0-6 3 3 0 1 1 0 6Z M64 59a3 3 0 1 1 0-6 3 3 0 1 1 0 6Z"/>', ['stamp', 'postage', 'perforated', 'edge', 'editorial']),
+    ornament('editorial-quill', 'Editorial quill', '0 0 64 64', '<g fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round"><path d="M54 7C42 8 30 13 21 22 13 30 10 40 10 52c6-8 13-14 22-18 9-4 16-12 22-27Z" stroke-width="4"/><path d="M11 53c10-12 20-23 34-34M20 43l-7-1M28 34l-8-3M37 26l-7-5M30 36l3 8M39 27l4 6" stroke-width="3"/></g>', ['quill', 'feather', 'writing', 'ink', 'editorial']),
+    ornament('tiny-flower', 'Tiny flower', '0 0 48 48', '<g fill="white"><ellipse cx="24" cy="12" rx="7" ry="11"/><ellipse cx="36" cy="24" rx="11" ry="7"/><ellipse cx="24" cy="36" rx="7" ry="11"/><ellipse cx="12" cy="24" rx="11" ry="7"/><circle cx="24" cy="24" r="6"/></g>', ['flower', 'botanical', 'cute']),
+    ornament('scribble-heart', 'Scribble heart', '0 0 64 56', '<path d="M32 50S5 34 5 17C5 5 20 1 32 14 44 1 59 5 59 17c0 17-27 33-27 33Z" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 19c2-7 9-9 15-3" fill="none" stroke="white" stroke-width="2" opacity=".65"/>', ['heart', 'scribble', 'journal', 'cute']),
+    ornament('vn-corners', 'VN corner brackets', '0 0 120 64', '<g fill="none" stroke="white" stroke-width="1.8" stroke-linecap="square"><path d="M2 18V2h28M90 2h28v16M118 46v16H90M30 62H2V46"/><path opacity=".42" d="M7 23V7h18M95 7h18v16M113 41v16H95M25 57H7V41"/></g>', ['visual', 'novel', 'vn', 'corner', 'bracket', 'frame']),
+    ornament('vn-wide-corners', 'VN wide corner cap', '0 0 1000 64', '<g fill="none" stroke="white" stroke-width="3" stroke-linecap="square"><path d="M4 60V4h218M778 4h218v56"/><path opacity=".42" d="M18 52V18h154M828 18h154v34"/><path opacity=".24" d="M230 4h112M658 4h112"/></g>', ['visual', 'novel', 'vn', 'wide', 'corner', 'frame', 'cap', 'top']),
+    ornament('vn-mobile-corners', 'VN mobile corner cap', '0 0 400 64', '<g fill="none" stroke="white" stroke-width="3" stroke-linecap="square"><path d="M4 60V4h104M292 4h104v56"/><path opacity=".42" d="M16 52V16h74M310 16h74v36"/><path opacity=".24" d="M116 4h38M246 4h38"/></g>', ['visual', 'novel', 'vn', 'mobile', 'corner', 'frame', 'cap']),
+    ornament('vn-heart-jewel', 'VN heart jewel', '0 0 64 40', '<g fill="white"><path d="M32 37S12 25 12 13c0-8 10-11 20-2 10-9 20-6 20 2 0 12-20 24-20 24Z"/><path opacity=".48" d="M4 20 10 14l6 6-6 6-6-6Zm44 0 6-6 6 6-6 6-6-6Z"/></g>', ['visual', 'novel', 'vn', 'heart', 'jewel', 'romance']),
+    ornament('vn-arrow-left', 'VN arrow left', '0 0 64 32', '<path fill="white" d="M25 4 7 16l18 12v-8h30v-8H25V4Z"/>', ['visual', 'novel', 'vn', 'arrow', 'previous', 'left']),
+    ornament('vn-arrow-right', 'VN arrow right', '0 0 64 32', '<path fill="white" d="m39 4 18 12-18 12v-8H9v-8h30V4Z"/>', ['visual', 'novel', 'vn', 'arrow', 'next', 'right']),
+    ornament('star-divider', 'Star divider', '0 0 120 20', '<g fill="white"><path opacity=".4" d="M4 9h42v2H4zm70 0h42v2H74z"/><path d="m60 1 2.4 6.6L69 10l-6.6 2.4L60 19l-2.4-6.6L51 10l6.6-2.4z"/></g>', ['divider', 'separator', 'star', 'chapter']),
+];
+function builtinOrnament(id) {
+    return exports.BUILTIN_ORNAMENTS.find((entry) => entry.id === id);
+}
+
+},
+"src/presets/style-library.ts": function(module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.STYLE_LIBRARY_AREAS = exports.STYLE_LIBRARY_PACKS = exports.STYLE_LIBRARY_RECIPES = void 0;
@@ -9271,7 +6173,7 @@ exports.packCompatiblePresetIds = packCompatiblePresetIds;
 exports.packDefaultPresetIdsForLayout = packDefaultPresetIdsForLayout;
 exports.packForId = packForId;
 exports.recipeMetaForId = recipeMetaForId;
-const common_parts_1 = __require("src/presets/common-parts");
+const common_parts_1 = require("./common-parts");
 const FAMILY_BY_PRESET = {
     'avatar-big-portrait': 'Portrait',
     'avatar-soft-fade': 'Portrait',
@@ -9585,121 +6487,3785 @@ function packDefaultPresetIdsForLayout(pack, layout = 'all') {
 function packForId(id) { return exports.STYLE_LIBRARY_PACKS.find((pack) => pack.id === id); }
 function recipeMetaForId(id) { return exports.STYLE_LIBRARY_RECIPES.find((entry) => entry.preset.id === id); }
 
-};
-__modules["src/presets/message-anatomy"] = function(module,exports,__require){
+},
+"src/preview/image-source-runtime.ts": function(module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MESSAGE_LAYOUT_AUDITS = void 0;
-exports.mountedMessageRole = mountedMessageRole;
-exports.MESSAGE_LAYOUT_AUDITS = {
-    bubble: {
-        id: 'bubble',
-        component: 'BubbleMessage',
-        catalogClasses: ['card', 'user', 'bubble', 'content', 'header', 'headerLeft', 'avatar', 'avatarBg', 'avatarBgImg', 'avatarBgScrim', 'name', 'nameUser', 'nameChar', 'metaWrap', 'metaPill', 'actionsPill'],
-        roles: {
-            frame: [{ selector: '[data-component="BubbleMessage"]', confidence: 'high' }],
-            bubble: [{ selector: '[data-component="BubbleMessage"] [class*="_bubble_"]', confidence: 'high' }],
-            header: [{ selector: '[data-component="BubbleMessage"] [class*="_header_"]:not([class*="_headerLeft_"])', confidence: 'high' }],
-            'header-left': [{ selector: '[data-component="BubbleMessage"] [class*="_headerLeft_"]', confidence: 'high' }],
-            'avatar-frame': [{ selector: '[data-component="BubbleMessage"] [class*="_avatar_"]', confidence: 'high' }],
-            'avatar-image': [{ selector: '[data-component="BubbleMessage"] [class*="_avatar_"] img', confidence: 'high' }],
-            'avatar-backdrop': [{ selector: '[data-component="BubbleMessage"] [class*="_avatarBgImg_"]', confidence: 'high' }],
-            name: [{ selector: '[data-component="BubbleMessage"] [class*="_nameChar_"]', confidence: 'high' }, { selector: '[data-component="BubbleMessage"] [class*="_name_"]', confidence: 'medium' }],
-            'meta-wrap': [{ selector: '[data-component="BubbleMessage"] [class*="_metaWrap_"]', confidence: 'high' }],
-            'meta-pill': [{ selector: '[data-component="BubbleMessage"] [class*="_metaPill_"]', confidence: 'high' }],
-            'meta-number': [{ selector: '[data-component="BubbleMessage"] [class*="_metaPill_"] > [class*="_metaSegment_"]:nth-child(1 of [class*="_metaSegment_"])', confidence: 'high', note: 'Order-derived mounted metadata segment: message number.' }],
-            'meta-timestamp': [{ selector: '[data-component="BubbleMessage"] [class*="_metaPill_"] > [class*="_metaSegment_"]:nth-child(2 of [class*="_metaSegment_"])', confidence: 'high', note: 'Order-derived mounted metadata segment: timestamp.' }],
-            'meta-tokens': [{ selector: '[data-component="BubbleMessage"] [class*="_metaPill_"] > [class*="_metaSegment_"]:nth-child(3 of [class*="_metaSegment_"])', confidence: 'high', note: 'Order-derived mounted metadata segment: token count.' }],
-            content: [{ selector: '[data-component="BubbleMessage"] [data-component="MessageContent"]', confidence: 'high' }, { selector: '[data-component="BubbleMessage"] [class*="_content_"]', confidence: 'medium' }],
-            attachments: [{ selector: '[data-component="BubbleMessage"] :is([class*="_attachments_"], [data-component="MessageAttachments"])', confidence: 'medium', note: 'Attachment surfaces do not currently expose a guaranteed public component id; Theme Studio recognizes the mounted attachment family when present.' }],
-            attachment: [{ selector: '[data-component="BubbleMessage"] :is([class*="_attachment_"], [class*="_inlineImageBtn_"], [class*="_inlineImageWrap_"] )', confidence: 'medium', note: 'Mounted attachment item fallback; current inline-image mounts expose Inline Image Btn/Wrap classes but still no stable public component id.' }],
-            thinking: [{ selector: '[data-component="BubbleMessage"] [class*="_container_"]:has(> button[data-reasoning-toggle="true"])', confidence: 'high', note: 'Current ReasoningBlock is identified by its stable reasoning toggle marker; it does not expose a dedicated data-component root.' }],
-            greetings: [{ selector: '[data-component="BubbleMessage"] button[title="Browse alternate greetings"]', confidence: 'high', note: 'Mounted Lumiverse exposes the launcher as a titled button; the indicator class lives inside it and is not the interactive owner.' }, { selector: '[data-component="BubbleMessage"] button[class*="_indicator_"]', confidence: 'medium' }],
-            swipes: [{ selector: '[data-component="BubbleMessage"] [data-component="SwipeControls"]', confidence: 'high' }],
-            'long-message-toggle': [{ selector: '[data-component="BubbleMessage"] [data-component="MessageContent"] [class*="_longMessageTogglePill_"]', confidence: 'high', note: 'Added in current Lumiverse long-message truncation UI; the control is owned by MessageContent and may mount in either message renderer.' }],
-            actions: [{ selector: '[data-component="BubbleMessage"] [data-component="BubbleActions"][class*="_pill_"]', confidence: 'high', note: 'Mounted BubbleActions exposes its own semantic component root; keep the historical actionsPill class as fallback.' }, { selector: '[data-component="BubbleMessage"] [class*="_actionsPill_"]', confidence: 'medium' }],
-        },
-        absentOrDifferent: [],
-    },
-    minimal: {
-        id: 'minimal',
-        component: 'MinimalMessage',
-        // Runtime catalog roots are enriched from mounted CSS-module class names for stable part scopes.
-        catalogClasses: ['card', 'character', 'user', 'avatar', 'avatarFallback', 'bubble', 'content', 'contentChar', 'contentUser', 'header', 'name', 'nameUser', 'nameChar', 'metaPill', 'metaSegment', 'metaDot', 'actionsWrap'],
-        roles: {
-            frame: [{ selector: '[data-component="MinimalMessage"]', confidence: 'high' }],
-            bubble: [{ selector: '[data-component="MinimalMessage"] [class*="_bubble_"]', confidence: 'high' }],
-            header: [{ selector: '[data-component="MinimalMessage"] [class*="_header_"]', confidence: 'high' }],
-            'avatar-frame': [{ selector: '[data-component="MinimalMessage"] [class*="_avatar_"]', confidence: 'high' }],
-            'avatar-image': [{ selector: '[data-component="MinimalMessage"] [class*="_avatar_"] img', confidence: 'high', note: 'Confirmed in the current staging MinimalMessage source: the avatar wrapper owns a direct img child.' }],
-            name: [{ selector: '[data-component="MinimalMessage"] [class*="_nameChar_"]', confidence: 'high' }, { selector: '[data-component="MinimalMessage"] [class*="_name_"]', confidence: 'medium' }],
-            'meta-pill': [{ selector: '[data-component="MinimalMessage"] [class*="_metaPill_"]', confidence: 'high' }],
-            'meta-number': [{ selector: '[data-component="MinimalMessage"] [class*="_metaPill_"] > [class*="_metaSegment_"]:nth-child(1 of [class*="_metaSegment_"])', confidence: 'high' }],
-            'meta-timestamp': [{ selector: '[data-component="MinimalMessage"] [class*="_metaPill_"] > [class*="_metaSegment_"]:nth-child(2 of [class*="_metaSegment_"])', confidence: 'high' }],
-            'meta-tokens': [{ selector: '[data-component="MinimalMessage"] [class*="_metaPill_"] > [class*="_metaSegment_"]:nth-child(3 of [class*="_metaSegment_"])', confidence: 'high' }],
-            content: [{ selector: '[data-component="MinimalMessage"] [data-component="MessageContent"]', confidence: 'high', note: 'Confirmed in the current staging MinimalMessage source beneath the renderer-local content lane. Mounted mobile QA also confirms an intermediate CSS-module `_content_` / `_contentChar_`-style wrapper can own the renderer lane geometry.' }],
-            attachments: [{ selector: '[data-component="MinimalMessage"] :is([class*="_attachments_"], [data-component="MessageAttachments"])', confidence: 'high', note: 'Confirmed from the current staging MessageAttachments mount used by MinimalMessage.' }],
-            attachment: [{ selector: '[data-component="MinimalMessage"] :is([class*="_attachment_"], [class*="_inlineImageBtn_"], [class*="_inlineImageWrap_"] )', confidence: 'high', note: 'Confirmed current staging inline attachment button/wrapper family under MinimalMessage.' }],
-            thinking: [{ selector: '[data-component="MinimalMessage"] [class*="_container_"]:has(> button[data-reasoning-toggle="true"])', confidence: 'high', note: 'Current ReasoningBlock is identified by its stable reasoning toggle marker; it does not expose a dedicated data-component root.' }],
-            greetings: [{ selector: '[data-component="MinimalMessage"] button[title="Browse alternate greetings"]', confidence: 'high', note: 'Mounted Lumiverse exposes the launcher as a titled button; the indicator class lives inside it and is not the interactive owner.' }, { selector: '[data-component="MinimalMessage"] button[class*="_indicator_"]', confidence: 'medium' }],
-            swipes: [{ selector: '[data-component="MinimalMessage"] [data-component="SwipeControls"]', confidence: 'high' }],
-            'long-message-toggle': [{ selector: '[data-component="MinimalMessage"] [data-component="MessageContent"] [class*="_longMessageTogglePill_"]', confidence: 'high', note: 'Mounted receipt confirms the new Read more control under MinimalMessage MessageContent.' }],
-            actions: [{ selector: '[data-component="MinimalMessage"] [class*="_actionsWrap_"]', confidence: 'high' }],
-        },
-        absentOrDifferent: [
-            'No headerLeft class in the native catalog.',
-            'No metaWrap class; metadata appears to live directly in metaPill/metaSegment.',
-            'No avatar backdrop class.',
-            'Actions use actionsWrap rather than BubbleMessage actionsPill.',
-            'Its composition should be adapted, not forced through BubbleMessage hero choreography.',
-        ],
-    },
-};
-function mountedMessageRole(layout, role) {
-    if (typeof document === 'undefined')
+exports.ImageSourceRuntime = void 0;
+exports.deriveImageSourceTier = deriveImageSourceTier;
+exports.deriveFullImageSource = deriveFullImageSource;
+const model_1 = require("../project/model");
+const compiler_1 = require("../compiler/compiler");
+function serializeLikeInput(url, input) {
+    if (/^[a-z][a-z0-9+.-]*:/i.test(input) || input.startsWith('//'))
+        return url.href;
+    return `${url.pathname}${url.search}${url.hash}`;
+}
+function parsedSupportedSource(input, base = typeof location !== 'undefined' ? location.href : 'http://localhost/') {
+    const trimmed = input.trim();
+    if (!trimmed || /^(?:data:|blob:)/i.test(trimmed))
         return null;
-    for (const candidate of exports.MESSAGE_LAYOUT_AUDITS[layout].roles[role] ?? []) {
-        try {
-            const element = document.querySelector(candidate.selector);
-            if (element)
-                return element;
+    let url;
+    try {
+        url = new URL(trimmed, base);
+    }
+    catch {
+        return null;
+    }
+    const avatarRoute = /^\/api\/v1\/(?:characters|personas)\/[^/]+\/avatar\/?$/i.test(url.pathname);
+    const directImageRoute = /^\/api\/v1\/images\/[^/]+\/?$/i.test(url.pathname);
+    if (avatarRoute || directImageRoute) {
+        const rawTier = url.searchParams.get('size');
+        const tier = rawTier === 'sm' || rawTier === 'lg' ? rawTier : 'full';
+        return { url, input: trimmed, tier, directPath: url.pathname.replace(/\/$/, '') };
+    }
+    const thumbnailPath = url.pathname.match(/^(\/api\/v1\/images\/[^/]+)\/(?:thumbnail|thumb)(?:\/(sm|lg))?\/?$/i);
+    if (!thumbnailPath)
+        return null;
+    const queryTier = url.searchParams.get('size');
+    const pathTier = thumbnailPath[2]?.toLowerCase();
+    const tier = queryTier === 'sm' || queryTier === 'lg' ? queryTier : pathTier === 'sm' || pathTier === 'lg' ? pathTier : 'lg';
+    return { url, input: trimmed, tier, directPath: thumbnailPath[1] };
+}
+/**
+ * Resolve a supported Lumiverse avatar/image source to a requested tier. `full`
+ * means the original resolver (no size query). Unknown URLs are deliberately left
+ * alone rather than guessing at application data.
+ */
+function deriveImageSourceTier(input, tier, base = typeof location !== 'undefined' ? location.href : 'http://localhost/') {
+    const parsed = parsedSupportedSource(input, base);
+    if (!parsed)
+        return null;
+    parsed.url.pathname = parsed.directPath;
+    if (tier === 'full')
+        parsed.url.searchParams.delete('size');
+    else
+        parsed.url.searchParams.set('size', tier);
+    return serializeLikeInput(parsed.url, parsed.input);
+}
+/** Convert Lumiverse's known avatar/image thumbnail routes to their full resolver. */
+function deriveFullImageSource(input, base = typeof location !== 'undefined' ? location.href : 'http://localhost/') {
+    const parsed = parsedSupportedSource(input, base);
+    if (!parsed || parsed.tier === 'full')
+        return null;
+    return deriveImageSourceTier(input, 'full', base);
+}
+function imageSourcePackets(override, mobile) {
+    const packets = [];
+    const add = (items) => {
+        for (const packet of items ?? []) {
+            if (packet?.type !== 'image')
+                continue;
+            const quality = packet.sourceQuality ?? 'native';
+            if (quality === 'auto' || quality === 'full')
+                packets.push(packet);
         }
-        catch { /* catalog audit selectors are best-effort */ }
+    };
+    for (const state of model_1.STYLE_STATES)
+        add(override.states[state]);
+    if (mobile)
+        for (const state of model_1.STYLE_STATES)
+            add(override.mobileStates?.[state]);
+    return packets;
+}
+function activeImageSourceTargets(project) {
+    const mobile = typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 720px)').matches;
+    const result = [];
+    for (const override of project.componentOverrides) {
+        if (/::(?:before|after)\s*$/i.test(override.target.selector))
+            continue;
+        const packets = imageSourcePackets(override, mobile);
+        if (!packets.length)
+            continue;
+        const selector = (0, compiler_1.compileSafeTargetSelector)(override.target);
+        if (!selector)
+            continue;
+        result.push({ selector, quality: packets.some((packet) => packet.sourceQuality === 'full') ? 'full' : 'auto' });
+    }
+    return result;
+}
+function imagesForSelector(selector) {
+    try {
+        const result = new Set();
+        for (const element of document.querySelectorAll(selector)) {
+            if (element instanceof HTMLImageElement)
+                result.add(element);
+            else
+                for (const image of element.querySelectorAll('img'))
+                    result.add(image);
+        }
+        return [...result];
+    }
+    catch {
+        return [];
+    }
+}
+function tierRank(tier) { return tier === 'sm' ? 0 : tier === 'lg' ? 1 : 2; }
+function nextTier(tier) { return tier === 'sm' ? 'lg' : 'full'; }
+function effectivePixelScale() {
+    const dpr = typeof window !== 'undefined' && Number.isFinite(window.devicePixelRatio) ? window.devicePixelRatio : 1;
+    // Auto aims for a clean UI image, not maximum-density art. A capped DPR keeps
+    // large list surfaces from immediately promoting every thumbnail to original.
+    return Math.min(1.35, Math.max(1, dpr)) * 1.05;
+}
+function imageNeedsMorePixels(image) {
+    if (!image.naturalWidth || !image.naturalHeight)
+        return false;
+    const rect = image.getBoundingClientRect();
+    if (rect.width <= 1 || rect.height <= 1)
+        return false;
+    const scale = effectivePixelScale();
+    return image.naturalWidth + 2 < rect.width * scale || image.naturalHeight + 2 < rect.height * scale;
+}
+/**
+ * Small DOM-mutation bridge for presentation-only properties React does not expose
+ * through CSS. It never replaces components or owns application state. Full always
+ * requests the original image. Auto begins with Lumiverse's native tier and only
+ * promotes sm -> lg -> original when the mounted surface actually outruns the
+ * currently loaded pixels. Auto never downshifts during a mounted session, avoiding
+ * source churn while a Size slider is moving.
+ */
+class ImageSourceRuntime {
+    store;
+    tracked = new Map();
+    unsubscribe;
+    observer;
+    resizeObserver;
+    queued = false;
+    destroyed = false;
+    onImageLoad = (event) => {
+        if (!(event.target instanceof HTMLImageElement))
+            return;
+        const state = this.tracked.get(event.target);
+        if (!state)
+            return;
+        if (state.awaitingSource === (event.target.getAttribute('src') ?? ''))
+            state.awaitingSource = undefined;
+        this.queueSync();
+    };
+    constructor(store) {
+        this.store = store;
+        this.unsubscribe = store.subscribe(() => this.queueSync());
+        this.observer = new MutationObserver(() => this.queueSync());
+        this.observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['src', 'srcset'] });
+        this.resizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(() => this.queueSync()) : undefined;
+        document.addEventListener('load', this.onImageLoad, true);
+        this.sync();
+    }
+    queueSync() {
+        if (this.destroyed || this.queued)
+            return;
+        this.queued = true;
+        queueMicrotask(() => { this.queued = false; if (!this.destroyed)
+            this.sync(); });
+    }
+    stateFor(image, mode) {
+        const currentSrc = image.getAttribute('src') ?? '';
+        const currentSrcset = image.getAttribute('srcset');
+        let state = this.tracked.get(image);
+        if (!state) {
+            state = { nativeSrc: currentSrc, nativeSrcset: currentSrcset, appliedSrc: '', appliedSrcset: currentSrcset, mode };
+            this.tracked.set(image, state);
+            this.resizeObserver?.observe(image);
+        }
+        else {
+            if (currentSrc !== state.appliedSrc)
+                state.nativeSrc = currentSrc;
+            if (currentSrcset !== state.appliedSrcset)
+                state.nativeSrcset = currentSrcset;
+            if (state.mode !== mode) {
+                // An explicit Native/Auto/Full mode change is allowed to choose a new tier;
+                // automatic resizing inside Auto only moves upward from there.
+                state.mode = mode;
+                state.tier = undefined;
+            }
+        }
+        return state;
+    }
+    applySource(image, state, source) {
+        const changed = image.getAttribute('src') !== source;
+        if (changed)
+            image.setAttribute('src', source);
+        // A thumbnail srcset can override src during candidate selection. Controlled
+        // modes temporarily remove it, then restore the latest native value on exit.
+        if (image.hasAttribute('srcset'))
+            image.removeAttribute('srcset');
+        state.appliedSrc = source;
+        state.appliedSrcset = null;
+        state.awaitingSource = changed ? source : undefined;
+    }
+    applyFull(image) {
+        const state = this.stateFor(image, 'full');
+        const parsed = parsedSupportedSource(state.nativeSrc);
+        if (!parsed) {
+            state.appliedSrc = image.getAttribute('src') ?? '';
+            state.appliedSrcset = image.getAttribute('srcset');
+            return;
+        }
+        const full = deriveImageSourceTier(state.nativeSrc, 'full');
+        if (!full)
+            return;
+        state.tier = 'full';
+        this.applySource(image, state, full);
+    }
+    applyAuto(image) {
+        const state = this.stateFor(image, 'auto');
+        const parsed = parsedSupportedSource(state.nativeSrc);
+        if (!parsed) {
+            state.appliedSrc = image.getAttribute('src') ?? '';
+            state.appliedSrcset = image.getAttribute('srcset');
+            return;
+        }
+        if (!state.tier)
+            state.tier = parsed.tier;
+        // If React already supplied the original, Auto has nothing useful to do.
+        if (parsed.tier === 'full') {
+            state.tier = 'full';
+            state.appliedSrc = image.getAttribute('src') ?? '';
+            state.appliedSrcset = image.getAttribute('srcset');
+            return;
+        }
+        // Once a controlled candidate has loaded, only promote if its real intrinsic
+        // pixels are still smaller than the rendered surface. No guessed sm/lg sizes.
+        if (!state.awaitingSource && imageNeedsMorePixels(image) && state.tier !== 'full')
+            state.tier = nextTier(state.tier);
+        // Never let a stale state choose a tier below what Lumiverse itself supplied.
+        if (tierRank(state.tier) < tierRank(parsed.tier))
+            state.tier = parsed.tier;
+        const source = deriveImageSourceTier(state.nativeSrc, state.tier);
+        if (!source)
+            return;
+        if (state.tier === parsed.tier && image.getAttribute('src') === state.nativeSrc && image.getAttribute('srcset') === state.nativeSrcset) {
+            state.appliedSrc = state.nativeSrc;
+            state.appliedSrcset = state.nativeSrcset;
+            return;
+        }
+        this.applySource(image, state, source);
+    }
+    restore(image, state) {
+        this.resizeObserver?.unobserve(image);
+        if (!image.isConnected)
+            return;
+        if (image.getAttribute('src') === state.appliedSrc && image.getAttribute('src') !== state.nativeSrc)
+            image.setAttribute('src', state.nativeSrc);
+        if (state.nativeSrcset === null)
+            image.removeAttribute('srcset');
+        else if (image.getAttribute('srcset') !== state.nativeSrcset)
+            image.setAttribute('srcset', state.nativeSrcset);
+    }
+    sync() {
+        if (this.destroyed)
+            return;
+        const desired = new Map();
+        for (const target of activeImageSourceTargets(this.store.activeProject)) {
+            for (const image of imagesForSelector(target.selector)) {
+                const previous = desired.get(image);
+                desired.set(image, previous === 'full' || target.quality === 'full' ? 'full' : 'auto');
+            }
+        }
+        for (const [image, quality] of desired)
+            quality === 'full' ? this.applyFull(image) : this.applyAuto(image);
+        for (const [image, state] of [...this.tracked]) {
+            if (desired.has(image))
+                continue;
+            this.restore(image, state);
+            this.tracked.delete(image);
+        }
+    }
+    destroy() {
+        if (this.destroyed)
+            return;
+        this.destroyed = true;
+        this.observer.disconnect();
+        this.resizeObserver?.disconnect();
+        document.removeEventListener('load', this.onImageLoad, true);
+        this.unsubscribe();
+        for (const [image, state] of this.tracked)
+            this.restore(image, state);
+        this.tracked.clear();
+    }
+}
+exports.ImageSourceRuntime = ImageSourceRuntime;
+
+},
+"src/preview/live-stylesheet.ts": function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.LiveStylesheet = void 0;
+exports.resolvePreviewAssetUrls = resolvePreviewAssetUrls;
+exports.sanitizeCustomCss = sanitizeCustomCss;
+function escapeCssUrl(value) {
+    return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/[\r\n\f]/g, '');
+}
+/**
+ * Native theme CSS owns canonical ./assets/... references, but Theme Studio's
+ * live <style> tags do not execute inside that bundle. Resolve only known
+ * canonical asset paths to their runtime contentUrl while previewing. Project
+ * state, generated CSS, and native export stay canonical.
+ */
+function resolvePreviewAssetUrls(css, assets) {
+    const urls = new Map();
+    for (const asset of assets) {
+        const path = asset.path?.trim();
+        const contentUrl = asset.contentUrl?.trim();
+        if (!path || !contentUrl)
+            continue;
+        // Lumiverse's canonical asset CSS uses ./assets/..., but older/manual Theme
+        // Studio fields often contain assets/... without the leading dot. Treat both
+        // spellings as the same public bundle asset during live preview.
+        const bare = path.replace(/^\.\//, '');
+        urls.set(path, contentUrl);
+        urls.set(bare, contentUrl);
+        urls.set(`./${bare}`, contentUrl);
+    }
+    if (!urls.size || !css.includes('url('))
+        return css;
+    return css.replace(/url\(\s*(["']?)([^"')]+)\1\s*\)/gi, (match, _quote, rawPath) => {
+        const contentUrl = urls.get(String(rawPath).trim());
+        return contentUrl ? `url("${escapeCssUrl(contentUrl)}")` : match;
+    });
+}
+function sanitizeCustomCss(css) {
+    return css
+        .replace(/@import\s+[^;]+;/gi, '/* @import stripped by Theme Studio */')
+        .replace(/url\(\s*(['"]?)javascript:[^)'"\s]*\1\s*\)/gi, '/* unsafe url stripped */')
+        .replace(/url\(\s*(['"]?)https?:\/\/[^)'"\s]+\1\s*\)/gi, '/* external url stripped */');
+}
+function validateCss(css) {
+    try {
+        const sheet = new CSSStyleSheet();
+        sheet.replaceSync(css);
+        return { valid: true };
+    }
+    catch (error) {
+        return { valid: false, error: error instanceof Error ? error.message : 'Invalid CSS' };
+    }
+}
+/** Owns isolated replace-in-place stylesheets for committed Design, transient Design scrubs, and Custom CSS. */
+class LiveStylesheet {
+    generated;
+    transient;
+    custom;
+    transientFrame = null;
+    transientPending = '';
+    themeAssets = [];
+    constructor(ctx) {
+        this.generated = ctx.dom.createElement('style', {
+            'data-theme-studio-preview': 'generated',
+        });
+        this.transient = ctx.dom.createElement('style', {
+            'data-theme-studio-preview': 'transient-design',
+        });
+        this.custom = ctx.dom.createElement('style', {
+            'data-theme-studio-preview': 'custom',
+        });
+        // Custom CSS deliberately stays last. A transient slider preview should
+        // preview Design intent without unexpectedly outranking handwritten CSS.
+        document.head.append(this.generated, this.transient, this.custom);
+    }
+    setThemeAssets(assets) {
+        this.themeAssets = [...assets].map((asset) => ({ path: asset.path, contentUrl: asset.contentUrl }));
+    }
+    resolveAssets(css) { return resolvePreviewAssetUrls(css, this.themeAssets); }
+    updateGenerated(css) {
+        const resolved = this.resolveAssets(css);
+        const result = validateCss(resolved);
+        if (result.valid)
+            this.generated.textContent = resolved;
+        return result;
+    }
+    updateTransient(css) {
+        // Generated Design preview CSS is trusted compiler output. Coalesce pointer
+        // scrubs to one stylesheet mutation per animation frame so a slider can stay
+        // genuinely live without turning the document style system into a rave.
+        this.transientPending = css;
+        if (this.transientFrame === null) {
+            const apply = () => {
+                this.transientFrame = null;
+                const pending = this.resolveAssets(this.transientPending);
+                const result = validateCss(pending);
+                if (result.valid)
+                    this.transient.textContent = pending;
+            };
+            this.transientFrame = typeof requestAnimationFrame === 'function' ? requestAnimationFrame(apply) : setTimeout(apply, 0);
+        }
+        return { valid: true };
+    }
+    clearTransient() {
+        if (this.transientFrame !== null) {
+            if (typeof cancelAnimationFrame === 'function')
+                cancelAnimationFrame(this.transientFrame);
+            else
+                clearTimeout(this.transientFrame);
+            this.transientFrame = null;
+        }
+        this.transientPending = '';
+        this.transient.textContent = '';
+    }
+    updateCustom(css) {
+        const sanitized = sanitizeCustomCss(css);
+        const resolved = this.resolveAssets(sanitized);
+        const result = validateCss(resolved);
+        if (result.valid)
+            this.custom.textContent = resolved;
+        return result;
+    }
+    destroy() {
+        this.clearTransient();
+        this.generated.remove();
+        this.transient.remove();
+        this.custom.remove();
+    }
+}
+exports.LiveStylesheet = LiveStylesheet;
+
+},
+"src/project/migrations.ts": function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.normalizePacket = normalizePacket;
+exports.normalizeState = normalizeState;
+const model_1 = require("./model");
+const values_1 = require("./values");
+const selector_utils_1 = require("../registry/selector-utils");
+const random_id_1 = require("../utils/random-id");
+function record(value) { return typeof value === 'object' && value !== null && !Array.isArray(value); }
+function string(value, fallback = '') { return typeof value === 'string' ? value : fallback; }
+function identifier(value) { return string(value.id) || (0, random_id_1.portableRandomUUID)(); }
+const MESSAGE_COMPONENT_RE = /(?:^|[\/:_-])(BubbleMessage|MinimalMessage)(?:$|[\/:_-])/i;
+function legacyMessageComponentLabel(targetValue, value) {
+    const native = string(targetValue.nativeComponentId ?? value.nativeComponentId ?? value.componentId);
+    const explicit = string(targetValue.nativeContextSelector);
+    const label = string(targetValue.label ?? value.label);
+    if (/BubbleMessage/i.test(native) || /data-component=["\']BubbleMessage["\']/i.test(explicit) || /\bBubbleMessage\b/i.test(label))
+        return 'BubbleMessage';
+    if (/MinimalMessage/i.test(native) || /data-component=["\']MinimalMessage["\']/i.test(explicit) || /\bMinimalMessage\b/i.test(label))
+        return 'MinimalMessage';
+    const match = native.match(MESSAGE_COMPONENT_RE);
+    return match?.[1] === 'BubbleMessage' || match?.[1] === 'MinimalMessage' ? match[1] : undefined;
+}
+const EXPLICIT_GLOBAL_SCOPE_RE = /\b(similar|everywhere|global|all similar)\b/i;
+const CSS_MODULE_SELECTOR_RE = /\[class\*=["\']_[A-Za-z][A-Za-z0-9_-]*?_["\']\]/;
+function repairLegacyMessageSelector(selector, targetValue, value, _sourceVersion) {
+    const component = legacyMessageComponentLabel(targetValue, value);
+    if (!component)
+        return selector;
+    const label = string(targetValue.label ?? value.label);
+    // This is an invariant repair, not a one-shot version migration. V27.2 could
+    // normalize a stranded selector into schema v15 before it had enough metadata
+    // to repair it, which made the version gate permanently preserve the leak. Any
+    // message-owned, non-global CSS-module target must remain under its message root.
+    if (EXPLICIT_GLOBAL_SCOPE_RE.test(label))
+        return selector;
+    if (!CSS_MODULE_SELECTOR_RE.test(selector))
+        return selector;
+    const rooted = new RegExp(`^\\[data-component=["']${component}["']\\]`, 'i');
+    return selector.split(/,(?![^()]*\))/).map((branch) => {
+        const trimmed = branch.trim();
+        return rooted.test(trimmed) ? trimmed : `[data-component="${component}"] ${trimmed}`;
+    }).join(',\n');
+}
+function messageComponentFromTarget(target) {
+    const probe = {
+        nativeComponentId: target.nativeComponentId,
+        nativeContextSelector: target.nativeContextSelector,
+        label: target.label,
+    };
+    const explicit = legacyMessageComponentLabel(probe, probe);
+    if (explicit)
+        return explicit;
+    if (/\[data-component=["']BubbleMessage["']\]/i.test(target.selector))
+        return 'BubbleMessage';
+    if (/\[data-component=["']MinimalMessage["']\]/i.test(target.selector))
+        return 'MinimalMessage';
+    return undefined;
+}
+function repairV274FalseMessageRehome(entry, sourceVersion) {
+    // V27.4's project-wide orphan inference was too eager: if a project contained one
+    // message family, it could prepend that message root to unrelated native targets
+    // such as ChatView's Bar Wrapper / Chat Toolbar. Those poisoned records are
+    // identifiable because the selector says "message-owned" while the surviving
+    // native component metadata says otherwise.
+    if (sourceVersion !== 17)
+        return entry;
+    const target = entry.target;
+    const selectorRoot = target.selector.match(/^\s*\[data-component=["'](BubbleMessage|MinimalMessage)["']\]\s+/i)?.[1];
+    if (!selectorRoot || !target.localSelector || !CSS_MODULE_SELECTOR_RE.test(target.localSelector))
+        return entry;
+    const nativeProbe = {
+        nativeComponentId: target.nativeComponentId,
+        nativeContextSelector: undefined,
+        label: undefined,
+    };
+    const nativeMessage = legacyMessageComponentLabel(nativeProbe, nativeProbe);
+    if (!target.nativeComponentId || nativeMessage)
+        return entry;
+    const savedContext = target.nativeContextSelector?.trim();
+    const savedContextMessage = savedContext
+        ? legacyMessageComponentLabel({ nativeContextSelector: savedContext }, {})
+        : undefined;
+    const selector = savedContext && !savedContextMessage
+        ? `${savedContext} ${target.localSelector}`
+        : target.localSelector;
+    return {
+        ...entry,
+        target: {
+            ...target,
+            selector,
+            nativeContextSelector: savedContext && !savedContextMessage ? savedContext : undefined,
+        },
+    };
+}
+function repairProjectMessageScopeOrphans(overrides, sourceVersion) {
+    const repaired = overrides.map((entry) => repairV274FalseMessageRehome(entry, sourceVersion));
+    const projectComponents = new Set(repaired.map((entry) => messageComponentFromTarget(entry.target)).filter((entry) => Boolean(entry)));
+    // If a historical save already discarded the target's native component id, infer
+    // only when the project itself has one unambiguous message family. Crucially, an
+    // explicit non-message native owner is never rehomed just because that project
+    // also contains MinimalMessage/BubbleMessage styles.
+    if (projectComponents.size !== 1)
+        return repaired;
+    const component = [...projectComponents][0];
+    const rootSelector = `[data-component="${component}"]`;
+    const rooted = new RegExp(`^\\[data-component=["']${component}["']\\]`, 'i');
+    return repaired.map((entry) => {
+        const target = entry.target;
+        const label = target.label ?? '';
+        if (EXPLICIT_GLOBAL_SCOPE_RE.test(label) || !CSS_MODULE_SELECTOR_RE.test(target.selector))
+            return entry;
+        if (/\[data-component=["'](?:BubbleMessage|MinimalMessage)["']\]/i.test(target.selector))
+            return entry;
+        const explicitNativeOwnership = Boolean(target.nativeComponentId?.trim() || target.nativeContextSelector?.trim());
+        if (explicitNativeOwnership && !messageComponentFromTarget(target))
+            return entry;
+        const looksContextual = target.source === 'native-aware' || target.strategy === 'native-context-local' || /\b(ancestor|picked|part)\b/i.test(label);
+        if (!looksContextual)
+            return entry;
+        const selector = target.selector.split(/,(?![^()]*\))/).map((branch) => {
+            const trimmed = branch.trim();
+            return rooted.test(trimmed) ? trimmed : `${rootSelector} ${trimmed}`;
+        }).join(',\n');
+        return {
+            ...entry,
+            target: {
+                ...target, selector, source: 'native-aware',
+                nativeComponentId: target.nativeComponentId ?? `mounted:${component}`,
+                nativeContextSelector: target.nativeContextSelector ?? rootSelector,
+                localSelector: target.localSelector ?? target.selector,
+            },
+        };
+    });
+}
+function repairRedundantContextComposition(overrides) {
+    // Some native registry/local-part combinations arrived already rooted, then the
+    // old composer rooted them a second time. Repair only when the target's saved
+    // context/local decomposition can reconstruct the canonical selector exactly.
+    // This now also catches the V27.9 image shape `App > App > Avatar > img`, where
+    // localSelector itself was fine but the complete contextual selector was wrapped
+    // one additional time. Recursive Row > Row remains legal without that proof.
+    return overrides.map((entry) => {
+        const target = entry.target;
+        const repaired = (0, selector_utils_1.canonicalizeSavedContextSelector)(target.selector, target.nativeContextSelector, target.localSelector);
+        return repaired === target.selector.trim() ? entry : { ...entry, target: { ...target, selector: repaired } };
+    });
+}
+function repairV275TransparentSparseBorders(overrides, sourceVersion) {
+    // Read Style intentionally stores sparse authored deltas, but v27.5 compiled Border
+    // through one shorthand. If the source row had no visible border, its observed color
+    // alpha was often 0. Editing only Width + Color therefore produced a perfectly scoped
+    // `border: 20px solid rgba(..., 0)` — visually indistinguishable from a dead selector.
+    // A color edit on a fully transparent observed border is treated as paint activation.
+    if (sourceVersion > 18)
+        return overrides;
+    const repairStacks = (stacks) => Object.fromEntries(Object.entries(stacks).map(([state, packets]) => [state, (packets ?? []).map((packet) => {
+            if (packet.type !== 'border' || packet.editedFields === undefined)
+                return packet;
+            const edited = new Set(packet.editedFields);
+            if (!edited.has('color') || edited.has('alpha') || packet.alpha > .001)
+                return packet;
+            return { ...packet, alpha: 1, editedFields: [...edited, 'alpha'] };
+        })]));
+    return overrides.map((entry) => ({
+        ...entry,
+        states: repairStacks(entry.states),
+        ...(entry.mobileStates ? { mobileStates: repairStacks(entry.mobileStates) } : {}),
+    }));
+}
+function box(value) { return record(value) ? { linked: value.linked !== false, top: (0, values_1.bounded)(value.top, 0, 0, 500), right: (0, values_1.bounded)(value.right, 0, 0, 500), bottom: (0, values_1.bounded)(value.bottom, 0, 0, 500), left: (0, values_1.bounded)(value.left, 0, 0, 500), unit: 'px' } : undefined; }
+function gradient(value) {
+    if (!record(value))
+        return (0, model_1.createGradient)();
+    const stops = (Array.isArray(value.stops) ? value.stops : []).filter(record).map((stop) => ({ color: string(stop.color, '#000000'), alpha: (0, values_1.alpha)(stop.alpha), position: (0, values_1.percentage)(stop.position) }));
+    return { type: 'linear', angle: (0, values_1.bounded)(value.angle, 135, -100_000, 100_000), stops: stops.length >= 2 ? stops : (0, model_1.createGradient)().stops };
+}
+function normalizePacketBase(value) {
+    if (!record(value))
+        return null;
+    const id = identifier(value);
+    if (value.type === 'background') {
+        const solid = record(value.solid) ? value.solid : {};
+        const image = record(value.image) ? value.image : {};
+        return { id, type: 'background', mode: value.mode === 'gradient' || value.mode === 'image' ? value.mode : 'solid', solid: { color: string(solid.color, '#5f4b8b'), alpha: (0, values_1.alpha)(solid.alpha) }, gradient: gradient(value.gradient), image: { assetPath: string(image.assetPath), size: image.size === 'contain' || image.size === 'auto' ? image.size : 'cover', positionX: (0, values_1.percentage)(image.positionX, 50), positionY: (0, values_1.percentage)(image.positionY, 50), repeat: ['repeat', 'repeat-x', 'repeat-y'].includes(String(image.repeat)) ? image.repeat : 'no-repeat', blendMode: ['normal', 'multiply', 'screen', 'overlay', 'soft-light'].includes(String(image.blendMode)) ? image.blendMode : undefined, renderMode: image.renderMode === 'mask' ? 'mask' : 'image', maskColor: string(image.maskColor, '#ffffff'), maskAlpha: (0, values_1.alpha)(image.maskAlpha, 1), hideContents: image.hideContents === true } };
+    }
+    if (value.type === 'pattern')
+        return {
+            id, type: 'pattern',
+            pattern: ['grid', 'checker', 'diamonds', 'stripes', 'grain'].includes(String(value.pattern)) ? value.pattern : 'dots',
+            color: string(value.color, '#ffffff'),
+            alpha: (0, values_1.alpha)(value.alpha, .12),
+            scale: (0, values_1.bounded)(value.scale, 18, 4, 240),
+            angle: (0, values_1.bounded)(value.angle, 45, -3600, 3600),
+        };
+    if (value.type === 'text') {
+        const solid = record(value.solid) ? value.solid : { color: value.color, alpha: value.alpha };
+        const shadow = record(value.shadow) ? value.shadow : undefined;
+        return {
+            id, type: 'text', colorMode: value.colorMode === 'gradient' ? 'gradient' : 'solid',
+            // Pre-v37 solid Text Style always forced WebKit fill. Preserve that on reload; new packets default to cascade-safe ink.
+            inkMode: value.inkMode === 'cascade' ? 'cascade' : 'force',
+            solid: { color: string(solid.color, '#f4eef8'), alpha: (0, values_1.alpha)(solid.alpha) }, gradient: gradient(value.gradient),
+            strokeWidth: value.strokeWidth === undefined ? 0 : (0, values_1.bounded)(value.strokeWidth, 0, 0, 100),
+            strokeColor: typeof value.strokeColor === 'string' ? value.strokeColor : '#000000',
+            strokeAlpha: value.strokeAlpha === undefined ? 1 : (0, values_1.alpha)(value.strokeAlpha),
+            outlineMode: value.outlineMode === 'outside' ? 'outside' : 'edge',
+            shadow: shadow ? { x: (0, values_1.bounded)(shadow.x, 0, -10000, 10000), y: (0, values_1.bounded)(shadow.y, 2, -10000, 10000), blur: (0, values_1.bounded)(shadow.blur, 8, 0, 1000), color: string(shadow.color, '#000000'), alpha: (0, values_1.alpha)(shadow.alpha, .35) } : undefined,
+        };
+    }
+    if (value.type === 'content')
+        return { id, type: 'content', value: string(value.value, 'LABEL').slice(0, 4000), source: value.source === 'title' || value.source === 'aria-label' ? value.source : 'literal' };
+    if (value.type === 'typography')
+        return {
+            id, type: 'typography',
+            fontSize: value.fontSize === undefined ? undefined : (0, values_1.bounded)(value.fontSize, 15, 1, 10000),
+            fontSizeUnit: value.fontSizeUnit === 'rem' ? 'rem' : 'px',
+            fontFamily: typeof value.fontFamily === 'string' ? value.fontFamily : undefined,
+            fontWeight: typeof value.fontWeight === 'number' || typeof value.fontWeight === 'string' ? value.fontWeight : undefined,
+            fontStyle: value.fontStyle === 'italic' ? 'italic' : value.fontStyle === 'normal' ? 'normal' : undefined,
+            textAlign: ['left', 'center', 'right', 'justify'].includes(String(value.textAlign)) ? value.textAlign : undefined,
+            lineHeight: value.lineHeight === undefined ? undefined : (0, values_1.bounded)(value.lineHeight, 1.4, 0.1, 20),
+            letterSpacing: value.letterSpacing === undefined ? undefined : (0, values_1.bounded)(value.letterSpacing, 0, -1000, 1000),
+            transform: ['uppercase', 'lowercase', 'capitalize'].includes(String(value.transform)) ? value.transform : 'none',
+        };
+    if (value.type === 'text-entry')
+        return {
+            id, type: 'text-entry',
+            insetX: (0, values_1.bounded)(value.insetX, 12, 0, 500),
+            insetY: (0, values_1.bounded)(value.insetY, 9, 0, 500),
+            fontSize: value.fontSize === undefined ? undefined : (0, values_1.bounded)(value.fontSize, 15, 1, 10000),
+            fontSizeUnit: value.fontSizeUnit === 'rem' ? 'rem' : 'px',
+            fontFamily: typeof value.fontFamily === 'string' ? value.fontFamily : undefined,
+            fontWeight: typeof value.fontWeight === 'number' || typeof value.fontWeight === 'string' ? value.fontWeight : undefined,
+            fontStyle: value.fontStyle === 'italic' ? 'italic' : value.fontStyle === 'normal' ? 'normal' : undefined,
+            lineHeight: value.lineHeight === undefined ? undefined : (0, values_1.bounded)(value.lineHeight, 1.5, 0.1, 20),
+            letterSpacing: value.letterSpacing === undefined ? undefined : (0, values_1.bounded)(value.letterSpacing, 0, -1000, 1000),
+            placeholderColor: string(value.placeholderColor, '#72777a'),
+            placeholderAlpha: (0, values_1.alpha)(value.placeholderAlpha, .65),
+            placeholderStyle: value.placeholderStyle === 'normal' ? 'normal' : 'italic',
+            placeholderWeight: typeof value.placeholderWeight === 'number' || typeof value.placeholderWeight === 'string' ? value.placeholderWeight : 400,
+        };
+    if (value.type === 'border')
+        return { id, type: 'border', width: (0, values_1.bounded)(value.width, 1, 0, 1000), style: ['dashed', 'dotted', 'double', 'none'].includes(String(value.style)) ? value.style : 'solid', color: string(value.color, '#ffffff'), alpha: (0, values_1.alpha)(value.alpha) };
+    if (value.type === 'corners')
+        return { id, type: 'corners', linked: value.linked !== false, topLeft: (0, values_1.bounded)(value.topLeft, 0, 0, 99999), topRight: (0, values_1.bounded)(value.topRight, 0, 0, 99999), bottomRight: (0, values_1.bounded)(value.bottomRight, 0, 0, 99999), bottomLeft: (0, values_1.bounded)(value.bottomLeft, 0, 0, 99999), unit: 'px' };
+    if (value.type === 'spacing')
+        return { id, type: 'spacing', padding: box(value.padding), margin: box(value.margin), gap: value.gap === undefined ? undefined : (0, values_1.bounded)(value.gap, 0, 0, 10000) };
+    if (value.type === 'shadow')
+        return { id, type: 'shadow', x: (0, values_1.bounded)(value.x, 0, -10000, 10000), y: (0, values_1.bounded)(value.y, 8, -10000, 10000), blur: (0, values_1.bounded)(value.blur, 20, 0, 10000), spread: (0, values_1.bounded)(value.spread, 0, -10000, 10000), color: string(value.color, '#000000'), alpha: (0, values_1.alpha)(value.alpha, 0.25), inset: value.inset === true };
+    if (value.type === 'glass')
+        return { id, type: 'glass', tintColor: typeof value.tintColor === 'string' ? value.tintColor : undefined, tintAlpha: value.tintAlpha === undefined ? undefined : (0, values_1.alpha)(value.tintAlpha), blur: (0, values_1.bounded)(value.blur, 14, 0, 1000), saturation: (0, values_1.bounded)(value.saturation, 1.15, 0, 10), borderColor: typeof value.borderColor === 'string' ? value.borderColor : undefined, borderAlpha: value.borderAlpha === undefined ? undefined : (0, values_1.alpha)(value.borderAlpha), borderWidth: value.borderWidth === undefined ? undefined : (0, values_1.bounded)(value.borderWidth, 1, 0, 1000), shadowStrength: value.shadowStrength === undefined ? undefined : (0, values_1.alpha)(value.shadowStrength), innerHighlight: value.innerHighlight === undefined ? undefined : (0, values_1.alpha)(value.innerHighlight) };
+    if (value.type === 'opacity')
+        return { id, type: 'opacity', value: (0, values_1.alpha)(value.value) };
+    if (value.type === 'visibility')
+        return { id, type: 'visibility', mode: value.mode === 'invisible' ? 'invisible' : value.mode === 'visible' ? 'visible' : 'gone' };
+    if (value.type === 'composer-icons') {
+        const rawCustom = record(value.customIcons) ? value.customIcons : {};
+        const customIcons = {};
+        for (const action of model_1.COMPOSER_ICON_ACTIONS) {
+            const svg = (0, model_1.normalizeSvgSource)(rawCustom[action]);
+            if (svg)
+                customIcons[action] = svg;
+        }
+        return { id, type: 'composer-icons', family: ['manga', 'editorial', 'journal', 'visual-novel'].includes(String(value.family)) ? value.family : 'native', size: (0, values_1.bounded)(value.size, 14, 8, 32), ...(Object.keys(customIcons).length ? { customIcons } : {}) };
+    }
+    if (value.type === 'svg-asset') {
+        const svg = (0, model_1.normalizeSvgSource)(value.svg) ?? '';
+        return { id, type: 'svg-asset', svg, assetId: typeof value.assetId === 'string' ? value.assetId : undefined, assetName: typeof value.assetName === 'string' ? value.assetName.slice(0, 80) : undefined, renderMode: value.renderMode === 'image' ? 'image' : 'mask', color: string(value.color, '#ffffff'), alpha: (0, values_1.alpha)(value.alpha), fit: value.fit === 'cover' ? 'cover' : 'contain', positionX: (0, values_1.percentage)(value.positionX, 50), positionY: (0, values_1.percentage)(value.positionY, 50) };
+    }
+    if (value.type === 'media-flow')
+        return { id, type: 'media-flow', mode: value.mode === 'full' ? 'full' : value.mode === 'natural' ? 'natural' : 'native', unclipped: value.unclipped === true };
+    if (value.type === 'image') {
+        return { id, type: 'image', brightness: (0, values_1.bounded)(value.brightness, 1, 0, 4), saturation: (0, values_1.bounded)(value.saturation, 1, 0, 4), contrast: (0, values_1.bounded)(value.contrast, 1, 0, 4), grayscale: (0, values_1.bounded)(value.grayscale, 0, 0, 1), hueRotate: (0, values_1.bounded)(value.hueRotate, 0, -3600, 3600), blur: (0, values_1.bounded)(value.blur, 0, 0, 100), sourceQuality: value.sourceQuality === 'full' ? 'full' : value.sourceQuality === 'auto' ? 'auto' : 'native', objectFit: ['cover', 'contain', 'fill', 'scale-down'].includes(String(value.objectFit)) ? value.objectFit : 'native', objectPositionX: (0, values_1.percentage)(value.objectPositionX, 50), objectPositionY: (0, values_1.percentage)(value.objectPositionY, 50), fillFrame: value.fillFrame === true, offsetX: (0, values_1.bounded)(value.offsetX, 0, -10000, 10000), offsetY: (0, values_1.bounded)(value.offsetY, 0, -10000, 10000) };
+    }
+    if (value.type === 'mask') {
+        const fade = record(value.fade) ? value.fade : {};
+        const custom = record(value.customMask) ? value.customMask : undefined;
+        const edge = (raw, fallback) => {
+            const source = record(raw) ? raw : {};
+            const solidUntil = Math.max(0, Math.min(99, (0, values_1.percentage)(source.solidUntil, fallback.solidUntil)));
+            const fadeUntil = Math.max(solidUntil + 1, Math.min(100, (0, values_1.percentage)(source.fadeUntil, fallback.fadeUntil)));
+            return { enabled: source.enabled === undefined ? fallback.enabled : source.enabled === true, solidUntil, fadeUntil };
+        };
+        const customMask = custom ? {
+            horizontal: { ...edge(custom.horizontal, { enabled: true, solidUntil: 25, fadeUntil: 90 }), side: record(custom.horizontal) && custom.horizontal.side === 'left' ? 'left' : 'right' },
+            top: edge(custom.top, { enabled: true, solidUntil: 85, fadeUntil: 100 }),
+            bottom: edge(custom.bottom, { enabled: true, solidUntil: 55, fadeUntil: 100 }),
+            combine: ['add', 'subtract', 'exclude'].includes(String(custom.combine)) ? custom.combine : 'intersect',
+        } : undefined;
+        const direction = ['top', 'right', 'bottom', 'left', 'radial'].includes(String(fade.direction)) ? fade.direction : 'none';
+        const explicitMode = ['native', 'none', 'fade', 'custom'].includes(String(value.maskMode)) ? value.maskMode : undefined;
+        const maskMode = explicitMode ?? (direction !== 'none' ? 'fade' : customMask ? 'custom' : 'native');
+        return { id, type: 'mask', maskMode, customMask, fade: { direction, amount: (0, values_1.percentage)(fade.amount, 28) } };
+    }
+    if (value.type === 'position') {
+        const top = value.top === undefined ? undefined : (0, values_1.bounded)(value.top, 0, -100000, 100000), right = value.right === undefined ? undefined : (0, values_1.bounded)(value.right, 0, -100000, 100000), bottom = value.bottom === undefined ? undefined : (0, values_1.bounded)(value.bottom, 0, -100000, 100000), left = value.left === undefined ? undefined : (0, values_1.bounded)(value.left, 0, -100000, 100000);
+        const nudgeX = value.nudgeX === undefined ? (left ?? 0) - (right ?? 0) : (0, values_1.bounded)(value.nudgeX, 0, -100000, 100000);
+        const nudgeY = value.nudgeY === undefined ? (top ?? 0) - (bottom ?? 0) : (0, values_1.bounded)(value.nudgeY, 0, -100000, 100000);
+        return { id, type: 'position', mode: ['nudge', 'anchored', 'sticky', 'screen'].includes(String(value.mode)) ? value.mode : 'flow', top, right, bottom, left, nudgeX, nudgeY, unit: value.unit === 'rem' || value.unit === '%' ? value.unit : 'px', layer: ['raised', 'overlay', 'custom'].includes(String(value.layer)) ? value.layer : 'normal', zIndex: value.zIndex === undefined ? undefined : (0, values_1.bounded)(value.zIndex, 0, -2147483647, 2147483647), flowAlign: value.flowAlign === 'center' ? 'center' : 'native', anchorSelector: typeof value.anchorSelector === 'string' && value.anchorSelector.trim() ? value.anchorSelector : undefined, anchorLabel: typeof value.anchorLabel === 'string' && value.anchorLabel.trim() ? value.anchorLabel : undefined };
+    }
+    if (value.type === 'transform')
+        return {
+            id, type: 'transform',
+            rotate: (0, values_1.bounded)(value.rotate, 0, -3600, 3600),
+            scaleLinked: value.scaleLinked !== false,
+            scaleX: (0, values_1.bounded)(value.scaleX, 1, 0.01, 20),
+            scaleY: (0, values_1.bounded)(value.scaleY, value.scaleLinked === false ? 1 : (0, values_1.bounded)(value.scaleX, 1, 0.01, 20), 0.01, 20),
+            skewX: (0, values_1.bounded)(value.skewX, 0, -89, 89),
+            skewY: (0, values_1.bounded)(value.skewY, 0, -89, 89),
+        };
+    if (value.type === 'alignment')
+        return { id, type: 'alignment', text: ['left', 'center', 'right'].includes(String(value.text)) ? value.text : undefined, horizontal: ['start', 'center', 'end', 'space-between'].includes(String(value.horizontal)) ? value.horizontal : undefined, vertical: ['start', 'center', 'end'].includes(String(value.vertical)) ? value.vertical : undefined };
+    if (value.type === 'layout') {
+        const displays = ['normal', 'block', 'inline', 'inline-block', 'flex', 'inline-flex', 'grid', 'inline-grid', 'contents', 'none'];
+        const directions = ['row', 'column', 'row-reverse', 'column-reverse'];
+        const wraps = ['nowrap', 'wrap', 'wrap-reverse'];
+        const columns = record(value.gridColumns) ? value.gridColumns : {};
+        const gridColumns = columns.mode === 'count' ? { mode: 'count', count: (0, values_1.bounded)(columns.count, 2, 1, 24) }
+            : columns.mode === 'auto-fit' ? { mode: 'auto-fit', min: (0, values_1.normalizeDimension)(columns.min, { mode: 'fixed', value: 180, unit: 'px' }) }
+                : { mode: 'auto' };
+        return { id, type: 'layout', display: displays.includes(value.display) ? value.display : 'normal', direction: directions.includes(value.direction) ? value.direction : 'row', wrap: wraps.includes(value.wrap) ? value.wrap : 'nowrap', justify: ['center', 'end', 'space-between', 'space-around', 'space-evenly'].includes(String(value.justify)) ? value.justify : 'start', align: ['start', 'end', 'stretch'].includes(String(value.align)) ? value.align : 'center', gap: value.gap === undefined ? undefined : (0, values_1.normalizeDimension)(value.gap, { mode: 'fixed', value: 8, unit: 'px' }), gridColumns };
+    }
+    if (value.type === 'layout-item')
+        return { id, type: 'layout-item', sizeInParent: value.sizeInParent === 'fill' || value.sizeInParent === 'fixed' ? value.sizeInParent : 'natural', grow: value.grow === undefined ? undefined : (0, values_1.bounded)(value.grow, 0, 0, 100), shrink: value.shrink === undefined ? undefined : (0, values_1.bounded)(value.shrink, 1, 0, 100), basis: value.basis === undefined ? undefined : (0, values_1.normalizeDimension)(value.basis), alignSelf: ['auto', 'start', 'center', 'end', 'stretch'].includes(String(value.alignSelf)) ? value.alignSelf : 'auto', order: value.order === undefined ? undefined : (0, values_1.bounded)(value.order, 0, -10000, 10000) };
+    if (value.type === 'placement')
+        return { id, type: 'placement', horizontal: ['start', 'center', 'end', 'stretch'].includes(String(value.horizontal)) ? value.horizontal : 'native', vertical: ['start', 'center', 'end', 'stretch'].includes(String(value.vertical)) ? value.vertical : 'native' };
+    if (value.type === 'size') {
+        const boundary = record(value.boundary) && string(value.boundary.selector).trim() ? { selector: string(value.boundary.selector), label: string(value.boundary.label, 'Boundary') } : undefined;
+        return { id, type: 'size', width: value.width === undefined ? undefined : (0, values_1.normalizeDimension)(value.width), height: value.height === undefined ? undefined : (0, values_1.normalizeDimension)(value.height), minWidth: value.minWidth === undefined ? undefined : (0, values_1.normalizeDimension)(value.minWidth), maxWidth: value.maxWidth === undefined ? undefined : (0, values_1.normalizeDimension)(value.maxWidth), minHeight: value.minHeight === undefined ? undefined : (0, values_1.normalizeDimension)(value.minHeight), maxHeight: value.maxHeight === undefined ? undefined : (0, values_1.normalizeDimension)(value.maxHeight), aspectRatio: record(value.aspectRatio) ? { width: (0, values_1.bounded)(value.aspectRatio.width, 1, 0.001, 10000), height: (0, values_1.bounded)(value.aspectRatio.height, 1, 0.001, 10000) } : undefined, boundary, mobileSafe: value.mobileSafe !== false };
     }
     return null;
 }
+function normalizePacket(value) {
+    const packet = normalizePacketBase(value);
+    if (!packet || !record(value))
+        return packet;
+    if (Array.isArray(value.editedFields)) {
+        packet.editedFields = [...new Set(value.editedFields.filter((entry) => typeof entry === 'string' && Boolean(entry.trim())).map((entry) => entry.trim()))];
+    }
+    return packet;
+}
+function legacyTypographyPacket(value) {
+    if (!record(value) || value.type !== 'text')
+        return null;
+    const hasTypography = value.fontSize !== undefined || value.fontFamily !== undefined || value.fontWeight !== undefined || value.fontStyle !== undefined || value.textAlign !== undefined || value.lineHeight !== undefined || value.letterSpacing !== undefined;
+    if (!hasTypography)
+        return null;
+    return {
+        id: `${identifier(value)}_typography`, type: 'typography',
+        fontSize: value.fontSize === undefined ? undefined : (0, values_1.bounded)(value.fontSize, 15, 1, 10000),
+        fontSizeUnit: value.fontSizeUnit === 'rem' ? 'rem' : 'px',
+        fontFamily: typeof value.fontFamily === 'string' ? value.fontFamily : undefined,
+        fontWeight: typeof value.fontWeight === 'number' || typeof value.fontWeight === 'string' ? value.fontWeight : undefined,
+        fontStyle: value.fontStyle === 'italic' ? 'italic' : value.fontStyle === 'normal' ? 'normal' : undefined,
+        textAlign: ['left', 'center', 'right', 'justify'].includes(String(value.textAlign)) ? value.textAlign : undefined,
+        lineHeight: value.lineHeight === undefined ? undefined : (0, values_1.bounded)(value.lineHeight, 1.4, 0.1, 20),
+        letterSpacing: value.letterSpacing === undefined ? undefined : (0, values_1.bounded)(value.letterSpacing, 0, -1000, 1000),
+        transform: 'none',
+    };
+}
+const LEGACY_IMAGE_FIELD_ROOTS = new Set(['brightness', 'saturation', 'contrast', 'grayscale', 'hueRotate', 'blur', 'sourceQuality', 'objectFit', 'objectPositionX', 'objectPositionY', 'fillFrame', 'offsetX', 'offsetY']);
+const LEGACY_MASK_FIELD_ROOTS = new Set(['maskMode', 'customMask', 'fade']);
+function editedRoot(field) { return field.split('.')[0] ?? field; }
+function keepEditedRoots(packet, roots) {
+    if (packet.editedFields === undefined)
+        return packet;
+    return { ...packet, editedFields: packet.editedFields.filter((field) => roots.has(editedRoot(field))) };
+}
+function legacyImageHasIntent(value) {
+    if (!record(value) || value.type !== 'image')
+        return false;
+    if (Array.isArray(value.editedFields))
+        return value.editedFields.some((field) => typeof field === 'string' && LEGACY_IMAGE_FIELD_ROOTS.has(editedRoot(field)));
+    return (0, values_1.bounded)(value.brightness, 1, 0, 4) !== 1
+        || (0, values_1.bounded)(value.saturation, 1, 0, 4) !== 1
+        || (0, values_1.bounded)(value.contrast, 1, 0, 4) !== 1
+        || (0, values_1.bounded)(value.grayscale, 0, 0, 1) !== 0
+        || (0, values_1.bounded)(value.hueRotate, 0, -3600, 3600) !== 0
+        || (0, values_1.bounded)(value.blur, 0, 0, 100) !== 0
+        || value.sourceQuality === 'auto' || value.sourceQuality === 'full'
+        || ['cover', 'contain', 'fill', 'scale-down'].includes(String(value.objectFit))
+        || (0, values_1.percentage)(value.objectPositionX, 50) !== 50 || (0, values_1.percentage)(value.objectPositionY, 50) !== 50
+        || value.fillFrame === true
+        || (0, values_1.bounded)(value.offsetX, 0, -10000, 10000) !== 0 || (0, values_1.bounded)(value.offsetY, 0, -10000, 10000) !== 0;
+}
+function packetList(value) {
+    const result = [];
+    for (const raw of Array.isArray(value) ? value : []) {
+        if (record(raw) && raw.type === 'image') {
+            const migratedMask = legacyMaskPacket(raw);
+            const normalizedImage = normalizePacket(raw);
+            // A legacy wrapper could contain an Image packet that only ever owned its hidden
+            // mask controls. Do not migrate that into a meaningless default Image card.
+            if (normalizedImage?.type === 'image' && (!migratedMask || legacyImageHasIntent(raw)))
+                result.push(keepEditedRoots(normalizedImage, LEGACY_IMAGE_FIELD_ROOTS));
+            if (migratedMask)
+                result.push(migratedMask);
+        }
+        else {
+            const packet = normalizePacket(raw);
+            if (packet)
+                result.push(packet);
+        }
+        const typography = legacyTypographyPacket(raw);
+        if (typography)
+            result.push(typography);
+    }
+    return result;
+}
+function states(value) {
+    if (record(value.states)) {
+        const result = { normal: packetList(value.states.normal) };
+        for (const state of model_1.STYLE_STATES.slice(1)) {
+            const list = packetList(value.states[state]);
+            if (list.length)
+                result[state] = list;
+        }
+        return result;
+    }
+    return { normal: packetList(value.packets) };
+}
+function override(value, sourceVersion = 0) {
+    if (!record(value))
+        return null;
+    const targetValue = record(value.target) ? value.target : value;
+    const rawSelector = string(targetValue.selector);
+    if (!rawSelector.trim())
+        return null;
+    const selector = repairLegacyMessageSelector(rawSelector, targetValue, value, sourceVersion);
+    const allowedStrategies = ['semantic', 'native-context-local', 'native-registry', 'studio-registry', 'css-module', 'exact-class', 'structural', 'volatile'];
+    const strategy = allowedStrategies.includes(String(targetValue.strategy ?? value.selectorStrategy)) ? String(targetValue.strategy ?? value.selectorStrategy) : 'structural';
+    const nativeComponentId = string(targetValue.nativeComponentId ?? value.nativeComponentId ?? value.componentId) || undefined;
+    const explicitSource = targetValue.source === 'native-aware' || targetValue.source === 'dom-scoped' ? targetValue.source : undefined;
+    const source = explicitSource ?? (nativeComponentId ? 'native-aware' : 'dom-scoped');
+    return { id: identifier(value), target: { selector, strategy, stability: targetValue.stability === 'high' || targetValue.stability === 'medium' ? targetValue.stability : strategy === 'structural' || strategy === 'volatile' ? 'low' : 'medium', persistence: targetValue.persistence === 'volatile' ? 'volatile' : 'persistent', source, label: string(targetValue.label) || undefined, nativeComponentId, nativeContextSelector: string(targetValue.nativeContextSelector) || undefined, localSelector: string(targetValue.localSelector) || undefined, overrideStrength: targetValue.overrideStrength === 'strong' ? 'strong' : 'normal' }, states: states(value), ...(record(value.mobileStates) ? { mobileStates: states({ states: value.mobileStates }) } : {}) };
+}
+function storedTarget(value) {
+    if (!record(value))
+        return null;
+    const selector = string(value.selector).trim();
+    if (!selector)
+        return null;
+    const allowedStrategies = ['semantic', 'native-context-local', 'native-registry', 'studio-registry', 'css-module', 'exact-class', 'structural', 'volatile'];
+    const strategy = allowedStrategies.includes(String(value.strategy)) ? String(value.strategy) : 'structural';
+    const nativeComponentId = string(value.nativeComponentId) || undefined;
+    const explicitSource = value.source === 'native-aware' || value.source === 'dom-scoped' ? value.source : undefined;
+    return {
+        selector, strategy,
+        stability: value.stability === 'high' || value.stability === 'medium' ? value.stability : strategy === 'structural' || strategy === 'volatile' ? 'low' : 'medium',
+        persistence: value.persistence === 'volatile' ? 'volatile' : 'persistent',
+        source: explicitSource ?? (nativeComponentId ? 'native-aware' : 'dom-scoped'),
+        label: string(value.label) || undefined, nativeComponentId, nativeContextSelector: string(value.nativeContextSelector) || undefined,
+        localSelector: string(value.localSelector) || undefined, overrideStrength: value.overrideStrength === 'strong' ? 'strong' : 'normal',
+    };
+}
+function layoutGroupState(value, fallback) {
+    const entry = record(value) ? value : {};
+    const mode = entry.mode === 'row' || entry.mode === 'column' || entry.mode === 'grid' ? entry.mode : fallback?.mode ?? 'row';
+    const justify = ['start', 'center', 'end', 'stretch'].includes(String(entry.justify)) ? entry.justify : fallback?.justify ?? 'stretch';
+    const align = ['start', 'center', 'end', 'stretch'].includes(String(entry.align)) ? entry.align : fallback?.align ?? 'stretch';
+    return {
+        mode, columns: (0, values_1.bounded)(entry.columns, fallback?.columns ?? 2, 1, 12),
+        gap: (0, values_1.normalizeDimension)(entry.gap, fallback?.gap ?? { mode: 'fixed', value: 8, unit: 'px' }),
+        justify, align, otherSiblings: entry.otherSiblings === 'join-layout' || entry.otherSiblings === 'full-width' ? entry.otherSiblings : fallback?.otherSiblings ?? 'full-width',
+    };
+}
+function layoutGroupStyleBucket(value, fallback) {
+    const entry = record(value) ? value : {};
+    const contentsValue = record(entry.contents) ? entry.contents : {};
+    const contents = {};
+    for (const target of ['icons', 'text', 'buttons', 'images']) {
+        const parsed = packetList(contentsValue[target]);
+        if (parsed.length)
+            contents[target] = parsed;
+        else if (fallback?.contents[target]?.length)
+            contents[target] = structuredClone(fallback.contents[target]);
+    }
+    return {
+        members: packetList(entry.members).length ? packetList(entry.members) : structuredClone(fallback?.members ?? []),
+        contents,
+        frame: packetList(entry.frame).length ? packetList(entry.frame) : structuredClone(fallback?.frame ?? []),
+    };
+}
+function layoutGroup(value) {
+    if (!record(value))
+        return null;
+    const parent = storedTarget(value.parent);
+    if (!parent || parent.persistence !== 'persistent')
+        return null;
+    const members = (Array.isArray(value.members) ? value.members : []).filter(record).map((entry) => {
+        const target = storedTarget(entry.target);
+        if (!target || target.persistence !== 'persistent')
+            return null;
+        return { id: identifier(entry), label: string(entry.label, target.label ?? 'Item').slice(0, 120), target };
+    }).filter((entry) => entry !== null);
+    const unique = [...new Map(members.map((entry) => [entry.target.selector, entry])).values()];
+    if (unique.length < 2)
+        return null;
+    const base = layoutGroupState(value.base);
+    const stylesValue = record(value.styles) ? value.styles : null;
+    const baseStyles = layoutGroupStyleBucket(stylesValue?.base);
+    const styles = stylesValue ? { base: baseStyles, ...(record(stylesValue.mobile) ? { mobile: layoutGroupStyleBucket(stylesValue.mobile, baseStyles) } : {}) } : undefined;
+    const recipeSourceValue = record(value.recipeSource) ? value.recipeSource : null;
+    const recipeSource = recipeSourceValue && string(recipeSourceValue.presetId).trim() && string(recipeSourceValue.groupId).trim()
+        ? { presetId: string(recipeSourceValue.presetId).slice(0, 160), groupId: string(recipeSourceValue.groupId).slice(0, 160) }
+        : undefined;
+    return { id: identifier(value), name: string(value.name, unique.map((entry) => entry.label).join(' + ')).slice(0, 120), parent, members: unique, base, ...(record(value.mobile) ? { mobile: layoutGroupState(value.mobile, base) } : {}), ...(styles ? { styles } : {}), ...(recipeSource ? { recipeSource } : {}) };
+}
+function legacyMaskPacket(value, idSuffix = '_mask') {
+    if (!record(value) || value.type !== 'image')
+        return null;
+    const fade = record(value.fade) ? value.fade : {};
+    const direction = String(fade.direction ?? 'none');
+    const mode = String(value.maskMode ?? '');
+    const valueHasMask = ['none', 'fade', 'custom'].includes(mode) || ['top', 'right', 'bottom', 'left', 'radial'].includes(direction);
+    const sparseHasMask = Array.isArray(value.editedFields)
+        ? value.editedFields.some((field) => typeof field === 'string' && LEGACY_MASK_FIELD_ROOTS.has(editedRoot(field)))
+        : valueHasMask;
+    if (!valueHasMask || !sparseHasMask)
+        return null;
+    const migrated = normalizePacket({ ...value, id: `${identifier(value)}${idSuffix}`, type: 'mask', maskMode: mode || (direction !== 'none' ? 'fade' : 'native') });
+    return migrated?.type === 'mask' ? keepEditedRoots(migrated, LEGACY_MASK_FIELD_ROOTS) : null;
+}
+function recipeSlots(value) {
+    if (!record(value))
+        return [];
+    const target = storedTarget(value.target);
+    if (!target || target.persistence !== 'persistent')
+        return [];
+    const allowedTypes = new Set(['background', 'pattern', 'text', 'typography', 'text-entry', 'border', 'corners', 'spacing', 'shadow', 'glass', 'opacity', 'visibility', 'composer-icons', 'svg-asset', 'media-flow', 'image', 'mask', 'position', 'transform', 'alignment', 'layout', 'layout-item', 'placement', 'size']);
+    const type = string(value.type);
+    if (!allowedTypes.has(type))
+        return [];
+    const rawLayers = (Array.isArray(value.layers) ? value.layers : []).filter(record);
+    const base = normalizePacket(value.base);
+    const layers = rawLayers.map((entry) => {
+        const presetId = string(entry.presetId).trim();
+        const rawPacket = entry.packet;
+        const packet = normalizePacket(rawPacket);
+        if (!presetId || !packet || packet.type !== type)
+            return null;
+        if (type === 'image' && legacyMaskPacket(rawPacket) && !legacyImageHasIntent(rawPacket))
+            return null;
+        return { presetId: presetId.slice(0, 160), packet: packet.type === 'image' ? keepEditedRoots(packet, LEGACY_IMAGE_FIELD_ROOTS) : packet };
+    }).filter((entry) => entry !== null);
+    const normalizedBase = base && base.type === type && !(type === 'image' && legacyMaskPacket(value.base) && !legacyImageHasIntent(value.base))
+        ? (base.type === 'image' ? keepEditedRoots(base, LEGACY_IMAGE_FIELD_ROOTS) : base)
+        : undefined;
+    const scope = value.scope === 'mobile' ? 'mobile' : 'base';
+    const slotId = identifier(value);
+    const result = [];
+    if (layers.length)
+        result.push({ id: slotId, target, type, scope, ...(normalizedBase ? { base: normalizedBase } : {}), layers });
+    // Quick-style provenance used the same pre-v42 Image trench coat. Preserve reset/edit
+    // ownership by migrating the mask half into a sibling Mask recipe slot as well.
+    if (type === 'image') {
+        const maskLayers = rawLayers.flatMap((entry) => {
+            const presetId = string(entry.presetId).trim();
+            const packet = legacyMaskPacket(entry.packet);
+            return presetId && packet ? [{ presetId: presetId.slice(0, 160), packet }] : [];
+        });
+        if (maskLayers.length) {
+            const maskBase = legacyMaskPacket(value.base);
+            result.push({ id: `${slotId}_mask`, target: structuredClone(target), type: 'mask', scope, ...(maskBase ? { base: maskBase } : {}), layers: maskLayers });
+        }
+    }
+    return result;
+}
+function font(value) {
+    if (!record(value) || !record(value.source) || value.source.type !== 'theme-asset' || !string(value.family).trim() || !string(value.source.path).trim())
+        return null;
+    return { id: identifier(value), family: string(value.family).slice(0, 120), source: { type: 'theme-asset', path: string(value.source.path) }, weight: typeof value.weight === 'number' || typeof value.weight === 'string' ? value.weight : 400, style: value.style === 'italic' ? 'italic' : 'normal', display: ['block', 'fallback', 'optional'].includes(String(value.display)) ? value.display : 'swap' };
+}
+function svgAsset(value) {
+    if (!record(value))
+        return null;
+    const svg = (0, model_1.normalizeSvgSource)(value.svg);
+    if (!svg)
+        return null;
+    return { id: identifier(value), name: (string(value.name).trim() || 'Saved SVG').slice(0, 80), svg, createdAt: (0, values_1.bounded)(value.createdAt, Date.now(), 0, Number.MAX_SAFE_INTEGER) };
+}
+function project(value) {
+    if (!record(value) || !string(value.id))
+        return null;
+    const sourceVersion = (0, values_1.bounded)(value.version, 0, 0, Number.MAX_SAFE_INTEGER);
+    const now = Date.now();
+    const boostValue = record(value.boost) ? value.boost : {};
+    const paletteValue = record(boostValue.palette) ? boostValue.palette : {};
+    const legacyValue = record(boostValue.legacyPalette) ? boostValue.legacyPalette : {};
+    const legacyPalette = {};
+    for (const role of ['primary', 'secondary', 'accent', 'surface', 'text', 'muted', 'border']) {
+        const entry = paletteValue[role];
+        if (record(entry) && string(entry.color))
+            legacyPalette[role] = { color: string(entry.color), alpha: (0, values_1.alpha)(entry.alpha) };
+    }
+    for (const role of ['primary', 'secondary', 'accent', 'surface', 'text', 'muted', 'border']) {
+        const entry = legacyValue[role];
+        if (record(entry) && string(entry.color))
+            legacyPalette[role] = { color: string(entry.color), alpha: (0, values_1.alpha)(entry.alpha) };
+    }
+    const typography = record(boostValue.typography) ? boostValue.typography : {};
+    const invert = record(boostValue.smartInvert) ? boostValue.smartInvert : {};
+    const defaultBoost = (0, model_1.createBoost)();
+    const primaryValue = record(boostValue.primary) ? boostValue.primary : legacyPalette.primary;
+    const secondaryValue = record(boostValue.secondary) ? boostValue.secondary : legacyPalette.secondary;
+    const hasLegacyIntent = Object.keys(legacyPalette).length > 0 || typeof typography.fontFamily === 'string' || typography.scale !== undefined || invert.enabled === true;
+    const legacyEnabled = boostValue.enabled === true || (boostValue.enabled === undefined && hasLegacyIntent);
+    const typographyEnabled = boostValue.typographyEnabled === true || (boostValue.typographyEnabled === undefined && legacyEnabled && (typeof typography.fontFamily === 'string' || typography.scale !== undefined));
+    const colorsEnabled = boostValue.colorsEnabled === true || (boostValue.colorsEnabled === undefined && legacyEnabled);
+    const canvasEnabled = boostValue.canvasEnabled === true;
+    const boost = {
+        enabled: legacyEnabled || colorsEnabled || typographyEnabled || canvasEnabled,
+        colorsEnabled, typographyEnabled, canvasEnabled,
+        mode: boostValue.mode === 'smart-invert' || (boostValue.mode === undefined && invert.enabled === true) ? 'smart-invert' : 'recolor',
+        primary: record(primaryValue) && string(primaryValue.color) ? { color: string(primaryValue.color), alpha: (0, values_1.alpha)(primaryValue.alpha) } : defaultBoost.primary,
+        secondary: record(secondaryValue) && string(secondaryValue.color) ? { color: string(secondaryValue.color), alpha: (0, values_1.alpha)(secondaryValue.alpha) } : structuredClone(defaultBoost.secondary),
+        contrast: (0, values_1.bounded)(boostValue.contrast, defaultBoost.contrast, -1, 1), brightness: (0, values_1.bounded)(boostValue.brightness, defaultBoost.brightness, -1, 1), originalSaturation: (0, values_1.bounded)(boostValue.originalSaturation, defaultBoost.originalSaturation, 0, 1), canvasOpacity: (0, values_1.bounded)(boostValue.canvasOpacity, defaultBoost.canvasOpacity, 0, 1),
+        wallpaperTreatmentEnabled: boostValue.wallpaperTreatmentEnabled === true,
+        wallpaperOpacity: (0, values_1.bounded)(boostValue.wallpaperOpacity, defaultBoost.wallpaperOpacity, 0, 1),
+        wallpaperBlur: (0, values_1.bounded)(boostValue.wallpaperBlur, defaultBoost.wallpaperBlur, 0, 48),
+        wallpaperSaturation: (0, values_1.bounded)(boostValue.wallpaperSaturation, defaultBoost.wallpaperSaturation, 0, 3),
+        wallpaperContrast: (0, values_1.bounded)(boostValue.wallpaperContrast, defaultBoost.wallpaperContrast, 0.25, 3),
+        wallpaperBrightness: (0, values_1.bounded)(boostValue.wallpaperBrightness, defaultBoost.wallpaperBrightness, 0.1, 3),
+        protectControls: boostValue.protectControls !== false,
+        typography: { fontFamily: typeof typography.fontFamily === 'string' ? typography.fontFamily : undefined, scale: typography.scale === undefined ? undefined : (0, values_1.bounded)(typography.scale, 1, 0.25, 4) },
+        legacyPalette: Object.keys(legacyPalette).length ? legacyPalette : undefined,
+        shuffleSeed: (0, values_1.bounded)(boostValue.shuffleSeed, defaultBoost.shuffleSeed, 1, 0x7fffffff),
+    };
+    const componentOverrides = repairRedundantContextComposition(repairV275TransparentSparseBorders(repairProjectMessageScopeOrphans((Array.isArray(value.componentOverrides) ? value.componentOverrides : []).map((entry) => override(entry, sourceVersion)).filter((entry) => entry !== null), sourceVersion), sourceVersion));
+    return { version: model_1.PROJECT_VERSION, id: string(value.id), name: (string(value.name).trim() || 'Untitled Theme').slice(0, 120), tokens: (Array.isArray(value.tokens) ? value.tokens : []).filter(record).filter((entry) => typeof entry.variable === 'string' && typeof entry.value === 'string').map((entry) => ({ variable: String(entry.variable), value: String(entry.value) })), componentOverrides, layoutGroups: (Array.isArray(value.layoutGroups) ? value.layoutGroups : []).map(layoutGroup).filter((entry) => entry !== null), recipeSlots: (Array.isArray(value.recipeSlots) ? value.recipeSlots : []).flatMap(recipeSlots), customCss: string(value.customCss), assets: (Array.isArray(value.assets) ? value.assets : []).filter(record).filter((entry) => typeof entry.path === 'string').map((entry) => ({ assetId: typeof entry.assetId === 'string' ? entry.assetId : undefined, path: String(entry.path), name: typeof entry.name === 'string' ? entry.name : undefined, mimeType: typeof entry.mimeType === 'string' ? entry.mimeType : undefined, contentUrl: typeof entry.contentUrl === 'string' ? entry.contentUrl : undefined })), nativeAssetBundleId: typeof value.nativeAssetBundleId === 'string' ? value.nativeAssetBundleId : undefined, fonts: (Array.isArray(value.fonts) ? value.fonts : []).map(font).filter((entry) => entry !== null), presets: (Array.isArray(value.presets) ? value.presets : []).filter(record).map((entry) => ({ id: identifier(entry), name: string(entry.name, 'Untitled preset').slice(0, 120), states: Object.fromEntries(model_1.STYLE_STATES.map((state) => [state, packetList(record(entry.states) ? entry.states[state] : undefined)]).filter(([, list]) => list.length)) })), svgAssets: (Array.isArray(value.svgAssets) ? value.svgAssets : Array.isArray(value.composerSvgs) ? value.composerSvgs : []).map(svgAsset).filter((entry) => entry !== null), boost, createdAt: (0, values_1.bounded)(value.createdAt, now, 0, Number.MAX_SAFE_INTEGER), updatedAt: (0, values_1.bounded)(value.updatedAt, now, 0, Number.MAX_SAFE_INTEGER) };
+}
+function savedStyleBundle(value) {
+    if (!record(value))
+        return null;
+    const overrides = (Array.isArray(value.overrides) ? value.overrides : []).map((entry) => override(entry, model_1.STATE_VERSION)).filter((entry) => entry !== null);
+    if (!overrides.length)
+        return null;
+    const now = Date.now();
+    return {
+        id: identifier(value),
+        name: (string(value.name).trim() || 'Saved style').slice(0, 120),
+        scope: value.scope === 'bundle' ? 'bundle' : value.scope === 'component' ? 'component' : 'target',
+        sourceLabel: string(value.sourceLabel).trim().slice(0, 160) || undefined,
+        sourceProjectName: string(value.sourceProjectName).trim().slice(0, 120) || undefined,
+        overrides,
+        createdAt: (0, values_1.bounded)(value.createdAt, now, 0, Number.MAX_SAFE_INTEGER),
+        updatedAt: (0, values_1.bounded)(value.updatedAt, now, 0, Number.MAX_SAFE_INTEGER),
+    };
+}
+/** Migrate Phase One/Two data to targets + state stacks without rewriting old selectors. */
+function normalizeState(value) {
+    if (!record(value))
+        return (0, model_1.createInitialState)();
+    const projects = (Array.isArray(value.projects) ? value.projects : []).map(project).filter((entry) => entry !== null);
+    if (!projects.length)
+        return (0, model_1.createInitialState)();
+    const requested = string(value.activeProjectId);
+    return { version: model_1.STATE_VERSION, activeProjectId: projects.some((entry) => entry.id === requested) ? requested : projects[0].id, projects, savedStyles: (Array.isArray(value.savedStyles) ? value.savedStyles : []).map(savedStyleBundle).filter((entry) => entry !== null) };
+}
 
+},
+"src/project/model.ts": function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.normalizeComposerSvgSource = exports.COMPOSER_ICON_ACTIONS = exports.MOBILE_BREAKPOINT_PX = exports.RESPONSIVE_SCOPES = exports.STYLE_STATES = exports.STATE_VERSION = exports.PROJECT_VERSION = void 0;
+exports.normalizeSvgSource = normalizeSvgSource;
+exports.newId = newId;
+exports.createGradient = createGradient;
+exports.createBackgroundPacket = createBackgroundPacket;
+exports.createStylePacket = createStylePacket;
+exports.createBoost = createBoost;
+exports.createProject = createProject;
+exports.createInitialState = createInitialState;
+exports.clonePacketStack = clonePacketStack;
+exports.statePackets = statePackets;
+exports.effectivePacketsForState = effectivePacketsForState;
+exports.stateInheritanceSummary = stateInheritanceSummary;
+const random_id_1 = require("../utils/random-id");
+exports.PROJECT_VERSION = 42;
+exports.STATE_VERSION = 42;
+exports.STYLE_STATES = ['normal', 'hover', 'active', 'focusVisible', 'disabled'];
+exports.RESPONSIVE_SCOPES = ['base', 'mobile'];
+exports.MOBILE_BREAKPOINT_PX = 720;
+exports.COMPOSER_ICON_ACTIONS = ['home', 'regen', 'continue', 'oneliner', 'persona', 'connections', 'altFields', 'addons', 'promptVariables', 'guides', 'quickReplies', 'tools', 'extras', 'selectMessages'];
+/** Strip harmless standalone-file wrappers before validating/storing the SVG root. */
+function stripSvgFilePreamble(value) {
+    let svg = value.replace(/^\uFEFF/, '').trimStart();
+    // Common editors/exporters prepend an XML declaration. It is irrelevant once the SVG is embedded.
+    svg = svg.replace(/^<\?xml\b[\s\S]*?\?>\s*/i, '');
+    // Accept leading comments and legacy DOCTYPE declarations, but never keep the DOCTYPE.
+    // Removing it also prevents PUBLIC/SYSTEM entity resolution from surviving into the stored asset.
+    for (let pass = 0; pass < 8; pass += 1) {
+        const before = svg;
+        svg = svg.replace(/^<!--[\s\S]*?-->\s*/, '');
+        if (/^<!doctype\b/i.test(svg)) {
+            let quote = null;
+            let internalSubsetDepth = 0;
+            let end = -1;
+            for (let index = 0; index < svg.length; index += 1) {
+                const character = svg[index];
+                if (quote) {
+                    if (character === quote)
+                        quote = null;
+                    continue;
+                }
+                if (character === '\"' || character === "'") {
+                    quote = character;
+                    continue;
+                }
+                if (character === '[') {
+                    internalSubsetDepth += 1;
+                    continue;
+                }
+                if (character === ']' && internalSubsetDepth > 0) {
+                    internalSubsetDepth -= 1;
+                    continue;
+                }
+                if (character === '>' && internalSubsetDepth === 0) {
+                    end = index + 1;
+                    break;
+                }
+            }
+            if (end < 0)
+                return null;
+            svg = svg.slice(end).trimStart();
+        }
+        if (svg === before)
+            break;
+    }
+    return svg;
+}
+/** Keep user SVGs reusable without allowing executable/remote SVG payloads into CSS masks. */
+function normalizeSvgSource(value) {
+    if (typeof value !== 'string')
+        return null;
+    const stripped = stripSvgFilePreamble(value);
+    if (!stripped)
+        return null;
+    let svg = stripped.trim().slice(0, 24000);
+    if (!/^<svg\b/i.test(svg) || !/<\/svg>\s*$/i.test(svg))
+        return null;
+    svg = svg
+        .replace(/<script\b[\s\S]*?<\/script\s*>/gi, '')
+        .replace(/<style\b[\s\S]*?<\/style\s*>/gi, '')
+        .replace(/<foreignObject\b[\s\S]*?<\/foreignObject\s*>/gi, '')
+        .replace(/<image\b[^>]*\/?\s*>/gi, '')
+        .replace(/\s+on[a-z0-9_-]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+        .replace(/\s+(?:href|xlink:href)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+        .replace(/\s+style\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+    if (/javascript\s*:|data\s*:\s*text\/html|url\s*\(/i.test(svg))
+        return null;
+    return /^<svg\b/i.test(svg) && /<\/svg>\s*$/i.test(svg) ? svg : null;
+}
+/** @deprecated v35 alias retained for old integrations/tests. */
+exports.normalizeComposerSvgSource = normalizeSvgSource;
+function newId(prefix) { return `${prefix}_${(0, random_id_1.portableRandomUUID)()}`; }
+function createGradient() { return { type: 'linear', angle: 135, stops: [{ color: '#f06bc8', alpha: 1, position: 0 }, { color: '#7658ff', alpha: 1, position: 100 }] }; }
+function createBackgroundPacket() {
+    return { id: newId('packet'), type: 'background', mode: 'solid', solid: { color: '#5f4b8b', alpha: 1 }, gradient: createGradient(), image: { assetPath: '', size: 'cover', positionX: 50, positionY: 50, repeat: 'no-repeat', renderMode: 'image', maskColor: '#ffffff', maskAlpha: 1, hideContents: false } };
+}
+function createStylePacket(type) {
+    const id = newId('packet');
+    switch (type) {
+        case 'background': return createBackgroundPacket();
+        case 'pattern': return { id, type, pattern: 'dots', color: '#ffffff', alpha: 0.12, scale: 18, angle: 45 };
+        case 'text': return { id, type, colorMode: 'solid', inkMode: 'cascade', solid: { color: '#f4eef8', alpha: 1 }, gradient: createGradient(), strokeWidth: 0, strokeColor: '#000000', strokeAlpha: 1, outlineMode: 'edge' };
+        case 'content': return { id, type, value: 'LABEL', source: 'literal' };
+        case 'typography': return { id, type, fontSize: 15, fontSizeUnit: 'px', fontWeight: 500, textAlign: 'left', lineHeight: 1.4, letterSpacing: 0, transform: 'none' };
+        case 'text-entry': return { id, type, insetX: 12, insetY: 9, fontSize: 15, fontSizeUnit: 'px', fontWeight: 400, fontStyle: 'normal', lineHeight: 1.5, letterSpacing: 0, placeholderColor: '#72777a', placeholderAlpha: .65, placeholderStyle: 'italic', placeholderWeight: 400 };
+        case 'border': return { id, type, width: 1, style: 'solid', color: '#ffffff', alpha: 0.2 };
+        case 'corners': return { id, type, linked: true, topLeft: 12, topRight: 12, bottomRight: 12, bottomLeft: 12, unit: 'px' };
+        case 'spacing': return { id, type, padding: { linked: true, top: 12, right: 12, bottom: 12, left: 12, unit: 'px' }, gap: 8 };
+        case 'shadow': return { id, type, x: 0, y: 10, blur: 28, spread: 0, color: '#000000', alpha: 0.28, inset: false };
+        case 'glass': return { id, type, blur: 14, saturation: 1.15, borderColor: '#ffffff', borderAlpha: 0.12, borderWidth: 1, shadowStrength: 0.22, innerHighlight: 0.06 };
+        case 'opacity': return { id, type, value: 0.8 };
+        case 'visibility': return { id, type, mode: 'gone' };
+        case 'composer-icons': return { id, type, family: 'native', size: 14, customIcons: {} };
+        case 'svg-asset': return { id, type, svg: '', renderMode: 'mask', color: '#ffffff', alpha: 1, fit: 'contain', positionX: 50, positionY: 50 };
+        case 'media-flow': return { id, type, mode: 'native', unclipped: false };
+        case 'image': return { id, type, brightness: 1, saturation: 1, contrast: 1, grayscale: 0, hueRotate: 0, blur: 0, sourceQuality: 'native', objectFit: 'native', objectPositionX: 50, objectPositionY: 50, fillFrame: false, offsetX: 0, offsetY: 0 };
+        case 'mask': return { id, type, maskMode: 'native', fade: { direction: 'none', amount: 28 } };
+        case 'position': return { id, type, mode: 'flow', unit: 'px', layer: 'normal', flowAlign: 'native', nudgeX: 0, nudgeY: 0 };
+        case 'transform': return { id, type, rotate: 0, scaleLinked: true, scaleX: 1, scaleY: 1, skewX: 0, skewY: 0 };
+        case 'alignment': return { id, type, text: 'left', horizontal: 'start', vertical: 'center' };
+        case 'layout': return { id, type, display: 'normal', direction: 'row', wrap: 'nowrap', justify: 'start', align: 'center', gap: { mode: 'fixed', value: 8, unit: 'px' }, gridColumns: { mode: 'auto' } };
+        case 'layout-item': return { id, type, sizeInParent: 'natural', basis: { mode: 'native' }, alignSelf: 'auto', order: 0 };
+        case 'placement': return { id, type, horizontal: 'native', vertical: 'native' };
+        case 'size': return { id, type, width: { mode: 'native' }, height: { mode: 'native' }, mobileSafe: true };
+    }
+}
+function createBoost() { return { enabled: false, colorsEnabled: false, typographyEnabled: false, canvasEnabled: false, mode: 'recolor', primary: { color: '#9370db', alpha: 1 }, secondary: { color: '#786bf0', alpha: 1 }, contrast: 0, brightness: 0, originalSaturation: 0.2, canvasOpacity: 1, wallpaperTreatmentEnabled: false, wallpaperOpacity: 1, wallpaperBlur: 0, wallpaperSaturation: 1, wallpaperContrast: 1, wallpaperBrightness: 1, protectControls: true, typography: {}, shuffleSeed: 1 }; }
+function createProject(name = 'Untitled Theme') {
+    const now = Date.now();
+    return { version: exports.PROJECT_VERSION, id: newId('project'), name, tokens: [], componentOverrides: [], layoutGroups: [], recipeSlots: [], customCss: '', assets: [], nativeAssetBundleId: undefined, fonts: [], presets: [], svgAssets: [], boost: createBoost(), createdAt: now, updatedAt: now };
+}
+function createInitialState() { const project = createProject('My Theme'); return { version: exports.STATE_VERSION, activeProjectId: project.id, projects: [project], savedStyles: [] }; }
+function clonePacketStack(packets) { return structuredClone(packets).map((packet) => ({ ...packet, id: newId('packet') })); }
+function statePackets(override, state) { return override.states[state] ?? []; }
+function effectivePacketsForState(override, state) {
+    if (state === 'normal')
+        return structuredClone(override.states.normal);
+    const byType = new Map(override.states.normal.map((packet) => [packet.type, structuredClone(packet)]));
+    for (const packet of override.states[state] ?? [])
+        byType.set(packet.type, structuredClone(packet));
+    return [...byType.values()];
+}
+function stateInheritanceSummary(override, state) {
+    const explicit = (override.states[state] ?? []).map((packet) => packet.type);
+    const explicitSet = new Set(explicit);
+    return { inherited: state === 'normal' ? [] : override.states.normal.map((packet) => packet.type).filter((type) => !explicitSet.has(type)), explicit };
+}
+
+},
+"src/project/persistence.ts": function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ProjectPersistence = void 0;
+const random_id_1 = require("../utils/random-id");
+function isRecord(value) {
+    return typeof value === 'object' && value !== null;
+}
+function isBackendMessage(value) {
+    return isRecord(value)
+        && typeof value.type === 'string'
+        && value.type.startsWith('theme_studio:')
+        && typeof value.requestId === 'string';
+}
+class ProjectPersistence {
+    ctx;
+    saveTimer = null;
+    pendingState = null;
+    pending = new Map();
+    unsubscribe;
+    constructor(ctx) {
+        this.ctx = ctx;
+        this.unsubscribe = ctx.onBackendMessage((payload) => {
+            if (!isBackendMessage(payload))
+                return;
+            const request = this.pending.get(payload.requestId);
+            if (!request)
+                return;
+            this.pending.delete(payload.requestId);
+            if (payload.type === 'theme_studio:state_error')
+                request.reject(new Error(payload.error));
+            else
+                request.resolve(payload.type === 'theme_studio:state_loaded' ? payload.state : undefined);
+        });
+    }
+    load() {
+        return this.request({ type: 'theme_studio:load_state' });
+    }
+    scheduleSave(state) {
+        this.pendingState = structuredClone(state);
+        if (this.saveTimer)
+            clearTimeout(this.saveTimer);
+        this.saveTimer = setTimeout(() => {
+            this.saveTimer = null;
+            void this.flush().catch((error) => console.error('[Theme Studio] Save failed', error));
+        }, 350);
+    }
+    async flush() {
+        if (this.saveTimer) {
+            clearTimeout(this.saveTimer);
+            this.saveTimer = null;
+        }
+        const state = this.pendingState;
+        if (!state)
+            return;
+        this.pendingState = null;
+        await this.request({ type: 'theme_studio:save_state', state });
+    }
+    async destroy() {
+        try {
+            await this.flush();
+        }
+        finally {
+            this.unsubscribe();
+            for (const request of this.pending.values())
+                request.reject(new Error('Theme Studio unloaded'));
+            this.pending.clear();
+        }
+    }
+    request(payload) {
+        const requestId = (0, random_id_1.portableRandomUUID)();
+        return new Promise((resolve, reject) => {
+            this.pending.set(requestId, { resolve, reject });
+            this.ctx.sendToBackend({ ...payload, requestId });
+            setTimeout(() => {
+                const pending = this.pending.get(requestId);
+                if (!pending)
+                    return;
+                this.pending.delete(requestId);
+                pending.reject(new Error('Theme Studio storage request timed out'));
+            }, 10_000);
+        });
+    }
+}
+exports.ProjectPersistence = ProjectPersistence;
+
+},
+"src/project/reverse-engineer.ts": function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.collectAuthoredSources = collectAuthoredSources;
+exports.collectAuthoredProperties = collectAuthoredProperties;
+exports.reverseEngineerElement = reverseEngineerElement;
+const model_1 = require("./model");
+function splitTopLevel(value, delimiter = ',') {
+    const result = [];
+    let depth = 0;
+    let quote = '';
+    let start = 0;
+    for (let index = 0; index < value.length; index += 1) {
+        const char = value[index];
+        if (quote) {
+            if (char === '\\')
+                index += 1;
+            else if (char === quote)
+                quote = '';
+            continue;
+        }
+        if (char === '"' || char === "'") {
+            quote = char;
+            continue;
+        }
+        if (char === '(')
+            depth += 1;
+        else if (char === ')')
+            depth = Math.max(0, depth - 1);
+        else if (char === delimiter && depth === 0) {
+            result.push(value.slice(start, index).trim());
+            start = index + 1;
+        }
+    }
+    result.push(value.slice(start).trim());
+    return result.filter(Boolean);
+}
+function selectorMatchesSurface(element, selectorText, pseudo) {
+    for (const raw of splitTopLevel(selectorText)) {
+        const hasBefore = /::before\b/.test(raw);
+        const hasAfter = /::after\b/.test(raw);
+        if (pseudo === '::before' && !hasBefore)
+            continue;
+        if (pseudo === '::after' && !hasAfter)
+            continue;
+        if (!pseudo && (hasBefore || hasAfter))
+            continue;
+        const base = raw.replace(/::(?:before|after)\b/g, '');
+        try {
+            if (element.matches(base))
+                return true;
+        }
+        catch { /* selector may use unsupported syntax */ }
+    }
+    return false;
+}
+function walkRules(rules, element, pseudo, result) {
+    for (const rule of Array.from(rules)) {
+        if (typeof CSSStyleRule !== 'undefined' && rule instanceof CSSStyleRule) {
+            if (!selectorMatchesSurface(element, rule.selectorText, pseudo))
+                continue;
+            for (const property of Array.from(rule.style))
+                result.add(property.toLowerCase());
+            continue;
+        }
+        const nested = rule.cssRules;
+        if (!nested)
+            continue;
+        const condition = rule.conditionText;
+        if (typeof CSSMediaRule !== 'undefined' && rule instanceof CSSMediaRule && condition && typeof matchMedia === 'function' && !matchMedia(condition).matches)
+            continue;
+        walkRules(nested, element, pseudo, result);
+    }
+}
+function sourceLabel(sheet) {
+    if (sheet.href) {
+        try {
+            return new URL(sheet.href, document.baseURI).pathname.split('/').pop() || sheet.href;
+        }
+        catch {
+            return sheet.href;
+        }
+    }
+    const owner = sheet.ownerNode;
+    if (owner instanceof HTMLStyleElement)
+        return owner.id ? `style#${owner.id}` : owner.getAttribute('data-theme-studio-generated') !== null ? 'Theme Studio generated' : 'inline <style>';
+    return 'stylesheet';
+}
+function walkSourceRules(rules, sheet, element, pseudo, result, condition) {
+    for (const rule of Array.from(rules)) {
+        if (typeof CSSStyleRule !== 'undefined' && rule instanceof CSSStyleRule) {
+            if (!selectorMatchesSurface(element, rule.selectorText, pseudo))
+                continue;
+            const properties = Array.from(rule.style).map((property) => property.toLowerCase());
+            if (!properties.length)
+                continue;
+            result.push({ selector: rule.selectorText, properties, important: properties.filter((property) => rule.style.getPropertyPriority(property) === 'important'), source: sourceLabel(sheet), condition });
+            continue;
+        }
+        const nested = rule.cssRules;
+        if (!nested)
+            continue;
+        const nextCondition = rule.conditionText || condition;
+        if (typeof CSSMediaRule !== 'undefined' && rule instanceof CSSMediaRule && nextCondition && typeof matchMedia === 'function' && !matchMedia(nextCondition).matches)
+            continue;
+        walkSourceRules(nested, sheet, element, pseudo, result, nextCondition);
+    }
+}
+function collectAuthoredSources(element, pseudo = '') {
+    const result = [];
+    if (!pseudo && element instanceof HTMLElement && element.style.length) {
+        const properties = Array.from(element.style).map((property) => property.toLowerCase());
+        result.push({ selector: 'element.style', properties, important: properties.filter((property) => element.style.getPropertyPriority(property) === 'important'), source: 'inline style' });
+    }
+    const sheets = [...Array.from(document.styleSheets)];
+    const adopted = document.adoptedStyleSheets;
+    if (adopted)
+        sheets.push(...adopted);
+    for (const sheet of sheets) {
+        try {
+            if (sheet.cssRules)
+                walkSourceRules(sheet.cssRules, sheet, element, pseudo, result);
+        }
+        catch { /* inaccessible stylesheet */ }
+    }
+    return result;
+}
+function collectAuthoredProperties(element, pseudo = '') {
+    const result = new Set();
+    if (!pseudo && element instanceof HTMLElement)
+        for (const property of Array.from(element.style))
+            result.add(property.toLowerCase());
+    const sheets = [...Array.from(document.styleSheets)];
+    const adopted = document.adoptedStyleSheets;
+    if (adopted)
+        sheets.push(...adopted);
+    for (const sheet of sheets) {
+        try {
+            if (sheet.cssRules)
+                walkRules(sheet.cssRules, element, pseudo, result);
+        }
+        catch { /* cross-origin/inaccessible stylesheet */ }
+    }
+    return result;
+}
+function hasAny(properties, names) {
+    for (const name of names) {
+        const lower = name.toLowerCase();
+        if (properties.has(lower))
+            return true;
+        if (lower.endsWith('-*')) {
+            const prefix = lower.slice(0, -1);
+            if ([...properties].some((property) => property.startsWith(prefix)))
+                return true;
+        }
+    }
+    return false;
+}
+function px(value) {
+    const match = value.trim().match(/^(-?(?:\d+\.?\d*|\.\d+))px$/i);
+    return match ? Number(match[1]) : null;
+}
+function numeric(value) { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : null; }
+function percentPosition(value) {
+    const bits = value.trim().split(/\s+/);
+    if (bits.length < 2)
+        return null;
+    const parse = (input) => input.endsWith('%') ? Number(input.slice(0, -1)) : null;
+    const x = parse(bits[0]), y = parse(bits[1]);
+    return x !== null && y !== null && Number.isFinite(x) && Number.isFinite(y) ? [x, y] : null;
+}
+function rgba(value) {
+    const trimmed = value.trim().toLowerCase();
+    if (!trimmed || trimmed === 'transparent')
+        return null;
+    const hex = trimmed.match(/^#([0-9a-f]{6})([0-9a-f]{2})?$/i);
+    if (hex)
+        return { color: `#${hex[1]}`, alpha: hex[2] ? parseInt(hex[2], 16) / 255 : 1 };
+    const rgb = trimmed.match(/^rgba?\((.*)\)$/i);
+    if (!rgb)
+        return null;
+    const body = rgb[1].replace('/', ' ');
+    const parts = body.split(/[\s,]+/).filter(Boolean);
+    if (parts.length < 3)
+        return null;
+    const channels = parts.slice(0, 3).map((part) => part.endsWith('%') ? Math.round(Number(part.slice(0, -1)) * 2.55) : Number(part));
+    if (channels.some((part) => !Number.isFinite(part)))
+        return null;
+    const alphaRaw = parts[3] === undefined ? 1 : parts[3].endsWith('%') ? Number(parts[3].slice(0, -1)) / 100 : Number(parts[3]);
+    const color = `#${channels.map((part) => Math.max(0, Math.min(255, Math.round(part))).toString(16).padStart(2, '0')).join('')}`;
+    return { color, alpha: Number.isFinite(alphaRaw) ? Math.max(0, Math.min(1, alphaRaw)) : 1 };
+}
+function parseFirstShadow(value) {
+    if (!value || value === 'none')
+        return null;
+    const first = splitTopLevel(value)[0] ?? '';
+    const colorMatch = first.match(/rgba?\([^)]*\)|#[0-9a-f]{6,8}/i);
+    const color = colorMatch ? rgba(colorMatch[0]) : null;
+    const withoutColor = colorMatch ? first.replace(colorMatch[0], '') : first;
+    const numbers = withoutColor.match(/-?(?:\d+\.?\d*|\.\d+)px/g)?.map((entry) => Number(entry.slice(0, -2))) ?? [];
+    if (numbers.length < 2)
+        return null;
+    return { x: numbers[0], y: numbers[1], blur: Math.max(0, numbers[2] ?? 0), spread: numbers[3] ?? 0, color: color?.color ?? '#000000', alpha: color?.alpha ?? 1, inset: /\binset\b/i.test(first) };
+}
+function parseFilterNumber(value, name, fallback) {
+    const match = value.match(new RegExp(`${name}\\(([-+.\\d]+)(%|deg|px)?\\)`, 'i'));
+    if (!match)
+        return fallback;
+    const number = Number(match[1]);
+    if (!Number.isFinite(number))
+        return fallback;
+    return match[2] === '%' ? number / 100 : number;
+}
+function parseMaskEdgeLayer(value) {
+    const direction = value.match(/linear-gradient\(\s*to\s+(left|right|top|bottom)\s*,/i)?.[1]?.toLowerCase();
+    if (!direction)
+        return null;
+    const percentages = [...value.matchAll(/(-?(?:\d+\.?\d*|\.\d+))%/g)].map((match) => Number(match[1])).filter(Number.isFinite);
+    if (percentages.length < 3)
+        return null;
+    return { direction, solidUntil: Math.max(0, Math.min(99, percentages[1])), fadeUntil: Math.max(1, Math.min(100, percentages[2])) };
+}
+function readMaskIntoPacket(style, packet) {
+    const webkitMask = style.getPropertyValue('-webkit-mask-image').trim();
+    const standardMask = style.maskImage.trim();
+    const raw = webkitMask && webkitMask !== 'none'
+        ? webkitMask
+        : standardMask && standardMask !== 'none'
+            ? standardMask
+            : webkitMask || standardMask;
+    if (!raw)
+        return;
+    if (raw === 'none') {
+        packet.maskMode = 'none';
+        return;
+    }
+    const layers = splitTopLevel(raw);
+    const parsed = layers.map(parseMaskEdgeLayer);
+    if (layers.length === 1 && /radial-gradient/i.test(raw)) {
+        packet.maskMode = 'fade';
+        packet.fade.direction = 'radial';
+        return;
+    }
+    if (layers.length === 1 && parsed[0] && parsed[0].fadeUntil >= 99.5) {
+        packet.maskMode = 'fade';
+        packet.fade.direction = parsed[0].direction;
+        packet.fade.amount = Math.max(0, Math.min(100, 100 - parsed[0].solidUntil));
+        return;
+    }
+    if (parsed.every(Boolean)) {
+        const custom = {
+            horizontal: { enabled: false, side: 'right', solidUntil: 25, fadeUntil: 90 },
+            top: { enabled: false, solidUntil: 85, fadeUntil: 100 },
+            bottom: { enabled: false, solidUntil: 55, fadeUntil: 100 },
+            combine: 'intersect',
+        };
+        for (const layer of parsed) {
+            if (layer.direction === 'left' || layer.direction === 'right')
+                custom.horizontal = { enabled: true, side: layer.direction, solidUntil: layer.solidUntil, fadeUntil: layer.fadeUntil };
+            else
+                custom[layer.direction] = { enabled: true, solidUntil: layer.solidUntil, fadeUntil: layer.fadeUntil };
+        }
+        const standard = (style.getPropertyValue('mask-composite') || '').toLowerCase();
+        const webkit = (style.getPropertyValue('-webkit-mask-composite') || '').toLowerCase();
+        custom.combine = standard.includes('exclude') || webkit.includes('xor') ? 'exclude'
+            : standard.includes('subtract') || webkit.includes('source-out') ? 'subtract'
+                : standard.includes('add') || webkit.includes('source-over') ? 'add' : 'intersect';
+        packet.maskMode = 'custom';
+        packet.customMask = custom;
+        return;
+    }
+    // We can see a mask but cannot safely translate its grammar into sliders. Keep it
+    // native/observed rather than pretending Theme Studio owns something it cannot round-trip.
+    packet.maskMode = 'native';
+}
+function parseGradient(value) {
+    const match = value.match(/linear-gradient\((.*)\)/i);
+    if (!match)
+        return null;
+    const bits = splitTopLevel(match[1]);
+    if (bits.length < 2)
+        return null;
+    let angle = 180;
+    if (/^-?[\d.]+deg$/i.test(bits[0])) {
+        angle = Number(bits.shift().slice(0, -3));
+    }
+    else if (/^to\s+/i.test(bits[0])) {
+        const direction = bits.shift().toLowerCase();
+        angle = direction.includes('right') ? 90 : direction.includes('left') ? 270 : direction.includes('top') ? 0 : 180;
+    }
+    const stops = bits.map((bit, index) => {
+        const colorMatch = bit.match(/rgba?\([^)]*\)|#[0-9a-f]{6,8}/i);
+        if (!colorMatch)
+            return null;
+        const color = rgba(colorMatch[0]);
+        if (!color)
+            return null;
+        const positionMatch = bit.slice((colorMatch.index ?? 0) + colorMatch[0].length).match(/(-?[\d.]+)%/);
+        const position = positionMatch ? Number(positionMatch[1]) : bits.length === 1 ? 0 : (index / (bits.length - 1)) * 100;
+        return { ...color, position: Math.max(0, Math.min(100, position)) };
+    }).filter((entry) => Boolean(entry));
+    return stops.length >= 2 ? { angle: Number.isFinite(angle) ? angle : 180, stops } : null;
+}
+function computedFallbackHas(style, group) {
+    switch (group) {
+        case 'background': return style.backgroundColor !== 'rgba(0, 0, 0, 0)' || style.backgroundImage !== 'none';
+        case 'text': return Boolean(style.color);
+        case 'border': return parseFloat(style.borderTopWidth) > 0 && style.borderTopStyle !== 'none';
+        case 'corners': return [style.borderTopLeftRadius, style.borderTopRightRadius, style.borderBottomRightRadius, style.borderBottomLeftRadius].some((value) => (px(value) ?? 0) > 0);
+        case 'spacing': return [...['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft']].some((key) => Math.abs(px(style[key]) ?? 0) > .01) || Math.abs(px(style.gap) ?? 0) > .01;
+        case 'shadow': return style.boxShadow !== 'none';
+        case 'glass': return (style.backdropFilter || style.getPropertyValue('-webkit-backdrop-filter') || 'none') !== 'none';
+        case 'opacity': return Math.abs(Number(style.opacity) - 1) > .001;
+        case 'layout': return ['flex', 'inline-flex', 'grid', 'inline-grid'].includes(style.display);
+        case 'position': return style.position !== 'static' || style.zIndex !== 'auto';
+        case 'visibility': return style.display === 'none' || style.visibility === 'hidden';
+        default: return false;
+    }
+}
+function reverseEngineerElement(element, pseudo = '') {
+    const style = getComputedStyle(element, pseudo || null);
+    const authored = collectAuthoredProperties(element, pseudo);
+    const fallback = authored.size === 0;
+    const packets = [];
+    const wants = (group, properties) => hasAny(authored, properties) || (fallback && computedFallbackHas(style, group));
+    const backgroundGradient = parseGradient(style.backgroundImage);
+    const backgroundColor = rgba(style.backgroundColor);
+    const textGradient = (style.backgroundClip === 'text' || style.webkitBackgroundClip === 'text') ? backgroundGradient : null;
+    if (wants('background', ['background', 'background-*']) && !textGradient) {
+        const packet = (0, model_1.createStylePacket)('background');
+        if (packet.type === 'background') {
+            if (backgroundGradient) {
+                packet.mode = 'gradient';
+                packet.gradient = { type: 'linear', ...backgroundGradient };
+            }
+            else if (backgroundColor) {
+                packet.mode = 'solid';
+                packet.solid = backgroundColor;
+            }
+            else
+                packet.mode = 'solid';
+            packets.push(packet);
+        }
+    }
+    if (wants('text', ['color', '-webkit-text-fill-color', 'text-shadow', '-webkit-text-stroke', '-webkit-text-stroke-width', '-webkit-text-stroke-color', 'background-clip', '-webkit-background-clip']) || textGradient) {
+        const packet = (0, model_1.createStylePacket)('text');
+        if (packet.type === 'text') {
+            const foreground = rgba(style.color);
+            if (textGradient) {
+                packet.colorMode = 'gradient';
+                packet.gradient = { type: 'linear', ...textGradient };
+            }
+            else if (foreground) {
+                packet.colorMode = 'solid';
+                packet.solid = foreground;
+            }
+            if (!textGradient && authored.has('-webkit-text-fill-color'))
+                packet.inkMode = 'force';
+            const strokeWidth = px(style.webkitTextStrokeWidth);
+            const strokeColor = rgba(style.webkitTextStrokeColor);
+            if (strokeWidth && strokeWidth > 0) {
+                packet.strokeWidth = strokeWidth;
+                packet.strokeColor = strokeColor?.color ?? '#000000';
+                packet.strokeAlpha = strokeColor?.alpha ?? 1;
+            }
+            const shadow = parseFirstShadow(style.textShadow);
+            if (shadow)
+                packet.shadow = { x: shadow.x, y: shadow.y, blur: shadow.blur, color: shadow.color, alpha: shadow.alpha };
+            packets.push(packet);
+        }
+    }
+    if (hasAny(authored, ['font', 'font-*', 'text-align', 'line-height', 'letter-spacing', 'text-transform']) || fallback) {
+        const packet = (0, model_1.createStylePacket)('typography');
+        if (packet.type === 'typography') {
+            const size = px(style.fontSize) ?? 15;
+            packet.fontSize = size;
+            packet.fontSizeUnit = 'px';
+            packet.fontFamily = style.fontFamily.split(',')[0]?.trim().replace(/^['"]|['"]$/g, '') || undefined;
+            packet.fontWeight = numeric(style.fontWeight) ?? style.fontWeight;
+            packet.fontStyle = style.fontStyle === 'italic' ? 'italic' : 'normal';
+            packet.textAlign = style.textAlign === 'center' || style.textAlign === 'right' || style.textAlign === 'justify' ? style.textAlign : 'left';
+            const linePx = px(style.lineHeight);
+            if (linePx && size > 0)
+                packet.lineHeight = Math.max(.1, Math.min(20, linePx / size));
+            packet.letterSpacing = style.letterSpacing === 'normal' ? 0 : (px(style.letterSpacing) ?? 0);
+            packet.transform = ['uppercase', 'lowercase', 'capitalize'].includes(style.textTransform) ? style.textTransform : 'none';
+            packets.push(packet);
+        }
+    }
+    if (wants('border', ['border', 'border-*'])) {
+        const width = px(style.borderTopWidth) ?? 0;
+        const color = rgba(style.borderTopColor);
+        const packet = (0, model_1.createStylePacket)('border');
+        if (packet.type === 'border') {
+            packet.width = width;
+            packet.style = ['solid', 'dashed', 'dotted', 'double', 'none'].includes(style.borderTopStyle) ? style.borderTopStyle : 'solid';
+            if (color) {
+                packet.color = color.color;
+                packet.alpha = color.alpha;
+            }
+            ;
+            packets.push(packet);
+        }
+    }
+    if (wants('corners', ['border-radius', 'border-*-radius'])) {
+        const packet = (0, model_1.createStylePacket)('corners');
+        if (packet.type === 'corners') {
+            packet.topLeft = px(style.borderTopLeftRadius) ?? 0;
+            packet.topRight = px(style.borderTopRightRadius) ?? 0;
+            packet.bottomRight = px(style.borderBottomRightRadius) ?? 0;
+            packet.bottomLeft = px(style.borderBottomLeftRadius) ?? 0;
+            packet.linked = packet.topLeft === packet.topRight && packet.topLeft === packet.bottomRight && packet.topLeft === packet.bottomLeft;
+            packets.push(packet);
+        }
+    }
+    if (wants('spacing', ['padding', 'padding-*', 'margin', 'margin-*', 'gap', 'row-gap', 'column-gap'])) {
+        const packet = (0, model_1.createStylePacket)('spacing');
+        if (packet.type === 'spacing') {
+            const box = (prefix) => {
+                const values = [style[`${prefix}Top`], style[`${prefix}Right`], style[`${prefix}Bottom`], style[`${prefix}Left`]].map((value) => px(value) ?? 0);
+                return { linked: values.every((value) => value === values[0]), top: values[0], right: values[1], bottom: values[2], left: values[3], unit: 'px' };
+            };
+            if (hasAny(authored, ['padding', 'padding-*']) || fallback)
+                packet.padding = box('padding');
+            if (hasAny(authored, ['margin', 'margin-*']) || fallback)
+                packet.margin = box('margin');
+            const gap = px(style.gap);
+            if (gap !== null && (hasAny(authored, ['gap', 'row-gap', 'column-gap']) || fallback))
+                packet.gap = gap;
+            packets.push(packet);
+        }
+    }
+    if (wants('shadow', ['box-shadow'])) {
+        const shadow = parseFirstShadow(style.boxShadow);
+        if (shadow) {
+            const packet = (0, model_1.createStylePacket)('shadow');
+            if (packet.type === 'shadow') {
+                Object.assign(packet, shadow);
+                packets.push(packet);
+            }
+        }
+    }
+    if (wants('glass', ['backdrop-filter', '-webkit-backdrop-filter'])) {
+        const filter = style.backdropFilter || style.getPropertyValue('-webkit-backdrop-filter') || '';
+        const packet = (0, model_1.createStylePacket)('glass');
+        if (packet.type === 'glass') {
+            packet.blur = parseFilterNumber(filter, 'blur', 0);
+            packet.saturation = parseFilterNumber(filter, 'saturate', 1);
+            packet.borderWidth = 0;
+            packet.shadowStrength = 0;
+            packet.innerHighlight = 0;
+            packets.push(packet);
+        }
+    }
+    if (wants('opacity', ['opacity'])) {
+        const value = Number(style.opacity);
+        if (Number.isFinite(value)) {
+            const packet = (0, model_1.createStylePacket)('opacity');
+            if (packet.type === 'opacity') {
+                packet.value = value;
+                packets.push(packet);
+            }
+        }
+    }
+    if (wants('visibility', ['visibility', 'display'])) {
+        const packet = (0, model_1.createStylePacket)('visibility');
+        if (packet.type === 'visibility') {
+            packet.mode = style.display === 'none' ? 'gone' : style.visibility === 'hidden' ? 'invisible' : 'visible';
+            if (packet.mode !== 'visible' || hasAny(authored, ['visibility']))
+                packets.push(packet);
+        }
+    }
+    const mediaElement = ['IMG', 'VIDEO', 'CANVAS', 'PICTURE'].includes(element.tagName);
+    const mediaSurface = mediaElement || Boolean(element.querySelector('img, video, canvas, picture'));
+    const authoredMask = hasAny(authored, ['mask-image', '-webkit-mask-image', 'mask-composite', '-webkit-mask-composite']);
+    const authoredMediaImage = mediaSurface && hasAny(authored, mediaElement ? ['filter', 'object-fit', 'object-position', 'width', 'height'] : ['filter']);
+    if (!pseudo && authoredMediaImage) {
+        const packet = (0, model_1.createStylePacket)('image');
+        if (packet.type === 'image') {
+            const filter = style.filter || '';
+            packet.brightness = parseFilterNumber(filter, 'brightness', 1);
+            packet.saturation = parseFilterNumber(filter, 'saturate', 1);
+            packet.contrast = parseFilterNumber(filter, 'contrast', 1);
+            packet.grayscale = parseFilterNumber(filter, 'grayscale', 0);
+            packet.hueRotate = parseFilterNumber(filter, 'hue-rotate', 0);
+            packet.blur = parseFilterNumber(filter, 'blur', 0);
+            if (['cover', 'contain', 'fill', 'scale-down'].includes(style.objectFit))
+                packet.objectFit = style.objectFit;
+            const position = percentPosition(style.objectPosition);
+            if (position)
+                [packet.objectPositionX, packet.objectPositionY] = position;
+            if (style.width === '100%' && style.height === '100%')
+                packet.fillFrame = true;
+            packets.push(packet);
+        }
+    }
+    if (!pseudo && authoredMask) {
+        const packet = (0, model_1.createStylePacket)('mask');
+        if (packet.type === 'mask') {
+            readMaskIntoPacket(style, packet);
+            packets.push(packet);
+        }
+    }
+    if (wants('position', ['position', 'top', 'right', 'bottom', 'left', 'translate', 'z-index'])) {
+        const packet = (0, model_1.createStylePacket)('position');
+        if (packet.type === 'position') {
+            packet.mode = style.position === 'relative' ? 'nudge' : style.position === 'absolute' ? 'anchored' : style.position === 'sticky' ? 'sticky' : style.position === 'fixed' ? 'screen' : 'flow';
+            const readOffset = (value) => value === 'auto' ? undefined : px(value) ?? undefined;
+            if (packet.mode === 'nudge') {
+                const translate = style.translate.trim().split(/\s+/);
+                packet.nudgeX = px(translate[0] ?? '') ?? 0;
+                packet.nudgeY = px(translate[1] ?? '') ?? 0;
+            }
+            else {
+                packet.top = readOffset(style.top);
+                packet.right = readOffset(style.right);
+                packet.bottom = readOffset(style.bottom);
+                packet.left = readOffset(style.left);
+            }
+            const z = numeric(style.zIndex);
+            if (z !== null && z !== 0) {
+                packet.layer = 'custom';
+                packet.zIndex = z;
+            }
+            packets.push(packet);
+        }
+    }
+    if (wants('layout', ['display', 'flex-*', 'justify-content', 'align-items', 'gap', 'grid-template-columns'])) {
+        if (['flex', 'inline-flex', 'grid', 'inline-grid'].includes(style.display)) {
+            const packet = (0, model_1.createStylePacket)('layout');
+            if (packet.type === 'layout') {
+                packet.display = style.display;
+                if (style.display.includes('flex')) {
+                    packet.direction = style.flexDirection;
+                    packet.wrap = style.flexWrap;
+                }
+                const map = (value) => value === 'flex-start' ? 'start' : value === 'flex-end' ? 'end' : value;
+                packet.justify = map(style.justifyContent);
+                packet.align = map(style.alignItems);
+                const gap = px(style.gap);
+                if (gap !== null)
+                    packet.gap = { mode: 'fixed', value: gap, unit: 'px' };
+                packets.push(packet);
+            }
+        }
+    }
+    if (!pseudo && hasAny(authored, ['flex-grow', 'flex-shrink', 'flex-basis', 'align-self', 'order'])) {
+        const packet = (0, model_1.createStylePacket)('layout-item');
+        if (packet.type === 'layout-item') {
+            const grow = numeric(style.flexGrow) ?? 0, shrink = numeric(style.flexShrink) ?? 1, basis = px(style.flexBasis);
+            packet.sizeInParent = grow >= 1 && shrink >= 1 && (style.flexBasis === '0px' || style.flexBasis === '0%') ? 'fill' : basis !== null ? 'fixed' : 'natural';
+            packet.grow = grow;
+            packet.shrink = shrink;
+            if (basis !== null)
+                packet.basis = { mode: 'fixed', value: basis, unit: 'px' };
+            packet.alignSelf = style.alignSelf === 'flex-start' ? 'start' : style.alignSelf === 'flex-end' ? 'end' : ['auto', 'center', 'stretch'].includes(style.alignSelf) ? style.alignSelf : 'auto';
+            packet.order = numeric(style.order) ?? 0;
+            packets.push(packet);
+        }
+    }
+    if (!pseudo && hasAny(authored, ['width', 'height', 'min-width', 'max-width', 'min-height', 'max-height', 'aspect-ratio'])) {
+        const packet = (0, model_1.createStylePacket)('size');
+        if (packet.type === 'size') {
+            const dimension = (value) => { const parsed = px(value); return parsed === null ? undefined : { mode: 'fixed', value: parsed, unit: 'px' }; };
+            if (hasAny(authored, ['width']))
+                packet.width = dimension(style.width);
+            if (hasAny(authored, ['height']))
+                packet.height = dimension(style.height);
+            if (hasAny(authored, ['min-width']))
+                packet.minWidth = dimension(style.minWidth);
+            if (hasAny(authored, ['max-width']))
+                packet.maxWidth = dimension(style.maxWidth);
+            if (hasAny(authored, ['min-height']))
+                packet.minHeight = dimension(style.minHeight);
+            if (hasAny(authored, ['max-height']))
+                packet.maxHeight = dimension(style.maxHeight);
+            const ratio = style.aspectRatio.match(/^([\d.]+)\s*\/\s*([\d.]+)$/);
+            if (ratio)
+                packet.aspectRatio = { width: Number(ratio[1]), height: Number(ratio[2]) };
+            packets.push(packet);
+        }
+    }
+    return { packets, authoredProperties: [...authored].sort(), usedComputedFallback: fallback, sources: collectAuthoredSources(element, pseudo) };
+}
+
+},
+"src/project/smart-invert.ts": function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.smartInvertColor = smartInvertColor;
+exports.inferColorRole = inferColorRole;
+exports.isMediaElement = isMediaElement;
+exports.synthesizeSmartInvertPackets = synthesizeSmartInvertPackets;
+exports.invertBoostColor = invertBoostColor;
+const color_1 = require("../compiler/color");
+const model_1 = require("./model");
+function rgbToHsl(r, g, b) {
+    const [rn, gn, bn] = [r, g, b].map((value) => value / 255);
+    const max = Math.max(rn, gn, bn);
+    const min = Math.min(rn, gn, bn);
+    let h = 0;
+    const l = (max + min) / 2;
+    const delta = max - min;
+    const s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+    if (delta) {
+        if (max === rn)
+            h = 60 * (((gn - bn) / delta) % 6);
+        else if (max === gn)
+            h = 60 * ((bn - rn) / delta + 2);
+        else
+            h = 60 * ((rn - gn) / delta + 4);
+    }
+    return { h: h < 0 ? h + 360 : h, s, l };
+}
+function hslToRgb({ h, s, l }) {
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+    const m = l - c / 2;
+    const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+    return [r, g, b].map((value) => Math.round((value + m) * 255));
+}
+function hex(r, g, b) { return `#${[r, g, b].map((value) => value.toString(16).padStart(2, '0')).join('')}`; }
+function smartInvertColor(color, role, config) {
+    const parsed = (0, color_1.parseHexColor)(color);
+    if (!parsed || config.strength <= 0)
+        return color;
+    const source = rgbToHsl(parsed.r, parsed.g, parsed.b);
+    let targetLightness = 1 - source.l;
+    if (role === 'surface')
+        targetLightness = source.l >= 0.5 ? 0.12 : 0.9;
+    if (role === 'text')
+        targetLightness = source.l >= 0.5 ? 0.12 : 0.92;
+    if (role === 'border')
+        targetLightness = source.l >= 0.5 ? 0.28 : 0.7;
+    if (role === 'accent' && config.preserveAccents)
+        targetLightness = Math.max(0.38, Math.min(0.68, targetLightness));
+    const strength = Math.max(0, Math.min(1, config.strength));
+    const transformed = { ...source, l: source.l + (targetLightness - source.l) * strength };
+    return hex(...hslToRgb(transformed));
+}
+function inferColorRole(property, color) {
+    if (property === 'background-color')
+        return 'surface';
+    if (property === 'color')
+        return 'text';
+    const parsed = (0, color_1.parseHexColor)(color);
+    if (!parsed)
+        return 'unknown';
+    return rgbToHsl(parsed.r, parsed.g, parsed.b).s > 0.45 ? 'accent' : 'border';
+}
+function isMediaElement(element) { return ['IMG', 'VIDEO', 'CANVAS', 'PICTURE', 'SOURCE'].includes(element.tagName) || Boolean(element.closest('picture')); }
+function cssRgbToHex(value) {
+    if (!value || value === 'transparent')
+        return null;
+    const hexColor = (0, color_1.parseHexColor)(value);
+    if (hexColor)
+        return hex(hexColor.r, hexColor.g, hexColor.b);
+    const match = value.trim().match(/^rgba?\((.*)\)$/i);
+    if (!match)
+        return null;
+    const parts = match[1].replace('/', ' ').split(/[\s,]+/).filter(Boolean).map(Number);
+    if (parts.length < 3 || parts.slice(0, 3).some((part) => !Number.isFinite(part)) || (parts[3] !== undefined && parts[3] <= 0))
+        return null;
+    return hex(...parts.slice(0, 3).map((part) => Math.max(0, Math.min(255, Math.round(part)))));
+}
+/** Convert computed presentation into ordinary editable packets; no runtime filters or computed objects are persisted. */
+function synthesizeSmartInvertPackets(presentation, config) {
+    const result = [];
+    const background = cssRgbToHex(presentation.backgroundColor);
+    if (background) {
+        const packet = (0, model_1.createStylePacket)('background');
+        if (packet.type === 'background') {
+            packet.solid.color = smartInvertColor(background, 'surface', config);
+            result.push(packet);
+        }
+    }
+    const foreground = cssRgbToHex(presentation.color);
+    if (foreground) {
+        const packet = (0, model_1.createStylePacket)('text');
+        if (packet.type === 'text') {
+            packet.solid.color = smartInvertColor(foreground, 'text', config);
+            result.push(packet);
+        }
+    }
+    const border = cssRgbToHex(presentation.borderColor);
+    if (border) {
+        const packet = (0, model_1.createStylePacket)('border');
+        if (packet.type === 'border') {
+            packet.color = smartInvertColor(border, inferColorRole('border-color', border), config);
+            result.push(packet);
+        }
+    }
+    return result;
+}
+function invertBoostColor(value, role, config) { return { ...value, color: smartInvertColor(value.color, role, config) }; }
+
+},
+"src/project/store.ts": function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ProjectStore = void 0;
+const model_1 = require("./model");
+const migrations_1 = require("./migrations");
+const model_2 = require("./model");
+const smart_invert_1 = require("./smart-invert");
+function allEmpty(states) { return model_1.STYLE_STATES.every((state) => !(states[state]?.length)); }
+function responsiveStacks(override, scope) {
+    if (!override)
+        return { normal: [] };
+    return scope === 'mobile' ? (override.mobileStates ?? { normal: [] }) : override.states;
+}
+function assignResponsiveStacks(override, scope, states) {
+    return scope === 'mobile' ? { ...override, mobileStates: states } : { ...override, states };
+}
+function overrideEmpty(override) {
+    return allEmpty(override.states) && (!override.mobileStates || allEmpty(override.mobileStates));
+}
+function upsertInto(states, state, packet) {
+    const list = [...(states[state] ?? [])];
+    const index = list.findIndex((entry) => entry.type === packet.type);
+    if (index < 0)
+        list.push(structuredClone(packet));
+    else
+        list[index] = structuredClone(packet);
+    return { ...states, [state]: list };
+}
+function cloneOverrideForSavedStyle(source) {
+    const clone = structuredClone(source);
+    clone.id = (0, model_1.newId)('saved-override');
+    for (const state of model_1.STYLE_STATES) {
+        for (const packet of clone.states[state] ?? [])
+            packet.id = (0, model_1.newId)('packet');
+        for (const packet of clone.mobileStates?.[state] ?? [])
+            packet.id = (0, model_1.newId)('packet');
+    }
+    return clone;
+}
+function mergeSavedOverride(existing, saved) {
+    const incoming = cloneOverrideForSavedStyle(saved);
+    incoming.id = existing?.id ?? (0, model_1.newId)('override');
+    const mergeStacks = (base, extra) => {
+        let result = structuredClone(base ?? { normal: [] });
+        for (const state of model_1.STYLE_STATES) {
+            for (const packet of extra?.[state] ?? [])
+                result = upsertInto(result, state, { ...structuredClone(packet), id: (0, model_1.newId)('packet') });
+        }
+        return result;
+    };
+    const states = mergeStacks(existing?.states, incoming.states);
+    const mobileStates = mergeStacks(existing?.mobileStates, incoming.mobileStates);
+    return {
+        ...(existing ?? incoming),
+        id: existing?.id ?? (0, model_1.newId)('override'),
+        target: structuredClone(incoming.target),
+        states,
+        ...(allEmpty(mobileStates) ? { mobileStates: undefined } : { mobileStates }),
+    };
+}
+class ProjectStore {
+    state = (0, model_1.createInitialState)();
+    listeners = new Set();
+    get snapshot() { return this.state; }
+    get activeProject() { return this.state.projects.find((project) => project.id === this.state.activeProjectId) ?? this.state.projects[0]; }
+    hydrate(value) { this.state = (0, migrations_1.normalizeState)(value); this.emit(); }
+    subscribe(listener) { this.listeners.add(listener); return () => this.listeners.delete(listener); }
+    selectProject(projectId) { if (this.state.projects.some((project) => project.id === projectId)) {
+        this.state = { ...this.state, activeProjectId: projectId };
+        this.emit();
+    } }
+    create(name) { const project = (0, model_1.createProject)(name ?? `Theme ${this.state.projects.length + 1}`); this.state = { ...this.state, activeProjectId: project.id, projects: [...this.state.projects, project] }; this.emit(); return project; }
+    duplicate(projectId = this.activeProject.id) {
+        const source = this.state.projects.find((project) => project.id === projectId);
+        if (!source)
+            return null;
+        const copy = structuredClone(source);
+        const now = Date.now();
+        copy.id = (0, model_1.newId)('project');
+        copy.name = `${source.name} Copy`;
+        copy.createdAt = now;
+        copy.updatedAt = now;
+        const packetIdMap = new Map();
+        for (const override of copy.componentOverrides) {
+            override.id = (0, model_1.newId)('override');
+            for (const state of model_1.STYLE_STATES) {
+                for (const packet of override.states[state] ?? []) {
+                    const next = (0, model_1.newId)('packet');
+                    packetIdMap.set(packet.id, next);
+                    packet.id = next;
+                }
+                for (const packet of override.mobileStates?.[state] ?? []) {
+                    const next = (0, model_1.newId)('packet');
+                    packetIdMap.set(packet.id, next);
+                    packet.id = next;
+                }
+            }
+        }
+        for (const group of copy.layoutGroups) {
+            group.id = (0, model_1.newId)('group');
+            for (const member of group.members)
+                member.id = (0, model_1.newId)('group-member');
+            for (const bucket of [group.styles?.base, group.styles?.mobile]) {
+                if (!bucket)
+                    continue;
+                for (const packet of bucket.members)
+                    packet.id = (0, model_1.newId)('packet');
+                for (const list of Object.values(bucket.contents))
+                    for (const packet of list ?? [])
+                        packet.id = (0, model_1.newId)('packet');
+                for (const packet of bucket.frame)
+                    packet.id = (0, model_1.newId)('packet');
+            }
+        }
+        for (const slot of copy.recipeSlots) {
+            slot.id = (0, model_1.newId)('recipe-slot');
+            if (slot.base)
+                slot.base.id = packetIdMap.get(slot.base.id) ?? (0, model_1.newId)('packet');
+            for (const layer of slot.layers)
+                layer.packet.id = packetIdMap.get(layer.packet.id) ?? (0, model_1.newId)('packet');
+        }
+        copy.fonts.forEach((font) => { font.id = (0, model_1.newId)('font'); });
+        copy.presets.forEach((preset) => { preset.id = (0, model_1.newId)('preset'); });
+        copy.svgAssets.forEach((svg) => { svg.id = (0, model_1.newId)('svg-asset'); });
+        this.state = { ...this.state, activeProjectId: copy.id, projects: [...this.state.projects, copy] };
+        this.emit();
+        return copy;
+    }
+    rename(projectId, name) { const trimmed = name.trim().slice(0, 120); if (trimmed)
+        this.updateProject(projectId, (project) => ({ ...project, name: trimmed })); }
+    delete(projectId) { if (this.state.projects.length <= 1)
+        return; const projects = this.state.projects.filter((project) => project.id !== projectId); this.state = { ...this.state, projects, activeProjectId: this.state.activeProjectId === projectId ? projects[0].id : this.state.activeProjectId }; this.emit(); }
+    setCustomCss(value) { this.updateActive((project) => ({ ...project, customCss: value })); }
+    setNativeAssetBundleId(bundleId) { this.updateActive((project) => ({ ...project, nativeAssetBundleId: bundleId || undefined })); }
+    setAssets(assets) { this.updateActive((project) => ({ ...project, assets: structuredClone(assets) })); }
+    setRecipeSlots(slots) { this.updateActive((project) => ({ ...project, recipeSlots: structuredClone(slots) })); }
+    upsertPacket(target, packet, state = 'normal', scope = 'base') {
+        if (target.persistence === 'volatile')
+            return;
+        const normalized = (0, migrations_1.normalizePacket)(packet);
+        if (!normalized)
+            return;
+        this.updateActive((project) => {
+            const index = project.componentOverrides.findIndex((override) => override.target.selector === target.selector);
+            const componentOverrides = [...project.componentOverrides];
+            if (index < 0) {
+                const base = { id: (0, model_1.newId)('override'), target: structuredClone(target), states: { normal: [] } };
+                componentOverrides.push(assignResponsiveStacks(base, scope, upsertInto({ normal: [] }, state, normalized)));
+            }
+            else {
+                // Editing a target is an explicit local action. Move that override to the
+                // end of the generated Design cascade so equal-authority Strong rules are
+                // deterministic: the thing the user touched most recently wins.
+                const source = componentOverrides[index];
+                const updated = assignResponsiveStacks({ ...source, target: structuredClone(target) }, scope, upsertInto(responsiveStacks(source, scope), state, normalized));
+                componentOverrides.splice(index, 1);
+                componentOverrides.push(updated);
+            }
+            return { ...project, componentOverrides };
+        });
+    }
+    retargetOverride(overrideId, target) {
+        if (target.persistence === 'volatile')
+            return;
+        this.updateActive((project) => {
+            const source = project.componentOverrides.find((override) => override.id === overrideId);
+            if (!source)
+                return project;
+            const destination = project.componentOverrides.find((override) => override.id !== overrideId && override.target.selector === target.selector);
+            if (!destination)
+                return { ...project, componentOverrides: project.componentOverrides.map((override) => override.id === overrideId ? { ...override, target: structuredClone(target) } : override) };
+            const states = structuredClone(destination.states);
+            for (const state of model_1.STYLE_STATES)
+                for (const packet of source.states[state] ?? [])
+                    Object.assign(states, upsertInto(states, state, packet));
+            const mobileStates = structuredClone(destination.mobileStates ?? { normal: [] });
+            for (const state of model_1.STYLE_STATES)
+                for (const packet of source.mobileStates?.[state] ?? [])
+                    Object.assign(mobileStates, upsertInto(mobileStates, state, packet));
+            return { ...project, componentOverrides: project.componentOverrides.filter((override) => override.id !== source.id).map((override) => override.id === destination.id ? { ...override, target: structuredClone(target), states, ...(allEmpty(mobileStates) ? { mobileStates: undefined } : { mobileStates }) } : override) };
+        });
+    }
+    setOverrideStrength(overrideId, strength) {
+        this.updateActive((project) => {
+            const index = project.componentOverrides.findIndex((override) => override.id === overrideId);
+            if (index < 0)
+                return project;
+            const componentOverrides = [...project.componentOverrides];
+            const source = componentOverrides[index];
+            componentOverrides.splice(index, 1);
+            componentOverrides.push({ ...source, target: { ...source.target, overrideStrength: strength } });
+            return { ...project, componentOverrides };
+        });
+    }
+    restoreTarget(selectors) {
+        const set = new Set(selectors.filter(Boolean));
+        if (!set.size)
+            return;
+        this.updateActive((project) => ({
+            ...project,
+            componentOverrides: project.componentOverrides.filter((override) => !set.has(override.target.selector)),
+            // Restore is an explicit ownership reset. Do not leave recipe provenance
+            // behind for a target whose authored Theme Studio state has been removed.
+            recipeSlots: project.recipeSlots.filter((slot) => !set.has(slot.target.selector)),
+        }));
+    }
+    removePacket(overrideId, packetId, state = 'normal', scope = 'base') {
+        this.updateActive((project) => {
+            const source = project.componentOverrides.find((override) => override.id === overrideId);
+            const stacks = responsiveStacks(source, scope);
+            const removing = (stacks[state] ?? []).find((packet) => packet.id === packetId);
+            const componentOverrides = project.componentOverrides.map((override) => {
+                if (override.id !== overrideId)
+                    return override;
+                const overrideStacks = responsiveStacks(override, scope);
+                const updated = assignResponsiveStacks(override, scope, { ...overrideStacks, [state]: (overrideStacks[state] ?? []).filter((packet) => packet.id !== packetId) });
+                return scope === 'mobile' && updated.mobileStates && allEmpty(updated.mobileStates) ? { ...updated, mobileStates: undefined } : updated;
+            }).filter((override) => !overrideEmpty(override));
+            return {
+                ...project,
+                componentOverrides,
+                // A manual packet delete means Theme Studio no longer owns this recipe
+                // slot. Reset/apply history must not resurrect a layer the user removed.
+                recipeSlots: source && removing
+                    ? project.recipeSlots.filter((slot) => !(slot.target.selector === source.target.selector && slot.type === removing.type && slot.scope === scope))
+                    : project.recipeSlots,
+            };
+        });
+    }
+    copyStatePackets(overrideId, from, to, scope = 'base') {
+        if (from === to)
+            return;
+        this.updateActive((project) => ({ ...project, componentOverrides: project.componentOverrides.map((override) => {
+                if (override.id !== overrideId)
+                    return override;
+                const stacks = responsiveStacks(override, scope);
+                return assignResponsiveStacks(override, scope, { ...stacks, [to]: (0, model_1.clonePacketStack)(stacks[from] ?? []) });
+            }) }));
+    }
+    resetState(overrideId, state, scope = 'base') {
+        this.updateActive((project) => ({ ...project, componentOverrides: project.componentOverrides.map((override) => {
+                if (override.id !== overrideId)
+                    return override;
+                const stacks = responsiveStacks(override, scope);
+                const updated = assignResponsiveStacks(override, scope, { ...stacks, [state]: [] });
+                return scope === 'mobile' && updated.mobileStates && allEmpty(updated.mobileStates) ? { ...updated, mobileStates: undefined } : updated;
+            }).filter((override) => !overrideEmpty(override)) }));
+    }
+    clonePacketStack(overrideId, state = 'normal', scope = 'base') {
+        return (0, model_1.clonePacketStack)(responsiveStacks(this.activeProject.componentOverrides.find((override) => override.id === overrideId), scope)[state] ?? []);
+    }
+    applyPacketStack(target, packets, state = 'normal') {
+        if (target.persistence === 'volatile')
+            return;
+        this.updateActive((project) => {
+            const existing = project.componentOverrides.find((override) => override.target.selector === target.selector);
+            const cloned = (0, model_1.clonePacketStack)(packets).map(migrations_1.normalizePacket).filter((packet) => packet !== null);
+            const states = { ...(existing?.states ?? { normal: [] }), [state]: cloned };
+            if (!existing)
+                return { ...project, componentOverrides: [...project.componentOverrides, { id: (0, model_1.newId)('override'), target: structuredClone(target), states }] };
+            const componentOverrides = project.componentOverrides.filter((override) => override.id !== existing.id);
+            componentOverrides.push({ ...existing, target: structuredClone(target), states });
+            return { ...project, componentOverrides };
+        });
+    }
+    addLayoutGroup(input) {
+        const group = { ...structuredClone(input), id: (0, model_1.newId)('group'), members: input.members.map((member) => ({ ...structuredClone(member), id: member.id || (0, model_1.newId)('group-member') })) };
+        this.updateActive((project) => ({ ...project, layoutGroups: [...project.layoutGroups, group] }));
+        return group;
+    }
+    updateLayoutGroup(groupId, updater) {
+        this.updateActive((project) => ({ ...project, layoutGroups: project.layoutGroups.map((group) => group.id === groupId ? structuredClone(updater(structuredClone(group))) : group) }));
+    }
+    updateLayoutGroupState(groupId, scope, patch) {
+        this.updateLayoutGroup(groupId, (group) => {
+            if (scope === 'base')
+                return { ...group, base: { ...group.base, ...structuredClone(patch) } };
+            const mobile = group.mobile ?? structuredClone(group.base);
+            return { ...group, mobile: { ...mobile, ...structuredClone(patch) } };
+        });
+    }
+    clearLayoutGroupMobile(groupId) { this.updateLayoutGroup(groupId, (group) => ({ ...group, mobile: undefined })); }
+    removeLayoutGroup(groupId) { this.updateActive((project) => ({ ...project, layoutGroups: project.layoutGroups.filter((group) => group.id !== groupId) })); }
+    savePreset(name, states) {
+        const preset = { id: (0, model_1.newId)('preset'), name: name.trim().slice(0, 120) || 'Untitled preset', states: Object.fromEntries(Object.entries(states).map(([state, packets]) => [state, (0, model_1.clonePacketStack)(packets ?? [])])) };
+        this.updateActive((project) => ({ ...project, presets: [...project.presets, preset] }));
+        return preset;
+    }
+    saveStyle(name, overrides, options = {}) {
+        const usable = overrides.filter((entry) => entry.target.persistence === 'persistent');
+        if (!usable.length)
+            return null;
+        const now = Date.now();
+        const saved = {
+            id: (0, model_1.newId)('saved-style'),
+            name: name.trim().slice(0, 120) || 'Saved style',
+            scope: options.scope ?? 'target',
+            sourceLabel: options.sourceLabel?.trim().slice(0, 160) || undefined,
+            sourceProjectName: this.activeProject.name,
+            overrides: usable.map(cloneOverrideForSavedStyle),
+            createdAt: now,
+            updatedAt: now,
+        };
+        this.state = { ...this.state, savedStyles: [...this.state.savedStyles, saved] };
+        this.emit();
+        return saved;
+    }
+    renameSavedStyle(styleId, name) {
+        const trimmed = name.trim().slice(0, 120);
+        if (!trimmed)
+            return;
+        const now = Date.now();
+        this.state = { ...this.state, savedStyles: this.state.savedStyles.map((entry) => entry.id === styleId ? { ...entry, name: trimmed, updatedAt: now } : entry) };
+        this.emit();
+    }
+    removeSavedStyle(styleId) {
+        this.state = { ...this.state, savedStyles: this.state.savedStyles.filter((entry) => entry.id !== styleId) };
+        this.emit();
+    }
+    applySavedStyle(styleId) {
+        const saved = this.state.savedStyles.find((entry) => entry.id === styleId);
+        if (!saved)
+            return false;
+        this.updateActive((project) => {
+            const componentOverrides = [...project.componentOverrides];
+            for (const source of saved.overrides) {
+                const index = componentOverrides.findIndex((entry) => entry.target.selector === source.target.selector);
+                const existing = index >= 0 ? componentOverrides[index] : undefined;
+                const merged = mergeSavedOverride(existing, source);
+                if (index >= 0)
+                    componentOverrides.splice(index, 1);
+                componentOverrides.push(merged);
+            }
+            return { ...project, componentOverrides };
+        });
+        return true;
+    }
+    registerFont(input) {
+        const font = { ...structuredClone(input), id: (0, model_1.newId)('font') };
+        this.updateActive((project) => ({ ...project, fonts: [...project.fonts.filter((entry) => entry.family !== font.family), font] }));
+        return font;
+    }
+    removeFont(fontId) { this.updateActive((project) => ({ ...project, fonts: project.fonts.filter((font) => font.id !== fontId) })); }
+    saveSvgAsset(name, source) {
+        const svg = (0, model_2.normalizeSvgSource)(source);
+        if (!svg)
+            return null;
+        const entry = { id: (0, model_1.newId)('svg-asset'), name: name.trim().slice(0, 80) || `SVG ${this.activeProject.svgAssets.length + 1}`, svg, createdAt: Date.now() };
+        this.updateActive((project) => ({ ...project, svgAssets: [...project.svgAssets, entry] }));
+        return entry;
+    }
+    removeSvgAsset(svgId) { this.updateActive((project) => ({ ...project, svgAssets: project.svgAssets.filter((entry) => entry.id !== svgId) })); }
+    /** v34 compatibility aliases; saved SVGs are project-wide as of v35. */
+    saveComposerSvg(name, source) { return this.saveSvgAsset(name, source); }
+    removeComposerSvg(svgId) { this.removeSvgAsset(svgId); }
+    /** Phase Four compatibility editor; legacy roles are explicit post-transform overrides. */
+    setBoostPaletteRole(role, value) { this.updateActive((project) => ({ ...project, boost: { ...project.boost, enabled: true, legacyPalette: { ...project.boost.legacyPalette, [role]: value ? structuredClone(value) : undefined } } })); }
+    setBoostEnabled(enabled) { this.updateActive((project) => ({ ...project, boost: { ...project.boost, enabled } })); }
+    setBoostColorsEnabled(colorsEnabled) { this.updateActive((project) => { const { typographyEnabled, canvasEnabled } = project.boost; return { ...project, boost: { ...project.boost, colorsEnabled, enabled: colorsEnabled || typographyEnabled || canvasEnabled } }; }); }
+    setBoostTypographyEnabled(typographyEnabled) { this.updateActive((project) => { const { colorsEnabled, canvasEnabled } = project.boost; return { ...project, boost: { ...project.boost, typographyEnabled, enabled: colorsEnabled || typographyEnabled || canvasEnabled } }; }); }
+    setBoostCanvasEnabled(canvasEnabled) { this.updateActive((project) => { const { colorsEnabled, typographyEnabled } = project.boost; return { ...project, boost: { ...project.boost, canvasEnabled, enabled: colorsEnabled || typographyEnabled || canvasEnabled } }; }); }
+    setBoostCanvasOpacity(canvasOpacity) { this.updateActive((project) => ({ ...project, boost: { ...project.boost, canvasEnabled: true, enabled: true, canvasOpacity: Math.max(0, Math.min(1, Number.isFinite(canvasOpacity) ? canvasOpacity : 1)) } })); }
+    setBoostWallpaperTreatmentEnabled(wallpaperTreatmentEnabled) {
+        this.updateActive((project) => ({ ...project, boost: { ...project.boost, wallpaperTreatmentEnabled, canvasEnabled: true, enabled: true } }));
+    }
+    updateBoostWallpaperTreatment(value) {
+        this.updateActive((project) => ({ ...project, boost: { ...project.boost, ...structuredClone(value), wallpaperTreatmentEnabled: true, canvasEnabled: true, enabled: true } }));
+    }
+    setBoostProtectControls(protectControls) { this.updateActive((project) => ({ ...project, boost: { ...project.boost, protectControls } })); }
+    setBoostMode(mode) { this.updateActive((project) => ({ ...project, boost: { ...project.boost, enabled: true, colorsEnabled: true, mode } })); }
+    updateBoostParameters(value) {
+        this.updateActive((project) => ({ ...project, boost: { ...project.boost, ...structuredClone(value), enabled: true, colorsEnabled: true } }));
+    }
+    setBoostFont(fontFamily, scale) { this.updateActive((project) => ({ ...project, boost: { ...project.boost, enabled: true, typographyEnabled: true, typography: { fontFamily: fontFamily?.trim() || undefined, scale } } })); }
+    resetBoost() { this.updateActive((project) => ({ ...project, boost: (0, model_1.createBoost)() })); }
+    applySmartInvertToBoost(_config) { this.setBoostMode('smart-invert'); }
+    shuffleBoost(fontChoices = []) {
+        this.updateActive((project) => {
+            let seed = (project.boost.shuffleSeed * 48271) % 0x7fffffff;
+            const random = () => (seed = (seed * 48271) % 0x7fffffff) / 0x7fffffff;
+            const hsl = (h, s, l) => {
+                const a = s * Math.min(l, 1 - l);
+                const f = (n) => { const k = (n + h / 30) % 12; return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+                return `#${[f(0), f(8), f(4)].map((channel) => Math.round(channel * 255).toString(16).padStart(2, '0')).join('')}`;
+            };
+            const hue = random() * 360;
+            const primary = { color: hsl(hue, 0.62 + random() * 0.28, 0.48 + random() * 0.14), alpha: 1 };
+            const secondary = { color: hsl((hue + 90 + random() * 180) % 360, 0.48 + random() * 0.32, 0.42 + random() * 0.18), alpha: 1 };
+            const fontFamily = fontChoices.length ? fontChoices[Math.floor(random() * fontChoices.length)] : project.boost.typography.fontFamily;
+            return { ...project, boost: { ...project.boost, enabled: true, colorsEnabled: true, typographyEnabled: Boolean(fontFamily) || project.boost.typographyEnabled, mode: 'recolor', primary, secondary, contrast: random() * 0.7 - 0.2, brightness: random() * 0.34 - 0.17, originalSaturation: random() * 0.45, typography: { ...project.boost.typography, fontFamily }, shuffleSeed: seed } };
+        });
+    }
+    applyCapturedPackets(target, packets, state = 'normal', scope = 'base') {
+        if (target.persistence === 'volatile' || !packets.length)
+            return;
+        this.updateActive((project) => {
+            const existing = project.componentOverrides.find((override) => override.target.selector === target.selector);
+            let stacks = responsiveStacks(existing, scope);
+            for (const packet of packets)
+                stacks = upsertInto(stacks, state, packet);
+            if (!existing) {
+                const base = { id: (0, model_1.newId)('override'), target: structuredClone(target), states: { normal: [] } };
+                return { ...project, componentOverrides: [...project.componentOverrides, assignResponsiveStacks(base, scope, stacks)] };
+            }
+            const componentOverrides = project.componentOverrides.filter((override) => override.id !== existing.id);
+            componentOverrides.push(assignResponsiveStacks({ ...existing, target: structuredClone(target) }, scope, stacks));
+            return { ...project, componentOverrides };
+        });
+    }
+    applySmartInvertToTarget(target, presentation, config, state = 'normal', scope = 'base') {
+        if (target.persistence === 'volatile')
+            return;
+        const packets = (0, smart_invert_1.synthesizeSmartInvertPackets)(presentation, config);
+        this.updateActive((project) => {
+            const existing = project.componentOverrides.find((override) => override.target.selector === target.selector);
+            let stacks = responsiveStacks(existing, scope);
+            for (const packet of packets)
+                stacks = upsertInto(stacks, state, packet);
+            if (!existing) {
+                const base = { id: (0, model_1.newId)('override'), target: structuredClone(target), states: { normal: [] } };
+                return { ...project, componentOverrides: [...project.componentOverrides, assignResponsiveStacks(base, scope, stacks)] };
+            }
+            const componentOverrides = project.componentOverrides.filter((override) => override.id !== existing.id);
+            componentOverrides.push(assignResponsiveStacks({ ...existing, target: structuredClone(target) }, scope, stacks));
+            return { ...project, componentOverrides };
+        });
+    }
+    updateActive(updater) { this.updateProject(this.state.activeProjectId, updater); }
+    updateProject(projectId, updater) { this.state = { ...this.state, projects: this.state.projects.map((project) => project.id === projectId ? { ...updater(project), updatedAt: Date.now() } : project) }; this.emit(); }
+    emit() { for (const listener of this.listeners)
+        listener(this.state); }
+}
+exports.ProjectStore = ProjectStore;
+
+},
+"src/project/values.ts": function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.finite = finite;
+exports.bounded = bounded;
+exports.alpha = alpha;
+exports.percentage = percentage;
+exports.normalizedAngle = normalizedAngle;
+exports.isDimensionUnit = isDimensionUnit;
+exports.normalizeDimension = normalizeDimension;
+exports.compileDimension = compileDimension;
+function finite(value, fallback = 0) { return typeof value === 'number' && Number.isFinite(value) ? value : fallback; }
+function bounded(value, fallback, min, max) { return Math.max(min, Math.min(max, finite(value, fallback))); }
+function alpha(value, fallback = 1) { return bounded(value, fallback, 0, 1); }
+function percentage(value, fallback = 0) { return bounded(value, fallback, 0, 100); }
+function normalizedAngle(value, fallback = 0) { const number = finite(value, fallback); return ((number % 360) + 360) % 360; }
+function isDimensionUnit(value) { return ['px', 'rem', '%', 'vw', 'vh', 'em'].includes(String(value)); }
+function normalizeDimension(value, fallback = { mode: 'native' }) {
+    if (typeof value !== 'object' || value === null)
+        return structuredClone(fallback);
+    const record = value;
+    if (record.mode === 'native' || record.mode === 'auto')
+        return { mode: 'native' };
+    if (record.mode === 'content' || record.mode === 'fit')
+        return { mode: 'content' };
+    if (record.mode === 'parent' || record.mode === 'fill')
+        return { mode: 'parent' };
+    if (record.mode === 'fixed')
+        return { mode: 'fixed', value: bounded(record.value, 0, -100_000, 100_000), unit: isDimensionUnit(record.unit) ? record.unit : 'px' };
+    return structuredClone(fallback);
+}
+function compileDimension(value) {
+    if (value.mode !== 'fixed')
+        return value.mode === 'native' ? '' : value.mode === 'content' ? 'fit-content' : '100%';
+    const number = Math.round(finite(value.value, 0) * 1000) / 1000;
+    return `${number}${value.unit}`;
+}
+
+},
+"src/registry/layout-context.ts": function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.inspectLayoutContext = inspectLayoutContext;
+exports.detectSizeController = detectSizeController;
+const MODULE_CLASS = /^_([A-Za-z][A-Za-z0-9_-]*?)_[A-Za-z0-9]{4,}_[0-9]+$/;
+function friendly(element) { const local = [...element.classList].map((name) => name.match(MODULE_CLASS)?.[1]).find(Boolean); return local?.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ') ?? element.getAttribute('data-component') ?? element.tagName.toLowerCase(); }
+function selector(element) { const component = element.getAttribute('data-component'); if (component)
+    return `[data-component="${component.replaceAll('"', '\\"')}"]`; const local = [...element.classList].map((name) => name.match(MODULE_CLASS)?.[1]).find(Boolean); return local ? `[class*="_${local}_"]` : element.id ? `#${element.id}` : undefined; }
+function styleOf(element) { return typeof getComputedStyle === 'function' ? getComputedStyle(element) : element.style; }
+function inspectLayoutContext(element, components = []) {
+    const parent = element.parentElement;
+    if (!parent)
+        return { parentLabel: 'No layout parent', parentDisplay: 'none', isFlex: false, isGrid: false };
+    const display = styleOf(parent).display || 'block', componentName = parent.getAttribute('data-component')?.toLowerCase(), component = components.find((entry) => entry.label.toLowerCase() === componentName);
+    return { parentElement: parent, parentLabel: friendly(parent), parentDisplay: display, parentSelector: selector(parent), parentNativeComponentId: component?.id, isFlex: /flex/.test(display), isGrid: /grid/.test(display) };
+}
+/** Conservative recommendation for media whose rendered size is owned by a stable wrapper. */
+function detectSizeController(element, scopes = []) {
+    if (!['img', 'video', 'canvas', 'svg'].includes(element.tagName.toLowerCase()))
+        return undefined;
+    const media = styleOf(element), fillsWrapper = /^(100%|auto)$/.test(media.width) || /^(100%|auto)$/.test(media.height) || media.maxWidth === '100%' || media.objectFit !== '';
+    if (!fillsWrapper)
+        return undefined;
+    let current = element.parentElement;
+    let depth = 0;
+    while (current && depth++ < 4) {
+        const style = styleOf(current), stable = selector(current), ownsSize = /\d(?:px|rem|em|vw|vh|%)/.test(`${style.width} ${style.height} ${style.maxWidth} ${style.maxHeight}`) || ['hidden', 'clip'].includes(style.overflow) || ['relative', 'absolute'].includes(style.position);
+        if (stable && ownsSize) {
+            const scope = scopes.find((entry) => entry.element === current);
+            return { element: current, label: friendly(current), selector: stable, scopeId: scope?.id, reason: `${element.tagName.toLowerCase()} fills a constrained wrapper; size the wrapper for predictable layout.` };
+        }
+        current = current.parentElement;
+    }
+    return undefined;
+}
+
+},
+"src/registry/selector-resolver.ts": function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.normalizeCssModuleClass = normalizeCssModuleClass;
+exports.normalizeMeaningfulTarget = normalizeMeaningfulTarget;
+exports.rankSelectorCandidates = rankSelectorCandidates;
+exports.createStructuralSelector = createStructuralSelector;
+exports.resolveElement = resolveElement;
+exports.reconcileSelectionWithOverrides = reconcileSelectionWithOverrides;
+exports.resolveCatalogComponent = resolveCatalogComponent;
+const selector_utils_1 = require("./selector-utils");
+const layout_context_1 = require("./layout-context");
+const MODULE_CLASS = /^_([A-Za-z][A-Za-z0-9_-]*?)_([A-Za-z0-9]{4,})_([0-9]+)$/;
+const INTERACTIVE = 'button, a[href], input, select, textarea, summary, [role="button"], [role="link"], [role="menuitem"], [role="tab"], [role="checkbox"], [role="switch"]';
+const DECORATIVE_TAGS = new Set(['svg', 'path', 'g', 'use', 'circle', 'rect', 'line', 'polyline', 'polygon', 'ellipse']);
+function cssModuleSignature(className) {
+    const match = className.match(MODULE_CLASS);
+    return match ? { localName: match[1], hash: match[2] } : null;
+}
+function normalizeCssModuleClass(className) {
+    const match = className.match(MODULE_CLASS);
+    return match ? { localName: match[1], selector: `[class*="_${escapeAttribute(match[1])}_"]` } : null;
+}
+function escapeAttribute(value) { return value.replaceAll('\\', '\\\\').replaceAll('"', '\\"'); }
+function escapeIdentifier(value) {
+    const cssApi = globalThis.CSS;
+    return cssApi?.escape ? cssApi.escape(value) : value.replace(/[^A-Za-z0-9_-]/g, (char) => `\\${char.codePointAt(0)?.toString(16)} `);
+}
+function countMatches(root, selector) { try {
+    return root.querySelectorAll(selector).length;
+}
+catch {
+    return 0;
+} }
+/** Promote only decorative icon descendants to a nearby interactive control. */
+function normalizeMeaningfulTarget(element) {
+    const tag = element.tagName.toLowerCase();
+    const iconLike = DECORATIVE_TAGS.has(tag)
+        || element.getAttribute('aria-hidden') === 'true'
+        || [...element.classList].some((name) => /(^|[-_])(icon|glyph)([-_]|$)/i.test(name));
+    if (!iconLike)
+        return element;
+    const interactive = element.closest(INTERACTIVE);
+    if (!interactive)
+        return element;
+    let depth = 0;
+    let current = element;
+    while (current && current !== interactive && depth <= 4) {
+        current = current.parentElement;
+        depth += 1;
+    }
+    return current === interactive && depth <= 4 ? interactive : element;
+}
+const strategyScore = {
+    semantic: 700, 'native-context-local': 650, 'studio-registry': 550, 'css-module': 450,
+    'native-registry': 400, 'exact-class': 250, structural: 150, volatile: 50,
 };
-__modules["src/ui/studio"] = function(module,exports,__require){
+function rankSelectorCandidates(candidates) {
+    return [...candidates].sort((a, b) => {
+        const stability = { high: 30, medium: 20, low: 10 };
+        const aScore = strategyScore[a.strategy] + stability[a.stability] - Math.min(a.matchCount, 200) / 1000;
+        const bScore = strategyScore[b.strategy] + stability[b.stability] - Math.min(b.matchCount, 200) / 1000;
+        return bScore - aScore || a.selector.localeCompare(b.selector);
+    });
+}
+function candidate(root, selector, strategy, stability, nativeComponentId, warning) {
+    const matchCount = countMatches(root, selector);
+    return { selector, strategy, stability, matchCount, nativeComponentId, warning: warning ?? (matchCount > 50 ? `Broad selector: currently matches ${matchCount} elements.` : undefined) };
+}
+function composerActionSemantic(element) {
+    const owner = element.closest('[data-composer-action], [data-toolbar-action]');
+    if (!owner || !owner.closest('[data-component="InputArea"]'))
+        return undefined;
+    const composerAction = owner.getAttribute('data-composer-action');
+    const toolbarAction = owner.getAttribute('data-toolbar-action');
+    const attributes = composerAction && toolbarAction
+        ? `[data-composer-action="${escapeAttribute(composerAction)}"][data-toolbar-action="${escapeAttribute(toolbarAction)}"]`
+        : composerAction
+            ? `[data-composer-action="${escapeAttribute(composerAction)}"]`
+            : toolbarAction
+                ? `[data-toolbar-action="${escapeAttribute(toolbarAction)}"]`
+                : '';
+    if (!attributes)
+        return undefined;
+    return { owner, selector: `[data-component="InputArea"] ${attributes}`, label: composerAction ?? toolbarAction ?? 'action' };
+}
+function semanticCandidates(element, root) {
+    const result = [];
+    const id = element.getAttribute('id');
+    if (id)
+        result.push(candidate(root, `#${escapeIdentifier(id)}`, 'semantic', 'high'));
+    const component = element.getAttribute('data-component');
+    const part = element.getAttribute('data-part');
+    if (component) {
+        const base = `[data-component="${escapeAttribute(component)}"]`;
+        result.push(candidate(root, part ? `${base}[data-part="${escapeAttribute(part)}"]` : base, 'semantic', 'high'));
+    }
+    else if (part) {
+        const owner = element.closest('[data-component]')?.getAttribute('data-component');
+        if (owner)
+            result.push(candidate(root, `[data-component="${escapeAttribute(owner)}"] [data-part="${escapeAttribute(part)}"]`, 'semantic', 'high'));
+    }
+    for (const attribute of ['data-spindle-mount', 'data-spindle-app-mount', 'data-spindle-mount-id', 'data-spindle-drawer-tab']) {
+        const value = element.getAttribute(attribute);
+        if (value)
+            result.push(candidate(root, `[${attribute}="${escapeAttribute(value)}"]`, 'semantic', 'high'));
+    }
+    for (const attribute of ['data-message-id', 'data-character-id', 'data-chat-id', 'data-testid']) {
+        const value = element.getAttribute(attribute);
+        if (value && value.length <= 120)
+            result.push(candidate(root, `[${attribute}="${escapeAttribute(value)}"]`, 'semantic', 'high'));
+    }
+    // Current ComposerActionBarLive gives every reorderable native action stable
+    // data-composer-action + data-toolbar-action wrappers. Those wrappers are
+    // display:contents, so a picked visual child should still inherit a persistent
+    // selector anchored through that semantic unit instead of falling back to title/ARIA.
+    const composerAction = composerActionSemantic(element);
+    if (composerAction) {
+        if (element === composerAction.owner)
+            result.push(candidate(root, composerAction.selector, 'semantic', 'high'));
+        else if (composerAction.owner.contains(element)) {
+            const tag = element.tagName.toLowerCase();
+            const role = element.getAttribute('role');
+            const leaf = role ? `${tag}[role="${escapeAttribute(role)}"]` : tag;
+            result.push(candidate(root, `${composerAction.selector} ${leaf}`, 'semantic', 'high', undefined, `Stable composer action · ${composerAction.label}.`));
+        }
+    }
+    const aria = element.getAttribute('aria-label');
+    if (aria && aria.length <= 80)
+        result.push(candidate(root, `${element.tagName.toLowerCase()}[aria-label="${escapeAttribute(aria)}"]`, 'semantic', 'medium', undefined, 'ARIA labels can change when the interface language changes.'));
+    const title = element.getAttribute('title');
+    if (title && title.length <= 100)
+        result.push(candidate(root, `${element.tagName.toLowerCase()}[title="${escapeAttribute(title)}"]`, 'semantic', 'medium', undefined, 'Titles can change with interface copy.'));
+    const name = element.getAttribute('name');
+    if (name && name.length <= 100 && ['input', 'textarea', 'select', 'button'].includes(element.tagName.toLowerCase()))
+        result.push(candidate(root, `${element.tagName.toLowerCase()}[name="${escapeAttribute(name)}"]`, 'semantic', 'medium'));
+    return result;
+}
+function cssClassCandidates(element, root) {
+    const result = [];
+    for (const className of element.classList) {
+        const normalized = normalizeCssModuleClass(className);
+        if (normalized)
+            result.push(candidate(root, normalized.selector, 'css-module', 'medium', undefined, 'Generated CSS-module suffix removed; selector targets the stable local class name.'));
+        result.push(candidate(root, `.${escapeIdentifier(className)}`, 'exact-class', 'low', undefined, normalized ? 'Exact generated class may change after a Lumiverse build.' : 'Class stability is not guaranteed.'));
+    }
+    return result;
+}
+function createStructuralSelector(element, maxDepth = 6) {
+    const parts = [];
+    let current = element;
+    while (current && current !== document.body && parts.length < maxDepth) {
+        let part = current.tagName.toLowerCase();
+        const id = current.getAttribute('id');
+        if (id) {
+            parts.unshift(`#${escapeIdentifier(id)}`);
+            break;
+        }
+        const parent = current.parentElement;
+        if (parent) {
+            const siblings = [...parent.children].filter((child) => child.tagName === current?.tagName);
+            if (siblings.length > 1)
+                part += `:nth-of-type(${siblings.indexOf(current) + 1})`;
+        }
+        parts.unshift(part);
+        current = parent;
+    }
+    return parts.join(' > ');
+}
+function dedupe(entries) { return [...new Map(entries.map((entry) => [entry.selector, entry])).values()]; }
+function directDataComponent(element, components) {
+    const value = element.getAttribute('data-component')?.toLowerCase();
+    return value ? components.find((entry) => entry.label.toLowerCase() === value || entry.selectors.some((selector) => selector.toLowerCase() === `[data-component="${value}"]`)) : undefined;
+}
+const GENERIC_COMPONENT_LABELS = new Set(['app', 'root', 'container', 'layout', 'panel', 'view']);
+function isGenericComponent(component) { return GENERIC_COMPONENT_LABELS.has(component.label.trim().toLowerCase()); }
+function componentSpecificityScore(component) {
+    const label = component.label.trim();
+    const tokens = label.replace(/([a-z0-9])([A-Z])/g, '$1 $2').split(/[^A-Za-z0-9]+/).filter(Boolean);
+    const genericPenalty = GENERIC_COMPONENT_LABELS.has(label.toLowerCase()) ? 500 : 0;
+    return Math.min(label.length, 40) + Math.max(0, tokens.length - 1) * 24 - genericPenalty;
+}
+function selectorSpecificityScore(selector) {
+    return (selector.match(/[#.\[]/g)?.length ?? 0) * 18 + (selector.includes('data-component') ? 90 : 0);
+}
+function registryResolutions(element, components, root) {
+    const matches = [];
+    for (const component of components) {
+        let best;
+        for (const selector of component.selectors) {
+            // A normalized public CSS-module selector can be valid for theme browsing yet
+            // still match several unrelated runtime module families. The native bridge
+            // marks that condition explicitly; do not treat it as component ownership.
+            if (component.moduleIdentityReliable === false && !selector.includes('data-component'))
+                continue;
+            const trustedHashes = component.moduleIdentityHashes ?? [];
+            if (trustedHashes.length && !selector.includes('data-component')) {
+                const elementHashes = [...element.classList].map(cssModuleSignature).filter((value) => value !== null).map((value) => value.hash);
+                if (elementHashes.length && !elementHashes.some((hash) => trustedHashes.includes(hash)))
+                    continue;
+            }
+            let matchesElement = false;
+            try {
+                matchesElement = element.matches(selector);
+            }
+            catch {
+                continue;
+            }
+            if (!matchesElement)
+                continue;
+            const count = countMatches(root, selector);
+            if (!best || count < best.matches || count === best.matches && selector.length > best.selector.length)
+                best = { selector, matches: count };
+        }
+        if (best)
+            matches.push({ component, selector: best.selector, count: best.matches });
+    }
+    const selectorOwners = new Map();
+    for (const match of matches)
+        selectorOwners.set(match.selector, (selectorOwners.get(match.selector) ?? 0) + 1);
+    const result = [];
+    for (const match of matches) {
+        // If two public catalog components expose the exact same mounted selector, that
+        // selector cannot tell us which surface owns the node. Do not invent certainty
+        // from label length; module/data-component evidence may still disambiguate it.
+        if ((selectorOwners.get(match.selector) ?? 0) > 1)
+            continue;
+        const breadthPenalty = Math.min(match.count, 100) * 2;
+        result.push({ component: match.component, root: element, evidence: 'registry', score: 2200 + selectorSpecificityScore(match.selector) + componentSpecificityScore(match.component) - breadthPenalty });
+    }
+    return result.sort((a, b) => b.score - a.score);
+}
+function moduleResolutions(element, components) {
+    const result = [];
+    const seenHashes = new Set();
+    const localOwnerCounts = new Map();
+    for (const component of components)
+        for (const name of new Set(component.cssClasses.map((entry) => entry.toLowerCase())))
+            localOwnerCounts.set(name, (localOwnerCounts.get(name) ?? 0) + 1);
+    const selectorOwners = new Map();
+    for (const component of components)
+        for (const selector of new Set(component.selectors))
+            selectorOwners.set(selector, (selectorOwners.get(selector) ?? 0) + 1);
+    for (const signature of [...element.classList].map(cssModuleSignature).filter((value) => value !== null)) {
+        if (seenHashes.has(signature.hash))
+            continue;
+        seenHashes.add(signature.hash);
+        let moduleRoot = element;
+        while (moduleRoot.parentElement && [...moduleRoot.parentElement.classList].some((name) => cssModuleSignature(name)?.hash === signature.hash))
+            moduleRoot = moduleRoot.parentElement;
+        const localNames = new Set();
+        for (const node of [moduleRoot, ...moduleRoot.querySelectorAll('*')].slice(0, 160)) {
+            for (const name of node.classList) {
+                const parsed = cssModuleSignature(name);
+                if (parsed?.hash === signature.hash)
+                    localNames.add(parsed.localName.toLowerCase());
+            }
+        }
+        const scored = components.map((component) => {
+            // Mounted class inventories are useful for Edit Part, but a broad normalized
+            // native selector can span several unrelated CSS modules. When the bridge
+            // observed that ambiguity, do not use that component as a module-identity
+            // guess at all.
+            if (component.moduleIdentityReliable === false)
+                return { component, root: moduleRoot, score: 0 };
+            const trustedHashes = component.moduleIdentityHashes ?? [];
+            if (trustedHashes.length && !trustedHashes.includes(signature.hash))
+                return { component, root: moduleRoot, score: 0 };
+            const names = new Set(component.cssClasses.map((name) => name.toLowerCase()));
+            let overlapScore = 0;
+            for (const name of localNames) {
+                if (!names.has(name))
+                    continue;
+                const owners = localOwnerCounts.get(name) ?? 1;
+                // Shared locals such as manager/row/actions are weak identity evidence;
+                // rarer locals carry more weight. This deliberately avoids rewarding a
+                // component merely because its label is long or contains a generic word.
+                overlapScore += Math.max(4, Math.round(48 / Math.sqrt(owners)));
+            }
+            const label = component.label.toLowerCase();
+            const labelHint = [...localNames].some((name) => (localOwnerCounts.get(name) ?? 99) <= 2 && (label === name || label.includes(name) || name.includes(label))) ? 72 : 0;
+            const registryHint = component.selectors.some((selector) => {
+                if ((selectorOwners.get(selector) ?? 0) > 1)
+                    return false;
+                try {
+                    return moduleRoot.matches(selector);
+                }
+                catch {
+                    return false;
+                }
+            }) ? 180 : 0;
+            const hashHint = trustedHashes.includes(signature.hash) ? 260 : 0;
+            return { component, root: moduleRoot, score: overlapScore + labelHint + registryHint + hashHint };
+        }).filter((entry) => entry.score > 0).sort((a, b) => b.score - a.score);
+        const top = scored[0];
+        if (!top)
+            continue;
+        const runnerUp = scored[1]?.score ?? Number.NEGATIVE_INFINITY;
+        if (top.score >= 48 && top.score - runnerUp >= 24)
+            result.push({ ...top, evidence: 'module', score: 1400 + Math.min(top.score, 900) });
+    }
+    return result.sort((a, b) => b.score - a.score);
+}
+function contextResolutions(element, components, root) {
+    const entries = [];
+    const data = directDataComponent(element, components) ?? syntheticMountedComponent(element);
+    if (data)
+        entries.push({ component: data, root: element, evidence: 'data-component', score: 3200 + componentSpecificityScore(data) });
+    entries.push(...registryResolutions(element, components, root), ...moduleResolutions(element, components));
+    const byId = new Map();
+    for (const entry of entries) {
+        const existing = byId.get(entry.component.id);
+        if (!existing || entry.score > existing.score)
+            byId.set(entry.component.id, entry);
+    }
+    return [...byId.values()].sort((a, b) => b.score - a.score);
+}
+function nativeSelector(component, element, root) {
+    const semantic = element.getAttribute('data-component');
+    // Message-side authoring needs one stable root that can be faceted with :not()/
+    // :has() regardless of whichever CSS-module class a native catalog ranks first.
+    if (semantic && isMessageComponentLabel(semantic))
+        return candidate(root, `[data-component="${escapeAttribute(semantic)}"]`, 'native-registry', 'high', component.id);
+    const registry = component.selectors.find((selector) => { try {
+        return element.matches(selector);
+    }
+    catch {
+        return false;
+    } });
+    if (registry)
+        return candidate(root, (0, selector_utils_1.simplifyRedundantModuleSegments)(registry, root), 'native-registry', 'high', component.id);
+    if (semantic)
+        return candidate(root, `[data-component="${escapeAttribute(semantic)}"]`, 'native-registry', 'high', component.id);
+    const moduleClass = [...element.classList].map(normalizeCssModuleClass).find(Boolean);
+    return moduleClass
+        ? candidate(root, moduleClass.selector, 'css-module', 'medium', component.id, 'Native scope resolved from its CSS-module root.')
+        : candidate(root, createStructuralSelector(element), 'structural', 'low', component.id, 'Native scope currently requires a structural selector.');
+}
+function targetLabel(element) {
+    const tag = element.tagName.toLowerCase();
+    if (element.matches('[class*="_inlineImageBtn_"]'))
+        return 'Inline image button';
+    if (element.matches('[class*="_inlineImageWrap_"]'))
+        return 'Inline image frame';
+    if (tag === 'img' && (element.matches('[class*="_inlineImage_"]') || element.closest('[class*="_inlineImageWrap_"]')))
+        return 'Inline image';
+    const attachmentOwner = element.closest('[class*="_attachment_"], [class*="_attachments_"], [class*="_inlineImageBtn_"], [data-component="MessageAttachments"]');
+    if (attachmentOwner)
+        return tag === 'img' ? 'Attachment image' : element === attachmentOwner ? 'Attachment' : `Attachment · ${tag}`;
+    if (tag === 'img')
+        return 'Image';
+    const local = [...element.classList].map(normalizeCssModuleClass).find(Boolean)?.localName;
+    const friendly = local?.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+    const name = friendly || element.getAttribute('aria-label') || element.getAttribute('title') || element.getAttribute('name') || (element.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 34);
+    return name ? `${tag} · ${name}` : tag;
+}
+function friendlyLocalName(value) { return value.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()); }
+function contextualScopeLabel(element, component) {
+    const target = targetLabel(element);
+    return component.label.toLowerCase() === 'app' ? `${target} across App panels` : `${target} in ${component.label}`;
+}
+function similarScopeLabel(element, hasNativeContext) {
+    const tag = element.tagName.toLowerCase();
+    if (tag === 'img')
+        return hasNativeContext ? 'Similar images in all panels' : 'DOM scoped · Image';
+    return hasNativeContext ? `Similar ${tag} elements everywhere` : `DOM scoped · ${targetLabel(element)}`;
+}
+function mountedComponentLocalClasses(componentElement) {
+    const names = new Set();
+    for (const node of [componentElement, ...componentElement.querySelectorAll('*')].slice(0, 260)) {
+        for (const className of node.classList) {
+            const parsed = normalizeCssModuleClass(className);
+            if (parsed)
+                names.add(parsed.localName);
+        }
+    }
+    return [...names];
+}
+const MESSAGE_COMPONENT_LABELS = new Set(['BubbleMessage', 'MinimalMessage']);
+function isMessageComponentLabel(label) { return Boolean(label && MESSAGE_COMPONENT_LABELS.has(label)); }
+function userVariantBase(localName, allNames) {
+    if (!localName.endsWith('User') || localName.length <= 4)
+        return undefined;
+    const base = localName.slice(0, -4);
+    return allNames.has(base) ? base : undefined;
+}
+function messageVariantBase(localName, allNames) {
+    const suffix = localName.endsWith('User') ? 'User' : localName.endsWith('Char') ? 'Char' : undefined;
+    if (!suffix || localName.length <= suffix.length)
+        return undefined;
+    const base = localName.slice(0, -suffix.length);
+    const sibling = `${base}${suffix === 'User' ? 'Char' : 'User'}`;
+    return allNames.has(base) || allNames.has(sibling) ? base : undefined;
+}
+function mountedComponentFamilyLocalClasses(componentElement, root) {
+    const label = componentElement.getAttribute('data-component')?.trim();
+    if (!isMessageComponentLabel(label))
+        return mountedComponentLocalClasses(componentElement);
+    const names = new Set();
+    let instances = [componentElement];
+    try {
+        instances = [...root.querySelectorAll(`[data-component="${escapeAttribute(label)}"]`)];
+    }
+    catch { /* keep current instance */ }
+    for (const instance of instances.slice(0, 40))
+        for (const name of mountedComponentLocalClasses(instance))
+            names.add(name);
+    return [...names];
+}
+function rememberLocalHash(target, localName, hash) {
+    const hashes = target.get(localName) ?? new Set();
+    hashes.add(hash);
+    target.set(localName, hashes);
+}
+function localHashesOnElement(element, localName) {
+    const hashes = new Set();
+    if (!element)
+        return hashes;
+    for (const className of element.classList) {
+        const parsed = cssModuleSignature(className);
+        if (parsed?.localName === localName)
+            hashes.add(parsed.hash);
+    }
+    return hashes;
+}
+function sameModuleVariant(localName, variantName, element, context) {
+    const sourceHashes = localHashesOnElement(element, localName);
+    const variantHashes = context.localHashes.get(variantName);
+    if (!sourceHashes.size || !variantHashes?.size)
+        return false;
+    return [...sourceHashes].some((hash) => variantHashes.has(hash));
+}
+function messageLocalFamily(localName, element, context) {
+    const base = messageVariantBase(localName, context.localNames) ?? localName;
+    const charLocal = `${base}Char`;
+    const userLocal = `${base}User`;
+    const baseAvailable = context.localNames.has(base) && (localName === base || sameModuleVariant(localName, base, element, context));
+    const charAvailable = context.localNames.has(charLocal) && (localName === charLocal || sameModuleVariant(localName, charLocal, element, context));
+    const userAvailable = context.localNames.has(userLocal) && (localName === userLocal || sameModuleVariant(localName, userLocal, element, context));
+    if (!charAvailable && !userAvailable)
+        return undefined;
+    // Lumiverse message anatomy can expose a shared local plus one or two
+    // side-specific leaves: foo / fooChar / fooUser. Prefer the explicit leaf
+    // for each side when mounted evidence says it belongs to the same CSS-module
+    // family. Older foo / fooUser pairs continue to use the shared base for the
+    // assistant side. If only fooChar exists, the user side falls back to foo.
+    const assistant = charAvailable ? charLocal : baseAvailable ? base : localName;
+    const user = userAvailable ? userLocal : baseAvailable ? base : localName;
+    if (assistant === user)
+        return undefined;
+    return { base, source: localName, assistant, user };
+}
+function userMarkerPriority(value) {
+    if (value === 'user')
+        return 1000;
+    if (value === 'cardUser' || value === 'messageUser' || value === 'bubbleUser')
+        return 900;
+    if (value === 'nameUser')
+        return 800;
+    if (value === 'contentUser')
+        return 700;
+    return value.endsWith('User') ? 500 : 0;
+}
+function resolveMessageSideContext(componentElement, root, component) {
+    const label = componentElement.getAttribute('data-component')?.trim();
+    if (!isMessageComponentLabel(label))
+        return undefined;
+    const rootSelector = `[data-component="${escapeAttribute(label)}"]`;
+    let instances = [componentElement];
+    try {
+        instances = [...root.querySelectorAll(rootSelector)];
+    }
+    catch { /* keep current */ }
+    const localNames = new Set(component?.cssClasses ?? []);
+    const localHashes = new Map();
+    const directMarkers = new Set();
+    const descendantMarkers = new Set();
+    for (const localName of component?.cssClasses ?? []) {
+        if (!userMarkerPriority(localName))
+            continue;
+        if (localName === 'user' || localName === 'cardUser' || localName === 'messageUser' || localName === 'bubbleUser')
+            directMarkers.add(localName);
+        else
+            descendantMarkers.add(localName);
+    }
+    for (const instance of instances.slice(0, 40)) {
+        for (const className of instance.classList) {
+            const signature = cssModuleSignature(className);
+            const parsed = normalizeCssModuleClass(className);
+            if (!parsed)
+                continue;
+            localNames.add(parsed.localName);
+            if (signature)
+                rememberLocalHash(localHashes, signature.localName, signature.hash);
+            if (userMarkerPriority(parsed.localName))
+                directMarkers.add(parsed.localName);
+        }
+        for (const node of [...instance.querySelectorAll('*')].slice(0, 260))
+            for (const className of node.classList) {
+                const signature = cssModuleSignature(className);
+                const parsed = normalizeCssModuleClass(className);
+                if (!parsed)
+                    continue;
+                localNames.add(parsed.localName);
+                if (signature)
+                    rememberLocalHash(localHashes, signature.localName, signature.hash);
+                if (userMarkerPriority(parsed.localName))
+                    descendantMarkers.add(parsed.localName);
+            }
+    }
+    const directMarker = [...directMarkers].sort((a, b) => userMarkerPriority(b) - userMarkerPriority(a) || a.localeCompare(b))[0];
+    const descendantMarker = [...descendantMarkers].sort((a, b) => userMarkerPriority(b) - userMarkerPriority(a) || a.localeCompare(b))[0];
+    const marker = directMarker ?? descendantMarker;
+    if (!marker)
+        return undefined;
+    const markerSelector = `[class*="_${escapeAttribute(marker)}_"]`;
+    const userRootSelector = directMarker ? `${rootSelector}${markerSelector}` : `${rootSelector}:has(${markerSelector})`;
+    const assistantRootSelector = directMarker ? `${rootSelector}:not(${markerSelector})` : `${rootSelector}:not(:has(${markerSelector}))`;
+    let currentSide = 'assistant';
+    try {
+        currentSide = componentElement.matches(userRootSelector) ? 'user' : 'assistant';
+    }
+    catch { /* assistant fallback */ }
+    return { element: componentElement, componentLabel: label, rootSelector, assistantRootSelector, userRootSelector, currentSide, localNames, localHashes };
+}
+function selectorLocalNames(selector) {
+    return [...selector.matchAll(/\[class\*=["']_([A-Za-z][A-Za-z0-9_-]*?)_["']\]/g)].map((match) => match[1]);
+}
+function replaceLocalName(selector, from, to) {
+    if (from === to)
+        return selector;
+    return selector.replaceAll(`_${from}_`, `_${to}_`);
+}
+function selectorInsideMessageRoot(selector, context, sideRoot) {
+    return (0, selector_utils_1.splitSelectorList)(selector).map((branch) => {
+        if (branch.startsWith(context.rootSelector))
+            return `${sideRoot}${branch.slice(context.rootSelector.length)}`;
+        return `${sideRoot} ${branch}`;
+    }).join(',\n');
+}
+function firstElement(root, selector) { try {
+    return root.querySelector(selector) ?? undefined;
+}
+catch {
+    return undefined;
+} }
+function expandMessageSideScope(scope, context, root) {
+    if (scope.persistence !== 'persistent' || scope.type === 'selector-candidate')
+        return [scope];
+    const belongs = scope.componentId?.includes(context.componentLabel)
+        || scope.nativeComponentId?.includes(context.componentLabel)
+        || scope.selector.includes(context.rootSelector)
+        || Boolean(scope.element && context.element.contains(scope.element));
+    if (!belongs && scope.type !== 'similar-elements' && scope.type !== 'context-local')
+        return [scope];
+    const locals = selectorLocalNames(scope.localSelector ?? scope.selector);
+    let family;
+    for (const local of locals) {
+        family = messageLocalFamily(local, scope.element, context);
+        if (family)
+            break;
+    }
+    let assistantSource = scope.selector;
+    let userSource = scope.selector;
+    if (family) {
+        assistantSource = replaceLocalName(assistantSource, family.source, family.assistant);
+        userSource = replaceLocalName(userSource, family.source, family.user);
+    }
+    const assistantSelector = selectorInsideMessageRoot(assistantSource, context, context.assistantRootSelector);
+    const userSelector = selectorInsideMessageRoot(userSource, context, context.userRootSelector);
+    const bothSelector = assistantSelector === userSelector ? assistantSelector : `${assistantSelector},\n${userSelector}`;
+    const familyId = scope.messageFamilyId ?? scope.id;
+    const label = family ? scope.label.replace(/\s+(?:User|Char)$/i, '') : scope.label.replace(/\s+User$/i, '');
+    const make = (messageSide, selector, id) => ({
+        ...scope, id, selector, label, matchCount: countMatches(root, selector), messageSide, messageFamilyId: familyId,
+        element: messageSide === 'assistant' ? firstElement(root, assistantSelector) ?? scope.element : messageSide === 'user' ? firstElement(root, userSelector) ?? scope.element : scope.element ?? firstElement(root, bothSelector),
+        warning: scope.warning,
+    });
+    return [make('both', bothSelector, scope.id), make('assistant', assistantSelector, `${scope.id}:assistant`), make('user', userSelector, `${scope.id}:user`)];
+}
+function expandMessageSideScopes(scopes, context, root) {
+    return dedupeScopes(scopes.flatMap((scope) => expandMessageSideScope(scope, context, root)));
+}
+function syntheticMountedComponent(element) {
+    const componentLabel = element.getAttribute('data-component')?.trim();
+    if (componentLabel) {
+        const id = `mounted:${componentLabel}`;
+        return {
+            id, label: componentLabel, area: 'Mounted DOM', sources: ['css'], selectors: [`[data-component="${escapeAttribute(componentLabel)}"]`],
+            cssClasses: mountedComponentLocalClasses(element), nativeKey: id,
+        };
+    }
+    // Spindle drawer tabs are stable semantic surface boundaries even when the
+    // mounted Lumiverse subtree has no data-component root of its own. Treat the
+    // tab id as authoritative context so generic module locals such as manager/row
+    // cannot rename Personas to an unrelated catalog component.
+    const drawerTab = element.getAttribute('data-spindle-drawer-tab')?.trim();
+    if (!drawerTab)
+        return undefined;
+    const label = friendlyLocalName(drawerTab);
+    const id = `mounted:drawer:${drawerTab}`;
+    return {
+        id, label, area: 'Spindle drawer', sources: ['css'], selectors: [`[data-spindle-drawer-tab="${escapeAttribute(drawerTab)}"]`],
+        cssClasses: mountedComponentLocalClasses(element), nativeKey: id,
+    };
+}
+function disambiguatedComponentPartSelector(componentElement, element, localName, contextSelector, root) {
+    const localSelector = `[class*="_${escapeAttribute(localName)}_"]`;
+    const plain = element === componentElement ? `${contextSelector}${localSelector}` : (0, selector_utils_1.composeContextSelector)(contextSelector, localSelector);
+    if (!plain)
+        return undefined;
+    // Most locals are unique inside their component and should keep the shortest,
+    // most rebuild-tolerant selector. Only preserve nearby structure when the same
+    // normalized local resolves to multiple descendants of one message/component
+    // (BubbleMessage's outer `_content_` vs MessageContent's `_content_` is the
+    // canonical case).
+    let localMatches = 0;
+    try {
+        localMatches = (componentElement.matches(localSelector) ? 1 : 0) + componentElement.querySelectorAll(localSelector).length;
+    }
+    catch {
+        return plain;
+    }
+    if (localMatches <= 1)
+        return plain;
+    const targetSignature = [...element.classList].map(cssModuleSignature).find((entry) => entry?.localName === localName);
+    if (!targetSignature)
+        return plain;
+    let current = element.parentElement;
+    while (current && current !== componentElement) {
+        const anchor = [...current.classList]
+            .map((className) => ({ signature: cssModuleSignature(className), normalized: normalizeCssModuleClass(className) }))
+            .find((entry) => entry.signature?.hash === targetSignature.hash && entry.normalized?.localName !== localName);
+        if (anchor?.normalized) {
+            const anchoredLocal = `${anchor.normalized.selector} > ${localSelector}`;
+            const anchored = (0, selector_utils_1.composeContextSelector)(contextSelector, anchoredLocal);
+            if (anchored && countMatches(root, anchored) > 0)
+                return anchored;
+        }
+        current = current.parentElement;
+    }
+    return plain;
+}
+function componentPartScopes(component, componentElement, root, contextSelector) {
+    const scopes = [];
+    const allLocalNames = [...new Set([...component.cssClasses, ...mountedComponentFamilyLocalClasses(componentElement, root)])];
+    const allNameSet = new Set(allLocalNames);
+    const messageComponent = isMessageComponentLabel(componentElement.getAttribute('data-component') ?? undefined);
+    const localNames = allLocalNames.filter((name) => name !== 'user' && !(messageComponent ? messageVariantBase(name, allNameSet) : userVariantBase(name, allNameSet)));
+    for (const localName of localNames) {
+        const localSelector = `[class*="_${escapeAttribute(localName)}_"]`;
+        let element = null;
+        try {
+            element = componentElement.matches(localSelector) ? componentElement : componentElement.querySelector(localSelector);
+            if (!element && isMessageComponentLabel(componentElement.getAttribute('data-component') ?? undefined))
+                element = root.querySelector((0, selector_utils_1.composeContextSelector)(contextSelector, localSelector) ?? localSelector);
+        }
+        catch {
+            element = null;
+        }
+        if (!element)
+            continue;
+        const composed = disambiguatedComponentPartSelector(componentElement, element, localName, contextSelector, root);
+        if (!composed)
+            continue;
+        const selector = (0, selector_utils_1.simplifyRedundantModuleSegments)(composed, root);
+        scopes.push({
+            ...candidate(root, selector, 'native-context-local', 'medium', component.id, `Targets the ${friendlyLocalName(localName)} part inside ${component.label}.`),
+            id: `part:${component.id}:${localName}`, label: friendlyLocalName(localName), type: 'native-part', componentId: component.id,
+            persistence: 'persistent', source: 'native-aware', nativeContextSelector: contextSelector, localSelector, element,
+        });
+    }
+    return dedupeScopes(scopes).slice(0, 64);
+}
+function levelLabel(element, picked) {
+    const component = element.getAttribute('data-component');
+    if (component)
+        return component;
+    const drawerTab = element.getAttribute('data-spindle-drawer-tab');
+    if (drawerTab)
+        return friendlyLocalName(drawerTab);
+    const composerAction = element.getAttribute('data-composer-action') ?? element.getAttribute('data-toolbar-action');
+    if (composerAction)
+        return `Composer action · ${composerAction}`;
+    const spindleMount = element.getAttribute('data-spindle-mount');
+    if (spindleMount === 'chat_toolbar')
+        return 'Extension toolbar mount';
+    const local = [...element.classList].map(normalizeCssModuleClass).find(Boolean)?.localName;
+    if (local)
+        return local.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+    const aria = element.getAttribute('aria-label');
+    if (aria)
+        return aria;
+    const title = element.getAttribute('title');
+    if (title)
+        return title;
+    const name = element.getAttribute('name');
+    if (name)
+        return name;
+    const tag = element.tagName.toLowerCase();
+    return picked && tag === 'img' ? 'Image' : tag;
+}
+function meaningfulLevel(element) {
+    return Boolean(element.id || element.getAttribute('data-component') || element.getAttribute('data-spindle-drawer-tab') || element.getAttribute('data-part') || element.getAttribute('data-composer-action') || element.getAttribute('data-toolbar-action') || element.getAttribute('data-spindle-mount') || element.getAttribute('aria-label') || element.getAttribute('title') || element.getAttribute('name') || element.getAttribute('role') || element.matches(INTERACTIVE) || [...element.classList].some((name) => normalizeCssModuleClass(name)));
+}
+function ancestorElements(element, maxDepth = 10) {
+    const levels = [element];
+    let current = element.parentElement;
+    let depth = 0;
+    while (current && current !== document.body && current !== document.documentElement && depth < maxDepth) {
+        if (meaningfulLevel(current))
+            levels.push(current);
+        if (current.hasAttribute('data-component'))
+            break;
+        current = current.parentElement;
+        depth += 1;
+    }
+    return levels;
+}
+function nearestStableAnchor(element) {
+    for (let current = element.parentElement; current && current !== document.body; current = current.parentElement) {
+        const composerAction = composerActionSemantic(current);
+        if (composerAction && composerAction.owner === current)
+            return { element: current, selector: composerAction.selector };
+        const spindleMount = current.getAttribute('data-spindle-mount');
+        if (spindleMount)
+            return { element: current, selector: `[data-spindle-mount="${escapeAttribute(spindleMount)}"]` };
+        const drawerTab = current.getAttribute('data-spindle-drawer-tab');
+        if (drawerTab)
+            return { element: current, selector: `[data-spindle-drawer-tab="${escapeAttribute(drawerTab)}"]` };
+        const semantic = current.getAttribute('data-component') ? `[data-component="${escapeAttribute(current.getAttribute('data-component'))}"]` : undefined;
+        const module = [...current.classList].map(normalizeCssModuleClass).find(Boolean)?.selector;
+        if (module || semantic)
+            return { element: current, selector: module ?? semantic };
+    }
+    return undefined;
+}
+function anchoredLeafCandidate(element, root) {
+    const anchor = nearestStableAnchor(element);
+    if (!anchor)
+        return undefined;
+    const tag = element.tagName.toLowerCase();
+    const descendant = element === anchor.element ? '' : ` ${tag}`;
+    return candidate(root, `${anchor.selector}${descendant}`, 'css-module', 'medium', undefined, `Anchored to the stable ${levelLabel(anchor.element, false)} wrapper.`);
+}
+/**
+ * CSS-module locals such as `avatar`, `row`, and `content` are often reused by
+ * unrelated Lumiverse surfaces. When a picked node has its own module class,
+ * preserve one nearby module ancestor whenever that ancestor actually narrows
+ * the live match set. This turns `App > Avatar` into e.g.
+ * `App > CharacterCard > Avatar` instead of styling every `_avatar_` below App.
+ */
+function anchoredModulePathCandidate(element, root) {
+    // A real data-component owner is already a strong semantic boundary. Do not make
+    // message/native selectors needlessly brittle by inserting incidental wrappers
+    // such as Header Left between MinimalMessage and Avatar. This helper is for the
+    // broad CSS-module-owned surfaces (notably App) where the local class alone is
+    // otherwise shared across unrelated UI families.
+    if (element.closest('[data-component]'))
+        return undefined;
+    const leafClass = [...element.classList].map((name) => ({ parsed: cssModuleSignature(name), normalized: normalizeCssModuleClass(name) })).find((entry) => entry.parsed && entry.normalized);
+    if (!leafClass?.parsed || !leafClass.normalized)
+        return undefined;
+    const leaf = leafClass.normalized;
+    const leafHash = leafClass.parsed.hash;
+    const leafCount = countMatches(root, leaf.selector);
+    let fallback;
+    let current = element.parentElement;
+    let depth = 0;
+    while (current && current !== document.body && current !== document.documentElement && depth < 7) {
+        const moduleClasses = [...current.classList]
+            .map((name) => ({ parsed: cssModuleSignature(name), normalized: normalizeCssModuleClass(name) }))
+            .filter((entry) => Boolean(entry.parsed && entry.normalized));
+        const sameModule = moduleClasses.find((entry) => entry.parsed.hash === leafHash && entry.normalized.selector !== leaf.selector);
+        const anyAnchor = sameModule ?? moduleClasses.find((entry) => entry.normalized.selector !== leaf.selector);
+        if (anyAnchor) {
+            const selector = `${anyAnchor.normalized.selector} ${leaf.selector}`;
+            const matchCount = countMatches(root, selector);
+            if (matchCount > 0 && (leafCount === 0 || matchCount < leafCount)) {
+                const scoped = candidate(root, selector, 'native-context-local', 'medium', undefined, `Anchored to the nearby ${friendlyLocalName(anyAnchor.normalized.localName)} wrapper so this reused part stays local.`);
+                // Same CSS-module hash is the strongest evidence that the wrapper and leaf
+                // belong to one authored UI family. Prefer it over a merely narrowing
+                // ancestor from another module.
+                if (sameModule)
+                    return scoped;
+                fallback ??= scoped;
+            }
+        }
+        current = current.parentElement;
+        depth += 1;
+    }
+    return fallback;
+}
+function resolveElement(rawElement, components, root = document) {
+    const element = normalizeMeaningfulTarget(rawElement);
+    let targetCandidates = rankSelectorCandidates(dedupe([
+        ...semanticCandidates(element, root), ...cssClassCandidates(element, root),
+        candidate(root, createStructuralSelector(element), 'volatile', 'low', undefined, 'Temporary mounted-node identity; it may disappear after rerendering.'),
+    ]));
+    const modulePath = anchoredModulePathCandidate(element, root);
+    if (modulePath)
+        targetCandidates = rankSelectorCandidates(dedupe([...targetCandidates, modulePath]));
+    const anchored = anchoredLeafCandidate(element, root);
+    if (anchored)
+        targetCandidates = rankSelectorCandidates(dedupe([...targetCandidates, anchored]));
+    const localRecommended = targetCandidates.find((entry) => entry.strategy !== 'volatile') ?? targetCandidates[0];
+    const discoveredContexts = [];
+    let contextDepth = 0;
+    for (let current = element; current && current !== document.documentElement; current = current.parentElement, contextDepth += 1) {
+        for (const resolution of contextResolutions(current, components, root)) {
+            if (resolution.root !== current)
+                continue;
+            const existing = discoveredContexts.find((entry) => entry.component.id === resolution.component.id);
+            const next = { component: resolution.component, element: current, direct: current === element, depth: contextDepth, score: resolution.score, evidence: resolution.evidence };
+            if (!existing)
+                discoveredContexts.push(next);
+            else if (next.score - next.depth * 28 > existing.score - existing.depth * 28)
+                Object.assign(existing, next);
+        }
+    }
+    // Module-family inference is a fallback, not authority. If a real non-generic
+    // data-component/public-registry owner exists around the same pick, suppress
+    // conflicting module-only guesses instead of letting a shared local such as
+    // `manager` rename Persona UI to QwenCustomVoiceManager.
+    const trustedSpecific = discoveredContexts.filter((entry) => entry.evidence !== 'module' && !isGenericComponent(entry.component));
+    const usableContexts = discoveredContexts.filter((entry) => {
+        if (entry.evidence !== 'module' || !trustedSpecific.length)
+            return true;
+        return !trustedSpecific.some((trusted) => trusted.element === entry.element || trusted.element.contains(entry.element));
+    });
+    const evidenceTier = (entry) => {
+        const generic = isGenericComponent(entry.component);
+        if (entry.evidence === 'data-component')
+            return generic ? 22 : 50;
+        if (entry.evidence === 'registry')
+            return generic ? 20 : 40;
+        return generic ? 10 : 30;
+    };
+    const contextRank = (entry) => evidenceTier(entry) * 100_000 + Math.min(entry.score, 9_999) - entry.depth * 28;
+    // Specific semantic/public-registry ownership beats heuristic module overlap.
+    // A specific module family may still outrank generic App when no stronger
+    // surface boundary exists, preserving CharacterBrowser/PersonaBrowser scoping.
+    const contexts = [...usableContexts].sort((a, b) => contextRank(b) - contextRank(a) || a.depth - b.depth || a.component.label.localeCompare(b.component.label));
+    const nearest = contexts[0];
+    const breadcrumb = [...usableContexts]
+        .sort((a, b) => b.depth - a.depth || contextRank(b) - contextRank(a))
+        .map((entry) => entry.component)
+        .filter((component, index, all) => all.findIndex((entry) => entry.id === component.id) === index);
+    const mounted = targetCandidates.find((entry) => entry.strategy === 'volatile') ?? localRecommended;
+    const scopes = [{ ...mounted, id: 'mounted', label: `This mounted ${element.tagName.toLowerCase()} · Temporary`, type: 'mounted-element', persistence: 'volatile', source: nearest ? 'native-aware' : 'dom-scoped', element }];
+    const contextualScopes = [];
+    if (localRecommended.strategy !== 'volatile') {
+        for (const context of contexts) {
+            if (context.direct)
+                continue;
+            const contextCandidate = nativeSelector(context.component, context.element, root);
+            if (contextCandidate.strategy === 'structural')
+                continue;
+            const composedRaw = (0, selector_utils_1.composeContextSelector)(contextCandidate.selector, localRecommended.selector);
+            if (!composedRaw)
+                continue;
+            const composed = (0, selector_utils_1.simplifyRedundantModuleSegments)(composedRaw, root);
+            contextualScopes.push({
+                ...candidate(root, composed, 'native-context-local', localRecommended.stability === 'low' ? 'medium' : localRecommended.stability, context.component.id, `Targets the local element only inside ${context.component.label}.`),
+                id: `context:${context.component.id}`, label: contextualScopeLabel(element, context.component),
+                type: 'context-local', componentId: context.component.id, persistence: 'persistent', source: 'native-aware',
+                nativeContextSelector: contextCandidate.selector, localSelector: localRecommended.selector, element,
+            });
+        }
+    }
+    scopes.push(...contextualScopes);
+    if (localRecommended.strategy !== 'volatile')
+        scopes.push({ ...localRecommended, id: 'similar', label: similarScopeLabel(element, Boolean(nearest)), type: 'similar-elements', persistence: 'persistent', source: nearest ? 'native-aware' : 'dom-scoped', element });
+    const levelScopes = [];
+    const levels = [];
+    for (const [index, levelElement] of ancestorElements(element).entries()) {
+        let levelCandidates = rankSelectorCandidates(dedupe([...semanticCandidates(levelElement, root), ...cssClassCandidates(levelElement, root)]));
+        const modulePath = anchoredModulePathCandidate(levelElement, root);
+        if (modulePath)
+            levelCandidates = rankSelectorCandidates(dedupe([...levelCandidates, modulePath]));
+        const leaf = anchoredLeafCandidate(levelElement, root);
+        if (leaf)
+            levelCandidates = rankSelectorCandidates(dedupe([...levelCandidates, leaf]));
+        const levelContext = contexts.find((context) => context.element === levelElement) ?? contexts.find((context) => context.element.contains(levelElement));
+        const local = levelCandidates[0];
+        if (local && levelContext && levelContext.element !== levelElement) {
+            const contextCandidate = nativeSelector(levelContext.component, levelContext.element, root);
+            const composedRaw = contextCandidate.strategy !== 'structural' ? (0, selector_utils_1.composeContextSelector)(contextCandidate.selector, local.selector) : null;
+            const composed = composedRaw ? (0, selector_utils_1.simplifyRedundantModuleSegments)(composedRaw, root) : null;
+            if (composed)
+                levelCandidates = rankSelectorCandidates(dedupe([candidate(root, composed, 'native-context-local', local.stability, levelContext.component.id, `Targets ${levelLabel(levelElement, index === 0)} inside ${levelContext.component.label}.`), ...levelCandidates]));
+        }
+        if (!levelCandidates.length)
+            levelCandidates = [candidate(root, createStructuralSelector(levelElement), 'volatile', 'low', undefined, 'Temporary mounted-node identity; it may disappear after rerendering.')];
+        const recommendedLevel = levelCandidates.find((entry) => entry.strategy !== 'volatile') ?? levelCandidates[0];
+        const scopeId = index === 0 && contextualScopes.length && recommendedLevel.strategy === 'native-context-local' ? contextualScopes[0].id : index === 0 && recommendedLevel.selector === localRecommended.selector && localRecommended.strategy !== 'volatile' ? 'similar' : `level:${index}`;
+        if (!scopes.some((scope) => scope.id === scopeId))
+            levelScopes.push({ ...recommendedLevel, id: scopeId, label: `${levelLabel(levelElement, index === 0)}${index === 0 ? ' · Picked' : ' · Ancestor'}`, type: 'context-local', componentId: levelContext?.component.id, persistence: recommendedLevel.strategy === 'volatile' ? 'volatile' : 'persistent', source: levelContext ? 'native-aware' : 'dom-scoped', element: levelElement });
+        levels.push({ id: `target:${index}`, element: levelElement, label: levelLabel(levelElement, index === 0), relation: index === 0 ? 'picked' : 'ancestor', selectorCandidates: levelCandidates, recommended: recommendedLevel, nativeComponentId: levelContext?.component.id, scopeId });
+        // Keep every selector shape discovered on this exact DOM node available to the
+        // inspector. Scope answers "how broadly should this edit apply?" while these
+        // candidate scopes answer "which selector on this same node should identify it?".
+        // This is especially important for native roots that carry data-component plus
+        // multiple CSS-module classes (for example BubbleMessage's painted/ghost layers).
+        for (const [candidateIndex, selectorCandidate] of levelCandidates.entries()) {
+            scopes.push({
+                ...selectorCandidate,
+                id: `selector:${index}:${candidateIndex}`,
+                label: `${levelLabel(levelElement, index === 0)} selector`,
+                type: 'selector-candidate',
+                componentId: levelContext?.component.id,
+                persistence: selectorCandidate.strategy === 'volatile' ? 'volatile' : 'persistent',
+                source: levelContext ? 'native-aware' : 'dom-scoped',
+                element: levelElement,
+            });
+        }
+    }
+    scopes.push(...levelScopes);
+    let nearestPartScopes = [];
+    if (nearest) {
+        const contextCandidate = nativeSelector(nearest.component, nearest.element, root);
+        if (contextCandidate.strategy !== 'structural') {
+            nearestPartScopes = componentPartScopes(nearest.component, nearest.element, root, contextCandidate.selector);
+            scopes.push(...nearestPartScopes);
+        }
+    }
+    for (const context of contexts) {
+        const selector = nativeSelector(context.component, context.element, root);
+        if (selector.strategy === 'structural')
+            continue;
+        // Edit Part is component anatomy, not a duplicate of Browse Inside. Keep the
+        // mounted part catalog for every native component context in the target ladder
+        // so moving to a different rung can swap the available part inventory instead
+        // of leaving the nearest component's parts frozen in place.
+        const isNearestContext = Boolean(nearest && context.component.id === nearest.component.id && context.element === nearest.element);
+        if (!isNearestContext)
+            scopes.push(...componentPartScopes(context.component, context.element, root, selector.selector));
+        scopes.push({ ...selector, id: `native:${context.component.id}`, label: context.component.label, type: context.direct ? 'native-component' : 'native-ancestor', componentId: context.component.id, persistence: 'persistent', source: 'native-aware', element: context.element });
+    }
+    const direct = contexts.find((entry) => entry.direct);
+    // When data-component and a CSS-module class live on the same node, edit the
+    // first actual class on that node. This mirrors what a person sees in DevTools
+    // and avoids landing on an abstract component shell that owns no painted box.
+    const directLocal = direct ? [...direct.element.classList].map(normalizeCssModuleClass).find((entry) => entry && direct.component.cssClasses.includes(entry.localName)) : undefined;
+    const directPart = direct
+        ? (directLocal ? nearestPartScopes.find((part) => part.id === `part:${direct.component.id}:${directLocal.localName}`) : undefined)
+            ?? nearestPartScopes.find((part) => part.element === direct.element)
+        : undefined;
+    let activeScopeId = direct ? directPart?.id ?? `native:${direct.component.id}` : contextualScopes[0]?.id ?? (localRecommended.strategy !== 'volatile' ? 'similar' : 'mounted');
+    let scopeCandidates = dedupeScopes(scopes);
+    const messageContextEntry = contexts.find((entry) => isMessageComponentLabel(entry.component.label));
+    const messageSideContext = messageContextEntry ? resolveMessageSideContext(messageContextEntry.element, root, messageContextEntry.component) : undefined;
+    if (messageSideContext) {
+        scopeCandidates = expandMessageSideScopes(scopeCandidates, messageSideContext, root);
+        const originalActive = scopeCandidates.find((entry) => entry.id === activeScopeId);
+        const familyId = originalActive?.messageFamilyId ?? originalActive?.id;
+        const sideActive = familyId ? scopeCandidates.find((entry) => entry.messageFamilyId === familyId && entry.messageSide === messageSideContext.currentSide) : undefined;
+        if (sideActive)
+            activeScopeId = sideActive.id;
+    }
+    const recommended = scopeCandidates.find((scope) => scope.id === activeScopeId) ?? localRecommended;
+    return {
+        target: { element, tagName: element.tagName.toLowerCase(), label: targetLabel(element), candidates: targetCandidates, recommended },
+        nativeContext: nearest ? { component: nearest.component, breadcrumb } : undefined,
+        scopeCandidates, targetLevels: levels, activeScopeId,
+        layoutContext: (0, layout_context_1.inspectLayoutContext)(element, components), sizeController: (0, layout_context_1.detectSizeController)(element, scopeCandidates),
+        element, component: nearest?.component, breadcrumb, candidates: targetCandidates, recommended, tagName: element.tagName.toLowerCase(),
+    };
+}
+function dedupeScopes(scopes) { return [...new Map(scopes.map((scope) => [scope.id, scope])).values()]; }
+/** Reconnect a fresh DOM pick to the most specific existing persistent scope. */
+function reconcileSelectionWithOverrides(selection, overrides) {
+    const bySelector = new Map(overrides.map((override) => [override.target.selector, override]));
+    const styled = selection.scopeCandidates.filter((scope) => scope.persistence === 'persistent' && bySelector.has(scope.selector));
+    for (const scope of styled) {
+        const existing = bySelector.get(scope.selector);
+        scope.styledOverrideId = existing?.id;
+        scope.styledPacketCount = existing ? Object.values(existing.states).reduce((count, packets) => count + (packets?.length ?? 0), 0) : 0;
+    }
+    // Restoration is exact: an override on a breadcrumb/ancestor is context, never
+    // permission to replace the clicked target. Only the already-selected scope can resume.
+    const active = styled.find((scope) => scope.id === selection.activeScopeId);
+    return { selection, activeOverride: active ? bySelector.get(active.selector) : undefined, styledScopeIds: styled.map((scope) => scope.id) };
+}
+function resolveCatalogComponent(component, root = document) {
+    const semanticSelector = `[data-component=\"${escapeAttribute(component.label)}\"]`;
+    const candidates = component.selectors.map((selector) => candidate(root, selector, 'native-registry', 'high', component.id));
+    if (countMatches(root, semanticSelector) > 0 && !component.selectors.includes(semanticSelector))
+        candidates.unshift(candidate(root, semanticSelector, 'native-registry', 'high', component.id));
+    for (const className of component.cssClasses) {
+        const selector = `[class*="_${escapeAttribute(className)}_"]`;
+        if (countMatches(root, selector) > 0)
+            candidates.push(candidate(root, selector, 'css-module', 'medium', component.id, 'Resolved from the component’s native CSS-module local class.'));
+    }
+    const ranked = rankSelectorCandidates(dedupe(candidates));
+    const recommended = ranked.find((entry) => entry.matchCount > 0) ?? ranked[0] ?? candidate(root, `[data-component="${escapeAttribute(component.label)}"]`, 'native-registry', 'high', component.id, 'This native component is not currently mounted.');
+    let mountedElement;
+    try {
+        mountedElement = root.querySelector(recommended.selector) ?? undefined;
+    }
+    catch {
+        mountedElement = undefined;
+    }
+    const scope = { ...recommended, id: `native:${component.id}`, label: component.label, type: 'native-component', componentId: component.id, persistence: 'persistent', source: 'native-aware', element: mountedElement };
+    const parts = mountedElement ? componentPartScopes(component, mountedElement, root, recommended.selector) : [];
+    const preferredPart = parts.find((part) => part.element === mountedElement);
+    return {
+        target: { element: mountedElement, tagName: mountedElement?.tagName.toLowerCase(), label: component.label, candidates: ranked.length ? ranked : [recommended], recommended },
+        nativeContext: { component, breadcrumb: [component] }, scopeCandidates: [scope, ...parts], targetLevels: mountedElement ? [{ id: 'target:0', element: mountedElement, label: component.label, relation: 'picked', selectorCandidates: ranked.length ? ranked : [recommended], recommended, nativeComponentId: component.id, scopeId: scope.id }] : [], activeScopeId: preferredPart?.id ?? scope.id,
+        component, breadcrumb: [component], candidates: ranked.length ? ranked : [recommended], recommended, element: mountedElement, tagName: mountedElement?.tagName.toLowerCase(),
+    };
+}
+
+},
+"src/registry/selector-utils.ts": function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.composeContextSelector = composeContextSelector;
+exports.canonicalizeSavedContextSelector = canonicalizeSavedContextSelector;
+exports.simplifyRedundantModuleSegments = simplifyRedundantModuleSegments;
+exports.splitSelectorList = splitSelectorList;
+exports.appendPseudoToSelectorList = appendPseudoToSelectorList;
+exports.evaluateSelectorHealth = evaluateSelectorHealth;
+function safeShape(selector) {
+    if (!selector.trim() || /[;{}]/.test(selector) || selector.trim().endsWith(','))
+        return false;
+    let square = 0;
+    let round = 0;
+    let quote = '';
+    for (const char of selector) {
+        if (quote) {
+            if (char === quote)
+                quote = '';
+            continue;
+        }
+        if (char === '"' || char === "'")
+            quote = char;
+        else if (char === '[')
+            square += 1;
+        else if (char === ']')
+            square -= 1;
+        else if (char === '(')
+            round += 1;
+        else if (char === ')')
+            round -= 1;
+        if (square < 0 || round < 0)
+            return false;
+    }
+    return !quote && square === 0 && round === 0;
+}
+/** Compose native context and local target selectors conservatively.
+ *
+ * `localSelector` is allowed to be either genuinely local ("[class*=…]") or
+ * already rooted. Native registry data and old Theme Studio saves can contain
+ * both shapes. Never prepend the same context twice.
+ */
+function composeContextSelector(contextSelector, localSelector) {
+    const context = contextSelector.trim();
+    const local = localSelector.trim();
+    if (!safeShape(context) || !safeShape(local) || context.includes(',') || local.includes(','))
+        return null;
+    if (local === ':scope')
+        return context;
+    if (local.startsWith(':scope'))
+        return `${context}${local.slice(':scope'.length)}`;
+    if (local === context || local.startsWith(`${context} `) || local.startsWith(`${context}>`) || local.startsWith(`${context}+`) || local.startsWith(`${context}~`))
+        return local;
+    return `${context} ${local}`;
+}
+/**
+ * Repair a saved contextual selector when its own context/local metadata proves
+ * that the native root was prepended more than once. This is deliberately
+ * metadata-driven: recursive shapes such as Row > Row stay legal unless the
+ * stored decomposition says the extra prefix is an authoring accident.
+ */
+function canonicalizeSavedContextSelector(selector, contextSelector, localSelector) {
+    const raw = selector.trim();
+    const context = contextSelector?.trim() ?? '';
+    const local = localSelector?.trim() ?? '';
+    if (!raw || !context || !local)
+        return raw;
+    const canonical = composeContextSelector(context, local);
+    if (!canonical)
+        return raw;
+    const pseudo = raw.endsWith('::before') ? '::before' : raw.endsWith('::after') ? '::after' : '';
+    let base = pseudo ? raw.slice(0, -pseudo.length).trim() : raw;
+    if (base === canonical)
+        return `${canonical}${pseudo}`;
+    // V27.8/27.9 could preserve a selector that had already been contextualized and
+    // then contextualize that complete selector one more time. Peel only exact
+    // leading copies of the saved context until we reach the metadata-derived
+    // canonical selector. If we cannot reach it exactly, leave the selector alone.
+    let probe = base;
+    for (let pass = 0; pass < 8 && probe !== canonical; pass += 1) {
+        const prefix = `${context} `;
+        if (!probe.startsWith(prefix))
+            break;
+        const next = probe.slice(prefix.length).trimStart();
+        if (next !== canonical && !next.startsWith(prefix))
+            break;
+        probe = next;
+    }
+    return probe === canonical ? `${canonical}${pseudo}` : raw;
+}
+/**
+ * Drop immediately repeated CSS-module selector segments only when doing so
+ * selects the exact same mounted element set. This cleans registry/context
+ * accidents like `_row_ _row_ _desc_` without breaking genuinely recursive
+ * UIs where the second `_row_` is required to narrow the match.
+ */
+function simplifyRedundantModuleSegments(selector, root = document) {
+    const repeated = /(\[class\*=["']_[A-Za-z][A-Za-z0-9_-]*?_["']\])\s+\1/g;
+    if (!repeated.test(selector))
+        return selector;
+    const matches = (value) => { try {
+        return [...root.querySelectorAll(value)];
+    }
+    catch {
+        return null;
+    } };
+    let current = selector;
+    for (let pass = 0; pass < 8; pass += 1) {
+        repeated.lastIndex = 0;
+        const candidate = current.replace(repeated, '$1');
+        if (candidate === current)
+            break;
+        const before = matches(current);
+        const after = matches(candidate);
+        if (!before || !after || before.length !== after.length || before.some((entry, index) => entry !== after[index]))
+            break;
+        current = candidate;
+    }
+    return current;
+}
+function splitSelectorList(selector) {
+    const parts = [];
+    let start = 0;
+    let paren = 0;
+    let bracket = 0;
+    let quote = '';
+    let escaped = false;
+    for (let index = 0; index < selector.length; index += 1) {
+        const char = selector[index];
+        if (escaped) {
+            escaped = false;
+            continue;
+        }
+        if (char === '\\') {
+            escaped = true;
+            continue;
+        }
+        if (quote) {
+            if (char === quote)
+                quote = '';
+            continue;
+        }
+        if (char === '"' || char === "'") {
+            quote = char;
+            continue;
+        }
+        if (char === '(')
+            paren += 1;
+        else if (char === ')')
+            paren = Math.max(0, paren - 1);
+        else if (char === '[')
+            bracket += 1;
+        else if (char === ']')
+            bracket = Math.max(0, bracket - 1);
+        else if (char === ',' && paren === 0 && bracket === 0) {
+            parts.push(selector.slice(start, index).trim());
+            start = index + 1;
+        }
+    }
+    parts.push(selector.slice(start).trim());
+    return parts.filter(Boolean);
+}
+function appendPseudoToSelectorList(selector, pseudo) {
+    return splitSelectorList(selector).map((branch) => `${branch}${pseudo}`).join(',\n');
+}
+function evaluateSelectorHealth(selector, root = document, broadThreshold = 100) {
+    try {
+        const matchCount = root.querySelectorAll(selector).length;
+        return { selector, matchCount, status: matchCount === 0 ? 'missing' : matchCount > broadThreshold ? 'broad' : 'healthy' };
+    }
+    catch {
+        return { selector, matchCount: 0, status: 'invalid' };
+    }
+}
+
+},
+"src/registry/types.ts": function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+
+},
+"src/ui/guide.ts": function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.THEME_STUDIO_GUIDE = void 0;
+exports.THEME_STUDIO_GUIDE = "# Palette\n\n> **Visual theme authoring for Lumiverse.** Pick the thing you mean, describe the visual intent, and Palette turns it into scoped, reusable CSS. Generated CSS is output; your semantic Palette project is the source of truth.\n\n**Palette 1.0.2 · schema v42**  \nRelease history lives in the project changelog; this page is the actual manual.\n\n**Jump to:** [Start here](#palette-guide-start) · [Pick & scope](#palette-guide-pick) · [Style packets](#palette-guide-packets) · [Groups](#palette-guide-groups) · [Read styles](#palette-guide-read) · [Reuse](#palette-guide-reuse) · [Boost](#palette-guide-boost) · [Widget & Code](#palette-guide-code) · [CSS field guide](#palette-guide-css) · [Debugging](#palette-guide-debug)\n\n## Start here\n\nPalette is easiest to understand as **visual DevTools with memory**. It knows enough about Lumiverse anatomy to avoid making you write selectors for normal work, but it never traps advanced users inside a black box.\n\n| Workspace | What it is for |\n| --- | --- |\n| **Design** | Pick a real mounted element and author semantic style packets. |\n| **Themes** | App-wide Boost, Typography, Quick Looks, pack workbenches, and theme projects. |\n| **Style Library** | Browse reusable looks and your cross-project **My Styles**. |\n| **Code** | Inspect compiler-owned CSS, add Custom CSS, and use native `.lumitheme` handoff. |\n\nA normal workflow is:\n\n1. Open **Design** and turn on **Pick**.\n2. Click the thing you actually want to change.\n3. Use the breadcrumb, **Edit Part**, or **Browse Inside** if Lumi wrapped your target in three divs and a trench coat.\n4. Add packets such as Background, Typography, Size, Image, or Position.\n5. Switch **Base / Mobile** or **Normal / Hover / Active / Focus / Disabled** when needed.\n6. Save the result as a **My Style**, keep building the current theme, or inspect the generated CSS in **Code**.\n\n> **Rule of thumb:** if you are reaching for Custom CSS during ordinary styling, first ask whether Palette already has a visual packet for that intent. The packet is safer, responsive, reusable, and pack-aware.\n\n## Pick & scope\n\n### Pick stays armed\n\nThe main Design picker stays active until **Done** or **Esc**. This makes it practical to inspect several nearby pieces without reopening the picker every time. The floating mini-widget uses a lighter one-shot picking flow so it does not become a tiny second DevTools.\n\nPalette separates four things that browsers often blur together:\n\n| Layer | Example | Why it matters |\n| --- | --- | --- |\n| **Clicked node** | the exact `<img>` under your cursor | What you physically picked. |\n| **DOM ladder** | Image → Avatar → Header Left → Header → Bubble | How the mounted tree is built. |\n| **Semantic owner** | BubbleMessage / Personas / InputArea | Which Lumiverse surface owns it. |\n| **Persistent scope** | Avatar in BubbleMessage | What future rerenders should keep styling. |\n\n### Edit Part vs Browse Inside\n\n**Edit Part** is the curated semantic map of useful parts for the current component. It is where you go when you know you want *Avatar*, *Meta Wrap*, *Actions*, *Message Content*, and similar authored pieces.\n\n**Browse Inside** follows the actual mounted subtree. Use it when the thing you need is deeper, conditional, or too weird to belong in the curated list.\n\nThey intentionally do not show the same list.\n\n### Dynamic labels and Use generic\n\nInteractive controls sometimes need their live `aria-label` or `title` to distinguish one mounted button from its siblings. Palette may therefore select something precise such as `button[aria-label=\"Copy\"]`. When the target panel offers **Use generic**, that is an explicit escape hatch to the reusable sibling selector (for example the whole Minimal action-button group). The switch is exact and keeps the current message side; it should not bounce back to the label-specific target.\n\nThis is useful when one button taught you the styling recipe but the intent is really “all buttons in this row.” Keep the precise target when the buttons genuinely need different appearances.\n\n### Stable selectors beat generated hashes\n\nPalette prefers public semantic boundaries such as:\n\n```css\n[data-component=\"BubbleMessage\"]\n[data-component=\"InputArea\"]\n[data-spindle-drawer-tab=\"personas\"]\n[data-composer-action=\"send\"]\n```\n\nThen it can narrow to a stable CSS-module family:\n\n```css\n[data-component=\"BubbleMessage\"] [class*=\"_avatar_\"]\n```\n\ninstead of persisting an exact generated class such as:\n\n```css\n._avatar_1hvlc_181\n```\n\nGenerated hashes can change. The family selector communicates the actual visual part.\n\n### Assistant, User, and Both\n\nMessage targets can be side-aware. When Lumi shares internal classes between both sides, Palette keeps the side discriminator in the selector instead of pretending one `_avatar_` means every avatar in civilization.\n\nTypical shapes:\n\n```css\n/* Assistant */\n[data-component=\"BubbleMessage\"]:not([data-part=\"user\"]) [class*=\"_avatar_\"]\n\n/* User */\n[data-component=\"BubbleMessage\"][data-part=\"user\"] [class*=\"_avatar_\"]\n```\n\nUse **Both** only when you actually want the same treatment on both speakers. In Design, Both is a real combined scope rather than shorthand for the speaker you clicked first: its editable stack represents styling common to the mounted Assistant/User branches, and new edits persist against the combined selector. One-sided authored packets remain available from their Assistant or User facet instead of masquerading as Both.\n\n### Surface means the real thing, not just its box\n\nMany Lumi parts have multiple useful surfaces:\n\n- Element\n- `::before` / Back layer\n- `::after` / Front layer\n- `::placeholder` when the mounted control actually has placeholder text\n\nGenerated surfaces are useful for labels, ornaments, stickers, frames, SVG stencils, and other decorative planes without inserting DOM.\n\n## Style packets\n\nPalette packets describe intent. You should not need to remember the CSS property names for ordinary work.\n\n| Packet | Think of it as | Common CSS underneath |\n| --- | --- | --- |\n| **Background** | paint the surface | `background`, gradients, images |\n| **Ink** | visual ink for text, glyphs, and current-color graphics | `color`, gradient fill, stroke, shadow/glow |\n| **Typography** | type structure | family, size, weight, line-height, spacing |\n| **Text Entry** | where typing starts + how it measures | textarea inset/metrics + synchronized autosize mirror + placeholder appearance |\n| **Border / Corners** | edge treatment | border longhands, radius |\n| **Spacing** | breathing room | padding + margin |\n| **Shadow / Glass** | depth/material | shadow, blur, backdrop-filter |\n| **Opacity** | fade the entire target | `opacity` |\n| **Container Layout** | arrange direct children | flex/grid, gap, distribute, align |\n| **Quick Align** | put this element where you mean | logical auto margins + safe self-alignment |\n| **Layout Item** | advanced behavior inside Flex/Grid | grow/shrink, order, self-alignment |\n| **Size** | fit, fill, or fix the box | width/height/min/max |\n| **Image** | crop and treat media pixels | source quality, object-fit, object-position, filter |\n| **Mask** | fade or clip a visual surface | mask-image, multi-edge masks, compositing |\n| **Media Flow** | make prose/native media behave | natural height, unclipping, full-width flow |\n| **Position & Layer** | move/place/stack | translate, anchored position, sticky/fixed, z-index |\n| **Transform** | pose it | rotate, scale, skew |\n| **Background Image** | decorative image layer | background-image/position/size |\n| **Visibility** | visible / hidden / gone | visibility/display |\n| **Generated Content** | label a generated surface | CSS `content` on `::after` / explicit pseudo surfaces |\n| **SVG Asset** | reusable icon/ornament | sanitized project SVG stencil |\n\n### Image, Mask, and Ink are separate jobs\n\n**Image** is for media treatment: source quality, brightness/saturation/contrast and other tone controls, crop/fit, and focal position. It stays an Image packet even when the semantic Palette target is a wrapper; use **Browse Inside** when object-fit/object-position must land on the actual media leaf.\n\n**Mask** is surface geometry, not an image-only effect. Use it to preserve the native mask, clear masking, add a directional/radial fade, or build multi-edge custom masks. Because Mask is independent, it can style ordinary wrappers, generated surfaces, media, and other CSS-mask-capable targets without pretending they are images.\n\n**Ink** is the renamed visual-paint packet formerly shown as **Text Style**. The persisted packet type remains compatible with older projects, but the UI name reflects what it really does: solid/gradient color, stroke/outline, and glow for text, icon glyphs, SVG/currentColor surfaces, and similar painted marks. Typography remains responsible for type structure such as family, size, weight, line-height, spacing, and case.\n\nSchema v42 migrates pre-v42 combined Image packets automatically. A legacy Image that owned both tone/crop settings and a mask is normalized into sibling **Image + Mask** packets on the same target/state, including recipe provenance, so old themes keep their rendered intent while new edits use the clearer taxonomy.\n\nColor-bearing packets always expose a real **Pick** swatch beside the editable color string. **Recents** are convenience history, not the only way to open a picker; pack-authored colors therefore remain editable even when they were never picked manually in the current project. Independent Corners are arranged spatially as top-left / top-right over bottom-left / bottom-right, matching the box you are actually shaping.\n\n### Text outlines: Edge vs Outside\n\n**Edge** uses the browser glyph stroke and is fast/clean for thin lettering. **Outside** is the \"do not eat my fill\" option: Palette manufactures a crisp ring of zero-blur text shadows behind the glyph and exposes it through the same Thickness / Color / Opacity controls. Your ordinary directional text shadow can still coexist with that outline.\n\n### Generated Content can mirror native labels\n\nGenerated Content can use a literal string, or mirror the owner's existing `title` / `aria-label` through CSS `attr(...)`. If you add it to a normal element, Palette automatically emits the content on that element's `::after` skin because Chromium does not reliably render `content` on ordinary elements. If you explicitly selected Back/Front, Palette keeps that pseudo-surface. This is useful for skins that replace a native icon with text while keeping the actual button as the semantic/layout target.\n\nPseudo-elements are generated surfaces, not DOM siblings. If several labeled buttons need even distribution, group/style the **real buttons** and use their `::before`/`::after` only as visual skins.\n\n### Quick Align: say where, not how\n\nUse **Quick Align** when your intent is simply “put this on the left / center / right” (or the vertical equivalent). Palette resolves that intent through layout-safe CSS instead of making you memorize when `align-self`, `justify-self`, or auto margins happen to work.\n\nFor ordinary horizontal placement, Palette uses logical auto margins and `fit-content`, so it works in normal block flow as well as common Flex/Grid contexts:\n\n```css\n/* Right */\nwidth: fit-content;\nmargin-inline-start: auto;\nmargin-inline-end: 0;\n```\n\nAn explicit **Size** packet still wins if you deliberately set Width, so Quick Align does not silently undo authored sizing. Vertical placement can use Flex/Grid alignment when that layout exists; Palette warns when a plain block parent has no free vertical space to distribute. Use **Position & Layer** when you need a pinned top/bottom relationship instead.\n\n**Quick Align** is the friendly placement primitive. **Layout Item** remains the advanced control for grow/shrink/order and raw Flex/Grid self-alignment.\n\n### Spacing: simple first, per-side when you need it\n\nSpacing keeps **Padding** and **Margin** as fast linked sliders for normal work. Open **Advanced padding** or **Advanced margin** directly underneath when one side needs a different value; Palette exposes Top / Right / Bottom / Left there and leaves the other sides alone. Moving the main slider afterward deliberately links all four sides again. Negative values are allowed for margin, not padding.\n\n### Text Entry: move the typing origin honestly\n\nUse **Text Entry** on the mounted composer textarea when the intent is simply “typing should begin here.” Horizontal/vertical inset moves entered text and the placeholder together, while font metrics stay synchronized with Lumiverse's hidden textarea mirror so auto-height measurement does not drift.\n\nPalette deliberately keeps two responsibilities separate:\n\n- **Text inset + metrics** belong to the textarea and its hidden autosize mirror.\n- **Placeholder appearance** (ink, opacity, italic/weight) belongs only to `textarea::placeholder`.\n\nThat means Palette does **not** fake placeholder placement with transforms or pseudo positioning. If the placeholder is annoyingly glued to the upper-left corner, change Text Entry inset; the real typed text will start in the same honest place.\n\n### Size: Fit, Fill, Fixed\n\nUse **Fit** when the box should hug its content. Use **Fill** when it should claim the available space. Use **Fixed** when you really want a number.\n\nIf Fill appears not to fill anything, inspect the parent. A flex/grid child can only fill the space its parent actually gives it.\n\n### Position: Nudge vs Anchored\n\n**Nudge** is visual movement that keeps the native layout contract intact. It compiles as translation and is excellent for “this is correct, just 12px too high.”\n\n**Anchored** means Palette owns the positioning relationship: top/right/bottom/left relative to a chosen containing block.\n\nUse Nudge when Lumi already knows where an element belongs. Use Anchored when you are intentionally building a new composition.\n\n### Image: wrapper vs image\n\nThis distinction saves hours.\n\n```css\n/* Avatar frame / wrapper */\n[data-component=\"BubbleMessage\"] [class*=\"_avatar_\"]\n\n/* Pixels inside that frame */\n[data-component=\"BubbleMessage\"] [class*=\"_avatar_\"] img\n\n/* Large native ghost/backdrop image — different target */\n[data-component=\"BubbleMessage\"] [class*=\"_avatarBgImg_\"]\n```\n\nResize the wrapper when you need a larger stage. Use **Image → Move inside frame** when the frame is correct and only the crop/focal point is wrong.\n\n### Media Flow\n\nLumiverse prose images and native attachments are not the same DOM species. Palette treats both lanes deliberately:\n\n**Markdown/XML lane**  \nimage paragraph → linked/span wrapper → image\n\n**Native attachment lane**  \nattachments → inline image button → inline image frame → inline image\n\nUse **Full width** or **Unclipped** when native thumbnail chrome is fighting an authored reading layout. Do not solve every media problem with a global `img { width:100% }` missile.\n\n### Guides\n\n**Guides → Smart** follows the active packet:\n\n- Spacing → box model\n- Size → dimensions + containing block\n- Layout → flex/grid geometry\n- Quick Align / Layout Item → target + layout parent\n- Position → placement/anchor relationship\n- Image → crop/focal frame\n- Background/Text/Shadow → lightweight outline\n\nIf a tiny text node has no useful box of its own, inspect its meaningful wrapper or parent boundary instead of assuming the guide is broken.\n\n## Groups\n\n**Group** is for several real siblings that should behave as one authored composition. Palette does **not** reparent React DOM and does not invent wrappers.\n\nGroup mode now has two ways to select members:\n\n- **Visual:** click siblings on the page.\n- **Structural:** retarget a picked member through nearby DOM levels, then use **Add sibling** once Palette knows the shared parent.\n\nThis is specifically useful for Lumi's favorite anatomy:\n\n```text\nrow\n└─ wrapper\n   └─ inner wrapper\n      └─ actual control\n```\n\nA valid saved group requires one real shared direct parent. Palette can temporarily let draft members sit at different depths while you line them up, but **Create group** stays disabled until the structural relationship is safe.\n\nA Layout Group has four jobs:\n\n| Tab | Purpose |\n| --- | --- |\n| **Layout** | Row / Column / Grid, columns, gap, responsive behavior. |\n| **Members** | Shared packets on the member roots. |\n| **Contents** | Shared descendant treatment for icons, text, buttons, or images. |\n| **Frame** | One generated visual plane behind the group using the real parent. |\n\nUnsafe cases reject instead of generating nth-child spaghetti: different parents, ancestor/descendant members, or selectors that cannot be distinguished safely.\n\n## Read styles\n\n### Read Style\n\n**Read Style** reverse-engineers the selected target into familiar Palette controls.\n\nThe important contract is **Read is inspection; editing is capture**.\n\nObserved values can appear in the controls without becoming project state. Palette only materializes the semantic operation you actually change. If you inspect a heading and only change its font size, Palette should not suddenly claim its native border, margin, color, shadow, and seventeen inherited properties.\n\n### Read Page\n\n**Read Page** is the larger map. It inventories mounted, visibly styled targets by semantic surface and lets you inspect where a result came from before deciding to edit it.\n\nUse the search box for things like:\n\n```text\nheading\nbutton\nInputArea\navatar\n::before\n```\n\nSource information is diagnostic context; the semantic target is the star. Click a target to inspect/capture it rather than translating an entire foreign stylesheet into semantic oatmeal at once.\n\n## Reuse\n\nPalette has three different reuse layers because they solve different jobs.\n\n### Quick Looks\n\nQuick Looks are curated starter recipes. **Apply** merges the packet types the recipe owns. The pencil applies it and opens the result in Design. Reset only peels that recipe layer back off.\n\n### My Styles\n\nMy Styles are your reusable semantic styling, stored above individual theme projects.\n\n| Save mode | Captures |\n| --- | --- |\n| **This target** | current target + decorative surfaces |\n| **This component** | authored styling under the current semantic component |\n| **Choose parts…** | any checked multi-component combination as a Bundle |\n\nApplying a My Style merges packet types. If the destination already has Border + Shadow and your saved style contains Background + Typography, the unrelated Border + Shadow survive.\n\nStable targets do not need to be mounted at apply time to remain reusable.\n\n### Library cards show what they touch\n\nPreview art is only a visual hint. Reusable recipe cards also show their **Component** and **Affects** summaries so you can tell “action row” from “content frame” before Apply, Edit, or Reset. Do not rely on preview silhouettes as semantic names.\n\n### Packs\n\nPacks are curated compositions built from the same semantic engine as Design: targets, packets, Base/Mobile, groups, media policy, asset slots, and provenance.\n\n**Apply pack** should never mean “paste a giant CSS blob.” After applying a pack, every owned piece remains editable through ordinary Design controls.\n\n**Reset pack** removes the pack's layers and reveals whatever was underneath. Manual styling and other packs remain unless that reset actually owns them.\n\n#### Bubble and Minimal are recipe families, not one selector missile\n\nA pack can support **BubbleMessage**, **MinimalMessage**, or both, but renderer-specific choreography stays renderer-specific. A Minimal portrait/actions/thinking recipe targets Minimal only; its Bubble counterpart targets Bubble only. Choosing/applying **Both** installs both families so switching Lumiverse's message renderer reveals the already-authored matching composition.\n\nOnly genuinely renderer-independent targets such as `MessageContent` prose, exact semantic controls, or other shared surfaces should be authored once for both layouts. \"Same aesthetic\" does not require \"same recipe.\"\n\n## Boost\n\nApp-wide controls are split by what they actually depend on.\n\n### Boost\n\nBoost transforms Lumiverse's native variable map. **Colors** is the main recolor layer; **Backdrop** lives inside Boost because wallpaper/canvas treatment participates in that same transformed world.\n\nThe source flow is intentionally one-way:\n\n```text\nLumiverse canonical generated variables\n        ↓\nPalette transform\n        ↓\nPresented app variables\n```\n\nPalette should never recursively recolor its already transformed root output.\n\n### Typography\n\nTypography is standalone. You can change global font family/scale without enabling palette recoloring.\n\nThis is a valid configuration:\n\n```text\nBoost colors: OFF\nBackdrop:     OFF\nTypography:   ON\n```\n\n### Acceptance-test nonsense that is actually useful\n\nIf you are developing Palette itself:\n\n- **Blood Mode** — absurd red anchors; catches untransformed surfaces.\n- **Pinkpocalypse** — absurd pink; catches old complex gradient values.\n- Typography-only — catches accidental palette coupling.\n- Wallpaper test — catches backdrop layers that remain hidden under a wash.\n\n## Widget & Code\n\n### Floating mini-widget\n\nThe widget is a utility cockpit, not a second full editor:\n\n- Pick\n- Guides\n- Zap\n- Code/selector peek\n- Float/dock\n\nDesktop: right-click the collapsed widget for its context menu.  \nTouch: long-press it.  \n**Hide mini widget** is reversible from Palette's sidebar/workbar control.\n\nOn phones the floating editor can attach to the top or bottom edge; the resize handle follows the anchored edge. Mobile Float also has a **density** control that cycles **100% → 80% → 60% → 100%**. Density applies only to the scrolling inspector body, so the workspace tabs, Pick/Guides workbar, edge control, Minimize, and Close remain full-size touch targets.\n\nThe mobile inspector keeps narrow empty gutters on both sides of its scroll body. Those gutters are intentional touch-safe vertical pan lanes: if a packet is mostly sliders, drag the gutter instead of negotiating with a range thumb. Palette also pins its own mobile control typography/height so the active Lumiverse theme cannot make editor dropdown labels oversized or clipped.\n\n### Generated CSS vs Custom CSS\n\n**Generated CSS** is compiler-owned and read-only. It exists so advanced users can inspect exactly what Palette emitted.\n\n**Custom CSS** is your deliberate escape hatch. It stays separate from semantic project state.\n\nDo not treat generated CSS as persistence input. Palette should regenerate it deterministically from semantic state.\n\n### Native handoff and assets\n\nThe Code workspace can send/export the current work through Lumiverse's native theme bridge and import compatible `.lumitheme` data.\n\nNative Theme Assets are project-owned. Palette stores canonical `./assets/...` references so an exported native theme does not depend on a temporary browser URL. Images can be optimized, and font assets can be registered into the Typography browser.\n\nSVG imports are sanitized before entering the project wardrobe. XML declarations and harmless old exporter wrappers can be cleaned, but scripts/events/remote-content are not treated as decoration.\n\n## CSS field guide\n\nPalette is designed so you do not *need* CSS, but knowing a few patterns makes debugging and Custom CSS dramatically easier.\n\n### 1. Scope before specificity\n\nPrefer a meaningful owner plus a stable part:\n\n```css\n[data-component=\"BubbleMessage\"] [class*=\"_nameChar_\"] {\n  color: white;\n}\n```\n\nover a naked reusable family:\n\n```css\n[class*=\"_nameChar_\"] {\n  color: white;\n}\n```\n\nThe second rule may style another component that happens to reuse the same local class word.\n\n### 2. `:where()` makes strong-looking selectors easier to override\n\nPalette often wraps authored selectors in `:where(...)` so the structural scope itself contributes zero specificity while Palette controls authority deliberately:\n\n```css\n:where([data-component=\"BubbleMessage\"] [class*=\"_avatar_\"] img) {\n  object-fit: cover;\n}\n```\n\nThis is different from solving everything by piling on more IDs/classes.\n\n### 3. `!important` is not automatically evil\n\nA visual theme editor sometimes has to beat native component CSS. The real sin is using `!important` without correct scope.\n\nGood:\n\n```css\n[data-component=\"InputArea\"] [data-composer-action=\"send\"] button {\n  color: white !important;\n}\n```\n\nBad:\n\n```css\nbutton {\n  color: white !important;\n}\n```\n\n### 4. Flex and Grid: style the parent to arrange children\n\nIf you want siblings to become columns, the important rule usually belongs to their parent:\n\n```css\n.parent {\n  display: grid;\n  grid-template-columns: repeat(2, minmax(0, 1fr));\n  gap: 8px;\n}\n```\n\nA child cannot make its siblings become a grid by itself. Layout Item therefore warns when the actual parent is not a layout container. If your actual intent is only left / center / right placement, use Quick Align instead; it is designed to work in ordinary block flow too.\n\n### 5. `width:100%` only means 100% of the available containing width\n\nIf a child still looks tiny after `width:100%`, inspect the parent chain. A 100%-wide child inside a 112px wrapper is still 112px.\n\nUseful debugging sequence:\n\n```text\nTarget width\n→ parent width\n→ parent display/layout\n→ min/max constraints\n→ overflow/clipping\n```\n\n### 6. Move the image *inside* the frame with `object-position`\n\nFor cropped images:\n\n```css\n.avatar img {\n  width: 100%;\n  height: 100%;\n  object-fit: cover;\n  object-position: 50% 28%;\n}\n```\n\nChanging `object-position` moves the focal point inside the existing frame. Translating `.avatar` moves the whole frame instead.\n\n### 7. Fades are masks, not opacity gradients\n\nA common portrait fade:\n\n```css\n.avatar img {\n  -webkit-mask-image: linear-gradient(\n    to bottom,\n    #000 0%,\n    #000 68%,\n    transparent 100%\n  );\n  mask-image: linear-gradient(\n    to bottom,\n    #000 0%,\n    #000 68%,\n    transparent 100%\n  );\n}\n```\n\nIf native Lumi already applies a mask and you want the full image, explicitly clear it:\n\n```css\nmask-image: none;\n-webkit-mask-image: none;\n```\n\n### 8. Pseudo-elements need `content`\n\nA `::before` or `::after` does not exist visually until content is generated:\n\n```css\n.target::before {\n  content: \"\";\n  position: absolute;\n  inset: 0;\n  pointer-events: none;\n}\n```\n\nFor a host-local decorative back plane, the host usually needs a positioning context:\n\n```css\n.target {\n  position: relative;\n  isolation: isolate;\n}\n```\n\nPalette adds isolation automatically when one of its generated pseudo surfaces uses a custom negative z-index.\n\n### 9. Nudge is safer than re-owning native positioning\n\nIf Lumi already has a correct absolute/sticky/flow relationship and you only need a visual adjustment:\n\n```css\n.target {\n  translate: 0 -12px;\n}\n```\n\nis often safer than changing `position`, `top`, and `left` just to move it twelve pixels.\n\n### 10. Mobile deltas should override only what changes\n\n```css\n.target {\n  font-size: 30px;\n  translate: 0 -40px;\n}\n\n@media (max-width: 720px) {\n  .target {\n    font-size: 22px;\n  }\n}\n```\n\nIf the mobile composition should keep the Base Nudge, do not unnecessarily re-author positioning. If you need to cancel the Base movement, explicitly set the mobile translation back to zero.\n\n### 11. Composer actions have stable identities\n\nPrefer the stable wrappers on current Lumiverse:\n\n```css\n[data-component=\"InputArea\"]\n[data-composer-action=\"persona\"]\n[data-toolbar-action=\"persona\"] {\n  /* persona action */\n}\n```\n\nThe Spindle `chat_toolbar` mount is a separate extension toolbar. Do not confuse it with native composer actions just because they appear beside each other.\n\nThe current native typing lane is also intentionally split into stable semantic parts:\n\n```css\n[data-component=\"InputArea\"] textarea[name=\"chat-message\"]\n[data-component=\"InputArea\"] [class*=\"_textareaMirror_\"]\n[data-component=\"InputArea\"] [class*=\"_sendBtnShell_\"]\n```\n\nThe textarea mirror is measurement infrastructure, not a second visible text box. Let **Text Entry** synchronize its metrics instead of styling the mirror independently.\n\n### 12. CSS variables are the app-wide language\n\nLumiverse theme variables look like:\n\n```css\n:root {\n  --lumiverse-bg: #111;\n  --lumiverse-text: #f7f2fa;\n  --lumiverse-primary: #b78cff;\n  --lumiverse-card-bg: linear-gradient(...);\n}\n```\n\nBoost transforms the canonical variable map rather than hue-rotating the rendered app. That is why images/media can remain intact while the UI changes palette.\n\n### 13. A few useful selector recipes\n\n```css\n/* Assistant message only */\n[data-component=\"BubbleMessage\"]:not([data-part=\"user\"]) { }\n\n/* User message only */\n[data-component=\"BubbleMessage\"][data-part=\"user\"] { }\n\n/* Message prose */\n[data-component=\"BubbleMessage\"] [data-component=\"MessageContent\"] { }\n\n/* H2 inside message prose */\n[data-component=\"MessageContent\"] h2 { }\n\n/* Persona drawer surface */\n[data-spindle-drawer-tab=\"personas\"] { }\n\n/* Native send action */\n[data-component=\"InputArea\"] [data-composer-action=\"send\"] { }\n\n/* Only paragraphs that contain an image */\n[data-component=\"MessageContent\"] p:has(img) { }\n```\n\n### 14. Full-width prose image without stretching its aspect ratio\n\n```css\n[data-component=\"MessageContent\"] p:has(img) {\n  width: 100%;\n  max-width: 100%;\n  margin: 14px 0 22px;\n  text-align: center;\n}\n\n[data-component=\"MessageContent\"] img {\n  display: block;\n  width: 100%;\n  max-width: 100%;\n  height: auto;\n  margin-inline: auto;\n  object-fit: contain;\n}\n```\n\nFor native Lumi attachments, use Palette's **Media Flow** rather than assuming this raw prose selector also owns the attachment button/frame wrappers.\n\n## Debugging\n\nWhen something “does nothing,” check these before inventing new infrastructure:\n\n| Symptom | First thing to inspect |\n| --- | --- |\n| Border is mysteriously invisible | color alpha / opacity is not literally 0%. Yes, this happened. |\n| `width:100%` is still tiny | containing parent width + max-width. |\n| Element will not move as expected | native `position`/inset contract; try Nudge. |\n| Image crop is wrong | wrapper size vs image `object-position`. |\n| Mobile layer vanished | native `display:none` can defeat mere `visibility:visible`. |\n| Style leaks to unrelated UI | selector lost its semantic owner/context. |\n| Read Style created too much CSS | observed values should stay unowned until edited. |\n| Pack reset resurrects something deleted | provenance/ownership detach is wrong. |\n| `::after` decoration sits on top instead of bottom | mobile override accidentally reset Base positioning. |\n| Composer selector broke after upstream change | use stable `data-composer-action` / `data-toolbar-action` identity. |\n\nA good escalation order is:\n\n1. Check the actual authored packet values.\n2. Check the mounted target and parent geometry.\n3. Inspect the generated selector in **Code**.\n4. Use browser DevTools to inspect the winning declaration/cascade.\n5. Only then decide whether Palette is missing a primitive or selector boundary.\n\n> **Mounted visual truth wins.** A mathematically elegant selector or positioning scheme that does not match the real screen is still wrong.\n\n## Credits\n\nPalette drawer icon: **paintbrush by Alum Design (CC BY 3.0)**.  \nPalette is built as a Lumiverse Spindle extension and intentionally keeps its internal `theme_studio` identity stable for persistence/runtime compatibility.\n\n\n### Editorial left proof rail\n\nReader Correspondence intentionally replaces native Minimal user-side rail distribution with its own left editorial proof rail. The frame owns the real 106px rail reservation and switches to ordinary block flow so the host flex row cannot keep a ghost lane after the avatar/actions are anchored out of flow. The header stays padding-free, while portrait and proofmark actions share the same rail axis.\n\nOn mobile the desktop proof rail is released, but the portrait is still anchored against the card so it does not consume a separate row. The compact byline reserves only the portrait width, which keeps name + metadata beside the image while prose and proofmark actions continue in ordinary full-width flow below. Editorial assistant mobile uses the same principle: portrait + byline at the top, actions released to the bottom instead of occupying the native right-side action lane. The generic Minimal actions overlay must materialize before Editorial's Author Rail so the phone-only flow reset wins the pack cascade. SwipeControls use their own button/counter semantic subroles; flatten those native controls directly instead of compensating around the outer pager shell.\n\n### Editorial Contributors kicker\n\nThe Contributors masthead uses `chat.roster.bar::before` as a generated publication kicker. The host roster can carry its own pseudo positioning, so Editorial explicitly resets that surface to normal flow, zeros inherited pseudo padding, gives it a compact fixed footprint, and centers it as a non-shrinking flex item before the contributor cards. Do not compensate for overlap by moving the member cards themselves.\n\n\n### Editorial reasoning marginalia\n\nEditorial reasoning deliberately avoids the native full-width outlined lane. Both BubbleMessage and MinimalMessage use the same publication language: a transparent shell, a narrow cool-slate marginal rule/wash, small Georgia italic live duration text, and a restrained serif body when expanded. Desktop reasoning is constrained to the reading column; mobile releases it to full width rather than preserving a percentage lane.\n\nCurrent Lumiverse mounts `button[data-reasoning-toggle=\"true\"]` as both the reasoning header and the toggle surface. Keep the header responsible for chrome and the toggle role responsible for ink only. If both roles author background/border, the later toggle packet can erase the header treatment even though Palette appears to have styled both correctly.\n\n\n### Visual Novel Minimal: classic dialogue stage, not Editorial-with-neon\n\nVisual Novel deliberately uses two renderer grammars. **BubbleMessage is the active cinematic scene**: large scene choreography, choice windows, route HUD, and more theatrical game chrome belong there. **MinimalMessage is the compact classic VN dialogue stage**: centered landscape portrait, fading character banner, a game-like gradient speaker plate, translucent/double-line patterned dialogue frame, and authored VN furniture. The assistant action group may use stacked text plates while mobile releases it back into compact flow; Greetings can become a narrow status bar below dialogue rather than a generic pill. Do not collapse Minimal back into an Editorial author column or a smaller Bubble card stack.\n\nThe Minimal root intentionally owns generated scene decoration. `minimal.decorative-rail.assistant` / `.user` target the message `::before` surface as a fading banner behind the centered portrait and name plate; the side-specific corner-ornament roles use `::after` for restrained VN embellishment. Because that `::before` is authored content, the Visual Novel pack must **not** apply `minimal-native-strip-off`.\n\nIdentity lives above the dialogue frame rather than inside an opaque header card. The header itself stays transparent and centered; the speaker name becomes a gradient plate while desktop metadata remains in ordinary header flow so long dialogue cannot drag the pill into the middle of the response. Mobile may deliberately anchor the compact metadata back near the portrait. Greetings is flattened into a narrow status bar below the dialogue frame instead of competing with the portrait.\n\nAfter mounted QA, the player side now **transposes the same stage geometry** instead of shrinking into a separate card grammar: both sides share the 92% stage, centered landscape portrait, 76% transparent identity lane, and broad double-line dialogue window, with assistant blue/lilac and player rose route families carrying the side distinction. Desktop actions use the same stacked text-command grammar on both sides; mobile releases both into compact wrapped flow.\n\nReasoning is an **Inner Voice plate** beneath the name and slightly over the dialogue frame. Message actions are text-first VN controls generated over the real native buttons, including dedicated static roles for Edit, Copy, Hide, Anchor, Fork, Prompt, and Delete. Native SVGs are hidden without replacing the click targets. The omitted-action fallback must exclude every named action, including Copy.\n\nSwipe navigation belongs at the **bottom-left** as compact route furniture in normal flow. `minimal.swipes.previous` and `.next` replace native chevrons with maskable built-in arrow SVGs; `minimal.swipes.counter` owns the route count; `minimal.swipes.ornament` supplies a small decorative flower. Keeping the pager in flow prevents long messages from separating the controls from the actual dialogue footer. The long-message toggle is also scoped under Minimal so it cannot inherit Bubble's serif/purple continuation chrome.\n\nTypography remains renderer-specific. Bubble VN keeps its cinematic serif language. Minimal dialogue/body copy uses compact UI sans and mono metadata through `minimal.prose.*`, applied after shared `visual-novel-prose`, so fresh Apply All preserves the renderer split. Those VN roles themselves remain static DOM anatomy. Palette project/state schema is currently **v42** because Image and Mask now persist as separate packet types.\n";
+
+},
+"src/ui/studio.ts": function(module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ThemeStudioUI = void 0;
-const color_1 = __require("src/compiler/color");
-const compiler_1 = __require("src/compiler/compiler");
-const validation_1 = __require("src/compiler/validation");
-const nativeBridge_1 = __require("src/nativeBridge/index");
-const model_1 = __require("src/project/model");
-const smart_invert_1 = __require("src/project/smart-invert");
-const reverse_engineer_1 = __require("src/project/reverse-engineer");
-const selector_resolver_1 = __require("src/registry/selector-resolver");
-const layout_context_1 = __require("src/registry/layout-context");
-const selector_utils_1 = __require("src/registry/selector-utils");
-const fonts_1 = __require("src/nativeBridge/fonts");
-const common_parts_1 = __require("src/presets/common-parts");
-const style_library_1 = __require("src/presets/style-library");
-const message_anatomy_1 = __require("src/presets/message-anatomy");
-const ornaments_1 = __require("src/presets/ornaments");
+const color_1 = require("../compiler/color");
+const compiler_1 = require("../compiler/compiler");
+const validation_1 = require("../compiler/validation");
+const nativeBridge_1 = require("../nativeBridge");
+const model_1 = require("../project/model");
+const smart_invert_1 = require("../project/smart-invert");
+const reverse_engineer_1 = require("../project/reverse-engineer");
+const selector_resolver_1 = require("../registry/selector-resolver");
+const layout_context_1 = require("../registry/layout-context");
+const selector_utils_1 = require("../registry/selector-utils");
+const fonts_1 = require("../nativeBridge/fonts");
+const common_parts_1 = require("../presets/common-parts");
+const style_library_1 = require("../presets/style-library");
+const message_anatomy_1 = require("../presets/message-anatomy");
+const ornaments_1 = require("../presets/ornaments");
 const PACKETS = [
     { type: 'background', group: 'Paint', label: 'Background', icon: '◫', hint: 'Color, gradient, or asset' },
     { type: 'pattern', group: 'Paint', label: 'Pattern', icon: '⠿', hint: 'Dots, grid, checker, diamonds, or grain' },
-    { type: 'image', group: 'Paint', label: 'Image', icon: '▧', hint: 'Tone, crop, move, and mask' },
-    { type: 'media-flow', group: 'Layout', label: 'Media Flow', icon: '▤', hint: 'Natural or full-width media blocks' },
-    { type: 'content', group: 'Typography', label: 'Generated Content', icon: '✎', hint: 'Literal label or symbol on a pseudo-surface' },
-    { type: 'text', group: 'Typography', label: 'Text Style', icon: 'T◈', hint: 'Fill, gradient, stroke, and glow' },
-    { type: 'text-entry', group: 'Typography', label: 'Text Entry', icon: '⌨', hint: 'Typing inset, metrics, and placeholder' },
+    { type: 'image', group: 'Paint', label: 'Image', icon: '▧', hint: 'Tone, source quality, crop, and focal position' },
+    { type: 'mask', group: 'Paint', label: 'Mask', icon: '◩', hint: 'Fade, clear, or combine mask edges' },
+    { type: 'svg-asset', group: 'Paint', label: 'SVG Asset', icon: '◆', hint: 'Reusable saved SVG as image or stencil' },
+    { type: 'text', group: 'Paint', label: 'Ink', icon: 'T◈', hint: 'Color, gradient, stroke, and glow for text or glyphs' },
     { type: 'border', group: 'Paint', label: 'Border', icon: '□', hint: 'Edge, weight, and color' },
     { type: 'shadow', group: 'Paint', label: 'Shadow', icon: '◒', hint: 'Depth and glow' },
     { type: 'glass', group: 'Paint', label: 'Glass', icon: '◇', hint: 'Blur and translucent depth' },
+    { type: 'media-flow', group: 'Layout', label: 'Media Flow', icon: '▤', hint: 'Natural or full-width media blocks' },
+    { type: 'content', group: 'Typography', label: 'Generated Content', icon: '✎', hint: 'Literal label or symbol on a pseudo-surface' },
+    { type: 'text-entry', group: 'Typography', label: 'Text Entry', icon: '⌨', hint: 'Typing inset, metrics, and placeholder' },
     { type: 'corners', group: 'Shape', label: 'Corners', icon: '⌜', hint: 'Round the silhouette' },
     { type: 'size', group: 'Shape', label: 'Size', icon: '↔', hint: 'Auto, fit, fill, or fixed' },
     { type: 'spacing', group: 'Shape', label: 'Spacing', icon: '↔', hint: 'Padding, margin, and gap' },
@@ -9712,15 +10278,14 @@ const PACKETS = [
     { type: 'opacity', group: 'Effects', label: 'Opacity', icon: '◐', hint: 'Whole-element transparency' },
     { type: 'visibility', group: 'Effects', label: 'Visibility', icon: '◉', hint: 'Show, hide, or remove from layout' },
     { type: 'composer-icons', group: 'Effects', label: 'Composer Icons', icon: '✣', hint: 'Native or themed composer glyph family' },
-    { type: 'svg-asset', group: 'Paint', label: 'SVG Asset', icon: '◆', hint: 'Reusable saved SVG as image or stencil' },
 ];
-const GROUP_MEMBER_PACKETS = ['background', 'pattern', 'text', 'typography', 'border', 'corners', 'spacing', 'shadow', 'glass', 'opacity', 'visibility', 'transform'];
-const GROUP_FRAME_PACKETS = ['background', 'pattern', 'border', 'corners', 'shadow', 'glass', 'opacity'];
+const GROUP_MEMBER_PACKETS = ['background', 'pattern', 'text', 'mask', 'typography', 'border', 'corners', 'spacing', 'shadow', 'glass', 'opacity', 'visibility', 'transform'];
+const GROUP_FRAME_PACKETS = ['background', 'pattern', 'mask', 'border', 'corners', 'shadow', 'glass', 'opacity'];
 const GROUP_CONTENT_PACKETS = {
     icons: ['text', 'opacity'],
     text: ['text', 'typography', 'opacity'],
     buttons: ['background', 'text', 'typography', 'border', 'corners', 'spacing', 'shadow', 'glass', 'opacity'],
-    images: ['border', 'corners', 'shadow', 'opacity'],
+    images: ['image', 'mask', 'border', 'corners', 'shadow', 'opacity'],
 };
 const REPLACED_SURFACE_TAGS = new Set(['img', 'video', 'canvas', 'iframe', 'object', 'embed']);
 const COMPOSER_ACTION_LABELS = {
@@ -9735,7 +10300,7 @@ function percent(value, fallback = 1) { return Math.round((Number.isFinite(value
 function defaultImageCustomMask() {
     return { horizontal: { enabled: true, side: 'right', solidUntil: 25, fadeUntil: 90 }, top: { enabled: true, solidUntil: 85, fadeUntil: 100 }, bottom: { enabled: true, solidUntil: 55, fadeUntil: 100 }, combine: 'intersect' };
 }
-function imageMaskMode(packet) { return packet.maskMode ?? (packet.fade.direction !== 'none' ? 'fade' : 'native'); }
+function maskMode(packet) { return packet.maskMode ?? (packet.fade.direction !== 'none' ? 'fade' : 'native'); }
 function colorInput(value, fallback = '#000000') { return /^#[0-9a-f]{6}$/i.test(value ?? '') ? value : fallback; }
 function activeScope(selection) { return selection.scopeCandidates.find((scope) => scope.id === selection.activeScopeId) ?? selection.scopeCandidates[0]; }
 function selectorForSurface(selector, surface) { return surface === 'before' ? (0, selector_utils_1.appendPseudoToSelectorList)(selector, '::before') : surface === 'after' ? (0, selector_utils_1.appendPseudoToSelectorList)(selector, '::after') : selector; }
@@ -9968,6 +10533,10 @@ function matchingOverridesForSelection(selection, overrides, surface = 'element'
         if (override === exact || /::(?:before|after)\s*$/.test(override.target.selector))
             continue;
         try {
+            // Both means common coverage. A one-sided Assistant/User override may match
+            // the representative picked node, but it is not an authored Both style.
+            // Requiring coverage of every mounted branch prevents that packet from
+            // masquerading as the active combined target in the editor.
             const applies = scope.messageSide === 'both'
                 ? elements.every((element) => element.matches(override.target.selector))
                 : elements.some((element) => element.matches(override.target.selector));
@@ -12117,31 +12686,35 @@ class ThemeStudioUI {
             }
             case 'image': {
                 const sourceQuality = packet.sourceQuality ?? 'native';
-                const maskMode = imageMaskMode(packet);
-                const customMask = packet.customMask ?? defaultImageCustomMask();
-                const maskLabel = maskMode === 'native' ? '' : maskMode === 'none' ? 'mask cleared' : maskMode === 'custom' ? 'custom mask' : packet.fade.direction !== 'none' ? `${packet.fade.direction} fade` : 'edge fade';
                 const targetTag = (this.selection ? activeScope(this.selection).element ?? this.selection.target.element : undefined)?.tagName.toLowerCase();
                 const mediaTarget = !targetTag || ['img', 'video', 'canvas', 'picture'].includes(targetTag);
-                const toneBits = [mediaTarget && sourceQuality === 'full' ? 'full source' : mediaTarget && sourceQuality === 'auto' ? 'auto source' : '', mediaTarget && packet.brightness !== 1 ? `${Math.round(packet.brightness * 100)}% brightness` : '', mediaTarget && packet.saturation !== 1 ? `${Math.round(packet.saturation * 100)}% saturation` : '', mediaTarget && packet.objectFit !== 'native' && (packet.objectPositionX !== 50 || packet.objectPositionY !== 50) ? `framed ${packet.objectPositionX}% / ${packet.objectPositionY}%` : '', maskLabel].filter(Boolean);
-                const fadeButtons = [['top', '↑'], ['right', '→'], ['bottom', '↓'], ['left', '←'], ['radial', '◎']];
+                const toneBits = [sourceQuality === 'full' ? 'full source' : sourceQuality === 'auto' ? 'auto source' : '', packet.brightness !== 1 ? `${Math.round(packet.brightness * 100)}% brightness` : '', packet.saturation !== 1 ? `${Math.round(packet.saturation * 100)}% saturation` : '', packet.objectFit !== 'native' && (packet.objectPositionX !== 50 || packet.objectPositionY !== 50) ? `framed ${packet.objectPositionX}% / ${packet.objectPositionY}%` : ''].filter(Boolean);
                 const sourceQualityHelp = sourceQuality === 'full' ? '<div class="ts-warning">Full loads the original file. Large lists can get heavy.</div>' : sourceQuality === 'auto' ? '<p class="ts-note">Auto starts with Lumiverse’s thumbnail and steps up only when the displayed image needs more pixels.</p>' : '<p class="ts-note">Native keeps Lumiverse’s chosen image size.</p>';
+                const fitNote = mediaTarget ? '' : '<p class="ts-note">This semantic target is a wrapper rather than the media node. Tone and source quality still affect descendant imagery; Crop / fit only has CSS meaning on an actual image/video/canvas. Use Browse Inside when you need object-fit on the leaf.</p>';
+                const body = `<div class="ts-image-preview"><span>Image treatment</span><strong>${toneBits.length ? escapeHtml(toneBits.join(' · ')) : 'Natural'}</strong></div><div class="ts-field"><label class="ts-label">Source quality <span>for enlarged images</span></label><div class="ts-segment ts-segment-three"><button type="button" data-image-quality="native" aria-pressed="${sourceQuality === 'native'}">Native</button><button type="button" data-image-quality="auto" aria-pressed="${sourceQuality === 'auto'}">Auto</button><button type="button" data-image-quality="full" aria-pressed="${sourceQuality === 'full'}">Full</button></div>${sourceQualityHelp}</div>${this.rangeField('Brightness', 'image-brightness', Math.round(packet.brightness * 100), 0, 250, '%')}${this.rangeField('Saturation', 'image-saturation', Math.round(packet.saturation * 100), 0, 300, '%')}${this.rangeField('Contrast', 'image-contrast', Math.round(packet.contrast * 100), 0, 250, '%')}<details class="ts-advanced"><summary>More tone controls</summary>${this.rangeField('Grayscale', 'image-grayscale', Math.round(packet.grayscale * 100), 0, 100, '%')}${this.rangeField('Hue', 'image-hue', Math.round(packet.hueRotate), -180, 180, '°')}${this.rangeField('Blur', 'image-blur', packet.blur, 0, 30, 'px')}</details><div class="ts-field"><label class="ts-label">Crop / fit</label><div class="ts-segment ts-segment-five">${[['native', 'Natural'], ['cover', 'Cover'], ['contain', 'Contain'], ['fill', 'Stretch'], ['scale-down', 'Down']].map(([value, label]) => `<button type="button" data-image-fit="${value}" aria-pressed="${packet.objectFit === value}">${label}</button>`).join('')}</div></div>${packet.objectFit !== 'native' ? `<label class="ts-check ts-fill-frame"><input type="checkbox" data-packet-field="image-fill-frame" ${packet.fillFrame ? 'checked' : ''}> Fill the available frame</label><div class="ts-image-move"><label class="ts-label">Move inside frame <span>picture, not container</span></label><div class="ts-direction-range"><div><span>Left</span><strong>Horizontal</strong><span>Right</span></div><input class="ts-range" type="range" min="0" max="100" value="${packet.objectPositionX}" data-packet-field="image-position-x"></div><div class="ts-direction-range"><div><span>Up</span><strong>Vertical</strong><span>Down</span></div><input class="ts-range" type="range" min="0" max="100" value="${packet.objectPositionY}" data-packet-field="image-position-y"></div><p class="ts-note">Moves the picture inside its frame via focal position. The image box itself stays put.</p></div>` : '<p class="ts-note">Choose Cover, Contain, Stretch, or Down to control where the picture sits inside its frame.</p>'}${fitNote}`;
+                return this.packetShell(override, packet, 'Image', toneBits.length ? toneBits.join(' · ') : 'Natural', body);
+            }
+            case 'mask': {
+                const mode = maskMode(packet);
+                const customMask = packet.customMask ?? defaultImageCustomMask();
+                const label = mode === 'native' ? 'Native' : mode === 'none' ? 'Cleared' : mode === 'custom' ? 'Custom edges' : packet.fade.direction !== 'none' ? `${packet.fade.direction} fade` : 'Fade';
+                const fadeButtons = [['top', '↑'], ['right', '→'], ['bottom', '↓'], ['left', '←'], ['radial', '◎']];
                 const customPreview = (0, compiler_1.compileImageCustomMask)(customMask);
                 const customPreviewStyle = `mask-image:${customPreview.image};-webkit-mask-image:${customPreview.image};${customPreview.standardComposite ? `mask-composite:${customPreview.standardComposite};` : ''}${customPreview.webkitComposite ? `-webkit-mask-composite:${customPreview.webkitComposite};` : ''}`;
-                const maskBody = maskMode === 'native'
+                const maskBody = mode === 'native'
                     ? '<p class="ts-note">Keeps whatever mask Lumiverse or the current theme already applies. Read Style can inspect supported native multi-edge masks without taking ownership.</p>'
-                    : maskMode === 'none'
+                    : mode === 'none'
                         ? '<div class="ts-mask-clear-note"><strong>Native mask suppressed.</strong><span>Palette emits mask-image: none in both standard and WebKit forms.</span></div>'
-                        : maskMode === 'fade'
-                            ? `<div class="ts-field"><label class="ts-label">Fade edge <span>pick a side</span></label><div class="ts-fade-grid ts-fade-grid-five">${fadeButtons.map(([value, label]) => `<button type="button" data-image-fade="${value}" aria-pressed="${packet.fade.direction === value}" title="Fade ${value}">${label}</button>`).join('')}</div></div>${this.rangeField('Softness', 'image-fade-amount', packet.fade.amount, 1, 90, '%')}`
+                        : mode === 'fade'
+                            ? `<div class="ts-field"><label class="ts-label">Fade edge <span>pick a side</span></label><div class="ts-fade-grid ts-fade-grid-five">${fadeButtons.map(([value, arrow]) => `<button type="button" data-image-fade="${value}" aria-pressed="${packet.fade.direction === value}" title="Fade ${value}">${arrow}</button>`).join('')}</div></div>${this.rangeField('Softness', 'image-fade-amount', packet.fade.amount, 1, 90, '%')}`
                             : `<div class="ts-mask-preview"><span>Mask preview</span><i style="${escapeHtml(customPreviewStyle)}"></i></div><div class="ts-mask-layer"><div class="ts-mask-layer-head"><strong>Side fade</strong><label class="ts-check"><input type="checkbox" data-packet-field="image-mask-horizontal-enabled" ${customMask.horizontal.enabled ? 'checked' : ''}> On</label></div><div class="ts-segment ts-segment-two"><button type="button" data-image-mask-side="left" aria-pressed="${customMask.horizontal.side === 'left'}">← Left</button><button type="button" data-image-mask-side="right" aria-pressed="${customMask.horizontal.side === 'right'}">Right →</button></div>${this.rangeField('Solid until', 'image-mask-horizontal-solid', customMask.horizontal.solidUntil, 0, 99, '%')}${this.rangeField('Transparent by', 'image-mask-horizontal-fade', customMask.horizontal.fadeUntil, 1, 100, '%')}</div><div class="ts-mask-layer"><div class="ts-mask-layer-head"><strong>Top fade</strong><label class="ts-check"><input type="checkbox" data-packet-field="image-mask-top-enabled" ${customMask.top.enabled ? 'checked' : ''}> On</label></div>${this.rangeField('Solid until', 'image-mask-top-solid', customMask.top.solidUntil, 0, 99, '%')}${this.rangeField('Transparent by', 'image-mask-top-fade', customMask.top.fadeUntil, 1, 100, '%')}</div><div class="ts-mask-layer"><div class="ts-mask-layer-head"><strong>Bottom fade</strong><label class="ts-check"><input type="checkbox" data-packet-field="image-mask-bottom-enabled" ${customMask.bottom.enabled ? 'checked' : ''}> On</label></div>${this.rangeField('Solid until', 'image-mask-bottom-solid', customMask.bottom.solidUntil, 0, 99, '%')}${this.rangeField('Transparent by', 'image-mask-bottom-fade', customMask.bottom.fadeUntil, 1, 100, '%')}</div><div class="ts-field"><label class="ts-label">Combine layers</label><select class="ts-input" data-packet-field="image-mask-combine"><option value="intersect" ${customMask.combine === 'intersect' ? 'selected' : ''}>Intersect</option><option value="add" ${customMask.combine === 'add' ? 'selected' : ''}>Add</option><option value="subtract" ${customMask.combine === 'subtract' ? 'selected' : ''}>Subtract</option><option value="exclude" ${customMask.combine === 'exclude' ? 'selected' : ''}>Exclude</option></select></div><p class="ts-note">Each enabled edge becomes one mask layer. Palette emits the matching standard mask-composite and WebKit compositing operation.</p>`;
-                const mediaControls = mediaTarget ? `<div class="ts-image-preview"><span>Image treatment</span><strong>${toneBits.length ? escapeHtml(toneBits.join(' · ')) : 'Natural'}</strong></div><div class="ts-field"><label class="ts-label">Source quality <span>for enlarged images</span></label><div class="ts-segment ts-segment-three"><button type="button" data-image-quality="native" aria-pressed="${sourceQuality === 'native'}">Native</button><button type="button" data-image-quality="auto" aria-pressed="${sourceQuality === 'auto'}">Auto</button><button type="button" data-image-quality="full" aria-pressed="${sourceQuality === 'full'}">Full</button></div>${sourceQualityHelp}</div>${this.rangeField('Brightness', 'image-brightness', Math.round(packet.brightness * 100), 0, 250, '%')}${this.rangeField('Saturation', 'image-saturation', Math.round(packet.saturation * 100), 0, 300, '%')}${this.rangeField('Contrast', 'image-contrast', Math.round(packet.contrast * 100), 0, 250, '%')}<details class="ts-advanced"><summary>More tone controls</summary>${this.rangeField('Grayscale', 'image-grayscale', Math.round(packet.grayscale * 100), 0, 100, '%')}${this.rangeField('Hue', 'image-hue', Math.round(packet.hueRotate), -180, 180, '°')}${this.rangeField('Blur', 'image-blur', packet.blur, 0, 30, 'px')}</details><div class="ts-field"><label class="ts-label">Crop / fit</label><div class="ts-segment ts-segment-five">${[['native', 'Natural'], ['cover', 'Cover'], ['contain', 'Contain'], ['fill', 'Stretch'], ['scale-down', 'Down']].map(([value, label]) => `<button type="button" data-image-fit="${value}" aria-pressed="${packet.objectFit === value}">${label}</button>`).join('')}</div></div>${packet.objectFit !== 'native' ? `<label class="ts-check ts-fill-frame"><input type="checkbox" data-packet-field="image-fill-frame" ${packet.fillFrame ? 'checked' : ''}> Fill the available frame</label><div class="ts-image-move"><label class="ts-label">Move inside frame <span>picture, not container</span></label><div class="ts-direction-range"><div><span>Left</span><strong>Horizontal</strong><span>Right</span></div><input class="ts-range" type="range" min="0" max="100" value="${packet.objectPositionX}" data-packet-field="image-position-x"></div><div class="ts-direction-range"><div><span>Up</span><strong>Vertical</strong><span>Down</span></div><input class="ts-range" type="range" min="0" max="100" value="${packet.objectPositionY}" data-packet-field="image-position-y"></div><p class="ts-note">Moves the picture inside its frame via focal position. The image box itself stays put.</p></div>` : '<p class="ts-note">Choose Cover, Contain, Stretch, or Down to control where the picture sits inside its frame.</p>'}` : `<div class="ts-image-preview"><span>Mask treatment</span><strong>${escapeHtml(maskLabel || 'Native')}</strong></div>`;
-                const body = `${mediaControls}<section class="ts-magic-effects ts-mask-effects"><div class="ts-magic-head"><div><strong>Mask</strong><span>easy fade or advanced edge layers</span></div></div><div class="ts-segment ts-segment-four ts-mask-modes">${['native', 'none', 'fade', 'custom'].map((value) => `<button type="button" data-image-mask-mode="${value}" aria-pressed="${maskMode === value}">${value === 'native' ? 'Native' : value === 'none' ? 'None' : value === 'fade' ? 'Fade' : 'Custom'}</button>`).join('')}</div>${maskBody}</section><p class="ts-note">Want a color or gradient over the image? Use <strong>Front layer</strong> above, then add Background.${targetTag === 'img' ? ' If Front layer is unavailable, pick the image wrapper in the target ladder.' : ''}</p>`;
-                return this.packetShell(override, packet, mediaTarget ? 'Image' : 'Mask', toneBits.length ? toneBits.join(' · ') : (mediaTarget ? 'Natural' : 'Native'), body);
+                const body = `<section class="ts-magic-effects ts-mask-effects"><div class="ts-magic-head"><div><strong>Mask</strong><span>fade, clear, or combine edge layers</span></div></div><div class="ts-segment ts-segment-four ts-mask-modes">${['native', 'none', 'fade', 'custom'].map((value) => `<button type="button" data-image-mask-mode="${value}" aria-pressed="${mode === value}">${value === 'native' ? 'Native' : value === 'none' ? 'None' : value === 'fade' ? 'Fade' : 'Custom'}</button>`).join('')}</div>${maskBody}</section><p class="ts-note">Mask is surface-level CSS and can be used on media, wrappers, pseudo-elements, SVG/icon surfaces, and other normal boxes.</p>`;
+                return this.packetShell(override, packet, 'Mask', label, body);
             }
             case 'content': {
                 const source = packet.source ?? 'literal';
                 const summary = source === 'literal' ? (packet.value.trim() ? (packet.value.trim().length > 28 ? `${packet.value.trim().slice(0, 28)}…` : packet.value.trim()) : 'Empty generated label') : source === 'title' ? 'From title' : 'From aria-label';
-                return this.packetShell(override, packet, 'Generated Content', summary, `<div class="ts-field"><label class="ts-label">Source</label><div class="ts-segment ts-segment-three"><button type="button" data-content-source="literal" aria-pressed="${source === 'literal'}">Literal</button><button type="button" data-content-source="title" aria-pressed="${source === 'title'}">Title</button><button type="button" data-content-source="aria-label" aria-pressed="${source === 'aria-label'}">ARIA label</button></div></div>${source === 'literal' ? `<div class="ts-field"><label class="ts-label">Label or symbol</label><input class="ts-input" type="text" maxlength="4000" value="${escapeHtml(packet.value)}" data-packet-field="content-value"></div>` : `<p class="ts-note">Palette mirrors the element’s native ${source === 'title' ? '<code>title</code>' : '<code>aria-label</code>'} into this pseudo-surface. Handy for text-skinned icon controls without hard-coding every button.</p>`}<p class="ts-note">On a normal element, Palette emits this label on its <code>::after</code> skin automatically. If you already selected Back/Front, it stays on that explicit pseudo-surface. Typography, Text Style, Spacing, Position, and Transform control how it looks.</p>`);
+                return this.packetShell(override, packet, 'Generated Content', summary, `<div class="ts-field"><label class="ts-label">Source</label><div class="ts-segment ts-segment-three"><button type="button" data-content-source="literal" aria-pressed="${source === 'literal'}">Literal</button><button type="button" data-content-source="title" aria-pressed="${source === 'title'}">Title</button><button type="button" data-content-source="aria-label" aria-pressed="${source === 'aria-label'}">ARIA label</button></div></div>${source === 'literal' ? `<div class="ts-field"><label class="ts-label">Label or symbol</label><input class="ts-input" type="text" maxlength="4000" value="${escapeHtml(packet.value)}" data-packet-field="content-value"></div>` : `<p class="ts-note">Palette mirrors the element’s native ${source === 'title' ? '<code>title</code>' : '<code>aria-label</code>'} into this pseudo-surface. Handy for text-skinned icon controls without hard-coding every button.</p>`}<p class="ts-note">On a normal element, Palette emits this label on its <code>::after</code> skin automatically. If you already selected Back/Front, it stays on that explicit pseudo-surface. Typography, Ink, Spacing, Position, and Transform control how it looks.</p>`);
             }
             case 'text': {
                 const gradientPreview = `linear-gradient(${packet.gradient.angle}deg, ${packet.gradient.stops.map((stop) => `${(0, color_1.colorWithAlpha)(stop.color, stop.alpha)} ${stop.position}%`).join(', ')})`;
@@ -12149,7 +12722,7 @@ class ThemeStudioUI {
                 const shadow = packet.shadow;
                 const outlineMode = packet.outlineMode ?? 'edge';
                 const summaryBits = [packet.colorMode === 'gradient' ? 'Gradient' : packet.solid.color, (packet.strokeWidth ?? 0) > 0 ? `${packet.strokeWidth}px ${outlineMode === 'outside' ? 'outside outline' : 'edge outline'}` : '', shadow ? 'shadow' : ''].filter(Boolean);
-                return this.packetShell(override, packet, 'Text Style', summaryBits.join(' · '), `${colorControls}<section class="ts-magic-effects"><div class="ts-field"><label class="ts-label">Outline <span>${packet.strokeWidth ?? 0}px</span></label><div class="ts-segment ts-segment-two"><button type="button" data-text-outline-mode="edge" aria-pressed="${outlineMode === 'edge'}">Edge</button><button type="button" data-text-outline-mode="outside" aria-pressed="${outlineMode === 'outside'}">Outside</button></div><p class="ts-note">Edge uses the browser’s glyph stroke. Outside builds a crisp shadow ring behind the glyph so thicker outlines do not eat into the fill.</p>${this.rangeField('Thickness', 'text-stroke-width', packet.strokeWidth ?? 0, 0, 8, 'px')}${(packet.strokeWidth ?? 0) > 0 ? this.colorField('Outline color', 'text-stroke', packet.strokeColor ?? '#000000', packet.strokeAlpha ?? 1) : ''}</div>${this.rangeField('Glow', 'text-glow-strength', shadow && Math.abs(shadow.x) < .001 && Math.abs(shadow.y) < .001 ? shadow.blur : 0, 0, 48, 'px')}</section><details class="ts-advanced"><summary>Shadow & glow · advanced</summary><label class="ts-check"><input type="checkbox" data-packet-field="text-shadow-enabled" ${shadow ? 'checked' : ''}> Add text shadow</label>${shadow ? `${this.rangeField('Horizontal', 'text-shadow-x', shadow.x, -50, 50, 'px')}${this.rangeField('Vertical', 'text-shadow-y', shadow.y, -50, 50, 'px')}${this.rangeField('Blur', 'text-shadow-blur', shadow.blur, 0, 80, 'px')}${this.colorField('Shadow color', 'text-shadow-color', shadow.color, shadow.alpha)}` : '<p class="ts-note">Turn this on for a custom shadow, glow, or halo.</p>'}</details>`);
+                return this.packetShell(override, packet, 'Ink', summaryBits.join(' · '), `${colorControls}<section class="ts-magic-effects"><div class="ts-field"><label class="ts-label">Outline <span>${packet.strokeWidth ?? 0}px</span></label><div class="ts-segment ts-segment-two"><button type="button" data-text-outline-mode="edge" aria-pressed="${outlineMode === 'edge'}">Edge</button><button type="button" data-text-outline-mode="outside" aria-pressed="${outlineMode === 'outside'}">Outside</button></div><p class="ts-note">Edge uses the browser’s glyph stroke. Outside builds a crisp shadow ring behind the glyph so thicker outlines do not eat into the fill.</p>${this.rangeField('Thickness', 'text-stroke-width', packet.strokeWidth ?? 0, 0, 8, 'px')}${(packet.strokeWidth ?? 0) > 0 ? this.colorField('Outline color', 'text-stroke', packet.strokeColor ?? '#000000', packet.strokeAlpha ?? 1) : ''}</div>${this.rangeField('Glow', 'text-glow-strength', shadow && Math.abs(shadow.x) < .001 && Math.abs(shadow.y) < .001 ? shadow.blur : 0, 0, 48, 'px')}</section><details class="ts-advanced"><summary>Shadow & glow · advanced</summary><label class="ts-check"><input type="checkbox" data-packet-field="text-shadow-enabled" ${shadow ? 'checked' : ''}> Add text shadow</label>${shadow ? `${this.rangeField('Horizontal', 'text-shadow-x', shadow.x, -50, 50, 'px')}${this.rangeField('Vertical', 'text-shadow-y', shadow.y, -50, 50, 'px')}${this.rangeField('Blur', 'text-shadow-blur', shadow.blur, 0, 80, 'px')}${this.colorField('Shadow color', 'text-shadow-color', shadow.color, shadow.alpha)}` : '<p class="ts-note">Turn this on for a custom shadow, glow, or halo.</p>'}</details>`);
             }
             case 'typography': {
                 const fontLabel = packet.fontFamily?.trim() || 'Native font';
@@ -13459,13 +14032,13 @@ class ThemeStudioUI {
         root.querySelectorAll('[data-image-quality]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'image' ? { ...packet, sourceQuality: button.dataset.imageQuality === 'full' ? 'full' : button.dataset.imageQuality === 'auto' ? 'auto' : 'native' } : packet)));
         root.querySelectorAll('[data-image-fit]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'image' ? { ...packet, objectFit: button.dataset.imageFit } : packet)));
         root.querySelectorAll('[data-image-mask-mode]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest('[data-packet-id]')?.dataset.packetId, (packet) => {
-            if (packet.type !== 'image')
+            if (packet.type !== 'mask')
                 return packet;
             const mode = button.dataset.imageMaskMode;
             return { ...packet, maskMode: mode, ...(mode === 'fade' && packet.fade.direction === 'none' ? { fade: { ...packet.fade, direction: 'bottom' } } : {}), ...(mode === 'custom' && !packet.customMask ? { customMask: defaultImageCustomMask() } : {}) };
         })));
-        root.querySelectorAll('[data-image-fade]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'image' ? { ...packet, maskMode: 'fade', fade: { ...packet.fade, direction: button.dataset.imageFade } } : packet)));
-        root.querySelectorAll('[data-image-mask-side]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'image' ? { ...packet, maskMode: 'custom', customMask: { ...(packet.customMask ?? defaultImageCustomMask()), horizontal: { ...(packet.customMask ?? defaultImageCustomMask()).horizontal, side: button.dataset.imageMaskSide === 'left' ? 'left' : 'right' } } } : packet)));
+        root.querySelectorAll('[data-image-fade]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'mask' ? { ...packet, maskMode: 'fade', fade: { ...packet.fade, direction: button.dataset.imageFade } } : packet)));
+        root.querySelectorAll('[data-image-mask-side]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'mask' ? { ...packet, maskMode: 'custom', customMask: { ...(packet.customMask ?? defaultImageCustomMask()), horizontal: { ...(packet.customMask ?? defaultImageCustomMask()).horizontal, side: button.dataset.imageMaskSide === 'left' ? 'left' : 'right' } } } : packet)));
         root.querySelectorAll('[data-placement-horizontal]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'placement' ? { ...packet, horizontal: button.dataset.placementHorizontal } : packet)));
         root.querySelectorAll('[data-placement-vertical]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'placement' ? { ...packet, vertical: button.dataset.placementVertical } : packet)));
         root.querySelectorAll('[data-layout-item-size]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'layout-item' ? { ...packet, sizeInParent: button.dataset.layoutItemSize } : packet)));
@@ -13772,6 +14345,8 @@ ${(0, compiler_1.compileComponentOverride)(draft, previewOptions)}`);
                 return { ...packet, objectPositionY: Math.max(0, Math.min(100, numeric())) };
             if (field === 'image-fill-frame')
                 return { ...packet, fillFrame: input.checked };
+        }
+        if (packet.type === 'mask') {
             if (field === 'image-fade-amount')
                 return { ...packet, maskMode: 'fade', fade: { ...packet.fade, amount: Math.max(1, Math.min(90, numeric())) } };
             const custom = packet.customMask ?? defaultImageCustomMask();
@@ -14930,8 +15505,8 @@ ${(0, compiler_1.compileComponentOverride)(draft, previewOptions)}`);
 }
 exports.ThemeStudioUI = ThemeStudioUI;
 
-};
-__modules["src/ui/styles"] = function(module,exports,__require){
+},
+"src/ui/styles.ts": function(module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.THEME_STUDIO_CSS = void 0;
@@ -17809,6 +18384,7 @@ exports.THEME_STUDIO_CSS = `
 .ts-preset-preview[data-preset-preview="editorial-roster"] .ts-preview-meta { display:none; }
 .ts-preset-preview[data-preset-preview="editorial-roster"] .ts-preview-line { display:none; }
 
+
 /* v28.52 · mobile workbench ------------------------------------------------
    Float keeps the same authoring surface on phones, but the chrome stops
    pretending it has desktop acreage. Density scales only the scroll body;
@@ -17960,475 +18536,44 @@ exports.THEME_STUDIO_CSS = `
 
 `;
 
-};
-__modules["src/ui/guide"] = function(module,exports,__require){
+},
+"src/utils/random-id.ts": function(module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.THEME_STUDIO_GUIDE = "# Palette\n\n> **Visual theme authoring for Lumiverse.** Pick the thing you mean, describe the visual intent, and Palette turns it into scoped, reusable CSS. Generated CSS is output; your semantic Palette project is the source of truth.\n\n**Palette 1.0.2 · schema v41**  \nRelease history lives in the project changelog; this page is the actual manual.\n\n**Jump to:** [Start here](#palette-guide-start) · [Pick & scope](#palette-guide-pick) · [Style packets](#palette-guide-packets) · [Groups](#palette-guide-groups) · [Read styles](#palette-guide-read) · [Reuse](#palette-guide-reuse) · [Boost](#palette-guide-boost) · [Widget & Code](#palette-guide-code) · [CSS field guide](#palette-guide-css) · [Debugging](#palette-guide-debug)\n\n## Start here\n\nPalette is easiest to understand as **visual DevTools with memory**. It knows enough about Lumiverse anatomy to avoid making you write selectors for normal work, but it never traps advanced users inside a black box.\n\n| Workspace | What it is for |\n| --- | --- |\n| **Design** | Pick a real mounted element and author semantic style packets. |\n| **Themes** | App-wide Boost, Typography, Quick Looks, pack workbenches, and theme projects. |\n| **Style Library** | Browse reusable looks and your cross-project **My Styles**. |\n| **Code** | Inspect compiler-owned CSS, add Custom CSS, and use native `.lumitheme` handoff. |\n\nA normal workflow is:\n\n1. Open **Design** and turn on **Pick**.\n2. Click the thing you actually want to change.\n3. Use the breadcrumb, **Edit Part**, or **Browse Inside** if Lumi wrapped your target in three divs and a trench coat.\n4. Add packets such as Background, Typography, Size, Image, or Position.\n5. Switch **Base / Mobile** or **Normal / Hover / Active / Focus / Disabled** when needed.\n6. Save the result as a **My Style**, keep building the current theme, or inspect the generated CSS in **Code**.\n\n> **Rule of thumb:** if you are reaching for Custom CSS during ordinary styling, first ask whether Palette already has a visual packet for that intent. The packet is safer, responsive, reusable, and pack-aware.\n\n## Pick & scope\n\n### Pick stays armed\n\nThe main Design picker stays active until **Done** or **Esc**. This makes it practical to inspect several nearby pieces without reopening the picker every time. The floating mini-widget uses a lighter one-shot picking flow so it does not become a tiny second DevTools.\n\nPalette separates four things that browsers often blur together:\n\n| Layer | Example | Why it matters |\n| --- | --- | --- |\n| **Clicked node** | the exact `<img>` under your cursor | What you physically picked. |\n| **DOM ladder** | Image → Avatar → Header Left → Header → Bubble | How the mounted tree is built. |\n| **Semantic owner** | BubbleMessage / Personas / InputArea | Which Lumiverse surface owns it. |\n| **Persistent scope** | Avatar in BubbleMessage | What future rerenders should keep styling. |\n\n### Edit Part vs Browse Inside\n\n**Edit Part** is the curated semantic map of useful parts for the current component. It is where you go when you know you want *Avatar*, *Meta Wrap*, *Actions*, *Message Content*, and similar authored pieces.\n\n**Browse Inside** follows the actual mounted subtree. Use it when the thing you need is deeper, conditional, or too weird to belong in the curated list.\n\nThey intentionally do not show the same list.\n\n### Dynamic labels and Use generic\n\nInteractive controls sometimes need their live `aria-label` or `title` to distinguish one mounted button from its siblings. Palette may therefore select something precise such as `button[aria-label=\"Copy\"]`. When the target panel offers **Use generic**, that is an explicit escape hatch to the reusable sibling selector (for example the whole Minimal action-button group). The switch is exact and keeps the current message side; it should not bounce back to the label-specific target.\n\nThis is useful when one button taught you the styling recipe but the intent is really “all buttons in this row.” Keep the precise target when the buttons genuinely need different appearances.\n\n### Stable selectors beat generated hashes\n\nPalette prefers public semantic boundaries such as:\n\n```css\n[data-component=\"BubbleMessage\"]\n[data-component=\"InputArea\"]\n[data-spindle-drawer-tab=\"personas\"]\n[data-composer-action=\"send\"]\n```\n\nThen it can narrow to a stable CSS-module family:\n\n```css\n[data-component=\"BubbleMessage\"] [class*=\"_avatar_\"]\n```\n\ninstead of persisting an exact generated class such as:\n\n```css\n._avatar_1hvlc_181\n```\n\nGenerated hashes can change. The family selector communicates the actual visual part.\n\n### Assistant, User, and Both\n\nMessage targets can be side-aware. When Lumi shares internal classes between both sides, Palette keeps the side discriminator in the selector instead of pretending one `_avatar_` means every avatar in civilization.\n\nTypical shapes:\n\n```css\n/* Assistant */\n[data-component=\"BubbleMessage\"]:not([data-part=\"user\"]) [class*=\"_avatar_\"]\n\n/* User */\n[data-component=\"BubbleMessage\"][data-part=\"user\"] [class*=\"_avatar_\"]\n```\n\nUse **Both** only when you actually want the same treatment on both speakers.\n\n### Surface means the real thing, not just its box\n\nMany Lumi parts have multiple useful surfaces:\n\n- Element\n- `::before` / Back layer\n- `::after` / Front layer\n- `::placeholder` when the mounted control actually has placeholder text\n\nGenerated surfaces are useful for labels, ornaments, stickers, frames, SVG stencils, and other decorative planes without inserting DOM.\n\n## Style packets\n\nPalette packets describe intent. You should not need to remember the CSS property names for ordinary work.\n\n| Packet | Think of it as | Common CSS underneath |\n| --- | --- | --- |\n| **Background** | paint the surface | `background`, gradients, images |\n| **Text Style** | text ink/effects | `color`, gradient text, stroke, shadow |\n| **Typography** | type structure | family, size, weight, line-height, spacing |\n| **Text Entry** | where typing starts + how it measures | textarea inset/metrics + synchronized autosize mirror + placeholder appearance |\n| **Border / Corners** | edge treatment | border longhands, radius |\n| **Spacing** | breathing room | padding + margin |\n| **Shadow / Glass** | depth/material | shadow, blur, backdrop-filter |\n| **Opacity** | fade the entire target | `opacity` |\n| **Container Layout** | arrange direct children | flex/grid, gap, distribute, align |\n| **Quick Align** | put this element where you mean | logical auto margins + safe self-alignment |\n| **Layout Item** | advanced behavior inside Flex/Grid | grow/shrink, order, self-alignment |\n| **Size** | fit, fill, or fix the box | width/height/min/max |\n| **Image** | crop and treat pixels | object-fit, object-position, filter, mask |\n| **Media Flow** | make prose/native media behave | natural height, unclipping, full-width flow |\n| **Position & Layer** | move/place/stack | translate, anchored position, sticky/fixed, z-index |\n| **Transform** | pose it | rotate, scale, skew |\n| **Background Image** | decorative image layer | background-image/position/size |\n| **Visibility** | visible / hidden / gone | visibility/display |\n| **Generated Content** | label a generated surface | CSS `content` on `::after` / explicit pseudo surfaces |\n| **SVG Asset** | reusable icon/ornament | sanitized project SVG stencil |\n\nColor-bearing packets always expose a real **Pick** swatch beside the editable color string. **Recents** are convenience history, not the only way to open a picker; pack-authored colors therefore remain editable even when they were never picked manually in the current project. Independent Corners are arranged spatially as top-left / top-right over bottom-left / bottom-right, matching the box you are actually shaping.\n\n### Text outlines: Edge vs Outside\n\n**Edge** uses the browser glyph stroke and is fast/clean for thin lettering. **Outside** is the \"do not eat my fill\" option: Palette manufactures a crisp ring of zero-blur text shadows behind the glyph and exposes it through the same Thickness / Color / Opacity controls. Your ordinary directional text shadow can still coexist with that outline.\n\n### Generated Content can mirror native labels\n\nGenerated Content can use a literal string, or mirror the owner's existing `title` / `aria-label` through CSS `attr(...)`. If you add it to a normal element, Palette automatically emits the content on that element's `::after` skin because Chromium does not reliably render `content` on ordinary elements. If you explicitly selected Back/Front, Palette keeps that pseudo-surface. This is useful for skins that replace a native icon with text while keeping the actual button as the semantic/layout target.\n\nPseudo-elements are generated surfaces, not DOM siblings. If several labeled buttons need even distribution, group/style the **real buttons** and use their `::before`/`::after` only as visual skins.\n\n### Quick Align: say where, not how\n\nUse **Quick Align** when your intent is simply “put this on the left / center / right” (or the vertical equivalent). Palette resolves that intent through layout-safe CSS instead of making you memorize when `align-self`, `justify-self`, or auto margins happen to work.\n\nFor ordinary horizontal placement, Palette uses logical auto margins and `fit-content`, so it works in normal block flow as well as common Flex/Grid contexts:\n\n```css\n/* Right */\nwidth: fit-content;\nmargin-inline-start: auto;\nmargin-inline-end: 0;\n```\n\nAn explicit **Size** packet still wins if you deliberately set Width, so Quick Align does not silently undo authored sizing. Vertical placement can use Flex/Grid alignment when that layout exists; Palette warns when a plain block parent has no free vertical space to distribute. Use **Position & Layer** when you need a pinned top/bottom relationship instead.\n\n**Quick Align** is the friendly placement primitive. **Layout Item** remains the advanced control for grow/shrink/order and raw Flex/Grid self-alignment.\n\n### Spacing: simple first, per-side when you need it\n\nSpacing keeps **Padding** and **Margin** as fast linked sliders for normal work. Open **Advanced padding** or **Advanced margin** directly underneath when one side needs a different value; Palette exposes Top / Right / Bottom / Left there and leaves the other sides alone. Moving the main slider afterward deliberately links all four sides again. Negative values are allowed for margin, not padding.\n\n### Text Entry: move the typing origin honestly\n\nUse **Text Entry** on the mounted composer textarea when the intent is simply “typing should begin here.” Horizontal/vertical inset moves entered text and the placeholder together, while font metrics stay synchronized with Lumiverse's hidden textarea mirror so auto-height measurement does not drift.\n\nPalette deliberately keeps two responsibilities separate:\n\n- **Text inset + metrics** belong to the textarea and its hidden autosize mirror.\n- **Placeholder appearance** (ink, opacity, italic/weight) belongs only to `textarea::placeholder`.\n\nThat means Palette does **not** fake placeholder placement with transforms or pseudo positioning. If the placeholder is annoyingly glued to the upper-left corner, change Text Entry inset; the real typed text will start in the same honest place.\n\n### Size: Fit, Fill, Fixed\n\nUse **Fit** when the box should hug its content. Use **Fill** when it should claim the available space. Use **Fixed** when you really want a number.\n\nIf Fill appears not to fill anything, inspect the parent. A flex/grid child can only fill the space its parent actually gives it.\n\n### Position: Nudge vs Anchored\n\n**Nudge** is visual movement that keeps the native layout contract intact. It compiles as translation and is excellent for “this is correct, just 12px too high.”\n\n**Anchored** means Palette owns the positioning relationship: top/right/bottom/left relative to a chosen containing block.\n\nUse Nudge when Lumi already knows where an element belongs. Use Anchored when you are intentionally building a new composition.\n\n### Image: wrapper vs image\n\nThis distinction saves hours.\n\n```css\n/* Avatar frame / wrapper */\n[data-component=\"BubbleMessage\"] [class*=\"_avatar_\"]\n\n/* Pixels inside that frame */\n[data-component=\"BubbleMessage\"] [class*=\"_avatar_\"] img\n\n/* Large native ghost/backdrop image — different target */\n[data-component=\"BubbleMessage\"] [class*=\"_avatarBgImg_\"]\n```\n\nResize the wrapper when you need a larger stage. Use **Image → Move inside frame** when the frame is correct and only the crop/focal point is wrong.\n\n### Media Flow\n\nLumiverse prose images and native attachments are not the same DOM species. Palette treats both lanes deliberately:\n\n**Markdown/XML lane**  \nimage paragraph → linked/span wrapper → image\n\n**Native attachment lane**  \nattachments → inline image button → inline image frame → inline image\n\nUse **Full width** or **Unclipped** when native thumbnail chrome is fighting an authored reading layout. Do not solve every media problem with a global `img { width:100% }` missile.\n\n### Guides\n\n**Guides → Smart** follows the active packet:\n\n- Spacing → box model\n- Size → dimensions + containing block\n- Layout → flex/grid geometry\n- Quick Align / Layout Item → target + layout parent\n- Position → placement/anchor relationship\n- Image → crop/focal frame\n- Background/Text/Shadow → lightweight outline\n\nIf a tiny text node has no useful box of its own, inspect its meaningful wrapper or parent boundary instead of assuming the guide is broken.\n\n## Groups\n\n**Group** is for several real siblings that should behave as one authored composition. Palette does **not** reparent React DOM and does not invent wrappers.\n\nGroup mode now has two ways to select members:\n\n- **Visual:** click siblings on the page.\n- **Structural:** retarget a picked member through nearby DOM levels, then use **Add sibling** once Palette knows the shared parent.\n\nThis is specifically useful for Lumi's favorite anatomy:\n\n```text\nrow\n└─ wrapper\n   └─ inner wrapper\n      └─ actual control\n```\n\nA valid saved group requires one real shared direct parent. Palette can temporarily let draft members sit at different depths while you line them up, but **Create group** stays disabled until the structural relationship is safe.\n\nA Layout Group has four jobs:\n\n| Tab | Purpose |\n| --- | --- |\n| **Layout** | Row / Column / Grid, columns, gap, responsive behavior. |\n| **Members** | Shared packets on the member roots. |\n| **Contents** | Shared descendant treatment for icons, text, buttons, or images. |\n| **Frame** | One generated visual plane behind the group using the real parent. |\n\nUnsafe cases reject instead of generating nth-child spaghetti: different parents, ancestor/descendant members, or selectors that cannot be distinguished safely.\n\n## Read styles\n\n### Read Style\n\n**Read Style** reverse-engineers the selected target into familiar Palette controls.\n\nThe important contract is **Read is inspection; editing is capture**.\n\nObserved values can appear in the controls without becoming project state. Palette only materializes the semantic operation you actually change. If you inspect a heading and only change its font size, Palette should not suddenly claim its native border, margin, color, shadow, and seventeen inherited properties.\n\n### Read Page\n\n**Read Page** is the larger map. It inventories mounted, visibly styled targets by semantic surface and lets you inspect where a result came from before deciding to edit it.\n\nUse the search box for things like:\n\n```text\nheading\nbutton\nInputArea\navatar\n::before\n```\n\nSource information is diagnostic context; the semantic target is the star. Click a target to inspect/capture it rather than translating an entire foreign stylesheet into semantic oatmeal at once.\n\n## Reuse\n\nPalette has three different reuse layers because they solve different jobs.\n\n### Quick Looks\n\nQuick Looks are curated starter recipes. **Apply** merges the packet types the recipe owns. The pencil applies it and opens the result in Design. Reset only peels that recipe layer back off.\n\n### My Styles\n\nMy Styles are your reusable semantic styling, stored above individual theme projects.\n\n| Save mode | Captures |\n| --- | --- |\n| **This target** | current target + decorative surfaces |\n| **This component** | authored styling under the current semantic component |\n| **Choose parts…** | any checked multi-component combination as a Bundle |\n\nApplying a My Style merges packet types. If the destination already has Border + Shadow and your saved style contains Background + Typography, the unrelated Border + Shadow survive.\n\nStable targets do not need to be mounted at apply time to remain reusable.\n\n### Library cards show what they touch\n\nPreview art is only a visual hint. Reusable recipe cards also show their **Component** and **Affects** summaries so you can tell “action row” from “content frame” before Apply, Edit, or Reset. Do not rely on preview silhouettes as semantic names.\n\n### Packs\n\nPacks are curated compositions built from the same semantic engine as Design: targets, packets, Base/Mobile, groups, media policy, asset slots, and provenance.\n\n**Apply pack** should never mean “paste a giant CSS blob.” After applying a pack, every owned piece remains editable through ordinary Design controls.\n\n**Reset pack** removes the pack's layers and reveals whatever was underneath. Manual styling and other packs remain unless that reset actually owns them.\n\n#### Bubble and Minimal are recipe families, not one selector missile\n\nA pack can support **BubbleMessage**, **MinimalMessage**, or both, but renderer-specific choreography stays renderer-specific. A Minimal portrait/actions/thinking recipe targets Minimal only; its Bubble counterpart targets Bubble only. Choosing/applying **Both** installs both families so switching Lumiverse's message renderer reveals the already-authored matching composition.\n\nOnly genuinely renderer-independent targets such as `MessageContent` prose, exact semantic controls, or other shared surfaces should be authored once for both layouts. \"Same aesthetic\" does not require \"same recipe.\"\n\n## Boost\n\nApp-wide controls are split by what they actually depend on.\n\n### Boost\n\nBoost transforms Lumiverse's native variable map. **Colors** is the main recolor layer; **Backdrop** lives inside Boost because wallpaper/canvas treatment participates in that same transformed world.\n\nThe source flow is intentionally one-way:\n\n```text\nLumiverse canonical generated variables\n        ↓\nPalette transform\n        ↓\nPresented app variables\n```\n\nPalette should never recursively recolor its already transformed root output.\n\n### Typography\n\nTypography is standalone. You can change global font family/scale without enabling palette recoloring.\n\nThis is a valid configuration:\n\n```text\nBoost colors: OFF\nBackdrop:     OFF\nTypography:   ON\n```\n\n### Acceptance-test nonsense that is actually useful\n\nIf you are developing Palette itself:\n\n- **Blood Mode** — absurd red anchors; catches untransformed surfaces.\n- **Pinkpocalypse** — absurd pink; catches old complex gradient values.\n- Typography-only — catches accidental palette coupling.\n- Wallpaper test — catches backdrop layers that remain hidden under a wash.\n\n## Widget & Code\n\n### Floating mini-widget\n\nThe widget is a utility cockpit, not a second full editor:\n\n- Pick\n- Guides\n- Zap\n- Code/selector peek\n- Float/dock\n\nDesktop: right-click the collapsed widget for its context menu.  \nTouch: long-press it.  \n**Hide mini widget** is reversible from Palette's sidebar/workbar control.\n\nOn phones the floating editor can attach to the top or bottom edge; the resize handle follows the anchored edge. Mobile Float also has a **density** control that cycles **100% → 80% → 60% → 100%**. Density applies only to the scrolling inspector body, so the workspace tabs, Pick/Guides workbar, edge control, Minimize, and Close remain full-size touch targets.\n\nThe mobile inspector keeps narrow empty gutters on both sides of its scroll body. Those gutters are intentional touch-safe vertical pan lanes: if a packet is mostly sliders, drag the gutter instead of negotiating with a range thumb. Palette also pins its own mobile control typography/height so the active Lumiverse theme cannot make editor dropdown labels oversized or clipped.\n\n### Generated CSS vs Custom CSS\n\n**Generated CSS** is compiler-owned and read-only. It exists so advanced users can inspect exactly what Palette emitted.\n\n**Custom CSS** is your deliberate escape hatch. It stays separate from semantic project state.\n\nDo not treat generated CSS as persistence input. Palette should regenerate it deterministically from semantic state.\n\n### Native handoff and assets\n\nThe Code workspace can send/export the current work through Lumiverse's native theme bridge and import compatible `.lumitheme` data.\n\nNative Theme Assets are project-owned. Palette stores canonical `./assets/...` references so an exported native theme does not depend on a temporary browser URL. Images can be optimized, and font assets can be registered into the Typography browser.\n\nSVG imports are sanitized before entering the project wardrobe. XML declarations and harmless old exporter wrappers can be cleaned, but scripts/events/remote-content are not treated as decoration.\n\n## CSS field guide\n\nPalette is designed so you do not *need* CSS, but knowing a few patterns makes debugging and Custom CSS dramatically easier.\n\n### 1. Scope before specificity\n\nPrefer a meaningful owner plus a stable part:\n\n```css\n[data-component=\"BubbleMessage\"] [class*=\"_nameChar_\"] {\n  color: white;\n}\n```\n\nover a naked reusable family:\n\n```css\n[class*=\"_nameChar_\"] {\n  color: white;\n}\n```\n\nThe second rule may style another component that happens to reuse the same local class word.\n\n### 2. `:where()` makes strong-looking selectors easier to override\n\nPalette often wraps authored selectors in `:where(...)` so the structural scope itself contributes zero specificity while Palette controls authority deliberately:\n\n```css\n:where([data-component=\"BubbleMessage\"] [class*=\"_avatar_\"] img) {\n  object-fit: cover;\n}\n```\n\nThis is different from solving everything by piling on more IDs/classes.\n\n### 3. `!important` is not automatically evil\n\nA visual theme editor sometimes has to beat native component CSS. The real sin is using `!important` without correct scope.\n\nGood:\n\n```css\n[data-component=\"InputArea\"] [data-composer-action=\"send\"] button {\n  color: white !important;\n}\n```\n\nBad:\n\n```css\nbutton {\n  color: white !important;\n}\n```\n\n### 4. Flex and Grid: style the parent to arrange children\n\nIf you want siblings to become columns, the important rule usually belongs to their parent:\n\n```css\n.parent {\n  display: grid;\n  grid-template-columns: repeat(2, minmax(0, 1fr));\n  gap: 8px;\n}\n```\n\nA child cannot make its siblings become a grid by itself. Layout Item therefore warns when the actual parent is not a layout container. If your actual intent is only left / center / right placement, use Quick Align instead; it is designed to work in ordinary block flow too.\n\n### 5. `width:100%` only means 100% of the available containing width\n\nIf a child still looks tiny after `width:100%`, inspect the parent chain. A 100%-wide child inside a 112px wrapper is still 112px.\n\nUseful debugging sequence:\n\n```text\nTarget width\n→ parent width\n→ parent display/layout\n→ min/max constraints\n→ overflow/clipping\n```\n\n### 6. Move the image *inside* the frame with `object-position`\n\nFor cropped images:\n\n```css\n.avatar img {\n  width: 100%;\n  height: 100%;\n  object-fit: cover;\n  object-position: 50% 28%;\n}\n```\n\nChanging `object-position` moves the focal point inside the existing frame. Translating `.avatar` moves the whole frame instead.\n\n### 7. Fades are masks, not opacity gradients\n\nA common portrait fade:\n\n```css\n.avatar img {\n  -webkit-mask-image: linear-gradient(\n    to bottom,\n    #000 0%,\n    #000 68%,\n    transparent 100%\n  );\n  mask-image: linear-gradient(\n    to bottom,\n    #000 0%,\n    #000 68%,\n    transparent 100%\n  );\n}\n```\n\nIf native Lumi already applies a mask and you want the full image, explicitly clear it:\n\n```css\nmask-image: none;\n-webkit-mask-image: none;\n```\n\n### 8. Pseudo-elements need `content`\n\nA `::before` or `::after` does not exist visually until content is generated:\n\n```css\n.target::before {\n  content: \"\";\n  position: absolute;\n  inset: 0;\n  pointer-events: none;\n}\n```\n\nFor a host-local decorative back plane, the host usually needs a positioning context:\n\n```css\n.target {\n  position: relative;\n  isolation: isolate;\n}\n```\n\nPalette adds isolation automatically when one of its generated pseudo surfaces uses a custom negative z-index.\n\n### 9. Nudge is safer than re-owning native positioning\n\nIf Lumi already has a correct absolute/sticky/flow relationship and you only need a visual adjustment:\n\n```css\n.target {\n  translate: 0 -12px;\n}\n```\n\nis often safer than changing `position`, `top`, and `left` just to move it twelve pixels.\n\n### 10. Mobile deltas should override only what changes\n\n```css\n.target {\n  font-size: 30px;\n  translate: 0 -40px;\n}\n\n@media (max-width: 720px) {\n  .target {\n    font-size: 22px;\n  }\n}\n```\n\nIf the mobile composition should keep the Base Nudge, do not unnecessarily re-author positioning. If you need to cancel the Base movement, explicitly set the mobile translation back to zero.\n\n### 11. Composer actions have stable identities\n\nPrefer the stable wrappers on current Lumiverse:\n\n```css\n[data-component=\"InputArea\"]\n[data-composer-action=\"persona\"]\n[data-toolbar-action=\"persona\"] {\n  /* persona action */\n}\n```\n\nThe Spindle `chat_toolbar` mount is a separate extension toolbar. Do not confuse it with native composer actions just because they appear beside each other.\n\nThe current native typing lane is also intentionally split into stable semantic parts:\n\n```css\n[data-component=\"InputArea\"] textarea[name=\"chat-message\"]\n[data-component=\"InputArea\"] [class*=\"_textareaMirror_\"]\n[data-component=\"InputArea\"] [class*=\"_sendBtnShell_\"]\n```\n\nThe textarea mirror is measurement infrastructure, not a second visible text box. Let **Text Entry** synchronize its metrics instead of styling the mirror independently.\n\n### 12. CSS variables are the app-wide language\n\nLumiverse theme variables look like:\n\n```css\n:root {\n  --lumiverse-bg: #111;\n  --lumiverse-text: #f7f2fa;\n  --lumiverse-primary: #b78cff;\n  --lumiverse-card-bg: linear-gradient(...);\n}\n```\n\nBoost transforms the canonical variable map rather than hue-rotating the rendered app. That is why images/media can remain intact while the UI changes palette.\n\n### 13. A few useful selector recipes\n\n```css\n/* Assistant message only */\n[data-component=\"BubbleMessage\"]:not([data-part=\"user\"]) { }\n\n/* User message only */\n[data-component=\"BubbleMessage\"][data-part=\"user\"] { }\n\n/* Message prose */\n[data-component=\"BubbleMessage\"] [data-component=\"MessageContent\"] { }\n\n/* H2 inside message prose */\n[data-component=\"MessageContent\"] h2 { }\n\n/* Persona drawer surface */\n[data-spindle-drawer-tab=\"personas\"] { }\n\n/* Native send action */\n[data-component=\"InputArea\"] [data-composer-action=\"send\"] { }\n\n/* Only paragraphs that contain an image */\n[data-component=\"MessageContent\"] p:has(img) { }\n```\n\n### 14. Full-width prose image without stretching its aspect ratio\n\n```css\n[data-component=\"MessageContent\"] p:has(img) {\n  width: 100%;\n  max-width: 100%;\n  margin: 14px 0 22px;\n  text-align: center;\n}\n\n[data-component=\"MessageContent\"] img {\n  display: block;\n  width: 100%;\n  max-width: 100%;\n  height: auto;\n  margin-inline: auto;\n  object-fit: contain;\n}\n```\n\nFor native Lumi attachments, use Palette's **Media Flow** rather than assuming this raw prose selector also owns the attachment button/frame wrappers.\n\n## Debugging\n\nWhen something “does nothing,” check these before inventing new infrastructure:\n\n| Symptom | First thing to inspect |\n| --- | --- |\n| Border is mysteriously invisible | color alpha / opacity is not literally 0%. Yes, this happened. |\n| `width:100%` is still tiny | containing parent width + max-width. |\n| Element will not move as expected | native `position`/inset contract; try Nudge. |\n| Image crop is wrong | wrapper size vs image `object-position`. |\n| Mobile layer vanished | native `display:none` can defeat mere `visibility:visible`. |\n| Style leaks to unrelated UI | selector lost its semantic owner/context. |\n| Read Style created too much CSS | observed values should stay unowned until edited. |\n| Pack reset resurrects something deleted | provenance/ownership detach is wrong. |\n| `::after` decoration sits on top instead of bottom | mobile override accidentally reset Base positioning. |\n| Composer selector broke after upstream change | use stable `data-composer-action` / `data-toolbar-action` identity. |\n\nA good escalation order is:\n\n1. Check the actual authored packet values.\n2. Check the mounted target and parent geometry.\n3. Inspect the generated selector in **Code**.\n4. Use browser DevTools to inspect the winning declaration/cascade.\n5. Only then decide whether Palette is missing a primitive or selector boundary.\n\n> **Mounted visual truth wins.** A mathematically elegant selector or positioning scheme that does not match the real screen is still wrong.\n\n## Credits\n\nPalette drawer icon: **paintbrush by Alum Design (CC BY 3.0)**.  \nPalette is built as a Lumiverse Spindle extension and intentionally keeps its internal `theme_studio` identity stable for persistence/runtime compatibility.\n\n\n### Editorial left proof rail\n\nReader Correspondence intentionally replaces native Minimal user-side rail distribution with its own left editorial proof rail. The frame owns the real 106px rail reservation and switches to ordinary block flow so the host flex row cannot keep a ghost lane after the avatar/actions are anchored out of flow. The header stays padding-free, while portrait and proofmark actions share the same rail axis.\n\nOn mobile the desktop proof rail is released, but the portrait is still anchored against the card so it does not consume a separate row. The compact byline reserves only the portrait width, which keeps name + metadata beside the image while prose and proofmark actions continue in ordinary full-width flow below. Editorial assistant mobile uses the same principle: portrait + byline at the top, actions released to the bottom instead of occupying the native right-side action lane. The generic Minimal actions overlay must materialize before Editorial's Author Rail so the phone-only flow reset wins the pack cascade. SwipeControls use their own button/counter semantic subroles; flatten those native controls directly instead of compensating around the outer pager shell.\n\n### Editorial Contributors kicker\n\nThe Contributors masthead uses `chat.roster.bar::before` as a generated publication kicker. The host roster can carry its own pseudo positioning, so Editorial explicitly resets that surface to normal flow, zeros inherited pseudo padding, gives it a compact fixed footprint, and centers it as a non-shrinking flex item before the contributor cards. Do not compensate for overlap by moving the member cards themselves.\n\n\n### Editorial reasoning marginalia\n\nEditorial reasoning deliberately avoids the native full-width outlined lane. Both BubbleMessage and MinimalMessage use the same publication language: a transparent shell, a narrow cool-slate marginal rule/wash, small Georgia italic live duration text, and a restrained serif body when expanded. Desktop reasoning is constrained to the reading column; mobile releases it to full width rather than preserving a percentage lane.\n\nCurrent Lumiverse mounts `button[data-reasoning-toggle=\"true\"]` as both the reasoning header and the toggle surface. Keep the header responsible for chrome and the toggle role responsible for ink only. If both roles author background/border, the later toggle packet can erase the header treatment even though Palette appears to have styled both correctly.\n\n\n### Visual Novel Minimal: classic dialogue stage, not Editorial-with-neon\n\nVisual Novel deliberately uses two renderer grammars. **BubbleMessage is the active cinematic scene**: large scene choreography, choice windows, route HUD, and more theatrical game chrome belong there. **MinimalMessage is the compact classic VN dialogue stage**: centered landscape portrait, fading character banner, a game-like gradient speaker plate, translucent/double-line patterned dialogue frame, and authored VN furniture. The assistant action group may use stacked text plates while mobile releases it back into compact flow; Greetings can become a narrow status bar below dialogue rather than a generic pill. Do not collapse Minimal back into an Editorial author column or a smaller Bubble card stack.\n\nThe Minimal root intentionally owns generated scene decoration. `minimal.decorative-rail.assistant` / `.user` target the message `::before` surface as a fading banner behind the centered portrait and name plate; the side-specific corner-ornament roles use `::after` for restrained VN embellishment. Because that `::before` is authored content, the Visual Novel pack must **not** apply `minimal-native-strip-off`.\n\nIdentity lives above the dialogue frame rather than inside an opaque header card. The header itself stays transparent and centered; the speaker name becomes a gradient plate while desktop metadata remains in ordinary header flow so long dialogue cannot drag the pill into the middle of the response. Mobile may deliberately anchor the compact metadata back near the portrait. Greetings is flattened into a narrow status bar below the dialogue frame instead of competing with the portrait.\n\nAfter mounted QA, the player side now **transposes the same stage geometry** instead of shrinking into a separate card grammar: both sides share the 92% stage, centered landscape portrait, 76% transparent identity lane, and broad double-line dialogue window, with assistant blue/lilac and player rose route families carrying the side distinction. Desktop actions use the same stacked text-command grammar on both sides; mobile releases both into compact wrapped flow.\n\nReasoning is an **Inner Voice plate** beneath the name and slightly over the dialogue frame. Message actions are text-first VN controls generated over the real native buttons, including dedicated static roles for Edit, Copy, Hide, Anchor, Fork, Prompt, and Delete. Native SVGs are hidden without replacing the click targets. The omitted-action fallback must exclude every named action, including Copy.\n\nSwipe navigation belongs at the **bottom-left** as compact route furniture in normal flow. `minimal.swipes.previous` and `.next` replace native chevrons with maskable built-in arrow SVGs; `minimal.swipes.counter` owns the route count; `minimal.swipes.ornament` supplies a small decorative flower. Keeping the pager in flow prevents long messages from separating the controls from the actual dialogue footer. The long-message toggle is also scoped under Minimal so it cannot inherit Bubble's serif/purple continuation chrome.\n\nTypography remains renderer-specific. Bubble VN keeps its cinematic serif language. Minimal dialogue/body copy uses compact UI sans and mono metadata through `minimal.prose.*`, applied after shared `visual-novel-prose`, so fresh Apply All preserves the renderer split. These VN roles are static DOM anatomy and do not require a schema bump; current project/state schema remains **v41**.\n";
-
-};
-__modules["src/preview/image-source-runtime"] = function(module,exports,__require){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ImageSourceRuntime = void 0;
-exports.deriveImageSourceTier = deriveImageSourceTier;
-exports.deriveFullImageSource = deriveFullImageSource;
-const model_1 = __require("src/project/model");
-const compiler_1 = __require("src/compiler/compiler");
-function serializeLikeInput(url, input) {
-    if (/^[a-z][a-z0-9+.-]*:/i.test(input) || input.startsWith('//'))
-        return url.href;
-    return `${url.pathname}${url.search}${url.hash}`;
-}
-function parsedSupportedSource(input, base = typeof location !== 'undefined' ? location.href : 'http://localhost/') {
-    const trimmed = input.trim();
-    if (!trimmed || /^(?:data:|blob:)/i.test(trimmed))
-        return null;
-    let url;
-    try {
-        url = new URL(trimmed, base);
-    }
-    catch {
-        return null;
-    }
-    const avatarRoute = /^\/api\/v1\/(?:characters|personas)\/[^/]+\/avatar\/?$/i.test(url.pathname);
-    const directImageRoute = /^\/api\/v1\/images\/[^/]+\/?$/i.test(url.pathname);
-    if (avatarRoute || directImageRoute) {
-        const rawTier = url.searchParams.get('size');
-        const tier = rawTier === 'sm' || rawTier === 'lg' ? rawTier : 'full';
-        return { url, input: trimmed, tier, directPath: url.pathname.replace(/\/$/, '') };
-    }
-    const thumbnailPath = url.pathname.match(/^(\/api\/v1\/images\/[^/]+)\/(?:thumbnail|thumb)(?:\/(sm|lg))?\/?$/i);
-    if (!thumbnailPath)
-        return null;
-    const queryTier = url.searchParams.get('size');
-    const pathTier = thumbnailPath[2]?.toLowerCase();
-    const tier = queryTier === 'sm' || queryTier === 'lg' ? queryTier : pathTier === 'sm' || pathTier === 'lg' ? pathTier : 'lg';
-    return { url, input: trimmed, tier, directPath: thumbnailPath[1] };
-}
+exports.portableRandomUUID = portableRandomUUID;
 /**
- * Resolve a supported Lumiverse avatar/image source to a requested tier. `full`
- * means the original resolver (no size query). Unknown URLs are deliberately left
- * alone rather than guessing at application data.
+ * Return an RFC 4122 v4-style UUID without requiring a secure context.
+ *
+ * `crypto.randomUUID()` is secure-context-only in browsers, which means a
+ * perfectly valid Lumiverse session opened over a plain HTTP LAN/Tailscale
+ * address can have `crypto.getRandomValues()` but no `crypto.randomUUID()`.
+ * Palette must still be able to boot and persist projects there.
  */
-function deriveImageSourceTier(input, tier, base = typeof location !== 'undefined' ? location.href : 'http://localhost/') {
-    const parsed = parsedSupportedSource(input, base);
-    if (!parsed)
-        return null;
-    parsed.url.pathname = parsed.directPath;
-    if (tier === 'full')
-        parsed.url.searchParams.delete('size');
-    else
-        parsed.url.searchParams.set('size', tier);
-    return serializeLikeInput(parsed.url, parsed.input);
-}
-/** Convert Lumiverse's known avatar/image thumbnail routes to their full resolver. */
-function deriveFullImageSource(input, base = typeof location !== 'undefined' ? location.href : 'http://localhost/') {
-    const parsed = parsedSupportedSource(input, base);
-    if (!parsed || parsed.tier === 'full')
-        return null;
-    return deriveImageSourceTier(input, 'full', base);
-}
-function imageSourcePackets(override, mobile) {
-    const packets = [];
-    const add = (items) => {
-        for (const packet of items ?? []) {
-            if (packet?.type !== 'image')
-                continue;
-            const quality = packet.sourceQuality ?? 'native';
-            if (quality === 'auto' || quality === 'full')
-                packets.push(packet);
-        }
-    };
-    for (const state of model_1.STYLE_STATES)
-        add(override.states[state]);
-    if (mobile)
-        for (const state of model_1.STYLE_STATES)
-            add(override.mobileStates?.[state]);
-    return packets;
-}
-function activeImageSourceTargets(project) {
-    const mobile = typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 720px)').matches;
-    const result = [];
-    for (const override of project.componentOverrides) {
-        if (/::(?:before|after)\s*$/i.test(override.target.selector))
-            continue;
-        const packets = imageSourcePackets(override, mobile);
-        if (!packets.length)
-            continue;
-        const selector = (0, compiler_1.compileSafeTargetSelector)(override.target);
-        if (!selector)
-            continue;
-        result.push({ selector, quality: packets.some((packet) => packet.sourceQuality === 'full') ? 'full' : 'auto' });
+function portableRandomUUID() {
+    const cryptoApi = globalThis.crypto;
+    if (cryptoApi && typeof cryptoApi.randomUUID === 'function')
+        return cryptoApi.randomUUID();
+    const bytes = new Uint8Array(16);
+    if (cryptoApi && typeof cryptoApi.getRandomValues === 'function') {
+        cryptoApi.getRandomValues(bytes);
     }
-    return result;
-}
-function imagesForSelector(selector) {
-    try {
-        const result = new Set();
-        for (const element of document.querySelectorAll(selector)) {
-            if (element instanceof HTMLImageElement)
-                result.add(element);
-            else
-                for (const image of element.querySelectorAll('img'))
-                    result.add(image);
-        }
-        return [...result];
+    else {
+        // Last-ditch compatibility fallback. IDs here are local correlation keys,
+        // not secrets; modern browsers should take the getRandomValues branch.
+        for (let index = 0; index < bytes.length; index += 1)
+            bytes[index] = Math.floor(Math.random() * 256);
     }
-    catch {
-        return [];
-    }
-}
-function tierRank(tier) { return tier === 'sm' ? 0 : tier === 'lg' ? 1 : 2; }
-function nextTier(tier) { return tier === 'sm' ? 'lg' : 'full'; }
-function effectivePixelScale() {
-    const dpr = typeof window !== 'undefined' && Number.isFinite(window.devicePixelRatio) ? window.devicePixelRatio : 1;
-    // Auto aims for a clean UI image, not maximum-density art. A capped DPR keeps
-    // large list surfaces from immediately promoting every thumbnail to original.
-    return Math.min(1.35, Math.max(1, dpr)) * 1.05;
-}
-function imageNeedsMorePixels(image) {
-    if (!image.naturalWidth || !image.naturalHeight)
-        return false;
-    const rect = image.getBoundingClientRect();
-    if (rect.width <= 1 || rect.height <= 1)
-        return false;
-    const scale = effectivePixelScale();
-    return image.naturalWidth + 2 < rect.width * scale || image.naturalHeight + 2 < rect.height * scale;
-}
-/**
- * Small DOM-mutation bridge for presentation-only properties React does not expose
- * through CSS. It never replaces components or owns application state. Full always
- * requests the original image. Auto begins with Lumiverse's native tier and only
- * promotes sm -> lg -> original when the mounted surface actually outruns the
- * currently loaded pixels. Auto never downshifts during a mounted session, avoiding
- * source churn while a Size slider is moving.
- */
-class ImageSourceRuntime {
-    store;
-    tracked = new Map();
-    unsubscribe;
-    observer;
-    resizeObserver;
-    queued = false;
-    destroyed = false;
-    onImageLoad = (event) => {
-        if (!(event.target instanceof HTMLImageElement))
-            return;
-        const state = this.tracked.get(event.target);
-        if (!state)
-            return;
-        if (state.awaitingSource === (event.target.getAttribute('src') ?? ''))
-            state.awaitingSource = undefined;
-        this.queueSync();
-    };
-    constructor(store) {
-        this.store = store;
-        this.unsubscribe = store.subscribe(() => this.queueSync());
-        this.observer = new MutationObserver(() => this.queueSync());
-        this.observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['src', 'srcset'] });
-        this.resizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(() => this.queueSync()) : undefined;
-        document.addEventListener('load', this.onImageLoad, true);
-        this.sync();
-    }
-    queueSync() {
-        if (this.destroyed || this.queued)
-            return;
-        this.queued = true;
-        queueMicrotask(() => { this.queued = false; if (!this.destroyed)
-            this.sync(); });
-    }
-    stateFor(image, mode) {
-        const currentSrc = image.getAttribute('src') ?? '';
-        const currentSrcset = image.getAttribute('srcset');
-        let state = this.tracked.get(image);
-        if (!state) {
-            state = { nativeSrc: currentSrc, nativeSrcset: currentSrcset, appliedSrc: '', appliedSrcset: currentSrcset, mode };
-            this.tracked.set(image, state);
-            this.resizeObserver?.observe(image);
-        }
-        else {
-            if (currentSrc !== state.appliedSrc)
-                state.nativeSrc = currentSrc;
-            if (currentSrcset !== state.appliedSrcset)
-                state.nativeSrcset = currentSrcset;
-            if (state.mode !== mode) {
-                // An explicit Native/Auto/Full mode change is allowed to choose a new tier;
-                // automatic resizing inside Auto only moves upward from there.
-                state.mode = mode;
-                state.tier = undefined;
-            }
-        }
-        return state;
-    }
-    applySource(image, state, source) {
-        const changed = image.getAttribute('src') !== source;
-        if (changed)
-            image.setAttribute('src', source);
-        // A thumbnail srcset can override src during candidate selection. Controlled
-        // modes temporarily remove it, then restore the latest native value on exit.
-        if (image.hasAttribute('srcset'))
-            image.removeAttribute('srcset');
-        state.appliedSrc = source;
-        state.appliedSrcset = null;
-        state.awaitingSource = changed ? source : undefined;
-    }
-    applyFull(image) {
-        const state = this.stateFor(image, 'full');
-        const parsed = parsedSupportedSource(state.nativeSrc);
-        if (!parsed) {
-            state.appliedSrc = image.getAttribute('src') ?? '';
-            state.appliedSrcset = image.getAttribute('srcset');
-            return;
-        }
-        const full = deriveImageSourceTier(state.nativeSrc, 'full');
-        if (!full)
-            return;
-        state.tier = 'full';
-        this.applySource(image, state, full);
-    }
-    applyAuto(image) {
-        const state = this.stateFor(image, 'auto');
-        const parsed = parsedSupportedSource(state.nativeSrc);
-        if (!parsed) {
-            state.appliedSrc = image.getAttribute('src') ?? '';
-            state.appliedSrcset = image.getAttribute('srcset');
-            return;
-        }
-        if (!state.tier)
-            state.tier = parsed.tier;
-        // If React already supplied the original, Auto has nothing useful to do.
-        if (parsed.tier === 'full') {
-            state.tier = 'full';
-            state.appliedSrc = image.getAttribute('src') ?? '';
-            state.appliedSrcset = image.getAttribute('srcset');
-            return;
-        }
-        // Once a controlled candidate has loaded, only promote if its real intrinsic
-        // pixels are still smaller than the rendered surface. No guessed sm/lg sizes.
-        if (!state.awaitingSource && imageNeedsMorePixels(image) && state.tier !== 'full')
-            state.tier = nextTier(state.tier);
-        // Never let a stale state choose a tier below what Lumiverse itself supplied.
-        if (tierRank(state.tier) < tierRank(parsed.tier))
-            state.tier = parsed.tier;
-        const source = deriveImageSourceTier(state.nativeSrc, state.tier);
-        if (!source)
-            return;
-        if (state.tier === parsed.tier && image.getAttribute('src') === state.nativeSrc && image.getAttribute('srcset') === state.nativeSrcset) {
-            state.appliedSrc = state.nativeSrc;
-            state.appliedSrcset = state.nativeSrcset;
-            return;
-        }
-        this.applySource(image, state, source);
-    }
-    restore(image, state) {
-        this.resizeObserver?.unobserve(image);
-        if (!image.isConnected)
-            return;
-        if (image.getAttribute('src') === state.appliedSrc && image.getAttribute('src') !== state.nativeSrc)
-            image.setAttribute('src', state.nativeSrc);
-        if (state.nativeSrcset === null)
-            image.removeAttribute('srcset');
-        else if (image.getAttribute('srcset') !== state.nativeSrcset)
-            image.setAttribute('srcset', state.nativeSrcset);
-    }
-    sync() {
-        if (this.destroyed)
-            return;
-        const desired = new Map();
-        for (const target of activeImageSourceTargets(this.store.activeProject)) {
-            for (const image of imagesForSelector(target.selector)) {
-                const previous = desired.get(image);
-                desired.set(image, previous === 'full' || target.quality === 'full' ? 'full' : 'auto');
-            }
-        }
-        for (const [image, quality] of desired)
-            quality === 'full' ? this.applyFull(image) : this.applyAuto(image);
-        for (const [image, state] of [...this.tracked]) {
-            if (desired.has(image))
-                continue;
-            this.restore(image, state);
-            this.tracked.delete(image);
-        }
-    }
-    destroy() {
-        if (this.destroyed)
-            return;
-        this.destroyed = true;
-        this.observer.disconnect();
-        this.resizeObserver?.disconnect();
-        document.removeEventListener('load', this.onImageLoad, true);
-        this.unsubscribe();
-        for (const [image, state] of this.tracked)
-            this.restore(image, state);
-        this.tracked.clear();
-    }
-}
-exports.ImageSourceRuntime = ImageSourceRuntime;
-
-};
-__modules["src/frontend"] = function(module,exports,__require){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.setup = setup;
-const picker_1 = __require("src/inspector/picker");
-const persistence_1 = __require("src/project/persistence");
-const store_1 = __require("src/project/store");
-const live_stylesheet_1 = __require("src/preview/live-stylesheet");
-const studio_1 = __require("src/ui/studio");
-const styles_1 = __require("src/ui/styles");
-const guide_1 = __require("src/ui/guide");
-const theme_runtime_1 = __require("src/nativeBridge/theme-runtime");
-const image_source_runtime_1 = __require("src/preview/image-source-runtime");
-const GUIDE_JUMP_TARGETS = {
-    'palette-guide-start': 'Start here',
-    'palette-guide-pick': 'Pick & scope',
-    'palette-guide-packets': 'Style packets',
-    'palette-guide-groups': 'Groups',
-    'palette-guide-read': 'Read styles',
-    'palette-guide-reuse': 'Reuse',
-    'palette-guide-boost': 'Boost',
-    'palette-guide-code': 'Widget & Code',
-    'palette-guide-css': 'CSS field guide',
-    'palette-guide-debug': 'Debugging',
-};
-function installGuideJumpNavigation() {
-    const onClick = (event) => {
-        const target = event.target;
-        if (!(target instanceof Element))
-            return;
-        const link = target.closest('a[href^="#palette-guide-"]');
-        if (!link)
-            return;
-        const fragment = link.getAttribute('href')?.slice(1) ?? '';
-        const headingText = GUIDE_JUMP_TARGETS[fragment];
-        if (!headingText)
-            return;
-        const heading = [...document.querySelectorAll('h1,h2,h3,h4,h5,h6')]
-            .find((candidate) => candidate.textContent?.trim().startsWith(headingText) && candidate.getClientRects().length > 0);
-        if (!heading)
-            return;
-        event.preventDefault();
-        heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    };
-    document.addEventListener('click', onClick, true);
-    return () => document.removeEventListener('click', onClick, true);
-}
-const ICON = `
-<svg viewBox="12 16 76 68" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <g fill="currentColor">
-    <path d="m83.328 74.188h-46.203c1.9531-0.59375 3.9062-1.4844 5.5469-2.7188 0.3125-0.10938 0.54688-0.32812 0.73438-0.57812 0.54688-0.48438 1.0625-1 1.5-1.5781 1.8281-2.4531 2.3594-5.4219 1.6562-8.0781 0.39062 0.0625 0.78125 0.10938 1.1875 0.10938h0.15625c2.0625-0.046875 3.9531-0.90625 5.3438-2.4062l17.469-18.812c2.3906-2.5781 2.3125-6.5469-0.17188-9.0469s-6.4688-2.5625-9.0469-0.17188l-18.812 17.469c-1.5156 1.3906-2.375 3.2969-2.4062 5.3438 0 0.46875 0.03125 0.9375 0.10938 1.3906-2.7969-0.6875-5.8594 0-8.0312 2.1875-2.8125 2.8125-2.7969 6.0781-2.7969 8.7188 0 2.375-0.046875 3.875-1.2344 5.0625-0.95312 0.95312-0.84375 1.8594-0.70312 2.3281 0.078125 0.25 0.23438 0.51562 0.46875 0.78125h-11.438c-0.85938 0-1.5625 0.70312-1.5625 1.5625v4c0 0.85938 0.70312 1.5625 1.5625 1.5625h66.672c0.85938 0 1.5625-0.70312 1.5625-1.5625v-4c0-0.85938-0.70312-1.5625-1.5625-1.5625zm-50.641-8.1719v-0.78125c0.59375-0.26562 1.4219-0.53125 2.0625-0.32812 0.1875 0.0625 0.73438 0.23438 1.1719 1.375 0.78125 2 1.7031 3.2656 2.5938 4.0625-2.4844 1.1406-5.2969 1.6562-6.9844 1.6875 1.1719-1.9062 1.1562-4.0781 1.1562-6.0312zm33.266-33.719c0.875 0 1.7344 0.32812 2.4062 1 1.2969 1.2969 1.3281 3.3594 0.09375 4.7031l-0.98438 1.0625-4.875-4.875 1.0625-0.98438c0.65625-0.60938 1.4844-0.90625 2.3125-0.90625zm-21.141 18.375 15.469-14.359 5.0312 5.0312-14.359 15.469c-0.8125 0.875-1.9219 1.375-3.1094 1.4062-1.1875 0.0625-2.3281-0.42188-3.1719-1.2656s-1.2969-1.9688-1.2656-3.1719c0.03125-1.1875 0.51562-2.2969 1.4062-3.1094zm-6.4688 7.2812c1.375 0 2.7344 0.51562 3.7812 1.5625 2.0469 2.0469 2.1719 5.3906 0.28125 7.9219-0.28125 0.375-0.60938 0.71875-0.96875 1.0312-0.59375-0.125-1.6406-0.89062-2.5938-3.3281-0.82812-2.1094-2.1875-2.9219-3.1719-3.2344-0.89062-0.26562-1.7656-0.23438-2.5625-0.078125 0.26562-0.8125 0.71875-1.5781 1.4531-2.3125 1.0469-1.0469 2.4062-1.5625 3.7812-1.5625zm43.422 20.234h-63.531v-0.875h63.547v0.875z"/>
-    <path d="m28.625 28.828c3 0 5.4531 2.4375 5.4531 5.4531 0 0.85938 0.70312 1.5625 1.5625 1.5625s1.5625-0.70312 1.5625-1.5625c0-3 2.4375-5.4531 5.4531-5.4531 0.85938 0 1.5625-0.70312 1.5625-1.5625s-0.70312-1.5625-1.5625-1.5625c-3 0-5.4531-2.4375-5.4531-5.4531 0-0.85938-0.70312-1.5625-1.5625-1.5625s-1.5625 0.70312-1.5625 1.5625c0 3-2.4375 5.4531-5.4531 5.4531-0.85938 0-1.5625 0.70312-1.5625 1.5625s0.70312 1.5625 1.5625 1.5625zm7-3.6406c0.5625 0.8125 1.2656 1.5156 2.0781 2.0781-0.8125 0.5625-1.5156 1.2812-2.0781 2.0781-0.5625-0.8125-1.2812-1.5156-2.0781-2.0781 0.8125-0.5625 1.5156-1.2812 2.0781-2.0781z"/>
-    <path d="m25.703 40.234c1.3906 0 2.5156 1.125 2.5156 2.5156 0 0.85938 0.70312 1.5625 1.5625 1.5625s1.5625-0.70312 1.5625-1.5625c0-1.3906 1.125-2.5156 2.5156-2.5156 0.85938 0 1.5625-0.70312 1.5625-1.5625s-0.70312-1.5625-1.5625-1.5625c-1.3906 0-2.5156-1.125-2.5156-2.5156 0-0.85938-0.70312-1.5625-1.5625-1.5625s-1.5625 0.70312-1.5625 1.5625c0 1.3906-1.125 2.5156-2.5156 2.5156-0.85938 0-1.5625 0.70312-1.5625 1.5625s0.70312 1.5625 1.5625 1.5625zm4.0781-1.75 0.1875 0.1875-0.1875 0.1875-0.1875-0.1875 0.1875-0.1875z"/>
-    <path d="m42.312 33.469c0 0.35938-0.29688 0.65625-0.65625 0.65625-0.85938 0-1.5625 0.70312-1.5625 1.5625s0.70312 1.5625 1.5625 1.5625c0.35938 0 0.65625 0.29688 0.65625 0.65625 0 0.85938 0.70312 1.5625 1.5625 1.5625s1.5625-0.70312 1.5625-1.5625c0-0.35938 0.29688-0.65625 0.65625-0.65625 0.85938 0 1.5625-0.70312 1.5625-1.5625s-0.70312-1.5625-1.5625-1.5625c-0.35938 0-0.65625-0.29688-0.65625-0.65625 0-0.85938-0.70312-1.5625-1.5625-1.5625s-1.5625 0.70312-1.5625 1.5625z"/>
-  </g>
-</svg>`;
-async function setup(ctx) {
-    ctx.deferReady();
-    const removeStyle = ctx.dom.addStyle(styles_1.THEME_STUDIO_CSS);
-    const removeGuideJumpNavigation = installGuideJumpNavigation();
-    const tab = ctx.ui.registerDrawerTab({
-        id: 'studio',
-        title: 'Palette',
-        shortName: 'Palette',
-        headerTitle: 'Palette',
-        description: 'Build, remix, and reuse visual styles across Lumiverse.',
-        keywords: ['palette', 'theme', 'visual', 'css', 'design', 'picker', 'styles', 'components'],
-        iconSvg: ICON,
-        guide: {
-            title: 'Palette',
-            markdown: guide_1.THEME_STUDIO_GUIDE,
-        },
-    });
-    // Own the tab's internal viewport. Spindle drawers can nest overflow containers;
-    // a definite flex/height chain keeps Palette's one scroll surface usable
-    // for wheel, trackpad, and touch instead of letting the editor grow under it.
-    tab.root.classList.add('ts-tab-host');
-    const store = new store_1.ProjectStore();
-    const persistence = new persistence_1.ProjectPersistence(ctx);
-    try {
-        store.hydrate(await persistence.load());
-    }
-    catch (error) {
-        console.warn('[Palette] Could not load persisted projects; using a fresh local project.', error);
-    }
-    const preview = new live_stylesheet_1.LiveStylesheet(ctx);
-    const picker = new picker_1.ElementPicker(ctx);
-    const themeRuntime = new theme_runtime_1.ThemeRuntimeBridge(ctx);
-    const imageSourceRuntime = new image_source_runtime_1.ImageSourceRuntime(store);
-    // Keep the editor in a movable mount so Palette can undock into its own
-    // floating inspector without cloning state or creating a second UI instance.
-    const studioMount = document.createElement('div');
-    studioMount.className = 'ts-studio-mount';
-    tab.root.append(studioMount);
-    const studio = new studio_1.ThemeStudioUI(ctx, studioMount, store, picker, preview, themeRuntime);
-    const unsubscribePersistence = store.subscribe((state) => persistence.scheduleSave(state));
-    // Boost is world state, not part of every local Design edit.  Only touch the
-    // native Theme API when the active project's Boost payload actually changes;
-    // otherwise a width slider would repeatedly clear/reapply the whole app theme.
-    let boostSignature = JSON.stringify(store.activeProject.boost);
-    let boostProjectId = store.snapshot.activeProjectId;
-    const unsubscribeTheme = store.subscribe((state) => {
-        const boost = state.projects.find((project) => project.id === state.activeProjectId)?.boost ?? store.activeProject.boost;
-        const nextSignature = JSON.stringify(boost);
-        const projectChanged = state.activeProjectId !== boostProjectId;
-        boostProjectId = state.activeProjectId;
-        if (!projectChanged && nextSignature === boostSignature)
-            return;
-        boostSignature = nextSignature;
-        const update = projectChanged && boost.enabled ? themeRuntime.syncFromCanonicalSource(boost) : themeRuntime.sync(boost);
-        void update.catch((error) => console.warn('[Palette] Live Boost update failed.', error));
-    });
-    // Always canonicalize the native source once, even when the currently selected
-    // project has Boost off. Otherwise an old hot-reload root layer can survive an
-    // unboosted startup, lose its marker, and later become the first enabled
-    // project's source. The worker generateVariables() map is our source firewall.
-    try {
-        await themeRuntime.refreshBaseline();
-        await themeRuntime.sync(store.activeProject.boost);
-    }
-    catch (error) {
-        console.warn('[Palette] Initial live Boost update failed.', error);
-    }
-    await studio.initialize();
-    ctx.ready();
-    // Native theme installation can finish a beat after extension setup. Keep the
-    // first rendered Boost in place while a short worker-only source watch rebases
-    // it if Lumiverse's canonical generateVariables() output changes during boot.
-    if (store.activeProject.boost.enabled)
-        void themeRuntime.stabilizeStartupSource().catch((error) => console.warn('[Palette] Startup Boost source stabilization failed.', error));
-    let stopped = false;
-    return async () => {
-        if (stopped)
-            return;
-        stopped = true;
-        picker.destroy();
-        studio.destroy();
-        preview.destroy();
-        imageSourceRuntime.destroy();
-        unsubscribeTheme();
-        try {
-            await themeRuntime.destroy();
-        }
-        catch (error) {
-            console.warn('[Palette] Live Boost cleanup failed.', error);
-        }
-        unsubscribePersistence();
-        try {
-            await persistence.destroy();
-        }
-        catch (error) {
-            console.warn('[Palette] Final persistence flush failed during unload.', error);
-        }
-        tab.destroy();
-        removeGuideJumpNavigation();
-        removeStyle();
-        ctx.dom.cleanup();
-    };
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, '0'));
+    return `${hex.slice(0, 4).join('')}-${hex.slice(4, 6).join('')}-${hex.slice(6, 8).join('')}-${hex.slice(8, 10).join('')}-${hex.slice(10).join('')}`;
 }
 
+}
 };
-const __cache = Object.create(null);
-function __require(id){ if(__cache[id]) return __cache[id].exports; const fn=__modules[id]; if(!fn) throw new Error("Missing bundled module: "+id); const module={exports:{}}; __cache[id]=module; fn(module,module.exports,__require); return module.exports; }
-const __entry = __require("src/frontend");
-export const setup = __entry["setup"];
+const __paletteCache = Object.create(null);
+function __paletteNormalize(parts){const out=[];for(const p of parts){if(!p||p==='.')continue;if(p==='..')out.pop();else out.push(p)}return out.join('/')}
+function __paletteResolve(from,spec){if(!spec.startsWith('.'))throw new Error('Unexpected external runtime import: '+spec+' from '+from);const base=__paletteNormalize(from.split('/').slice(0,-1).concat(spec.split('/')));for(const c of [base,base+'.ts',base+'/index.ts'])if(Object.prototype.hasOwnProperty.call(__paletteModules,c))return c;throw new Error('Cannot resolve '+spec+' from '+from)}
+function __paletteRequire(id){if(__paletteCache[id])return __paletteCache[id].exports;const factory=__paletteModules[id];if(!factory)throw new Error('Unknown Palette module '+id);const module={exports:{}};__paletteCache[id]=module;const localRequire=(spec)=>__paletteRequire(__paletteResolve(id,spec));factory(module,module.exports,localRequire);return module.exports}
+const __paletteEntry=__paletteRequire('src/frontend.ts');
+export const setup=__paletteEntry.setup;

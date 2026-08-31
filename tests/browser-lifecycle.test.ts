@@ -80,6 +80,28 @@ describe('browser-owned lifecycle', () => {
   })
 
 
+  test('Read style keeps media treatment and CSS masking as separate Image and Mask packets', () => {
+    const target = document.createElement('div')
+    const image = document.createElement('img')
+    target.append(image)
+    target.style.filter = 'brightness(0.85) saturate(0.4) contrast(1.2)'
+    target.style.setProperty('-webkit-mask-image', 'linear-gradient(to bottom, #000 0%, #000 68%, transparent 100%)')
+    document.body.append(target)
+
+    const result = reverseEngineerElement(target)
+    const imagePacket = result.packets.find((packet) => packet.type === 'image')
+    const maskPacket = result.packets.find((packet) => packet.type === 'mask')
+
+    expect(imagePacket?.type).toBe('image')
+    expect(imagePacket?.type === 'image' && imagePacket.brightness).toBeCloseTo(0.85)
+    expect(imagePacket?.type === 'image' && imagePacket.saturation).toBeCloseTo(0.4)
+    expect(imagePacket?.type === 'image' && imagePacket.contrast).toBeCloseTo(1.2)
+    expect(maskPacket?.type).toBe('mask')
+    expect(maskPacket?.type === 'mask' && maskPacket.maskMode).toBe('fade')
+    expect(maskPacket?.type === 'mask' && maskPacket.fade.direction).toBe('bottom')
+    expect(maskPacket?.type === 'mask' && maskPacket.fade.amount).toBeCloseTo(32)
+  })
+
   test('Read style capture is promoted to a strong editable target so it can beat a strong source recipe', () => {
     const store = new ProjectStore()
     const sourceTarget = { selector: '.read-source', strategy: 'css-module', stability: 'medium', persistence: 'persistent', source: 'dom-scoped', label: 'Source recipe', overrideStrength: 'strong' } as const

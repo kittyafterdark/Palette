@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import {
-  authoritySelector, compileBackgroundPacket, compileContentPacket, compileFontFace, compileImagePacket, compileLayoutPacket, compileMediaFlowPacket, compilePatternPacket, compilePositionPacket, compilePreviewThemeProject,
+  authoritySelector, compileBackgroundPacket, compileContentPacket, compileFontFace, compileImagePacket, compileMaskPacket, compileLayoutPacket, compileMediaFlowPacket, compilePatternPacket, compilePositionPacket, compilePreviewThemeProject,
   compilePlacementPacket, compileSafeTargetSelector, compileSizePacket, compileSpacingPacket, compileTextEntryPacket, compileTextPacket, compileThemeProject, compileTransformPacket, compileTypographyPacket, compileVisibilityPacket,
 } from '../src/compiler/compiler'
 import { colorWithAlpha, parseHexColor } from '../src/compiler/color'
@@ -158,26 +158,27 @@ describe('Phase Three semantic CSS compiler', () => {
     }
   })
 
-  test('Image semantics compile visual adjustments and cross-browser edge fades', () => {
+  test('Image semantics compile visual adjustments without owning surface masks', () => {
     const packet = createStylePacket('image'); if (packet.type !== 'image') throw new Error()
-    packet.brightness = 0.82; packet.saturation = 1.35; packet.contrast = 1.1; packet.objectFit = 'cover'; packet.fillFrame = true; packet.objectPositionX = 68; packet.objectPositionY = 32; packet.fade = { direction: 'right', amount: 30 }
+    packet.brightness = 0.82; packet.saturation = 1.35; packet.contrast = 1.1; packet.objectFit = 'cover'; packet.fillFrame = true; packet.objectPositionX = 68; packet.objectPositionY = 32
     const css = compileImagePacket(packet)
     expect(css).toContain('filter: brightness(0.82) saturate(1.35) contrast(1.1);')
-    expect(css).toContain('mask-image: linear-gradient(to right')
-    expect(css).toContain('-webkit-mask-image: linear-gradient(to right')
     expect(css).toContain('width: 100%;')
     expect(css).toContain('height: 100%;')
     expect(css).toContain('object-position: 68% 32%;')
+    expect(css).not.toContain('mask-image')
     expect(css).not.toContain('translate:')
   })
 
-  test('Image mask modes can preserve native masks, explicitly clear them, or compose custom WebKit-safe edge layers', () => {
-    const packet = createStylePacket('image'); if (packet.type !== 'image') throw new Error()
+  test('Mask preserves native masks, explicitly clears them, fades edges, or composes custom WebKit-safe layers', () => {
+    const packet = createStylePacket('mask'); if (packet.type !== 'mask') throw new Error()
     packet.maskMode = 'native'
-    expect(compileImagePacket(packet)).not.toContain('mask-image')
+    expect(compileMaskPacket(packet)).not.toContain('mask-image')
     packet.maskMode = 'none'
-    expect(compileImagePacket(packet)).toContain('mask-image: none;')
-    expect(compileImagePacket(packet)).toContain('-webkit-mask-image: none;')
+    expect(compileMaskPacket(packet)).toContain('mask-image: none;')
+    expect(compileMaskPacket(packet)).toContain('-webkit-mask-image: none;')
+    packet.maskMode = 'fade'; packet.fade = { direction: 'right', amount: 30 }
+    expect(compileMaskPacket(packet)).toContain('mask-image: linear-gradient(to right')
     packet.maskMode = 'custom'
     packet.customMask = {
       horizontal: { enabled: true, side: 'right', solidUntil: 25, fadeUntil: 90 },
@@ -185,7 +186,7 @@ describe('Phase Three semantic CSS compiler', () => {
       bottom: { enabled: true, solidUntil: 55, fadeUntil: 100 },
       combine: 'intersect',
     }
-    const css = compileImagePacket(packet)
+    const css = compileMaskPacket(packet)
     expect(css).toContain('linear-gradient(to right, #000 0%, #000 25%, transparent 90%, transparent 100%)')
     expect(css).toContain('linear-gradient(to bottom, #000 0%, #000 55%, transparent 100%)')
     expect(css).toContain('linear-gradient(to top, #000 0%, #000 85%, transparent 100%)')
@@ -636,14 +637,15 @@ describe('Phase Three semantic CSS compiler', () => {
   test('canonicalizes a duplicated native context before compiling image/runtime selectors', () => {
     const project = createProject('Context echo image')
     const image = createStylePacket('image'); if (image.type !== 'image') throw new Error()
-    image.sourceQuality = 'full'; image.fade = { direction: 'top', amount: 31 }
+    image.sourceQuality = 'full'
+    const mask = createStylePacket('mask'); if (mask.type !== 'mask') throw new Error(); mask.maskMode = 'fade'; mask.fade = { direction: 'top', amount: 31 }
     project.componentOverrides.push({
       id: 'app-image',
       target: {
         selector: '[class*="_app_"] [class*="_app_"] [class*="_avatar_"] img', strategy: 'native-context-local', stability: 'medium', persistence: 'persistent', source: 'native-aware',
         label: 'img in App', nativeComponentId: 'src/App', nativeContextSelector: '[class*="_app_"]', localSelector: '[class*="_avatar_"] img',
       },
-      states: { normal: [image] },
+      states: { normal: [image, mask] },
     })
     expect(compileSafeTargetSelector(project.componentOverrides[0].target)).toBe('[class*="_app_"] [class*="_avatar_"] img')
     const css = compileThemeProject(project)

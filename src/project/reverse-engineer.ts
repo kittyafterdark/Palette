@@ -180,7 +180,7 @@ function parseMaskEdgeLayer(value: string): { direction: 'left' | 'right' | 'top
   if (percentages.length < 3) return null
   return { direction, solidUntil: Math.max(0, Math.min(99, percentages[1])), fadeUntil: Math.max(1, Math.min(100, percentages[2])) }
 }
-function readMaskIntoPacket(style: CSSStyleDeclaration, packet: Extract<StylePacket, { type: 'image' }>): void {
+function readMaskIntoPacket(style: CSSStyleDeclaration, packet: Extract<StylePacket, { type: 'mask' }>): void {
   const webkitMask = style.getPropertyValue('-webkit-mask-image').trim()
   const standardMask = style.maskImage.trim()
   const raw = webkitMask && webkitMask !== 'none'
@@ -363,21 +363,23 @@ export function reverseEngineerElement(element: Element, pseudo: SurfacePseudo =
   }
 
   const mediaElement = ['IMG','VIDEO','CANVAS','PICTURE'].includes(element.tagName)
+  const mediaSurface = mediaElement || Boolean(element.querySelector('img, video, canvas, picture'))
   const authoredMask = hasAny(authored, ['mask-image','-webkit-mask-image','mask-composite','-webkit-mask-composite'])
-  const authoredMediaImage = mediaElement && hasAny(authored, ['filter','object-fit','object-position','width','height'])
-  if (!pseudo && (authoredMask || authoredMediaImage)) {
+  const authoredMediaImage = mediaSurface && hasAny(authored, mediaElement ? ['filter','object-fit','object-position','width','height'] : ['filter'])
+  if (!pseudo && authoredMediaImage) {
     const packet = createStylePacket('image')
     if (packet.type === 'image') {
-      if (mediaElement) {
-        const filter = style.filter || ''
-        packet.brightness = parseFilterNumber(filter, 'brightness', 1); packet.saturation = parseFilterNumber(filter, 'saturate', 1); packet.contrast = parseFilterNumber(filter, 'contrast', 1); packet.grayscale = parseFilterNumber(filter, 'grayscale', 0); packet.hueRotate = parseFilterNumber(filter, 'hue-rotate', 0); packet.blur = parseFilterNumber(filter, 'blur', 0)
-        if (['cover','contain','fill','scale-down'].includes(style.objectFit)) packet.objectFit = style.objectFit as typeof packet.objectFit
-        const position = percentPosition(style.objectPosition); if (position) [packet.objectPositionX, packet.objectPositionY] = position
-        if (style.width === '100%' && style.height === '100%') packet.fillFrame = true
-      }
-      if (authoredMask) readMaskIntoPacket(style, packet)
+      const filter = style.filter || ''
+      packet.brightness = parseFilterNumber(filter, 'brightness', 1); packet.saturation = parseFilterNumber(filter, 'saturate', 1); packet.contrast = parseFilterNumber(filter, 'contrast', 1); packet.grayscale = parseFilterNumber(filter, 'grayscale', 0); packet.hueRotate = parseFilterNumber(filter, 'hue-rotate', 0); packet.blur = parseFilterNumber(filter, 'blur', 0)
+      if (['cover','contain','fill','scale-down'].includes(style.objectFit)) packet.objectFit = style.objectFit as typeof packet.objectFit
+      const position = percentPosition(style.objectPosition); if (position) [packet.objectPositionX, packet.objectPositionY] = position
+      if (style.width === '100%' && style.height === '100%') packet.fillFrame = true
       packets.push(packet)
     }
+  }
+  if (!pseudo && authoredMask) {
+    const packet = createStylePacket('mask')
+    if (packet.type === 'mask') { readMaskIntoPacket(style, packet); packets.push(packet) }
   }
 
   if (wants('position', ['position','top','right','bottom','left','translate','z-index'])) {

@@ -1,5 +1,5 @@
 import type {
-  AlignmentPacket, BackgroundPacket, BorderPacket, ComponentOverride, ContentPacket, CornersPacket, DimensionValue, GlassPacket, ImagePacket, ComposerIconsPacket, SvgAssetPacket, LayoutGroup, LayoutGroupState, LayoutItemPacket, LayoutPacket, PlacementPacket,
+  AlignmentPacket, BackgroundPacket, BorderPacket, ComponentOverride, ContentPacket, CornersPacket, DimensionValue, GlassPacket, ImagePacket, MaskPacket, ComposerIconsPacket, SvgAssetPacket, LayoutGroup, LayoutGroupState, LayoutItemPacket, LayoutPacket, PlacementPacket,
   OpacityPacket, PatternPacket, PositionPacket, ShadowPacket, SizePacket, SpacingPacket, StatePacketStacks, StylePacket, StyleStateName, TransformPacket, ImageCustomMask, MediaFlowPacket,
   StudioFontFace, StudioTarget, TextPacket, TypographyPacket, TextEntryPacket, VisibilityPacket, ThemeStudioProject, ThemeTokenOverride, ResponsiveScopeName,
 } from '../project/model'
@@ -74,6 +74,8 @@ function declarationOwnedBy(packet: StylePacket, property: string): boolean {
     case 'image':
       if (property === 'filter') return ownsField(packet, 'brightness', 'saturation', 'contrast', 'grayscale', 'hueRotate', 'blur')
       if (['object-fit','object-position','width','height','display'].includes(property)) return ownsField(packet, 'objectFit', 'objectPositionX', 'objectPositionY', 'fillFrame')
+      return false
+    case 'mask':
       if (property === 'mask-image' || property === '-webkit-mask-image') return ownsField(packet, 'maskMode', 'customMask', 'fade')
       if (property === 'mask-composite' || property === '-webkit-mask-composite') return ownsField(packet, 'maskMode', 'customMask')
       return false
@@ -338,18 +340,11 @@ export function compileImageCustomMask(mask: ImageCustomMask): { image: string; 
   const webkit = mask.combine === 'subtract' ? 'source-out' : mask.combine === 'exclude' ? 'xor' : mask.combine === 'add' ? 'source-over' : 'source-in'
   return { image: layers.join(', '), standardComposite: Array(layers.length - 1).fill(standard).join(', '), webkitComposite: Array(layers.length - 1).fill(webkit).join(', ') }
 }
-function effectiveImageMaskMode(packet: ImagePacket): 'native' | 'none' | 'fade' | 'custom' {
+function effectiveMaskMode(packet: MaskPacket): 'native' | 'none' | 'fade' | 'custom' {
   return packet.maskMode ?? (packet.fade.direction !== 'none' ? 'fade' : 'native')
 }
-export function compileImagePacket(packet: ImagePacket): string {
-  const filters: string[] = []
-  if (Math.abs(packet.brightness - 1) > .0001) filters.push(`brightness(${number(clamp(packet.brightness, 0, 4), 3)})`)
-  if (Math.abs(packet.saturation - 1) > .0001) filters.push(`saturate(${number(clamp(packet.saturation, 0, 4), 3)})`)
-  if (Math.abs(packet.contrast - 1) > .0001) filters.push(`contrast(${number(clamp(packet.contrast, 0, 4), 3)})`)
-  if (packet.grayscale > .0001) filters.push(`grayscale(${number(clamp(packet.grayscale, 0, 1), 3)})`)
-  if (Math.abs(packet.hueRotate) > .0001) filters.push(`hue-rotate(${number(packet.hueRotate)}deg)`)
-  if (packet.blur > .0001) filters.push(`blur(${number(clamp(packet.blur, 0, 100))}px)`)
-  const mode = effectiveImageMaskMode(packet)
+export function compileMaskPacket(packet: MaskPacket): string {
+  const mode = effectiveMaskMode(packet)
   const fade = clamp(packet.fade.amount, 0, 100), keep = number(100 - fade)
   const easyMask = packet.fade.direction === 'right' ? `linear-gradient(to right, #000 0%, #000 ${keep}%, transparent 100%)`
     : packet.fade.direction === 'left' ? `linear-gradient(to left, #000 0%, #000 ${keep}%, transparent 100%)`
@@ -359,15 +354,26 @@ export function compileImagePacket(packet: ImagePacket): string {
   const custom = mode === 'custom' && packet.customMask ? compileImageCustomMask(packet.customMask) : undefined
   const mask = mode === 'none' ? 'none' : mode === 'fade' ? easyMask : mode === 'custom' ? (custom?.image ?? 'none') : ''
   return lines([
+    mask ? ['mask-image', mask] : null, mask ? ['-webkit-mask-image', mask] : null,
+    custom?.standardComposite ? ['mask-composite', custom.standardComposite] : null,
+    custom?.webkitComposite ? ['-webkit-mask-composite', custom.webkitComposite] : null,
+  ])
+}
+export function compileImagePacket(packet: ImagePacket): string {
+  const filters: string[] = []
+  if (Math.abs(packet.brightness - 1) > .0001) filters.push(`brightness(${number(clamp(packet.brightness, 0, 4), 3)})`)
+  if (Math.abs(packet.saturation - 1) > .0001) filters.push(`saturate(${number(clamp(packet.saturation, 0, 4), 3)})`)
+  if (Math.abs(packet.contrast - 1) > .0001) filters.push(`contrast(${number(clamp(packet.contrast, 0, 4), 3)})`)
+  if (packet.grayscale > .0001) filters.push(`grayscale(${number(clamp(packet.grayscale, 0, 1), 3)})`)
+  if (Math.abs(packet.hueRotate) > .0001) filters.push(`hue-rotate(${number(packet.hueRotate)}deg)`)
+  if (packet.blur > .0001) filters.push(`blur(${number(clamp(packet.blur, 0, 100))}px)`)
+  return lines([
     filters.length ? ['filter', filters.join(' ')] : null,
     packet.objectFit !== 'native' ? ['object-fit', packet.objectFit] : null,
     packet.fillFrame && packet.objectFit !== 'native' ? ['width', '100%'] : null,
     packet.fillFrame && packet.objectFit !== 'native' ? ['height', '100%'] : null,
     packet.fillFrame && packet.objectFit !== 'native' ? ['display', 'block'] : null,
     packet.objectFit !== 'native' ? ['object-position', `${number(clamp(packet.objectPositionX, 0, 100))}% ${number(clamp(packet.objectPositionY, 0, 100))}%`] : null,
-    mask ? ['mask-image', mask] : null, mask ? ['-webkit-mask-image', mask] : null,
-    custom?.standardComposite ? ['mask-composite', custom.standardComposite] : null,
-    custom?.webkitComposite ? ['-webkit-mask-composite', custom.webkitComposite] : null,
   ])
 }
 export function compilePositionPacket(packet: PositionPacket & { editedFields?: string[] }): string {
@@ -491,7 +497,7 @@ export function compileSvgAssetPacket(packet: SvgAssetPacket): string {
   ])
 }
 
-const packetOrder: StylePacket['type'][] = ['visibility', 'background', 'pattern', 'media-flow', 'image', 'svg-asset', 'composer-icons', 'content', 'text', 'typography', 'text-entry', 'border', 'corners', 'spacing', 'shadow', 'glass', 'opacity', 'position', 'transform', 'alignment', 'layout-item', 'layout', 'placement', 'size']
+const packetOrder: StylePacket['type'][] = ['visibility', 'background', 'pattern', 'media-flow', 'image', 'mask', 'svg-asset', 'composer-icons', 'content', 'text', 'typography', 'text-entry', 'border', 'corners', 'spacing', 'shadow', 'glass', 'opacity', 'position', 'transform', 'alignment', 'layout-item', 'layout', 'placement', 'size']
 function compilePacket(packet: StylePacket, all: StylePacket[]): string {
   let declaration = ''
   switch (packet.type) {
@@ -510,6 +516,7 @@ function compilePacket(packet: StylePacket, all: StylePacket[]): string {
     case 'visibility': declaration = compileVisibilityPacket(packet); break
     case 'media-flow': declaration = compileMediaFlowPacket(packet); break
     case 'image': declaration = compileImagePacket(packet); break
+    case 'mask': declaration = compileMaskPacket(packet); break
     case 'svg-asset': declaration = compileSvgAssetPacket(packet); break
     case 'composer-icons': declaration = ''; break
     case 'position': declaration = compilePositionPacket(packet); break
@@ -564,10 +571,11 @@ const SLOT_LABELS: Record<StylePacket['type'], string> = {
   pattern: 'Pattern',
   'media-flow': 'Media Flow',
   image: 'Image',
+  mask: 'Mask',
   'composer-icons': 'Composer Icons',
   'svg-asset': 'SVG Asset',
   content: 'Generated Content',
-  text: 'Text Style',
+  text: 'Ink',
   typography: 'Typography',
   'text-entry': 'Text Entry',
   border: 'Border',

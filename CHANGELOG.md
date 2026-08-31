@@ -1,4 +1,4 @@
-## 1.0.2 — Message-side DOM Resolver Hotfix
+## 1.0.2 — Resolver & Primitive Taxonomy Hotfix
 
 - Fixed BubbleMessage user-side part selection incorrectly rewriting an outer CSS-module local such as `_content_1hvlc_*` to a nested `_contentUser_16x4f_*` just because the two locals shared the word `content`. Assistant/User variant pairing now requires mounted evidence that the locals belong to the **same CSS-module hash family**.
 - Added the full mounted message-side grammar `foo / fooChar / fooUser`. Shared parts such as Name now resolve Assistant → `nameChar`, User → `nameUser`, and Both → exactly those two branches instead of carrying the assistant leaf onto the user side. The paired `*Char` / `*User` leaves are folded back into the semantic base part instead of appearing as duplicate anatomy entries.
@@ -6,7 +6,11 @@
 - Regressed **Assistant / User / Both** together for outer Content, nested MessageContent, shared+Char+User Name families, and picks originating from either speaker.
 - Fixed a downstream Both-scope editor leak where Target Details showed the correct combined selector but the Style Stack could borrow an Assistant-only packet via the originally clicked representative DOM node. Both now treats authored matches as common only when they cover every mounted branch; matched message edits localize to the active facet rather than mutating a one-sided source override.
 - Both selection guides and forced state previews now cover every mounted speaker branch instead of only the node that happened to be picked first.
-- No persisted theme vocabulary or project-state changes. Schema remains **v41** and minimum Lumiverse remains **1.1.6**.
+- Split the overloaded **Image** packet into two first-class jobs. Image now always exposes source quality, tone/filter, crop/fit, focal position, and frame controls; **Mask** owns Native / None / Fade / Custom masking independently of whether the selected semantic target is an actual `<img>` leaf or a wrapper.
+- Schema **v42** automatically separates legacy combined Image+mask packets into sibling Image and Mask packets on the same target/state. Legacy mask-only wrapper packets promote directly to Mask instead of leaving a meaningless default Image card behind. Sparse edited-field ownership and recipe-slot provenance are split with the packet so preset reset/edit behavior survives migration. Built-in packs were normalized to the same vocabulary.
+- **Read Style** now rehydrates authored media treatment and authored CSS masks as separate Image and Mask packets. Image can still inspect semantic wrappers containing media for filter/source-quality intent, while fit/crop remains a media-leaf concern.
+- Renamed the user-facing **Text Style** primitive to **Ink** and moved it into Paint beside SVG Asset. The persisted packet type remains `text`, so existing projects keep their color/gradient/stroke/glow data unchanged; Typography remains responsible for font structure.
+- Persisted project/state schema is now **v42** because Mask is a new first-class packet type. Public extension version remains **1.0.2** and minimum Lumiverse remains **1.1.6**.
 
 ## 1.0.1 — HTTP Browser UUID Hotfix
 

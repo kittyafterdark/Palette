@@ -1,6 +1,6 @@
 import { portableRandomUUID } from '../utils/random-id'
-export const PROJECT_VERSION = 41 as const
-export const STATE_VERSION = 41 as const
+export const PROJECT_VERSION = 42 as const
+export const STATE_VERSION = 42 as const
 
 export type SelectorStrategy = 'semantic' | 'native-context-local' | 'native-registry' | 'studio-registry' | 'css-module' | 'exact-class' | 'structural' | 'volatile'
 export type SelectorStability = 'high' | 'medium' | 'low'
@@ -171,6 +171,13 @@ export interface MediaFlowPacket {
   /** Defensive escape hatch for native thumbnail wrappers/buttons that clip authored media. */
   unclipped: boolean
 }
+export interface MaskPacket {
+  id: string; type: 'mask'
+  /** Native leaves the app/theme mask untouched. None explicitly clears it. Fade uses the friendly one-edge control; Custom owns a multi-edge mask recipe. */
+  maskMode: 'native' | 'none' | 'fade' | 'custom'
+  customMask?: ImageCustomMask
+  fade: { direction: 'none' | 'top' | 'right' | 'bottom' | 'left' | 'radial'; amount: number }
+}
 export interface ImagePacket {
   id: string; type: 'image'; brightness: number; saturation: number; contrast: number; grayscale: number; hueRotate: number; blur: number
   /** Runtime source treatment. Full swaps supported Lumiverse thumbnail avatar URLs to their original resolver endpoint without touching React state. */
@@ -180,10 +187,6 @@ export interface ImagePacket {
   fillFrame?: boolean
   /** v8 legacy visual translation; retained only for lossless reads and no longer emitted. */
   offsetX: number; offsetY: number
-  /** Native leaves the app/theme mask untouched. None explicitly clears it. Fade uses the friendly one-edge control; Custom owns a multi-edge mask recipe. */
-  maskMode?: 'native' | 'none' | 'fade' | 'custom'
-  customMask?: ImageCustomMask
-  fade: { direction: 'none' | 'top' | 'right' | 'bottom' | 'left' | 'radial'; amount: number }
 }
 export interface PositionPacket {
   id: string; type: 'position'; mode: 'flow' | 'nudge' | 'anchored' | 'sticky' | 'screen'
@@ -235,7 +238,7 @@ export interface SizePacket {
   boundary?: SizeBoundary; mobileSafe?: boolean
 }
 
-export type StylePacket = (BackgroundPacket | PatternPacket | TextPacket | ContentPacket | TypographyPacket | TextEntryPacket | BorderPacket | CornersPacket | SpacingPacket | ShadowPacket | GlassPacket | OpacityPacket | VisibilityPacket | ComposerIconsPacket | SvgAssetPacket | MediaFlowPacket | ImagePacket | PositionPacket | TransformPacket | AlignmentPacket | LayoutPacket | LayoutItemPacket | PlacementPacket | SizePacket) & {
+export type StylePacket = (BackgroundPacket | PatternPacket | TextPacket | ContentPacket | TypographyPacket | TextEntryPacket | BorderPacket | CornersPacket | SpacingPacket | ShadowPacket | GlassPacket | OpacityPacket | VisibilityPacket | ComposerIconsPacket | SvgAssetPacket | MediaFlowPacket | ImagePacket | MaskPacket | PositionPacket | TransformPacket | AlignmentPacket | LayoutPacket | LayoutItemPacket | PlacementPacket | SizePacket) & {
   /** Optional sparse-ownership metadata used by Read Style. Undefined means the packet owns its full semantic output; an array means only those observed fields were explicitly edited. */
   editedFields?: string[]
 }
@@ -386,7 +389,8 @@ export function createStylePacket(type: PacketType): StylePacket {
     case 'composer-icons': return { id, type, family: 'native', size: 14, customIcons: {} }
     case 'svg-asset': return { id, type, svg: '', renderMode: 'mask', color: '#ffffff', alpha: 1, fit: 'contain', positionX: 50, positionY: 50 }
     case 'media-flow': return { id, type, mode: 'native', unclipped: false }
-    case 'image': return { id, type, brightness: 1, saturation: 1, contrast: 1, grayscale: 0, hueRotate: 0, blur: 0, sourceQuality: 'native', objectFit: 'native', objectPositionX: 50, objectPositionY: 50, fillFrame: false, offsetX: 0, offsetY: 0, fade: { direction: 'none', amount: 28 } }
+    case 'image': return { id, type, brightness: 1, saturation: 1, contrast: 1, grayscale: 0, hueRotate: 0, blur: 0, sourceQuality: 'native', objectFit: 'native', objectPositionX: 50, objectPositionY: 50, fillFrame: false, offsetX: 0, offsetY: 0 }
+    case 'mask': return { id, type, maskMode: 'native', fade: { direction: 'none', amount: 28 } }
     case 'position': return { id, type, mode: 'flow', unit: 'px', layer: 'normal', flowAlign: 'native', nudgeX: 0, nudgeY: 0 }
     case 'transform': return { id, type, rotate: 0, scaleLinked: true, scaleX: 1, scaleY: 1, skewX: 0, skewY: 0 }
     case 'alignment': return { id, type, text: 'left', horizontal: 'start', vertical: 'center' }

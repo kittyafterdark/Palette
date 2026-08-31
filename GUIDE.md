@@ -2,7 +2,7 @@
 
 > **Visual theme authoring for Lumiverse.** Pick the thing you mean, describe the visual intent, and Palette turns it into scoped, reusable CSS. Generated CSS is output; your semantic Palette project is the source of truth.
 
-**Palette 1.0.2 · schema v41**  
+**Palette 1.0.2 · schema v42**  
 Release history lives in the project changelog; this page is the actual manual.
 
 **Jump to:** [Start here](#palette-guide-start) · [Pick & scope](#palette-guide-pick) · [Style packets](#palette-guide-packets) · [Groups](#palette-guide-groups) · [Read styles](#palette-guide-read) · [Reuse](#palette-guide-reuse) · [Boost](#palette-guide-boost) · [Widget & Code](#palette-guide-code) · [CSS field guide](#palette-guide-css) · [Debugging](#palette-guide-debug)
@@ -117,7 +117,7 @@ Palette packets describe intent. You should not need to remember the CSS propert
 | Packet | Think of it as | Common CSS underneath |
 | --- | --- | --- |
 | **Background** | paint the surface | `background`, gradients, images |
-| **Text Style** | text ink/effects | `color`, gradient text, stroke, shadow |
+| **Ink** | visual ink for text, glyphs, and current-color graphics | `color`, gradient fill, stroke, shadow/glow |
 | **Typography** | type structure | family, size, weight, line-height, spacing |
 | **Text Entry** | where typing starts + how it measures | textarea inset/metrics + synchronized autosize mirror + placeholder appearance |
 | **Border / Corners** | edge treatment | border longhands, radius |
@@ -128,7 +128,8 @@ Palette packets describe intent. You should not need to remember the CSS propert
 | **Quick Align** | put this element where you mean | logical auto margins + safe self-alignment |
 | **Layout Item** | advanced behavior inside Flex/Grid | grow/shrink, order, self-alignment |
 | **Size** | fit, fill, or fix the box | width/height/min/max |
-| **Image** | crop and treat pixels | object-fit, object-position, filter, mask |
+| **Image** | crop and treat media pixels | source quality, object-fit, object-position, filter |
+| **Mask** | fade or clip a visual surface | mask-image, multi-edge masks, compositing |
 | **Media Flow** | make prose/native media behave | natural height, unclipping, full-width flow |
 | **Position & Layer** | move/place/stack | translate, anchored position, sticky/fixed, z-index |
 | **Transform** | pose it | rotate, scale, skew |
@@ -136,6 +137,16 @@ Palette packets describe intent. You should not need to remember the CSS propert
 | **Visibility** | visible / hidden / gone | visibility/display |
 | **Generated Content** | label a generated surface | CSS `content` on `::after` / explicit pseudo surfaces |
 | **SVG Asset** | reusable icon/ornament | sanitized project SVG stencil |
+
+### Image, Mask, and Ink are separate jobs
+
+**Image** is for media treatment: source quality, brightness/saturation/contrast and other tone controls, crop/fit, and focal position. It stays an Image packet even when the semantic Palette target is a wrapper; use **Browse Inside** when object-fit/object-position must land on the actual media leaf.
+
+**Mask** is surface geometry, not an image-only effect. Use it to preserve the native mask, clear masking, add a directional/radial fade, or build multi-edge custom masks. Because Mask is independent, it can style ordinary wrappers, generated surfaces, media, and other CSS-mask-capable targets without pretending they are images.
+
+**Ink** is the renamed visual-paint packet formerly shown as **Text Style**. The persisted packet type remains compatible with older projects, but the UI name reflects what it really does: solid/gradient color, stroke/outline, and glow for text, icon glyphs, SVG/currentColor surfaces, and similar painted marks. Typography remains responsible for type structure such as family, size, weight, line-height, spacing, and case.
+
+Schema v42 migrates pre-v42 combined Image packets automatically. A legacy Image that owned both tone/crop settings and a mask is normalized into sibling **Image + Mask** packets on the same target/state, including recipe provenance, so old themes keep their rendered intent while new edits use the clearer taxonomy.
 
 Color-bearing packets always expose a real **Pick** swatch beside the editable color string. **Recents** are convenience history, not the only way to open a picker; pack-authored colors therefore remain editable even when they were never picked manually in the current project. Independent Corners are arranged spatially as top-left / top-right over bottom-left / bottom-right, matching the box you are actually shaping.
 
@@ -743,4 +754,4 @@ Reasoning is an **Inner Voice plate** beneath the name and slightly over the dia
 
 Swipe navigation belongs at the **bottom-left** as compact route furniture in normal flow. `minimal.swipes.previous` and `.next` replace native chevrons with maskable built-in arrow SVGs; `minimal.swipes.counter` owns the route count; `minimal.swipes.ornament` supplies a small decorative flower. Keeping the pager in flow prevents long messages from separating the controls from the actual dialogue footer. The long-message toggle is also scoped under Minimal so it cannot inherit Bubble's serif/purple continuation chrome.
 
-Typography remains renderer-specific. Bubble VN keeps its cinematic serif language. Minimal dialogue/body copy uses compact UI sans and mono metadata through `minimal.prose.*`, applied after shared `visual-novel-prose`, so fresh Apply All preserves the renderer split. These VN roles are static DOM anatomy and do not require a schema bump; current project/state schema remains **v41**.
+Typography remains renderer-specific. Bubble VN keeps its cinematic serif language. Minimal dialogue/body copy uses compact UI sans and mono metadata through `minimal.prose.*`, applied after shared `visual-novel-prose`, so fresh Apply All preserves the renderer split. Those VN roles themselves remain static DOM anatomy. Palette project/state schema is currently **v42** because Image and Mask now persist as separate packet types.

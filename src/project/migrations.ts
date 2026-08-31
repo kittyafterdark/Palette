@@ -1,7 +1,7 @@
 import {
   PROJECT_VERSION, STATE_VERSION, STYLE_STATES, COMPOSER_ICON_ACTIONS, createBoost, createGradient, createInitialState, normalizeSvgSource,
   type AlignmentPacket, type BackgroundPacket, type BorderPacket, type BoxSpacing, type ComponentOverride, type ContentPacket,
-  type CornersPacket, type GlassPacket, type ImagePacket, type ComposerIconsPacket, type PatternPacket, type LayoutGroup, type LayoutGroupState, type LayoutGroupStyleBucket, type LayoutGroupContentTarget, type LayoutItemPacket, type LayoutPacket, type PlacementPacket, type OpacityPacket, type PositionPacket, type ShadowPacket,
+  type CornersPacket, type GlassPacket, type ImagePacket, type MaskPacket, type ComposerIconsPacket, type PatternPacket, type LayoutGroup, type LayoutGroupState, type LayoutGroupStyleBucket, type LayoutGroupContentTarget, type LayoutItemPacket, type LayoutPacket, type PlacementPacket, type OpacityPacket, type PositionPacket, type ShadowPacket,
   type SizePacket, type SpacingPacket, type StatePacketStacks, type StylePacket, type StudioFontFace, type TransformPacket, type StudioSvgAsset, type SvgAssetPacket, type MediaFlowPacket,
   type StylePreset, type SavedStyleBundle, type StudioTarget, type TextPacket, type TypographyPacket, type TextEntryPacket, type VisibilityPacket, type RecipePacketSlot, type ThemeStudioProject, type ThemeStudioState,
 } from './model'
@@ -250,6 +250,9 @@ function normalizePacketBase(value: unknown): StylePacket | null {
   }
   if (value.type === 'media-flow') return { id, type: 'media-flow', mode: value.mode === 'full' ? 'full' : value.mode === 'natural' ? 'natural' : 'native', unclipped: value.unclipped === true } satisfies MediaFlowPacket
   if (value.type === 'image') {
+    return { id, type: 'image', brightness: bounded(value.brightness, 1, 0, 4), saturation: bounded(value.saturation, 1, 0, 4), contrast: bounded(value.contrast, 1, 0, 4), grayscale: bounded(value.grayscale, 0, 0, 1), hueRotate: bounded(value.hueRotate, 0, -3600, 3600), blur: bounded(value.blur, 0, 0, 100), sourceQuality: value.sourceQuality === 'full' ? 'full' : value.sourceQuality === 'auto' ? 'auto' : 'native', objectFit: ['cover', 'contain', 'fill', 'scale-down'].includes(String(value.objectFit)) ? value.objectFit as ImagePacket['objectFit'] : 'native', objectPositionX: percentage(value.objectPositionX, 50), objectPositionY: percentage(value.objectPositionY, 50), fillFrame: value.fillFrame === true, offsetX: bounded(value.offsetX, 0, -10000, 10000), offsetY: bounded(value.offsetY, 0, -10000, 10000) } satisfies ImagePacket
+  }
+  if (value.type === 'mask') {
     const fade = record(value.fade) ? value.fade : {}
     const custom = record(value.customMask) ? value.customMask : undefined
     const edge = (raw: unknown, fallback: { enabled: boolean; solidUntil: number; fadeUntil: number }) => {
@@ -264,8 +267,10 @@ function normalizePacketBase(value: unknown): StylePacket | null {
       bottom: edge(custom.bottom, { enabled: true, solidUntil: 55, fadeUntil: 100 }),
       combine: ['add', 'subtract', 'exclude'].includes(String(custom.combine)) ? custom.combine as 'add' | 'subtract' | 'exclude' : 'intersect' as const,
     } : undefined
-    const maskMode = ['native', 'none', 'fade', 'custom'].includes(String(value.maskMode)) ? value.maskMode as ImagePacket['maskMode'] : undefined
-    return { id, type: 'image', brightness: bounded(value.brightness, 1, 0, 4), saturation: bounded(value.saturation, 1, 0, 4), contrast: bounded(value.contrast, 1, 0, 4), grayscale: bounded(value.grayscale, 0, 0, 1), hueRotate: bounded(value.hueRotate, 0, -3600, 3600), blur: bounded(value.blur, 0, 0, 100), sourceQuality: value.sourceQuality === 'full' ? 'full' : value.sourceQuality === 'auto' ? 'auto' : 'native', objectFit: ['cover', 'contain', 'fill', 'scale-down'].includes(String(value.objectFit)) ? value.objectFit as ImagePacket['objectFit'] : 'native', objectPositionX: percentage(value.objectPositionX, 50), objectPositionY: percentage(value.objectPositionY, 50), fillFrame: value.fillFrame === true, offsetX: bounded(value.offsetX, 0, -10000, 10000), offsetY: bounded(value.offsetY, 0, -10000, 10000), maskMode, customMask, fade: { direction: ['top', 'right', 'bottom', 'left', 'radial'].includes(String(fade.direction)) ? fade.direction as ImagePacket['fade']['direction'] : 'none', amount: percentage(fade.amount, 28) } } satisfies ImagePacket
+    const direction = ['top', 'right', 'bottom', 'left', 'radial'].includes(String(fade.direction)) ? fade.direction as MaskPacket['fade']['direction'] : 'none'
+    const explicitMode = ['native', 'none', 'fade', 'custom'].includes(String(value.maskMode)) ? value.maskMode as MaskPacket['maskMode'] : undefined
+    const maskMode: MaskPacket['maskMode'] = explicitMode ?? (direction !== 'none' ? 'fade' : customMask ? 'custom' : 'native')
+    return { id, type: 'mask', maskMode, customMask, fade: { direction, amount: percentage(fade.amount, 28) } } satisfies MaskPacket
   }
   if (value.type === 'position') {
     const top = value.top === undefined ? undefined : bounded(value.top, 0, -100000, 100000), right = value.right === undefined ? undefined : bounded(value.right, 0, -100000, 100000), bottom = value.bottom === undefined ? undefined : bounded(value.bottom, 0, -100000, 100000), left = value.left === undefined ? undefined : bounded(value.left, 0, -100000, 100000)
@@ -324,10 +329,41 @@ function legacyTypographyPacket(value: unknown): TypographyPacket | null {
     transform: 'none',
   }
 }
+const LEGACY_IMAGE_FIELD_ROOTS = new Set(['brightness','saturation','contrast','grayscale','hueRotate','blur','sourceQuality','objectFit','objectPositionX','objectPositionY','fillFrame','offsetX','offsetY'])
+const LEGACY_MASK_FIELD_ROOTS = new Set(['maskMode','customMask','fade'])
+function editedRoot(field: string): string { return field.split('.')[0] ?? field }
+function keepEditedRoots<T extends StylePacket>(packet: T, roots: Set<string>): T {
+  if (packet.editedFields === undefined) return packet
+  return { ...packet, editedFields: packet.editedFields.filter((field) => roots.has(editedRoot(field))) } as T
+}
+function legacyImageHasIntent(value: unknown): boolean {
+  if (!record(value) || value.type !== 'image') return false
+  if (Array.isArray(value.editedFields)) return value.editedFields.some((field) => typeof field === 'string' && LEGACY_IMAGE_FIELD_ROOTS.has(editedRoot(field)))
+  return bounded(value.brightness, 1, 0, 4) !== 1
+    || bounded(value.saturation, 1, 0, 4) !== 1
+    || bounded(value.contrast, 1, 0, 4) !== 1
+    || bounded(value.grayscale, 0, 0, 1) !== 0
+    || bounded(value.hueRotate, 0, -3600, 3600) !== 0
+    || bounded(value.blur, 0, 0, 100) !== 0
+    || value.sourceQuality === 'auto' || value.sourceQuality === 'full'
+    || ['cover', 'contain', 'fill', 'scale-down'].includes(String(value.objectFit))
+    || percentage(value.objectPositionX, 50) !== 50 || percentage(value.objectPositionY, 50) !== 50
+    || value.fillFrame === true
+    || bounded(value.offsetX, 0, -10000, 10000) !== 0 || bounded(value.offsetY, 0, -10000, 10000) !== 0
+}
 function packetList(value: unknown): StylePacket[] {
   const result: StylePacket[] = []
   for (const raw of Array.isArray(value) ? value : []) {
-    const packet = normalizePacket(raw); if (packet) result.push(packet)
+    if (record(raw) && raw.type === 'image') {
+      const migratedMask = legacyMaskPacket(raw)
+      const normalizedImage = normalizePacket(raw)
+      // A legacy wrapper could contain an Image packet that only ever owned its hidden
+      // mask controls. Do not migrate that into a meaningless default Image card.
+      if (normalizedImage?.type === 'image' && (!migratedMask || legacyImageHasIntent(raw))) result.push(keepEditedRoots(normalizedImage, LEGACY_IMAGE_FIELD_ROOTS))
+      if (migratedMask) result.push(migratedMask)
+    } else {
+      const packet = normalizePacket(raw); if (packet) result.push(packet)
+    }
     const typography = legacyTypographyPacket(raw); if (typography) result.push(typography)
   }
   return result
@@ -418,24 +454,59 @@ function layoutGroup(value: unknown): LayoutGroup | null {
   return { id: identifier(value), name: string(value.name, unique.map((entry) => entry.label).join(' + ')).slice(0, 120), parent, members: unique, base, ...(record(value.mobile) ? { mobile: layoutGroupState(value.mobile, base) } : {}), ...(styles ? { styles } : {}), ...(recipeSource ? { recipeSource } : {}) }
 }
 
-function recipeSlot(value: unknown): RecipePacketSlot | null {
-  if (!record(value)) return null
+function legacyMaskPacket(value: unknown, idSuffix = '_mask'): MaskPacket | null {
+  if (!record(value) || value.type !== 'image') return null
+  const fade = record(value.fade) ? value.fade : {}
+  const direction = String(fade.direction ?? 'none')
+  const mode = String(value.maskMode ?? '')
+  const valueHasMask = ['none', 'fade', 'custom'].includes(mode) || ['top', 'right', 'bottom', 'left', 'radial'].includes(direction)
+  const sparseHasMask = Array.isArray(value.editedFields)
+    ? value.editedFields.some((field) => typeof field === 'string' && LEGACY_MASK_FIELD_ROOTS.has(editedRoot(field)))
+    : valueHasMask
+  if (!valueHasMask || !sparseHasMask) return null
+  const migrated = normalizePacket({ ...value, id: `${identifier(value)}${idSuffix}`, type: 'mask', maskMode: mode || (direction !== 'none' ? 'fade' : 'native') })
+  return migrated?.type === 'mask' ? keepEditedRoots(migrated, LEGACY_MASK_FIELD_ROOTS) : null
+}
+
+function recipeSlots(value: unknown): RecipePacketSlot[] {
+  if (!record(value)) return []
   const target = storedTarget(value.target)
-  if (!target || target.persistence !== 'persistent') return null
-  const allowedTypes = new Set(['background','pattern','text','typography','text-entry','border','corners','spacing','shadow','glass','opacity','visibility','composer-icons','svg-asset','media-flow','image','position','transform','alignment','layout','layout-item','placement','size'])
+  if (!target || target.persistence !== 'persistent') return []
+  const allowedTypes = new Set(['background','pattern','text','typography','text-entry','border','corners','spacing','shadow','glass','opacity','visibility','composer-icons','svg-asset','media-flow','image','mask','position','transform','alignment','layout','layout-item','placement','size'])
   const type = string(value.type) as RecipePacketSlot['type']
-  if (!allowedTypes.has(type)) return null
-  const base = normalizePacketBase(value.base)
-  const layers = (Array.isArray(value.layers) ? value.layers : []).filter(record).map((entry) => {
+  if (!allowedTypes.has(type)) return []
+  const rawLayers = (Array.isArray(value.layers) ? value.layers : []).filter(record)
+  const base = normalizePacket(value.base)
+  const layers = rawLayers.map((entry) => {
     const presetId = string(entry.presetId).trim()
-    const packet = normalizePacketBase(entry.packet)
+    const rawPacket = entry.packet
+    const packet = normalizePacket(rawPacket)
     if (!presetId || !packet || packet.type !== type) return null
-    return { presetId: presetId.slice(0, 160), packet }
+    if (type === 'image' && legacyMaskPacket(rawPacket) && !legacyImageHasIntent(rawPacket)) return null
+    return { presetId: presetId.slice(0, 160), packet: packet.type === 'image' ? keepEditedRoots(packet, LEGACY_IMAGE_FIELD_ROOTS) : packet }
   }).filter((entry): entry is RecipePacketSlot['layers'][number] => entry !== null)
-  const normalizedBase = base && base.type === type ? base : undefined
-  if (!layers.length) return null
+  const normalizedBase = base && base.type === type && !(type === 'image' && legacyMaskPacket(value.base) && !legacyImageHasIntent(value.base))
+    ? (base.type === 'image' ? keepEditedRoots(base, LEGACY_IMAGE_FIELD_ROOTS) : base)
+    : undefined
   const scope = value.scope === 'mobile' ? 'mobile' : 'base'
-  return { id: identifier(value), target, type, scope, ...(normalizedBase ? { base: normalizedBase } : {}), layers }
+  const slotId = identifier(value)
+  const result: RecipePacketSlot[] = []
+  if (layers.length) result.push({ id: slotId, target, type, scope, ...(normalizedBase ? { base: normalizedBase } : {}), layers })
+
+  // Quick-style provenance used the same pre-v42 Image trench coat. Preserve reset/edit
+  // ownership by migrating the mask half into a sibling Mask recipe slot as well.
+  if (type === 'image') {
+    const maskLayers: RecipePacketSlot['layers'] = rawLayers.flatMap((entry) => {
+      const presetId = string(entry.presetId).trim()
+      const packet = legacyMaskPacket(entry.packet)
+      return presetId && packet ? [{ presetId: presetId.slice(0, 160), packet }] : []
+    })
+    if (maskLayers.length) {
+      const maskBase = legacyMaskPacket(value.base)
+      result.push({ id: `${slotId}_mask`, target: structuredClone(target), type: 'mask', scope, ...(maskBase ? { base: maskBase } : {}), layers: maskLayers })
+    }
+  }
+  return result
 }
 
 function font(value: unknown): StudioFontFace | null {
@@ -485,7 +556,7 @@ function project(value: unknown): ThemeStudioProject | null {
     repairProjectMessageScopeOrphans((Array.isArray(value.componentOverrides) ? value.componentOverrides : []).map((entry) => override(entry, sourceVersion)).filter((entry): entry is ComponentOverride => entry !== null), sourceVersion),
     sourceVersion,
   ))
-  return { version: PROJECT_VERSION, id: string(value.id), name: (string(value.name).trim() || 'Untitled Theme').slice(0, 120), tokens: (Array.isArray(value.tokens) ? value.tokens : []).filter(record).filter((entry) => typeof entry.variable === 'string' && typeof entry.value === 'string').map((entry) => ({ variable: String(entry.variable), value: String(entry.value) })), componentOverrides, layoutGroups: (Array.isArray(value.layoutGroups) ? value.layoutGroups : []).map(layoutGroup).filter((entry): entry is LayoutGroup => entry !== null), recipeSlots: (Array.isArray(value.recipeSlots) ? value.recipeSlots : []).map(recipeSlot).filter((entry): entry is RecipePacketSlot => entry !== null), customCss: string(value.customCss), assets: (Array.isArray(value.assets) ? value.assets : []).filter(record).filter((entry) => typeof entry.path === 'string').map((entry) => ({ assetId: typeof entry.assetId === 'string' ? entry.assetId : undefined, path: String(entry.path), name: typeof entry.name === 'string' ? entry.name : undefined, mimeType: typeof entry.mimeType === 'string' ? entry.mimeType : undefined, contentUrl: typeof entry.contentUrl === 'string' ? entry.contentUrl : undefined })), nativeAssetBundleId: typeof value.nativeAssetBundleId === 'string' ? value.nativeAssetBundleId : undefined, fonts: (Array.isArray(value.fonts) ? value.fonts : []).map(font).filter((entry): entry is StudioFontFace => entry !== null), presets: (Array.isArray(value.presets) ? value.presets : []).filter(record).map((entry): StylePreset => ({ id: identifier(entry), name: string(entry.name, 'Untitled preset').slice(0, 120), states: Object.fromEntries(STYLE_STATES.map((state) => [state, packetList(record(entry.states) ? entry.states[state] : undefined)]).filter(([, list]) => (list as StylePacket[]).length)) })), svgAssets: (Array.isArray(value.svgAssets) ? value.svgAssets : Array.isArray(value.composerSvgs) ? value.composerSvgs : []).map(svgAsset).filter((entry): entry is StudioSvgAsset => entry !== null), boost, createdAt: bounded(value.createdAt, now, 0, Number.MAX_SAFE_INTEGER), updatedAt: bounded(value.updatedAt, now, 0, Number.MAX_SAFE_INTEGER) }
+  return { version: PROJECT_VERSION, id: string(value.id), name: (string(value.name).trim() || 'Untitled Theme').slice(0, 120), tokens: (Array.isArray(value.tokens) ? value.tokens : []).filter(record).filter((entry) => typeof entry.variable === 'string' && typeof entry.value === 'string').map((entry) => ({ variable: String(entry.variable), value: String(entry.value) })), componentOverrides, layoutGroups: (Array.isArray(value.layoutGroups) ? value.layoutGroups : []).map(layoutGroup).filter((entry): entry is LayoutGroup => entry !== null), recipeSlots: (Array.isArray(value.recipeSlots) ? value.recipeSlots : []).flatMap(recipeSlots), customCss: string(value.customCss), assets: (Array.isArray(value.assets) ? value.assets : []).filter(record).filter((entry) => typeof entry.path === 'string').map((entry) => ({ assetId: typeof entry.assetId === 'string' ? entry.assetId : undefined, path: String(entry.path), name: typeof entry.name === 'string' ? entry.name : undefined, mimeType: typeof entry.mimeType === 'string' ? entry.mimeType : undefined, contentUrl: typeof entry.contentUrl === 'string' ? entry.contentUrl : undefined })), nativeAssetBundleId: typeof value.nativeAssetBundleId === 'string' ? value.nativeAssetBundleId : undefined, fonts: (Array.isArray(value.fonts) ? value.fonts : []).map(font).filter((entry): entry is StudioFontFace => entry !== null), presets: (Array.isArray(value.presets) ? value.presets : []).filter(record).map((entry): StylePreset => ({ id: identifier(entry), name: string(entry.name, 'Untitled preset').slice(0, 120), states: Object.fromEntries(STYLE_STATES.map((state) => [state, packetList(record(entry.states) ? entry.states[state] : undefined)]).filter(([, list]) => (list as StylePacket[]).length)) })), svgAssets: (Array.isArray(value.svgAssets) ? value.svgAssets : Array.isArray(value.composerSvgs) ? value.composerSvgs : []).map(svgAsset).filter((entry): entry is StudioSvgAsset => entry !== null), boost, createdAt: bounded(value.createdAt, now, 0, Number.MAX_SAFE_INTEGER), updatedAt: bounded(value.updatedAt, now, 0, Number.MAX_SAFE_INTEGER) }
 }
 
 

@@ -36,12 +36,13 @@ describe('common-part quick style library', () => {
     const metaPackets = preset.steps[4].createPackets()
     expect(headerPackets.map((packet) => packet.type)).toEqual(['size'])
     expect(framePackets.map((packet) => packet.type)).toEqual(['position', 'size', 'corners'])
-    expect(imagePackets.map((packet) => packet.type)).toEqual(['image'])
+    expect(imagePackets.map((packet) => packet.type)).toEqual(['image', 'mask'])
     expect(metaPackets.map((packet) => packet.type)).toEqual(['position', 'size', 'layout'])
     const framePosition = framePackets[0]
     expect(framePosition.type === 'position' && framePosition.anchorLabel).toBe('Header')
     const image = imagePackets[0]
-    expect(image.type === 'image' && image.fade).toEqual({ direction: 'bottom', amount: 52 })
+    const imageMask = imagePackets.find((packet) => packet.type === 'mask')
+    expect(imageMask?.type === 'mask' && imageMask.fade).toEqual({ direction: 'bottom', amount: 52 })
     expect(image.type === 'image' && image.fillFrame).toBe(true)
     expect(KNOWN_PART_ROLES['header.root'].selectors[0].selector).toContain('_header_')
     expect(KNOWN_PART_ROLES['avatar.frame'].selectors[0].selector).toBe('[data-component="BubbleMessage"] [class*="_avatar_"]')
@@ -74,7 +75,7 @@ describe('common-part quick style library', () => {
     const backdrop = backdrops.find((entry) => entry.id === 'avatar-ghost-backdrop')!
     const sceneBackdrop = backdrops.find((entry) => entry.id === 'avatar-scene-backdrop')!
     const sceneFrame = sceneBackdrop.steps.find((step) => step.role === 'avatar.backdrop.frame')!.createPackets()
-    expect(sceneFrame.find((packet) => packet.type === 'image')).toMatchObject({ type: 'image', maskMode: 'none' })
+    expect(sceneFrame.find((packet) => packet.type === 'mask')).toMatchObject({ type: 'mask', maskMode: 'none' })
     const sceneImage = sceneBackdrop.steps.find((step) => step.role === 'avatar.backdrop.image')!.createPackets()
     expect(sceneImage.find((packet) => packet.type === 'opacity')).toMatchObject({ type: 'opacity', value: 1 })
     expect(sceneImage.find((packet) => packet.type === 'image')).toMatchObject({ type: 'image', fillFrame: true, objectFit: 'cover', objectPositionX: 50, objectPositionY: 50 })
@@ -933,9 +934,9 @@ describe('common-part quick style library', () => {
     const vnSecondSpeaker = COMMON_PART_PRESETS.find((entry) => entry.id === 'visual-novel-user-speaker')!
     expect(vnSecondSpeaker.steps.map((step) => step.role)).toContain('user.name')
     const vnSecondSpeakerBackdropFramePackets = vnSecondSpeaker.steps.find((step) => step.role === 'user.backdrop.frame')!.createPackets()
-    const vnSecondSpeakerBackdropMask = vnSecondSpeakerBackdropFramePackets.find((packet) => packet.type === 'image')
+    const vnSecondSpeakerBackdropMask = vnSecondSpeakerBackdropFramePackets.find((packet) => packet.type === 'mask')
     const vnSecondSpeakerBackdropLayout = vnSecondSpeakerBackdropFramePackets.find((packet) => packet.type === 'layout')
-    expect(vnSecondSpeakerBackdropMask?.type === 'image' && vnSecondSpeakerBackdropMask.maskMode).toBe('none')
+    expect(vnSecondSpeakerBackdropMask?.type === 'mask' && vnSecondSpeakerBackdropMask.maskMode).toBe('none')
     expect(vnSecondSpeakerBackdropLayout?.type === 'layout' && vnSecondSpeakerBackdropLayout.display).toBe('block')
     const vnSecondSpeakerBackdropImagePackets = vnSecondSpeaker.steps.find((step) => step.role === 'user.backdrop.image')!.createPackets()
     expect(vnSecondSpeakerBackdropImagePackets.some((packet) => packet.type === 'size')).toBe(false)
