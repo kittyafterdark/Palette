@@ -7,10 +7,11 @@ import {
 } from './model'
 import { alpha, bounded, normalizeDimension, percentage } from './values'
 import { canonicalizeSavedContextSelector, composeContextSelector } from '../registry/selector-utils'
+import { portableRandomUUID } from '../utils/random-id'
 
 function record(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value) }
 function string(value: unknown, fallback = ''): string { return typeof value === 'string' ? value : fallback }
-function identifier(value: Record<string, unknown>): string { return string(value.id) || crypto.randomUUID() }
+function identifier(value: Record<string, unknown>): string { return string(value.id) || portableRandomUUID() }
 
 const MESSAGE_COMPONENT_RE = /(?:^|[\/:_-])(BubbleMessage|MinimalMessage)(?:$|[\/:_-])/i
 function legacyMessageComponentLabel(targetValue: Record<string, unknown>, value: Record<string, unknown>): 'BubbleMessage' | 'MinimalMessage' | undefined {

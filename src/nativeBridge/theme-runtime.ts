@@ -2,6 +2,7 @@ import type { SpindleFrontendContext, ThemeInfoDTO } from 'lumiverse-spindle-typ
 import { inspectBoostCssValue, transformThemeVariables, type BoostTransformDiagnostics } from '../compiler/boost'
 import { parseHexColor } from '../compiler/color'
 import type { BoostColor, BoostPaletteRole, ProjectBoost } from '../project/model'
+import { portableRandomUUID } from '../utils/random-id'
 
 interface ThemeBaseline { info: ThemeInfoDTO; variables: Record<string, string> }
 export interface BoostRuntimeDiagnostics { authority: 'root-inline-important'; variable?: string; expected?: string; inline?: string; priority?: string; computed?: string; matches?: boolean; backendMirrored: boolean; backendError?: string }
@@ -449,7 +450,7 @@ export class ThemeRuntimeBridge {
     try { await this.clear() } finally { this.unsubscribe(); for (const pending of this.pending.values()) pending.reject(new Error('Theme Studio unloaded')); this.pending.clear() }
   }
   private request<T = unknown>(payload: Record<string, unknown>): Promise<T> {
-    const requestId = crypto.randomUUID()
+    const requestId = portableRandomUUID()
     return new Promise<T>((resolve, reject) => {
       this.pending.set(requestId, { resolve: resolve as (value: unknown) => void, reject }); this.ctx.sendToBackend({ ...payload, requestId })
       setTimeout(() => { const pending = this.pending.get(requestId); if (pending) { this.pending.delete(requestId); pending.reject(new Error('Theme operation timed out')) } }, 10_000)

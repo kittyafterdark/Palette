@@ -1,5 +1,6 @@
 import type { SpindleFrontendContext } from 'lumiverse-spindle-types'
 import type { ThemeStudioState } from './model'
+import { portableRandomUUID } from '../utils/random-id'
 
 interface StateLoadedMessage {
   type: 'theme_studio:state_loaded'
@@ -86,7 +87,7 @@ export class ProjectPersistence {
   }
 
   private request(payload: Record<string, unknown>): Promise<unknown> {
-    const requestId = crypto.randomUUID()
+    const requestId = portableRandomUUID()
     return new Promise((resolve, reject) => {
       this.pending.set(requestId, { resolve, reject })
       this.ctx.sendToBackend({ ...payload, requestId })

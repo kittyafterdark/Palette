@@ -1,3 +1,4 @@
+import { portableRandomUUID } from '../utils/random-id'
 export const PROJECT_VERSION = 41 as const
 export const STATE_VERSION = 41 as const
 
@@ -361,7 +362,7 @@ export interface ThemeStudioProject {
 }
 export interface ThemeStudioState { version: typeof STATE_VERSION; activeProjectId: string; projects: ThemeStudioProject[]; savedStyles: SavedStyleBundle[] }
 
-export function newId(prefix: string): string { return `${prefix}_${crypto.randomUUID()}` }
+export function newId(prefix: string): string { return `${prefix}_${portableRandomUUID()}` }
 export function createGradient(): LinearGradient { return { type: 'linear', angle: 135, stops: [{ color: '#f06bc8', alpha: 1, position: 0 }, { color: '#7658ff', alpha: 1, position: 100 }] } }
 export function createBackgroundPacket(): BackgroundPacket {
   return { id: newId('packet'), type: 'background', mode: 'solid', solid: { color: '#5f4b8b', alpha: 1 }, gradient: createGradient(), image: { assetPath: '', size: 'cover', positionX: 50, positionY: 50, repeat: 'no-repeat', renderMode: 'image', maskColor: '#ffffff', maskAlpha: 1, hideContents: false } }

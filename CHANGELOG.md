@@ -1,3 +1,10 @@
+## 1.0.1 — WebCrypto doesn't exist it's that damn phone
+
+- Fixed Palette failing during frontend setup on plain HTTP browser sessions where `crypto.randomUUID()` is unavailable, including LAN/Tailscale-hosted Lumiverse instances that work normally when installed as a secure-context PWA.
+- Added a portable UUID helper: native `randomUUID()` when available, `crypto.getRandomValues()` UUID-v4 generation otherwise, plus a last-ditch compatibility fallback for runtimes without Web Crypto. Project IDs, migration-generated IDs, persistence request IDs, and theme-runtime request IDs now all use the same helper.
+- Added regression coverage that boots Palette state with a `crypto` object that deliberately has no `randomUUID`, matching the release-day mobile failure reported through Eruda.
+- No theme, renderer, editor-layout, or persisted schema changes. Schema remains **v41** and minimum Lumiverse remains **1.1.6**.
+
 ## 1.0.0 — Public Release
 
 - First public release of **Palette**, the visual, component-aware theme editor for Lumiverse.
