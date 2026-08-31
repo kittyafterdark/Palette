@@ -333,6 +333,27 @@ interface MessageSideContext {
   userRootSelector: string
   currentSide: Exclude<MessageSideName, 'both'>
   localNames: Set<string>
+  localHashes: Map<string, Set<string>>
+}
+function rememberLocalHash(target: Map<string, Set<string>>, localName: string, hash: string): void {
+  const hashes = target.get(localName) ?? new Set<string>()
+  hashes.add(hash)
+  target.set(localName, hashes)
+}
+function localHashesOnElement(element: Element | undefined, localName: string): Set<string> {
+  const hashes = new Set<string>()
+  if (!element) return hashes
+  for (const className of element.classList) {
+    const parsed = cssModuleSignature(className)
+    if (parsed?.localName === localName) hashes.add(parsed.hash)
+  }
+  return hashes
+}
+function sameModuleVariant(localName: string, variantName: string, element: Element | undefined, context: MessageSideContext): boolean {
+  const sourceHashes = localHashesOnElement(element, localName)
+  const variantHashes = context.localHashes.get(variantName)
+  if (!sourceHashes.size || !variantHashes?.size) return false
+  return [...sourceHashes].some((hash) => variantHashes.has(hash))
 }
 function userMarkerPriority(value: string): number {
   if (value === 'user') return 1000
@@ -348,6 +369,7 @@ function resolveMessageSideContext(componentElement: Element, root: ParentNode, 
   let instances: Element[] = [componentElement]
   try { instances = [...root.querySelectorAll(rootSelector)] } catch { /* keep current */ }
   const localNames = new Set<string>(component?.cssClasses ?? [])
+  const localHashes = new Map<string, Set<string>>()
   const directMarkers = new Set<string>()
   const descendantMarkers = new Set<string>()
   for (const localName of component?.cssClasses ?? []) {
@@ -357,13 +379,17 @@ function resolveMessageSideContext(componentElement: Element, root: ParentNode, 
   }
   for (const instance of instances.slice(0, 40)) {
     for (const className of instance.classList) {
+      const signature = cssModuleSignature(className)
       const parsed = normalizeCssModuleClass(className); if (!parsed) continue
       localNames.add(parsed.localName)
+      if (signature) rememberLocalHash(localHashes, signature.localName, signature.hash)
       if (userMarkerPriority(parsed.localName)) directMarkers.add(parsed.localName)
     }
     for (const node of [...instance.querySelectorAll('*')].slice(0, 260)) for (const className of node.classList) {
+      const signature = cssModuleSignature(className)
       const parsed = normalizeCssModuleClass(className); if (!parsed) continue
       localNames.add(parsed.localName)
+      if (signature) rememberLocalHash(localHashes, signature.localName, signature.hash)
       if (userMarkerPriority(parsed.localName)) descendantMarkers.add(parsed.localName)
     }
   }
@@ -376,7 +402,7 @@ function resolveMessageSideContext(componentElement: Element, root: ParentNode, 
   const assistantRootSelector = directMarker ? `${rootSelector}:not(${markerSelector})` : `${rootSelector}:not(:has(${markerSelector}))`
   let currentSide: Exclude<MessageSideName, 'both'> = 'assistant'
   try { currentSide = componentElement.matches(userRootSelector) ? 'user' : 'assistant' } catch { /* assistant fallback */ }
-  return { element: componentElement, componentLabel: label!, rootSelector, assistantRootSelector, userRootSelector, currentSide, localNames }
+  return { element: componentElement, componentLabel: label!, rootSelector, assistantRootSelector, userRootSelector, currentSide, localNames, localHashes }
 }
 function selectorLocalNames(selector: string): string[] {
   return [...selector.matchAll(/\[class\*=["']_([A-Za-z][A-Za-z0-9_-]*?)_["']\]/g)].map((match) => match[1])
@@ -404,8 +430,13 @@ function expandMessageSideScope(scope: SelectionScope, context: MessageSideConte
   let userLocal: string | undefined
   for (const local of locals) {
     const pairedBase = userVariantBase(local, context.localNames)
-    if (pairedBase) { baseLocal = pairedBase; userLocal = local; break }
-    if (context.localNames.has(`${local}User`)) { baseLocal = local; userLocal = `${local}User`; break }
+    if (pairedBase && sameModuleVariant(local, pairedBase, scope.element, context)) {
+      baseLocal = pairedBase; userLocal = local; break
+    }
+    const pairedUser = `${local}User`
+    if (context.localNames.has(pairedUser) && sameModuleVariant(local, pairedUser, scope.element, context)) {
+      baseLocal = local; userLocal = pairedUser; break
+    }
   }
   let assistantSource = scope.selector
   let userSource = scope.selector
@@ -450,6 +481,38 @@ function syntheticMountedComponent(element: Element): NativeThemeComponent | und
     cssClasses: mountedComponentLocalClasses(element), nativeKey: id,
   }
 }
+function disambiguatedComponentPartSelector(componentElement: Element, element: Element, localName: string, contextSelector: string, root: ParentNode): string | undefined {
+  const localSelector = `[class*="_${escapeAttribute(localName)}_"]`
+  const plain = element === componentElement ? `${contextSelector}${localSelector}` : composeContextSelector(contextSelector, localSelector)
+  if (!plain) return undefined
+  // Most locals are unique inside their component and should keep the shortest,
+  // most rebuild-tolerant selector. Only preserve nearby structure when the same
+  // normalized local resolves to multiple descendants of one message/component
+  // (BubbleMessage's outer `_content_` vs MessageContent's `_content_` is the
+  // canonical case).
+  let localMatches = 0
+  try {
+    localMatches = (componentElement.matches(localSelector) ? 1 : 0) + componentElement.querySelectorAll(localSelector).length
+  } catch { return plain }
+  if (localMatches <= 1) return plain
+
+  const targetSignature = [...element.classList].map(cssModuleSignature).find((entry) => entry?.localName === localName)
+  if (!targetSignature) return plain
+  let current = element.parentElement
+  while (current && current !== componentElement) {
+    const anchor = [...current.classList]
+      .map((className) => ({ signature: cssModuleSignature(className), normalized: normalizeCssModuleClass(className) }))
+      .find((entry) => entry.signature?.hash === targetSignature.hash && entry.normalized?.localName !== localName)
+    if (anchor?.normalized) {
+      const anchoredLocal = `${anchor.normalized.selector} > ${localSelector}`
+      const anchored = composeContextSelector(contextSelector, anchoredLocal)
+      if (anchored && countMatches(root, anchored) > 0) return anchored
+    }
+    current = current.parentElement
+  }
+  return plain
+}
+
 function componentPartScopes(component: NativeThemeComponent, componentElement: Element, root: ParentNode, contextSelector: string): SelectionScope[] {
   const scopes: SelectionScope[] = []
   const allLocalNames = [...new Set([...component.cssClasses, ...mountedComponentFamilyLocalClasses(componentElement, root)])]
@@ -463,7 +526,7 @@ function componentPartScopes(component: NativeThemeComponent, componentElement: 
       if (!element && isMessageComponentLabel(componentElement.getAttribute('data-component') ?? undefined)) element = root.querySelector(composeContextSelector(contextSelector, localSelector) ?? localSelector)
     } catch { element = null }
     if (!element) continue
-    const composed = element === componentElement ? `${contextSelector}${localSelector}` : composeContextSelector(contextSelector, localSelector)
+    const composed = disambiguatedComponentPartSelector(componentElement, element, localName, contextSelector, root)
     if (!composed) continue
     const selector = simplifyRedundantModuleSegments(composed, root)
     scopes.push({

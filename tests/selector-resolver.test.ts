@@ -270,6 +270,51 @@ describe('target, native context and scope separation', () => {
     expect(assistant.scopeCandidates.some((scope) => scope.type === 'native-part' && scope.label === 'Name User')).toBe(false)
   })
 
+  test('message side pairing respects CSS-module families and Both keeps Bubble content separate from MessageContent', () => {
+    document.body.innerHTML = `
+      <div data-component="BubbleMessage" class="_card_1hvlc_3 _character_1hvlc_111">
+        <div class="_bubble_1hvlc_513">
+          <div id="assistant-outer" class="_content_1hvlc_515">
+            <div id="assistant-message-content" data-component="MessageContent" class="_content_16x4f_1 _contentChar_16x4f_27"></div>
+          </div>
+        </div>
+      </div>
+      <div data-component="BubbleMessage" class="_card_1hvlc_3 _user_1hvlc_129">
+        <div class="_bubble_1hvlc_513">
+          <div id="user-outer" class="_content_1hvlc_515">
+            <div id="user-message-content" data-component="MessageContent" class="_content_16x4f_1 _contentUser_16x4f_21"></div>
+          </div>
+        </div>
+      </div>`
+    const entry = component('BubbleMessage', ['card', 'character', 'user', 'bubble', 'content', 'contentChar', 'contentUser'])
+
+    const outerResolution = resolveElement(document.querySelector('#user-outer')!, [entry])
+    const outerParts = outerResolution.scopeCandidates.filter((scope) => scope.type === 'native-part' && scope.label === 'Content')
+    const outerUser = outerParts.find((scope) => scope.messageSide === 'user')!
+    const outerAssistant = outerParts.find((scope) => scope.messageSide === 'assistant')!
+    const outerBoth = outerParts.find((scope) => scope.messageSide === 'both')!
+
+    expect(outerUser.selector).toContain('[class*="_bubble_"] > [class*="_content_"]')
+    expect(outerUser.selector).not.toContain('_contentUser_')
+    expect(outerAssistant.selector).not.toContain('_contentUser_')
+    expect([...document.querySelectorAll(outerUser.selector)]).toEqual([document.querySelector('#user-outer')!])
+    expect([...document.querySelectorAll(outerAssistant.selector)]).toEqual([document.querySelector('#assistant-outer')!])
+    expect(new Set([...document.querySelectorAll(outerBoth.selector)])).toEqual(new Set([
+      document.querySelector('#assistant-outer')!, document.querySelector('#user-outer')!,
+    ]))
+    expect(outerBoth.matchCount).toBe(2)
+
+    const innerResolution = resolveElement(document.querySelector('#user-message-content')!, [entry])
+    const innerActive = innerResolution.scopeCandidates.find((scope) => scope.id === innerResolution.activeScopeId)!
+    expect(innerActive.messageSide).toBe('user')
+    expect(innerActive.selector).toContain('[data-component="MessageContent"]')
+    const innerBoth = innerResolution.scopeCandidates.find((scope) => scope.messageFamilyId === innerActive.messageFamilyId && scope.messageSide === 'both')!
+    expect(new Set([...document.querySelectorAll(innerBoth.selector)])).toEqual(new Set([
+      document.querySelector('#assistant-message-content')!, document.querySelector('#user-message-content')!,
+    ]))
+    expect(innerBoth.matchCount).toBe(2)
+  })
+
   test('shared message parts isolate by the user marker even without a *User counterpart class', () => {
     document.body.innerHTML = `
       <div data-component="MinimalMessage" class="_card_efgh_1"><div class="_actionsWrap_efgh_2"></div></div>

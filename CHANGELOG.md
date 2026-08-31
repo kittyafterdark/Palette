@@ -1,4 +1,11 @@
-## 1.0.1 — WebCrypto doesn't exist it's that damn phone
+## 1.0.2 — Message-side DOM Resolver Hotfix
+
+- Fixed BubbleMessage user-side part selection incorrectly rewriting an outer CSS-module local such as `_content_1hvlc_*` to a nested `_contentUser_16x4f_*` just because the two locals shared the word `content`. Assistant/User variant pairing now requires mounted evidence that both locals belong to the **same CSS-module hash family**.
+- Disambiguated repeated normalized locals inside one component by preserving a nearby same-module structural anchor when needed. BubbleMessage's outer content wrapper now resolves through the Bubble → Content path instead of a broad `[class*="_content_"]` selector that can also catch nested MessageContent.
+- Regressed **Assistant / User / Both** together: shared outer parts stay shared without side-variant rewriting, paired locals such as `name`/`nameUser` still pair when their module hash agrees, and Both selects exactly the intended element on each message side.
+- No persisted theme vocabulary or project-state changes. Schema remains **v41** and minimum Lumiverse remains **1.1.6**.
+
+## 1.0.1 — HTTP Browser UUID Hotfix
 
 - Fixed Palette failing during frontend setup on plain HTTP browser sessions where `crypto.randomUUID()` is unavailable, including LAN/Tailscale-hosted Lumiverse instances that work normally when installed as a secure-context PWA.
 - Added a portable UUID helper: native `randomUUID()` when available, `crypto.getRandomValues()` UUID-v4 generation otherwise, plus a last-ditch compatibility fallback for runtimes without Web Crypto. Project IDs, migration-generated IDs, persistence request IDs, and theme-runtime request IDs now all use the same helper.
