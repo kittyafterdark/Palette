@@ -770,6 +770,14 @@ function userVariantBase(localName, allNames) {
     const base = localName.slice(0, -4);
     return allNames.has(base) ? base : undefined;
 }
+function messageVariantBase(localName, allNames) {
+    const suffix = localName.endsWith('User') ? 'User' : localName.endsWith('Char') ? 'Char' : undefined;
+    if (!suffix || localName.length <= suffix.length)
+        return undefined;
+    const base = localName.slice(0, -suffix.length);
+    const sibling = `${base}${suffix === 'User' ? 'Char' : 'User'}`;
+    return allNames.has(base) || allNames.has(sibling) ? base : undefined;
+}
 function mountedComponentFamilyLocalClasses(componentElement, root) {
     const label = componentElement.getAttribute('data-component')?.trim();
     if (!isMessageComponentLabel(label))
@@ -807,6 +815,21 @@ function sameModuleVariant(localName, variantName, element, context) {
     if (!sourceHashes.size || !variantHashes?.size)
         return false;
     return [...sourceHashes].some((hash) => variantHashes.has(hash));
+}
+function messageLocalFamily(localName, element, context) {
+    const base = messageVariantBase(localName, context.localNames) ?? localName;
+    const charLocal = `${base}Char`;
+    const userLocal = `${base}User`;
+    const baseAvailable = context.localNames.has(base) && (localName === base || sameModuleVariant(localName, base, element, context));
+    const charAvailable = context.localNames.has(charLocal) && (localName === charLocal || sameModuleVariant(localName, charLocal, element, context));
+    const userAvailable = context.localNames.has(userLocal) && (localName === userLocal || sameModuleVariant(localName, userLocal, element, context));
+    if (!charAvailable && !userAvailable)
+        return undefined;
+    const assistant = charAvailable ? charLocal : baseAvailable ? base : localName;
+    const user = userAvailable ? userLocal : baseAvailable ? base : localName;
+    if (assistant === user)
+        return undefined;
+    return { base, source: localName, assistant, user };
 }
 function userMarkerPriority(value) {
     if (value === 'user')
@@ -912,33 +935,23 @@ function expandMessageSideScope(scope, context, root) {
     if (!belongs && scope.type !== 'similar-elements' && scope.type !== 'context-local')
         return [scope];
     const locals = selectorLocalNames(scope.localSelector ?? scope.selector);
-    let baseLocal;
-    let userLocal;
+    let family;
     for (const local of locals) {
-        const pairedBase = userVariantBase(local, context.localNames);
-        if (pairedBase && sameModuleVariant(local, pairedBase, scope.element, context)) {
-            baseLocal = pairedBase;
-            userLocal = local;
+        family = messageLocalFamily(local, scope.element, context);
+        if (family)
             break;
-        }
-        const pairedUser = `${local}User`;
-        if (context.localNames.has(pairedUser) && sameModuleVariant(local, pairedUser, scope.element, context)) {
-            baseLocal = local;
-            userLocal = pairedUser;
-            break;
-        }
     }
     let assistantSource = scope.selector;
     let userSource = scope.selector;
-    if (baseLocal && userLocal) {
-        assistantSource = replaceLocalName(assistantSource, userLocal, baseLocal);
-        userSource = replaceLocalName(userSource, baseLocal, userLocal);
+    if (family) {
+        assistantSource = replaceLocalName(assistantSource, family.source, family.assistant);
+        userSource = replaceLocalName(userSource, family.source, family.user);
     }
     const assistantSelector = selectorInsideMessageRoot(assistantSource, context, context.assistantRootSelector);
     const userSelector = selectorInsideMessageRoot(userSource, context, context.userRootSelector);
     const bothSelector = assistantSelector === userSelector ? assistantSelector : `${assistantSelector},\n${userSelector}`;
     const familyId = scope.messageFamilyId ?? scope.id;
-    const label = scope.label.replace(/\s+User$/i, '');
+    const label = family ? scope.label.replace(/\s+(?:User|Char)$/i, '') : scope.label.replace(/\s+User$/i, '');
     const make = (messageSide, selector, id) => ({
         ...scope, id, selector, label, matchCount: countMatches(root, selector), messageSide, messageFamilyId: familyId,
         element: messageSide === 'assistant' ? firstElement(root, assistantSelector) ?? scope.element : messageSide === 'user' ? firstElement(root, userSelector) ?? scope.element : scope.element ?? firstElement(root, bothSelector),
@@ -1008,7 +1021,8 @@ function componentPartScopes(component, componentElement, root, contextSelector)
     const scopes = [];
     const allLocalNames = [...new Set([...component.cssClasses, ...mountedComponentFamilyLocalClasses(componentElement, root)])];
     const allNameSet = new Set(allLocalNames);
-    const localNames = allLocalNames.filter((name) => name !== 'user' && !userVariantBase(name, allNameSet));
+    const messageComponent = isMessageComponentLabel(componentElement.getAttribute('data-component') ?? undefined);
+    const localNames = allLocalNames.filter((name) => name !== 'user' && !(messageComponent ? messageVariantBase(name, allNameSet) : userVariantBase(name, allNameSet)));
     for (const localName of localNames) {
         const localSelector = `[class*="_${escapeAttribute(localName)}_"]`;
         let element = null;

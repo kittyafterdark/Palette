@@ -270,6 +270,55 @@ describe('target, native context and scope separation', () => {
     expect(assistant.scopeCandidates.some((scope) => scope.type === 'native-part' && scope.label === 'Name User')).toBe(false)
   })
 
+  test('message scopes understand foo / fooChar / fooUser families and Both maps each speaker leaf', () => {
+    document.body.innerHTML = `
+      <div data-component="BubbleMessage" class="_card_1hvlc_3 _character_1hvlc_111">
+        <div class="_bubble_1hvlc_513"><div class="_header_1hvlc_553">
+          <span id="assistant-name" class="_name_1hvlc_679 _nameChar_1hvlc_681">Gabrielle</span>
+        </div></div>
+      </div>
+      <div data-component="BubbleMessage" class="_card_1hvlc_3 _user_1hvlc_129">
+        <div class="_bubble_1hvlc_513"><div class="_header_1hvlc_553">
+          <span id="user-name" class="_name_1hvlc_679 _nameUser_1hvlc_683">Kitty</span>
+        </div></div>
+      </div>`
+    const entry = component('BubbleMessage', ['card', 'character', 'user', 'bubble', 'header', 'name', 'nameChar', 'nameUser'])
+
+    const resolution = resolveElement(document.querySelector('#assistant-name')!, [entry])
+    const active = resolution.scopeCandidates.find((scope) => scope.id === resolution.activeScopeId)!
+    const activeFamily = resolution.scopeCandidates.filter((scope) => scope.messageFamilyId === active.messageFamilyId)
+    const activeAssistant = activeFamily.find((scope) => scope.messageSide === 'assistant')!
+    const activeUser = activeFamily.find((scope) => scope.messageSide === 'user')!
+    const activeBoth = activeFamily.find((scope) => scope.messageSide === 'both')!
+    expect(activeAssistant.selector).toContain('[class*="_nameChar_"]')
+    expect(activeUser.selector).toContain('[class*="_nameUser_"]')
+    expect(activeUser.selector).not.toContain('_nameChar_')
+    expect(new Set([...document.querySelectorAll(activeBoth.selector)])).toEqual(new Set([
+      document.querySelector('#assistant-name')!, document.querySelector('#user-name')!,
+    ]))
+
+    const nameParts = resolution.scopeCandidates.filter((scope) => scope.type === 'native-part' && scope.label === 'Name')
+    const assistant = nameParts.find((scope) => scope.messageSide === 'assistant')!
+    const user = nameParts.find((scope) => scope.messageSide === 'user')!
+    const both = nameParts.find((scope) => scope.messageSide === 'both')!
+
+    expect(assistant.selector).toContain('[class*="_nameChar_"]')
+    expect(assistant.selector).not.toContain('_nameUser_')
+    expect(user.selector).toContain('[class*="_nameUser_"]')
+    expect(user.selector).not.toContain('_nameChar_')
+    expect(new Set([...document.querySelectorAll(both.selector)])).toEqual(new Set([
+      document.querySelector('#assistant-name')!, document.querySelector('#user-name')!,
+    ]))
+    expect(both.matchCount).toBe(2)
+    expect(resolution.scopeCandidates.some((scope) => scope.type === 'native-part' && scope.label === 'Name Char')).toBe(false)
+    expect(resolution.scopeCandidates.some((scope) => scope.type === 'native-part' && scope.label === 'Name User')).toBe(false)
+
+    const userResolution = resolveElement(document.querySelector('#user-name')!, [entry])
+    const userNameParts = userResolution.scopeCandidates.filter((scope) => scope.type === 'native-part' && scope.label === 'Name')
+    expect(userNameParts.find((scope) => scope.messageSide === 'assistant')?.selector).toContain('[class*="_nameChar_"]')
+    expect(userNameParts.find((scope) => scope.messageSide === 'user')?.selector).toContain('[class*="_nameUser_"]')
+  })
+
   test('message side pairing respects CSS-module families and Both keeps Bubble content separate from MessageContent', () => {
     document.body.innerHTML = `
       <div data-component="BubbleMessage" class="_card_1hvlc_3 _character_1hvlc_111">

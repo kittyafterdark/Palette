@@ -316,6 +316,13 @@ function userVariantBase(localName: string, allNames: Set<string>): string | und
   const base = localName.slice(0, -4)
   return allNames.has(base) ? base : undefined
 }
+function messageVariantBase(localName: string, allNames: Set<string>): string | undefined {
+  const suffix = localName.endsWith('User') ? 'User' : localName.endsWith('Char') ? 'Char' : undefined
+  if (!suffix || localName.length <= suffix.length) return undefined
+  const base = localName.slice(0, -suffix.length)
+  const sibling = `${base}${suffix === 'User' ? 'Char' : 'User'}`
+  return allNames.has(base) || allNames.has(sibling) ? base : undefined
+}
 function mountedComponentFamilyLocalClasses(componentElement: Element, root: ParentNode): string[] {
   const label = componentElement.getAttribute('data-component')?.trim()
   if (!isMessageComponentLabel(label)) return mountedComponentLocalClasses(componentElement)
@@ -354,6 +361,31 @@ function sameModuleVariant(localName: string, variantName: string, element: Elem
   const variantHashes = context.localHashes.get(variantName)
   if (!sourceHashes.size || !variantHashes?.size) return false
   return [...sourceHashes].some((hash) => variantHashes.has(hash))
+}
+interface MessageLocalFamily {
+  base: string
+  source: string
+  assistant: string
+  user: string
+}
+function messageLocalFamily(localName: string, element: Element | undefined, context: MessageSideContext): MessageLocalFamily | undefined {
+  const base = messageVariantBase(localName, context.localNames) ?? localName
+  const charLocal = `${base}Char`
+  const userLocal = `${base}User`
+  const baseAvailable = context.localNames.has(base) && (localName === base || sameModuleVariant(localName, base, element, context))
+  const charAvailable = context.localNames.has(charLocal) && (localName === charLocal || sameModuleVariant(localName, charLocal, element, context))
+  const userAvailable = context.localNames.has(userLocal) && (localName === userLocal || sameModuleVariant(localName, userLocal, element, context))
+  if (!charAvailable && !userAvailable) return undefined
+
+  // Lumiverse message anatomy can expose a shared local plus one or two
+  // side-specific leaves: foo / fooChar / fooUser. Prefer the explicit leaf
+  // for each side when mounted evidence says it belongs to the same CSS-module
+  // family. Older foo / fooUser pairs continue to use the shared base for the
+  // assistant side. If only fooChar exists, the user side falls back to foo.
+  const assistant = charAvailable ? charLocal : baseAvailable ? base : localName
+  const user = userAvailable ? userLocal : baseAvailable ? base : localName
+  if (assistant === user) return undefined
+  return { base, source: localName, assistant, user }
 }
 function userMarkerPriority(value: string): number {
   if (value === 'user') return 1000
@@ -426,29 +458,22 @@ function expandMessageSideScope(scope: SelectionScope, context: MessageSideConte
     || Boolean(scope.element && context.element.contains(scope.element))
   if (!belongs && scope.type !== 'similar-elements' && scope.type !== 'context-local') return [scope]
   const locals = selectorLocalNames(scope.localSelector ?? scope.selector)
-  let baseLocal: string | undefined
-  let userLocal: string | undefined
+  let family: MessageLocalFamily | undefined
   for (const local of locals) {
-    const pairedBase = userVariantBase(local, context.localNames)
-    if (pairedBase && sameModuleVariant(local, pairedBase, scope.element, context)) {
-      baseLocal = pairedBase; userLocal = local; break
-    }
-    const pairedUser = `${local}User`
-    if (context.localNames.has(pairedUser) && sameModuleVariant(local, pairedUser, scope.element, context)) {
-      baseLocal = local; userLocal = pairedUser; break
-    }
+    family = messageLocalFamily(local, scope.element, context)
+    if (family) break
   }
   let assistantSource = scope.selector
   let userSource = scope.selector
-  if (baseLocal && userLocal) {
-    assistantSource = replaceLocalName(assistantSource, userLocal, baseLocal)
-    userSource = replaceLocalName(userSource, baseLocal, userLocal)
+  if (family) {
+    assistantSource = replaceLocalName(assistantSource, family.source, family.assistant)
+    userSource = replaceLocalName(userSource, family.source, family.user)
   }
   const assistantSelector = selectorInsideMessageRoot(assistantSource, context, context.assistantRootSelector)
   const userSelector = selectorInsideMessageRoot(userSource, context, context.userRootSelector)
   const bothSelector = assistantSelector === userSelector ? assistantSelector : `${assistantSelector},\n${userSelector}`
   const familyId = scope.messageFamilyId ?? scope.id
-  const label = scope.label.replace(/\s+User$/i, '')
+  const label = family ? scope.label.replace(/\s+(?:User|Char)$/i, '') : scope.label.replace(/\s+User$/i, '')
   const make = (messageSide: MessageSideName, selector: string, id: string): SelectionScope => ({
     ...scope, id, selector, label, matchCount: countMatches(root, selector), messageSide, messageFamilyId: familyId,
     element: messageSide === 'assistant' ? firstElement(root, assistantSelector) ?? scope.element : messageSide === 'user' ? firstElement(root, userSelector) ?? scope.element : scope.element ?? firstElement(root, bothSelector),
@@ -517,7 +542,8 @@ function componentPartScopes(component: NativeThemeComponent, componentElement: 
   const scopes: SelectionScope[] = []
   const allLocalNames = [...new Set([...component.cssClasses, ...mountedComponentFamilyLocalClasses(componentElement, root)])]
   const allNameSet = new Set(allLocalNames)
-  const localNames = allLocalNames.filter((name) => name !== 'user' && !userVariantBase(name, allNameSet))
+  const messageComponent = isMessageComponentLabel(componentElement.getAttribute('data-component') ?? undefined)
+  const localNames = allLocalNames.filter((name) => name !== 'user' && !(messageComponent ? messageVariantBase(name, allNameSet) : userVariantBase(name, allNameSet)))
   for (const localName of localNames) {
     const localSelector = `[class*="_${escapeAttribute(localName)}_"]`
     let element: Element | null = null

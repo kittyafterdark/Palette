@@ -1,8 +1,9 @@
 ## 1.0.2 — Message-side DOM Resolver Hotfix
 
-- Fixed BubbleMessage user-side part selection incorrectly rewriting an outer CSS-module local such as `_content_1hvlc_*` to a nested `_contentUser_16x4f_*` just because the two locals shared the word `content`. Assistant/User variant pairing now requires mounted evidence that both locals belong to the **same CSS-module hash family**.
+- Fixed BubbleMessage user-side part selection incorrectly rewriting an outer CSS-module local such as `_content_1hvlc_*` to a nested `_contentUser_16x4f_*` just because the two locals shared the word `content`. Assistant/User variant pairing now requires mounted evidence that the locals belong to the **same CSS-module hash family**.
+- Added the full mounted message-side grammar `foo / fooChar / fooUser`. Shared parts such as Name now resolve Assistant → `nameChar`, User → `nameUser`, and Both → exactly those two branches instead of carrying the assistant leaf onto the user side. The paired `*Char` / `*User` leaves are folded back into the semantic base part instead of appearing as duplicate anatomy entries.
 - Disambiguated repeated normalized locals inside one component by preserving a nearby same-module structural anchor when needed. BubbleMessage's outer content wrapper now resolves through the Bubble → Content path instead of a broad `[class*="_content_"]` selector that can also catch nested MessageContent.
-- Regressed **Assistant / User / Both** together: shared outer parts stay shared without side-variant rewriting, paired locals such as `name`/`nameUser` still pair when their module hash agrees, and Both selects exactly the intended element on each message side.
+- Regressed **Assistant / User / Both** together for outer Content, nested MessageContent, shared+Char+User Name families, and picks originating from either speaker.
 - No persisted theme vocabulary or project-state changes. Schema remains **v41** and minimum Lumiverse remains **1.1.6**.
 
 ## 1.0.1 — HTTP Browser UUID Hotfix
