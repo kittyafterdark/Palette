@@ -1,6 +1,6 @@
 import { portableRandomUUID } from '../utils/random-id'
-export const PROJECT_VERSION = 42 as const
-export const STATE_VERSION = 42 as const
+export const PROJECT_VERSION = 43 as const
+export const STATE_VERSION = 43 as const
 
 export type SelectorStrategy = 'semantic' | 'native-context-local' | 'native-registry' | 'studio-registry' | 'css-module' | 'exact-class' | 'structural' | 'volatile'
 export type SelectorStability = 'high' | 'medium' | 'low'
@@ -94,12 +94,22 @@ export interface SvgAssetPacket {
   svg: string
   assetId?: string
   assetName?: string
+  /** Surface paints the selected box/pseudo-layer. Replace swaps an inline SVG discovered inside the selected element. */
+  targetMode?: 'surface' | 'replace'
+  /** Structural path from the selected target to the authored SVG. `:self` means the target itself; `svg` means all descendants. */
+  svgPath?: string
+  svgLabel?: string
   renderMode: 'mask' | 'image'
+  /** Replace mode can inherit the native icon currentColor instead of freezing a project color. */
+  colorMode?: 'custom' | 'inherit'
   color: string
   alpha: number
   fit: 'contain' | 'cover'
   positionX: number
   positionY: number
+  /** Optional replacement-box sizing/rotation. Undefined size preserves the native SVG box. */
+  size?: number
+  rotate?: number
 }
 
 /** Strip harmless standalone-file wrappers before validating/storing the SVG root. */
@@ -134,6 +144,15 @@ function stripSvgFilePreamble(value: string): string | null {
     if (svg === before) break
   }
   return svg
+}
+
+/** Keep persisted nested-SVG targeting structural; never let project data become arbitrary selector text. */
+export function normalizeSvgTargetPath(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const path = value.trim()
+  if (path === ':self' || path === 'svg') return path
+  const segment = String.raw`[a-z][a-z0-9-]*(?::nth-of-type\([1-9]\d*\))?`
+  return new RegExp(String.raw`^>\s*${segment}(?:\s*>\s*${segment})*$`, 'i').test(path) ? path : undefined
 }
 
 /** Keep user SVGs reusable without allowing executable/remote SVG payloads into CSS masks. */
@@ -387,7 +406,7 @@ export function createStylePacket(type: PacketType): StylePacket {
     case 'opacity': return { id, type, value: 0.8 }
     case 'visibility': return { id, type, mode: 'gone' }
     case 'composer-icons': return { id, type, family: 'native', size: 14, customIcons: {} }
-    case 'svg-asset': return { id, type, svg: '', renderMode: 'mask', color: '#ffffff', alpha: 1, fit: 'contain', positionX: 50, positionY: 50 }
+    case 'svg-asset': return { id, type, svg: '', targetMode: 'surface', renderMode: 'mask', colorMode: 'custom', color: '#ffffff', alpha: 1, fit: 'contain', positionX: 50, positionY: 50, rotate: 0 }
     case 'media-flow': return { id, type, mode: 'native', unclipped: false }
     case 'image': return { id, type, brightness: 1, saturation: 1, contrast: 1, grayscale: 0, hueRotate: 0, blur: 0, sourceQuality: 'native', objectFit: 'native', objectPositionX: 50, objectPositionY: 50, fillFrame: false, offsetX: 0, offsetY: 0 }
     case 'mask': return { id, type, maskMode: 'native', fade: { direction: 'none', amount: 28 } }

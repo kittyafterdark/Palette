@@ -1,3 +1,12 @@
+## 1.0.4 — SVG / Icon Primitive
+
+- Added capability-driven SVG discovery in Design: if the resolved element is or contains inline `<svg>` nodes, **SVG / Icon** is highlighted and can target the SVG itself, one nested SVG, or all nested SVGs without a component-specific selector recipe.
+- SVG/Icon **Replace icon** keeps the real Lumiverse/React-owned control and native SVG layout box intact while replacing only the rendered glyph through compiler-owned CSS. Tintable mode can inherit `currentColor`; Preserve colors uses the SVG snapshot as an image. Optional fixed size, fit, opacity, and rotation are persisted.
+- The existing SVG packet remains available as **Paint surface**, preserving prior pseudo-surface/ornament behavior. Legacy v42 SVG Asset packets migrate to this surface mode.
+- Added a first-class **Palette library** sourced from the extension's existing built-in ornament SVG corpus, alongside the existing saved SVG wardrobe and one-off/custom SVG input. Built-ins and saved assets are sanitized snapshots; clearing a replacement restores the native SVG.
+- Multi-SVG targets get an explicit target picker and stable structural child paths instead of generated CSS-module hashes.
+- Persisted project/state schema is now **v43**. Minimum Lumiverse remains **1.1.6**.
+
 ## 1.0.3 — Community UX Pass
 
 - 1.0.3 QA follow-up V: docked **Apply and edit** now collapses the native Style Library instead of destroying it; reopening Browse expands the same dock with its browse/pack/filter state intact. Fullscreen handoffs still close the fullscreen library normally.

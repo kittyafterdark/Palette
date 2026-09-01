@@ -3418,4 +3418,28 @@ export const THEME_STUDIO_CSS = `
     min-width:0;
   }
 }
+
+/* v30 · SVG/Icon capability primitive -------------------------------------
+   SVG replacement stays inside the native SVG box; this UI only exposes the
+   target/corpus choices and does not invent a second icon layout system. */
+.ts-style-option.is-capability-match:not(:disabled) {
+  border-color: color-mix(in srgb,var(--ts-accent) 48%,var(--ts-border));
+  background: color-mix(in srgb,var(--ts-accent-soft) 36%,var(--lumiverse-fill-subtle,transparent));
+}
+.ts-style-option.is-capability-match:not(:disabled) .ts-style-icon { color:var(--ts-accent); }
+.ts-svg-target-picker { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
+.ts-svg-target-picker button { appearance:none; min-width:0; display:grid; grid-template-columns:22px minmax(0,1fr); gap:7px; align-items:center; border:1px solid var(--ts-border); border-radius:8px; padding:7px 8px; background:var(--lumiverse-fill-subtle,rgba(255,255,255,.03)); color:var(--ts-muted); cursor:pointer; font:inherit; text-align:left; }
+.ts-svg-target-picker button:hover,.ts-svg-target-picker button[aria-pressed="true"] { border-color:var(--ts-accent); background:var(--ts-accent-soft); color:var(--ts-text); }
+.ts-svg-target-picker button > span { display:grid; place-items:center; width:22px; height:22px; border-radius:6px; background:color-mix(in srgb,var(--ts-accent) 14%,transparent); color:var(--ts-accent); font-size:9px; }
+.ts-svg-target-picker strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:9px; }
+.ts-svg-library { margin-top:8px; }
+.ts-svg-library > summary { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.ts-svg-library > summary span { color:var(--ts-dim); font-size:8px; font-weight:600; }
+.ts-svg-builtin-grid { max-height:244px; overflow:auto; overscroll-behavior:contain; padding-right:2px; }
+.ts-svg-builtin-grid .ts-saved-svg-item > button:first-child { padding-right:7px; }
+.ts-svg-builtin-grid .ts-saved-svg-item > button:first-child[aria-pressed="true"] { border-color:var(--ts-accent); background:var(--ts-accent-soft); color:var(--ts-text); box-shadow:0 0 0 1px color-mix(in srgb,var(--ts-accent) 18%,transparent); }
+@media (max-width:620px) {
+  .ts-svg-target-picker { grid-template-columns:1fr; }
+  .ts-svg-builtin-grid { max-height:320px; }
+}
 `

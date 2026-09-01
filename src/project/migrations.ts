@@ -1,5 +1,5 @@
 import {
-  PROJECT_VERSION, STATE_VERSION, STYLE_STATES, COMPOSER_ICON_ACTIONS, createBoost, createGradient, createInitialState, normalizeSvgSource,
+  PROJECT_VERSION, STATE_VERSION, STYLE_STATES, COMPOSER_ICON_ACTIONS, createBoost, createGradient, createInitialState, normalizeSvgSource, normalizeSvgTargetPath,
   type AlignmentPacket, type BackgroundPacket, type BorderPacket, type BoxSpacing, type ComponentOverride, type ContentPacket,
   type CornersPacket, type GlassPacket, type ImagePacket, type MaskPacket, type ComposerIconsPacket, type PatternPacket, type LayoutGroup, type LayoutGroupState, type LayoutGroupStyleBucket, type LayoutGroupContentTarget, type LayoutItemPacket, type LayoutPacket, type PlacementPacket, type OpacityPacket, type PositionPacket, type ShadowPacket,
   type SizePacket, type SpacingPacket, type StatePacketStacks, type StylePacket, type StudioFontFace, type TransformPacket, type StudioSvgAsset, type SvgAssetPacket, type MediaFlowPacket,
@@ -246,7 +246,7 @@ function normalizePacketBase(value: unknown): StylePacket | null {
   }
   if (value.type === 'svg-asset') {
     const svg = normalizeSvgSource(value.svg) ?? ''
-    return { id, type: 'svg-asset', svg, assetId: typeof value.assetId === 'string' ? value.assetId : undefined, assetName: typeof value.assetName === 'string' ? value.assetName.slice(0, 80) : undefined, renderMode: value.renderMode === 'image' ? 'image' : 'mask', color: string(value.color, '#ffffff'), alpha: alpha(value.alpha), fit: value.fit === 'cover' ? 'cover' : 'contain', positionX: percentage(value.positionX, 50), positionY: percentage(value.positionY, 50) } satisfies SvgAssetPacket
+    return { id, type: 'svg-asset', svg, assetId: typeof value.assetId === 'string' ? value.assetId : undefined, assetName: typeof value.assetName === 'string' ? value.assetName.slice(0, 80) : undefined, targetMode: value.targetMode === 'replace' ? 'replace' : 'surface', svgPath: normalizeSvgTargetPath(value.svgPath), svgLabel: typeof value.svgLabel === 'string' ? value.svgLabel.slice(0, 120) : undefined, renderMode: value.renderMode === 'image' ? 'image' : 'mask', colorMode: value.colorMode === 'inherit' ? 'inherit' : 'custom', color: string(value.color, '#ffffff'), alpha: alpha(value.alpha), fit: value.fit === 'cover' ? 'cover' : 'contain', positionX: percentage(value.positionX, 50), positionY: percentage(value.positionY, 50), size: value.size === undefined ? undefined : bounded(value.size, 16, 4, 512), rotate: bounded(value.rotate, 0, -3600, 3600) } satisfies SvgAssetPacket
   }
   if (value.type === 'media-flow') return { id, type: 'media-flow', mode: value.mode === 'full' ? 'full' : value.mode === 'natural' ? 'natural' : 'native', unclipped: value.unclipped === true } satisfies MediaFlowPacket
   if (value.type === 'image') {

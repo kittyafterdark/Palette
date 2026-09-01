@@ -46,7 +46,7 @@ describe('layout groups', () => {
     const project = createProject('Groups')
     project.layoutGroups.push(group, { ...structuredClone(group), id: 'bad', members: [group.members[0]] })
     const state = normalizeState({ version: 26, activeProjectId: project.id, projects: [project] })
-    expect(state.version).toBe(42)
+    expect(state.version).toBe(43)
     expect(state.projects[0].layoutGroups).toHaveLength(1)
     expect(state.projects[0].layoutGroups[0].members).toHaveLength(2)
   })

@@ -1,9 +1,19 @@
 import { describe, expect, test } from 'bun:test'
-import { createInitialState, createStylePacket, normalizeComposerSvgSource } from '../src/project/model'
+import { createInitialState, createStylePacket, normalizeComposerSvgSource, normalizeSvgTargetPath } from '../src/project/model'
 import { normalizeState } from '../src/project/migrations'
 import { ProjectStore } from '../src/project/store'
+import { BUILTIN_ORNAMENTS } from '../src/presets/ornaments'
 
 describe('Phase Three persistence and migrations', () => {
+  test('schema v43 SVG target paths stay structural instead of becoming arbitrary selectors', () => {
+    expect(normalizeSvgTargetPath(':self')).toBe(':self')
+    expect(normalizeSvgTargetPath('> span > svg:nth-of-type(2)')).toBe('> span > svg:nth-of-type(2)')
+    expect(normalizeSvgTargetPath('svg')).toBe('svg')
+    expect(normalizeSvgTargetPath('> svg { color: red }')).toBeUndefined()
+    expect(normalizeSvgTargetPath('> span, body > svg')).toBeUndefined()
+    expect(normalizeSvgTargetPath('> span > svg:nth-of-type(0)')).toBeUndefined()
+  })
+
   test('round-trips state stacks, fonts, Boost and DOM-only targets', () => {
     const state = createInitialState(); const project = state.projects[0]
     project.componentOverrides.push({ id: 'dom', target: { selector: '.widget', strategy: 'exact-class', stability: 'low', persistence: 'persistent', source: 'dom-scoped', label: 'div · widget' }, states: { normal: [createStylePacket('background'), createStylePacket('layout')], hover: [createStylePacket('shadow')] } })
@@ -49,7 +59,7 @@ describe('Phase Three persistence and migrations', () => {
     if (packet.type !== 'border') throw new Error()
     expect(packet.alpha).toBe(1)
     expect(packet.editedFields).toContain('alpha')
-    expect(restored.version).toBe(42)
+    expect(restored.version).toBe(43)
   })
 
   test('persists Image full-source quality through schema v21', () => {
@@ -62,7 +72,7 @@ describe('Phase Three persistence and migrations', () => {
     if (packet.type !== 'image') throw new Error()
     expect(packet.sourceQuality).toBe('full')
     expect(packet.editedFields).toContain('sourceQuality')
-    expect(restored.version).toBe(42)
+    expect(restored.version).toBe(43)
   })
 
   test('schema v28 persists Background Stencil intent and defaults old images to normal rendering', () => {
@@ -73,7 +83,7 @@ describe('Phase Three persistence and migrations', () => {
     const restored = normalizeState(JSON.parse(JSON.stringify(state)))
     const packet = restored.projects[0].componentOverrides[0].states.normal[0]
     if (packet.type !== 'background') throw new Error()
-    expect(restored.version).toBe(42)
+    expect(restored.version).toBe(43)
     expect(packet.image).toMatchObject({ renderMode: 'mask', maskColor: '#92a6b3', maskAlpha: .75, hideContents: true })
 
     const legacy = normalizeState({ version: 27, activeProjectId: 'old', projects: [{ ...structuredClone(project), version: 27, id: 'old', componentOverrides: [{ ...project.componentOverrides[0], states: { normal: [{ ...stencil, image: { assetPath: './assets/legacy.png', size: 'cover', positionX: 50, positionY: 50, repeat: 'no-repeat' } }] } }] }] })
@@ -91,7 +101,7 @@ describe('Phase Three persistence and migrations', () => {
     const restored = normalizeState(JSON.parse(JSON.stringify(state)))
     const packet = restored.projects[0].componentOverrides[0].states.normal[0]
     if (packet.type !== 'transform') throw new Error()
-    expect(restored.version).toBe(42)
+    expect(restored.version).toBe(43)
     expect(packet).toMatchObject({ rotate: -4.5, scaleLinked: false, scaleX: 1.08, scaleY: .92, skewX: 7, skewY: -2 })
   })
 
@@ -103,8 +113,8 @@ describe('Phase Three persistence and migrations', () => {
     const restored = normalizeState(JSON.parse(JSON.stringify(state)))
     const packet = restored.projects[0].componentOverrides[0].states.normal[0]
     if (packet.type !== 'content') throw new Error()
-    expect(restored.version).toBe(42)
-    expect(restored.projects[0].version).toBe(42)
+    expect(restored.version).toBe(43)
+    expect(restored.projects[0].version).toBe(43)
     expect(packet.value).toBe('PRIVATE NOTE')
     expect(packet.editedFields).toEqual(['value'])
   })
@@ -117,7 +127,7 @@ describe('Phase Three persistence and migrations', () => {
     const restored = normalizeState(JSON.parse(JSON.stringify(state)))
     const packet = restored.projects[0].componentOverrides[0].states.normal[0]
     if (packet.type !== 'layout') throw new Error()
-    expect(restored.version).toBe(42)
+    expect(restored.version).toBe(43)
     expect(packet.display).toBe('contents')
   })
 
@@ -129,12 +139,12 @@ describe('Phase Three persistence and migrations', () => {
     const restored = normalizeState(JSON.parse(JSON.stringify(state)))
     const packet = restored.projects[0].componentOverrides[0].states.normal[0]
     if (packet.type !== 'placement') throw new Error()
-    expect(restored.version).toBe(42)
-    expect(restored.projects[0].version).toBe(42)
+    expect(restored.version).toBe(43)
+    expect(restored.projects[0].version).toBe(43)
     expect(packet).toMatchObject({ horizontal: 'end', vertical: 'center', editedFields: ['horizontal', 'vertical'] })
   })
 
-  test('schema v41 Text Entry intent survives normalization into v42', () => {
+  test('schema v41 Text Entry intent survives normalization into v43', () => {
     const state = createInitialState(); const project = state.projects[0]
     const entry = createStylePacket('text-entry'); if (entry.type !== 'text-entry') throw new Error()
     entry.insetX = 14; entry.insetY = 9; entry.fontFamily = 'Georgia'; entry.fontSize = 16; entry.lineHeight = 1.52; entry.placeholderColor = '#665f62'; entry.placeholderAlpha = .62; entry.placeholderStyle = 'italic'
@@ -142,8 +152,8 @@ describe('Phase Three persistence and migrations', () => {
     const restored = normalizeState(JSON.parse(JSON.stringify(state)))
     const packet = restored.projects[0].componentOverrides[0].states.normal[0]
     if (packet.type !== 'text-entry') throw new Error()
-    expect(restored.version).toBe(42)
-    expect(restored.projects[0].version).toBe(42)
+    expect(restored.version).toBe(43)
+    expect(restored.projects[0].version).toBe(43)
     expect(packet).toMatchObject({ insetX: 14, insetY: 9, fontFamily: 'Georgia', fontSize: 16, lineHeight: 1.52, placeholderColor: '#665f62', placeholderAlpha: .62, placeholderStyle: 'italic' })
   })
 
@@ -163,8 +173,8 @@ describe('Phase Three persistence and migrations', () => {
     })
     const restored = normalizeState(JSON.parse(JSON.stringify(state)))
     const restoredOverride = restored.projects[0].componentOverrides[0]
-    expect(restored.version).toBe(42)
-    expect(restored.projects[0].version).toBe(42)
+    expect(restored.version).toBe(43)
+    expect(restored.projects[0].version).toBe(43)
     expect(restoredOverride.states.normal[0].type).toBe('typography')
     expect(restoredOverride.mobileStates?.normal[0].type).toBe('typography')
     expect(restoredOverride.mobileStates?.normal[0].editedFields).toEqual(['fontSize'])
@@ -179,7 +189,7 @@ describe('Phase Three persistence and migrations', () => {
   test('repairs stranded schema-v15 message selectors instead of trusting the version stamp', () => {
     const old = { version: 15, activeProjectId: 'p', projects: [{ version: 15, id: 'p', name: 'Still leaked', tokens: [], componentOverrides: [{ id: 'avatar', target: { selector: '[class*="_avatar_"]', strategy: 'css-module', stability: 'medium', persistence: 'persistent', source: 'native-aware', label: 'Avatar · Ancestor', nativeComponentId: 'mounted:MinimalMessage' }, states: { normal: [{ id: 's', type: 'size', width: { mode: 'fixed', value: 18, unit: '%' }, height: { mode: 'fixed', value: 47, unit: 'vh' } }] } }], customCss: '', assets: [], fonts: [], presets: [], boost: {}, createdAt: 1, updatedAt: 2 }] }
     const restored = normalizeState(old)
-    expect(restored.version).toBe(42)
+    expect(restored.version).toBe(43)
     expect(restored.projects[0].componentOverrides[0].target.selector).toBe('[data-component="MinimalMessage"] [class*="_avatar_"]')
   })
 
@@ -257,7 +267,7 @@ describe('Phase Three persistence and migrations', () => {
     expect(migratedImage?.type === 'image' && migratedImage.sourceQuality).toBe('full')
     expect(migratedMask?.type === 'mask' && migratedMask.maskMode).toBe('fade')
     expect(migratedMask?.type === 'mask' && migratedMask.fade).toEqual({ direction: 'top', amount: 31 })
-    expect(restored.version).toBe(42)
+    expect(restored.version).toBe(43)
   })
 
   test('schema v42 promotes a legacy mask-only Image packet to Mask without leaving an empty Image card', () => {
@@ -278,7 +288,7 @@ describe('Phase Three persistence and migrations', () => {
       { id: 'slot-image', target, type: 'image', scope: 'base', layers: [{ presetId: 'avatar-soft-fade', packet: { id: 'image-layer', type: 'image', brightness: .9, saturation: .8, contrast: 1.1, grayscale: 0, hueRotate: 0, blur: 0, sourceQuality: 'auto', objectFit: 'cover', objectPositionX: 50, objectPositionY: 50, fillFrame: true, offsetX: 0, offsetY: 0, maskMode: 'fade', fade: { direction: 'bottom', amount: 52 } } }] },
     ], customCss: '', assets: [], fonts: [], presets: [], svgAssets: [], boost: {}, createdAt: 1, updatedAt: 2 }] }
     const restored = normalizeState(old)
-    expect(restored.version).toBe(42)
+    expect(restored.version).toBe(43)
     expect(restored.projects[0].recipeSlots.map((slot) => slot.type)).toEqual(['image', 'mask'])
     const imageSlot = restored.projects[0].recipeSlots.find((slot) => slot.type === 'image')
     const maskSlot = restored.projects[0].recipeSlots.find((slot) => slot.type === 'mask')
@@ -293,7 +303,7 @@ describe('Phase Three persistence and migrations', () => {
     ], customCss: '', assets: [], fonts: [], presets: [], boost: {}, createdAt: 1, updatedAt: 2 }] }
     const restored = normalizeState(old), desc = restored.projects[0].componentOverrides[0]
     expect(desc.target.selector).toBe('[class*="_row_"] [class*="_desc_"]')
-    expect(restored.version).toBe(42)
+    expect(restored.version).toBe(43)
   })
 
   test('persists recipe layer ownership so pack reset survives reloads', () => {
@@ -307,7 +317,7 @@ describe('Phase Three persistence and migrations', () => {
     expect(restored.projects[0].recipeSlots).toHaveLength(1)
     expect(restored.projects[0].recipeSlots[0].layers[0].presetId).toBe('editorial-byline')
     expect(restored.projects[0].recipeSlots[0].layers[0].packet.type).toBe('text')
-    expect(restored.version).toBe(42)
+    expect(restored.version).toBe(43)
   })
 
 
@@ -317,7 +327,7 @@ describe('Phase Three persistence and migrations', () => {
       { id: 'mobile-slot', target: { selector: '.lead', strategy: 'exact-class', stability: 'medium', persistence: 'persistent', source: 'dom-scoped' }, type: 'typography', scope: 'mobile', base: null, layers: [{ presetId: 'editorial-feature-lead', packet: { ...createStylePacket('typography'), fontSize: 24, editedFields: ['fontSize'] } }] },
     ], customCss: '', assets: [], fonts: [], presets: [], boost: {}, createdAt: 1, updatedAt: 2 }] }
     const restored = normalizeState(legacy)
-    expect(restored.version).toBe(42)
+    expect(restored.version).toBe(43)
     expect(restored.projects[0].recipeSlots.map((slot) => slot.scope)).toEqual(['base', 'mobile'])
     expect(restored.projects[0].recipeSlots[1].layers[0].packet.editedFields).toEqual(['fontSize'])
   })
@@ -326,13 +336,31 @@ describe('Phase Three persistence and migrations', () => {
     const state = createInitialState(); const project = state.projects[0]
     project.svgAssets.push({ id: 'svg-safe', name: 'Tiny star', svg: '<svg viewBox="0 0 24 24"><path d="M12 2L15 9L22 12L15 15L12 22L9 15L2 12L9 9Z"/></svg>', createdAt: 1 })
     const restored = normalizeState(JSON.parse(JSON.stringify(state)))
-    expect(restored.version).toBe(42); expect(restored.projects[0].version).toBe(42)
+    expect(restored.version).toBe(43); expect(restored.projects[0].version).toBe(43)
     expect(restored.projects[0].svgAssets).toHaveLength(1)
     expect(restored.projects[0].svgAssets[0].name).toBe('Tiny star')
     expect(normalizeComposerSvgSource('<svg><script>alert(1)</script><path onclick="x()" d="M0 0h1v1z"/></svg>')).toBe('<svg><path d="M0 0h1v1z"/></svg>')
     expect(normalizeComposerSvgSource('<svg><image href="https://example.com/a.png"/></svg>')).toBe('<svg></svg>')
     expect(normalizeComposerSvgSource('<?xml version="1.0" standalone="no"?>\n<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">\n<svg viewBox="0 0 24 24"><path d="M0 0h24v24z"/></svg>')).toBe('<svg viewBox="0 0 24 24"><path d="M0 0h24v24z"/></svg>')
     expect(normalizeComposerSvgSource('<div>nope</div>')).toBeNull()
+  })
+
+
+  test('schema v43 persists generic SVG/Icon replacement targeting and built-in SVG snapshots', () => {
+    const builtIn = BUILTIN_ORNAMENTS.find((entry) => entry.id === 'vn-arrow-right')
+    if (!builtIn) throw new Error('missing built-in SVG')
+    expect(normalizeComposerSvgSource(builtIn.svg)).toBe(builtIn.svg)
+    const legacy = { version: 42, activeProjectId: 'p', projects: [{ version: 42, id: 'p', name: 'SVG replacement', tokens: [], componentOverrides: [
+      { id: 'send', target: { selector: '[data-component="InputArea"] button[class*="_sendBtn_"]', strategy: 'css-module', stability: 'medium', persistence: 'persistent', source: 'dom-scoped', label: 'Send' }, states: { normal: [{ id: 'svg', type: 'svg-asset', svg: builtIn.svg, assetId: `builtin:${builtIn.id}`, assetName: builtIn.label, targetMode: 'replace', svgPath: '> span > svg', svgLabel: 'Send icon', renderMode: 'mask', colorMode: 'inherit', color: '#ffffff', alpha: .82, fit: 'contain', positionX: 50, positionY: 50, size: 18, rotate: -7 }] } },
+    ], layoutGroups: [], recipeSlots: [], customCss: '', assets: [], fonts: [], presets: [], svgAssets: [], boost: {}, createdAt: 1, updatedAt: 2 }] }
+    const restored = normalizeState(legacy)
+    expect(restored.version).toBe(43)
+    expect(restored.projects[0].version).toBe(43)
+    const packet = restored.projects[0].componentOverrides[0].states.normal?.[0]
+    expect(packet?.type).toBe('svg-asset')
+    if (!packet || packet.type !== 'svg-asset') throw new Error('expected SVG/Icon packet')
+    expect(packet).toMatchObject({ targetMode: 'replace', svgPath: '> span > svg', svgLabel: 'Send icon', renderMode: 'mask', colorMode: 'inherit', alpha: .82, size: 18, rotate: -7 })
+    expect(packet.assetId).toBe('builtin:vn-arrow-right')
   })
 
   test('schema v36 preserves Media Flow recipe provenance', () => {
@@ -342,7 +370,7 @@ describe('Phase Three persistence and migrations', () => {
       { id: 'media-slot', target: { selector: '[data-component="MessageContent"] img', strategy: 'exact-class', stability: 'medium', persistence: 'persistent', source: 'dom-scoped' }, type: 'media-flow', base: null, layers: [{ presetId: 'manga-media-panel', packet: flow }] },
     ], customCss: '', assets: [], fonts: [], presets: [], svgAssets: [], boost: {}, createdAt: 1, updatedAt: 2 }] }
     const restored = normalizeState(legacy)
-    expect(restored.version).toBe(42)
+    expect(restored.version).toBe(43)
     const slot = restored.projects[0].recipeSlots[0]
     expect(slot?.type).toBe('media-flow')
     expect(slot?.layers[0].packet.type).toBe('media-flow')
@@ -357,7 +385,7 @@ describe('Phase Three persistence and migrations', () => {
     ], layoutGroups: [], recipeSlots: [], customCss: '', assets: [], fonts: [], presets: [], svgAssets: [], boost: {}, createdAt: 1, updatedAt: 2 }] }
     const restored = normalizeState(legacy)
     const packet = restored.projects[0].componentOverrides[0].states.normal?.[0]
-    expect(restored.version).toBe(42)
+    expect(restored.version).toBe(43)
     expect(packet?.type).toBe('text')
     expect(packet?.type === 'text' && packet.inkMode).toBe('force')
   })
@@ -386,7 +414,7 @@ describe('Phase Three persistence and migrations', () => {
     expect(store.snapshot.savedStyles).toHaveLength(1)
 
     const restored = normalizeState(JSON.parse(JSON.stringify(store.snapshot)))
-    expect(restored.version).toBe(42)
+    expect(restored.version).toBe(43)
     expect(restored.savedStyles).toHaveLength(1)
     expect(restored.savedStyles[0].overrides[0].target.selector).toBe(target.selector)
     expect(restored.projects.map((project) => project.id)).toContain(first.id)
@@ -407,7 +435,7 @@ describe('Phase Three persistence and migrations', () => {
     expect(store.applySavedStyle(bundle!.id)).toBe(true)
     expect(store.activeProject.componentOverrides.map((entry) => entry.target.selector).sort()).toEqual([persona.selector, footer.selector].sort())
     const restored = normalizeState(JSON.parse(JSON.stringify(store.snapshot)))
-    expect(restored.version).toBe(42)
+    expect(restored.version).toBe(43)
     expect(restored.savedStyles[0].scope).toBe('bundle')
   })
 

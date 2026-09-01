@@ -1,6 +1,7 @@
-// Generated fallback bundle for Palette 1.0.3 QA follow-up IV backend (TypeScript CJS wrapped for ESM execution).
+// Palette 1.0.4 backend fallback bundle
+// Deterministic TypeScript CommonJS module graph wrapped as ESM; normal project builds still use esbuild.
 const __modules = Object.create(null);
-__modules['backend.js'] = function(module,exports,require){
+__modules["backend.js"] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const STATE_PATH = 'theme-studio/projects.json';
@@ -56,8 +57,9 @@ spindle.onFrontendMessage(async (payload, userId) => {
         }, userId);
     }
 });
-
 };
 const __cache = Object.create(null);
-function __require(id){if(__cache[id])return __cache[id].exports;const fn=__modules[id];if(!fn)throw new Error('Missing bundled module: '+id);const module={exports:{}};__cache[id]=module;fn(module,module.exports,__require);return module.exports}
-__require('backend.js');
+function __normalize(parts){const out=[];for(const p of parts){if(!p||p==='.')continue;if(p==='..')out.pop();else out.push(p)}return out.join('/')}
+function __resolve(from,spec){if(!spec.startsWith('.'))throw new Error('Unexpected external runtime import: '+spec+' from '+from);const base=__normalize(from.split('/').slice(0,-1).concat(spec.split('/')));for(const c of [base,base+'.js',base+'/index.js'])if(Object.prototype.hasOwnProperty.call(__modules,c))return c;throw new Error('Cannot resolve '+spec+' from '+from)}
+function __require(id){if(__cache[id])return __cache[id].exports;const fn=__modules[id];if(!fn)throw new Error('Missing bundled module: '+id);const module={exports:{}};__cache[id]=module;const localRequire=(spec)=>__require(__resolve(id,spec));fn(module,module.exports,localRequire);return module.exports}
+__require("backend.js");

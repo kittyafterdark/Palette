@@ -788,6 +788,51 @@ test('SVG Asset compiles a sanitized saved SVG snapshot for decorative pseudo su
 
 })
 
+test('SVG / Icon replaces a discovered nested SVG without replacing the native button box', () => {
+  const project = createProject('Nested icon replacement')
+  const svg = createStylePacket('svg-asset')
+  if (svg.type !== 'svg-asset') throw new Error('expected SVG asset')
+  svg.targetMode = 'replace'
+  svg.svgPath = '> span > svg'
+  svg.svgLabel = 'Send icon'
+  svg.svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="white" d="M3 12 21 3l-6 18-4-7z"/></svg>'
+  svg.renderMode = 'mask'
+  svg.colorMode = 'inherit'
+  svg.alpha = .75
+  svg.size = 18
+  svg.rotate = -12
+  project.componentOverrides.push(override('[data-component="InputArea"] button[class*="_sendBtn_"]', { normal: [svg] }))
+  const css = compileThemeProject(project)
+  expect(css).toContain('SVG/Icon replacement · Send icon')
+  expect(css).toContain('[data-component="InputArea"] button[class*="_sendBtn_"] > span > svg')
+  expect(css).toContain('-webkit-mask-image: url("data:image/svg+xml,')
+  expect(css).toContain('background-color: color-mix(in srgb, currentColor 75%, transparent);')
+  expect(css).toContain('width: 18px;')
+  expect(css).toContain('height: 18px;')
+  expect(css).toContain('rotate: -12deg;')
+  expect(css).toContain('> span > svg *')
+  expect(css).toContain('opacity: 0;')
+  expect(css).not.toContain('[data-component="InputArea"] button[class*="_sendBtn_"] {\n  -webkit-mask-image:')
+})
+
+test('SVG / Icon preserve-colors mode paints the nested SVG box with the saved SVG image', () => {
+  const project = createProject('Full color icon replacement')
+  const svg = createStylePacket('svg-asset')
+  if (svg.type !== 'svg-asset') throw new Error('expected SVG asset')
+  svg.targetMode = 'replace'
+  svg.svgPath = 'svg'
+  svg.svgLabel = 'All SVGs'
+  svg.svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#ff4aa2" d="M2 2h20v20H2z"/></svg>'
+  svg.renderMode = 'image'
+  project.componentOverrides.push(override('.toolbar', { normal: [svg] }))
+  const css = compileThemeProject(project)
+  expect(css).toContain('.toolbar svg')
+  expect(css).toContain('background-image: url("data:image/svg+xml,')
+  expect(css).toContain('-webkit-mask-image: none;')
+  expect(css).toContain('mask-image: none;')
+})
+
+
 
 test('Mobile pseudo scaffolding inherits Base anchored positioning instead of resetting inset', () => {
   const project = createProject('Responsive pseudo inheritance')

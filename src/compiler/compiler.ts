@@ -3,7 +3,7 @@ import type {
   OpacityPacket, PatternPacket, PositionPacket, ShadowPacket, SizePacket, SpacingPacket, StatePacketStacks, StylePacket, StyleStateName, TransformPacket, ImageCustomMask, MediaFlowPacket,
   StudioFontFace, StudioTarget, TextPacket, TypographyPacket, TextEntryPacket, VisibilityPacket, ThemeStudioProject, ThemeTokenOverride, ResponsiveScopeName,
 } from '../project/model'
-import { COMPOSER_ICON_ACTIONS, MOBILE_BREAKPOINT_PX, STYLE_STATES, normalizeSvgSource } from '../project/model'
+import { COMPOSER_ICON_ACTIONS, MOBILE_BREAKPOINT_PX, STYLE_STATES, normalizeSvgSource, normalizeSvgTargetPath } from '../project/model'
 import { compileDimension } from '../project/values'
 import { colorWithAlpha } from './color'
 import { deriveBoostTokenOverrides } from './boost'
@@ -481,6 +481,10 @@ export function compileMediaFlowPacket(packet: MediaFlowPacket): string {
 }
 
 export function compileSvgAssetPacket(packet: SvgAssetPacket): string {
+  // Replace mode is emitted by helper rules against the discovered nested SVG,
+  // not against the semantic target's own box. Surface mode preserves the
+  // original SVG Asset behavior used by ornaments and pseudo-planes.
+  if (packet.targetMode === 'replace') return ''
   const svg = normalizeSvgSource(packet.svg)
   if (!svg) return ''
   const asset = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`
@@ -727,9 +731,52 @@ function composerIconRules(selector: string, packet: ComposerIconsPacket, streng
   return rules.join('\n')
 }
 
+function svgReplacementSelector(selector: string, packet: SvgAssetPacket): string {
+  const path = normalizeSvgTargetPath(packet.svgPath) ?? 'svg'
+  if (path === ':self') return selector
+  return splitSelectorList(selector).map((branch) => `${branch.trim()} ${path}`).join(',\n')
+}
+function svgReplacementDescendants(selector: string): string {
+  return splitSelectorList(selector).map((branch) => `${branch.trim()} *`).join(',\n')
+}
+function svgReplacementRules(selector: string, packet: SvgAssetPacket, strength: 'normal' | 'strong'): string {
+  if (packet.targetMode !== 'replace' || !ownsField(packet, 'svg', 'targetMode', 'svgPath', 'renderMode', 'colorMode', 'color', 'alpha', 'fit', 'positionX', 'positionY', 'size', 'rotate')) return ''
+  const svg = normalizeSvgSource(packet.svg)
+  if (!svg) return ''
+  const target = svgReplacementSelector(selector, packet)
+  const descendants = svgReplacementDescendants(target)
+  const encoded = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`
+  const position = `${number(clamp(packet.positionX, 0, 100), 1)}% ${number(clamp(packet.positionY, 0, 100), 1)}%`
+  const alpha = clamp(packet.alpha, 0, 1)
+  const inheritedColor = alpha >= .999 ? 'currentColor' : `color-mix(in srgb, currentColor ${number(alpha * 100, 1)}%, transparent)`
+  const stencilColor = packet.colorMode === 'inherit' ? inheritedColor : colorWithAlpha(packet.color, alpha)
+  const size = packet.size === undefined ? '' : `${number(clamp(packet.size, 4, 512), 1)}px`
+  const rotate = number(packet.rotate ?? 0, 1)
+  const declarations = packet.renderMode === 'image'
+    ? [
+        ['background-color', 'transparent'], ['background-image', encoded], ['background-size', packet.fit], ['background-repeat', 'no-repeat'], ['background-position', position],
+        ['-webkit-mask-image', 'none'], ['mask-image', 'none'],
+      ] as Array<[string, string]>
+    : [
+        ['background-image', 'none'], ['background-color', stencilColor],
+        ['-webkit-mask-image', encoded], ['mask-image', encoded], ['-webkit-mask-size', packet.fit], ['mask-size', packet.fit],
+        ['-webkit-mask-repeat', 'no-repeat'], ['mask-repeat', 'no-repeat'], ['-webkit-mask-position', position], ['mask-position', position],
+      ] as Array<[string, string]>
+  if (size) declarations.push(['width', size], ['height', size], ['flex', `0 0 ${size}`])
+  if (rotate !== '0') declarations.push(['rotate', `${rotate}deg`])
+  declarations.push(['fill', 'transparent'], ['stroke', 'transparent'])
+  const body = declarations.map(([property, value]) => `  ${property}: ${importantValue(value, strength)};`).join('\n')
+  return [
+    `/* SVG/Icon replacement · ${(packet.svgLabel ?? packet.assetName ?? 'nested SVG').replace(/\*\//g, '* /').replace(/[\r\n]+/g, ' ').slice(0, 120)} */`,
+    `${ruleSelector(target, strength)} {\n${body}\n}`,
+    `${ruleSelector(descendants, strength)} {\n  opacity: ${importantValue('0', strength)};\n  fill: ${importantValue('transparent', strength)};\n  stroke: ${importantValue('transparent', strength)};\n}`,
+  ].join('\n')
+}
+
 function helperRulesForPackets(selector: string, packets: StylePacket[], strength: 'normal' | 'strong' = 'normal'): string[] {
   const rules: string[] = []
   for (const packet of packets) {
+    if (packet.type === 'svg-asset' && packet.targetMode === 'replace') { const rule = svgReplacementRules(selector, packet, strength); if (rule) rules.push(rule) }
     if (packet.type === 'composer-icons' && ownsField(packet, 'family', 'customIcons')) { const rule = composerIconRules(selector, packet, strength); if (rule) rules.push(rule) }
     if (packet.type === 'background' && packet.mode === 'image' && packet.image.renderMode === 'mask' && packet.image.hideContents) {
       rules.push([`/* Mask replacement · hide native contents */`, `${ruleSelector(`${selector} > *`, strength)} {`, `  display: ${importantValue('none', strength)};`, '}'].join('\n'))

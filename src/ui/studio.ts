@@ -18,7 +18,7 @@ import { knownTypographyChoices } from '../nativeBridge/fonts'
 import { COMMON_PART_PRESETS, KNOWN_PART_ROLES, applyTextInkPolicyForRole, presetRoles, targetForKnownRole, type CommonPartPreset, type KnownPartRoleId } from '../presets/common-parts'
 import { STYLE_LIBRARY_AREAS, STYLE_LIBRARY_PACKS, STYLE_LIBRARY_RECIPES, packCompatiblePresetIds, packDefaultPresetIds, packDefaultPresetIdsForLayout, packForId, packPresetIds, recipeMetaForId, styleLibraryFamilies, styleLibraryPackSearchText, styleLibrarySearchText, type MessageLayoutSupport, type PackWorkbenchLayout, type StyleLibraryArea, type StyleLibraryItemKey, type StyleLibraryPack, type StyleLibraryRecipeMeta } from '../presets/style-library'
 import { MESSAGE_LAYOUT_AUDITS } from '../presets/message-anatomy'
-import { builtinOrnament } from '../presets/ornaments'
+import { BUILTIN_ORNAMENTS, builtinOrnament } from '../presets/ornaments'
 
 type WorkspaceTab = 'design' | 'code' | 'themes'
 type ResourceTab = 'components' | 'assets' | 'reference'
@@ -27,7 +27,7 @@ const PACKETS: Array<{ type: PacketType; group: 'Paint' | 'Shape' | 'Layout' | '
   { type: 'pattern', group: 'Paint', label: 'Pattern', icon: '⠿', hint: 'Dots, grid, checker, diamonds, or grain' },
   { type: 'image', group: 'Paint', label: 'Image', icon: '▧', hint: 'Tone, source quality, crop, and focal position' },
   { type: 'mask', group: 'Paint', label: 'Mask', icon: '◩', hint: 'Fade, clear, or combine mask edges' },
-  { type: 'svg-asset', group: 'Paint', label: 'SVG Asset', icon: '◆', hint: 'Reusable saved SVG as image or stencil' },
+  { type: 'svg-asset', group: 'Paint', label: 'SVG / Icon', icon: '◆', hint: 'Replace nested SVGs or place reusable vector art' },
   { type: 'text', group: 'Paint', label: 'Ink', icon: 'T◈', hint: 'Color, gradient, stroke, and glow for text or glyphs' },
   { type: 'border', group: 'Paint', label: 'Border', icon: '□', hint: 'Edge, weight, and color' },
   { type: 'shadow', group: 'Paint', label: 'Shadow', icon: '◒', hint: 'Depth and glow' },
@@ -88,6 +88,33 @@ function maskMode(packet: MaskPacket): 'native' | 'none' | 'fade' | 'custom' { r
 function colorInput(value: string | undefined, fallback = '#000000'): string { return /^#[0-9a-f]{6}$/i.test(value ?? '') ? value! : fallback }
 function activeScope(selection: ResolvedSelection): SelectionScope { return selection.scopeCandidates.find((scope) => scope.id === selection.activeScopeId) ?? selection.scopeCandidates[0] }
 function selectorForSurface(selector: string, surface: TargetSurface): string { return surface === 'before' ? appendPseudoToSelectorList(selector, '::before') : surface === 'after' ? appendPseudoToSelectorList(selector, '::after') : selector }
+type SvgTargetCandidate = { element: SVGElement; path: string; label: string }
+function relativeSvgPath(root: Element, svg: SVGElement): string {
+  if (root === svg) return ':self'
+  const segments: string[] = []
+  let current: Element | null = svg
+  while (current && current !== root) {
+    const parent: Element | null = current.parentElement
+    if (!parent) break
+    const tag = current.tagName.toLowerCase()
+    const sameTag = [...parent.children].filter((child) => child.tagName.toLowerCase() === tag)
+    const index = sameTag.indexOf(current)
+    segments.unshift(sameTag.length > 1 ? `${tag}:nth-of-type(${Math.max(0, index) + 1})` : tag)
+    current = parent
+  }
+  return current === root ? `> ${segments.join(' > ')}` : 'svg'
+}
+function svgTargetLabel(svg: SVGElement, index: number): string {
+  const semantic = svg.getAttribute('aria-label') || svg.getAttribute('title') || svg.getAttribute('data-icon')
+  const classes = [...svg.classList].filter((name) => !/_[a-z0-9]{5,}_/i.test(name)).slice(0, 2).join(' · ')
+  const label = semantic || classes || `SVG ${index + 1}`
+  return label.length > 56 ? `${label.slice(0, 53)}…` : label
+}
+function svgTargetsForElement(root: Element | null | undefined): SvgTargetCandidate[] {
+  if (!root) return []
+  const svgs = root.matches('svg') ? [root as SVGElement] : [...root.querySelectorAll<SVGElement>('svg')]
+  return svgs.slice(0, 16).map((svg, index) => ({ element: svg, path: relativeSvgPath(root, svg), label: svgTargetLabel(svg, index) }))
+}
 function structureNodeLabel(element: Element): string {
   const tag = element.tagName.toLowerCase()
   if (element.matches('[class*="_inlineImageBtn_"]')) return 'Inline image button'
@@ -2125,8 +2152,9 @@ export class ThemeStudioUI {
       const tag = scope.element?.tagName.toLowerCase() ?? ''
       return (tag === 'textarea' && (selector.includes('chat-message') || label.includes('message'))) || selector.includes('textarea[name="chat-message"]') || label.includes('composer textarea') || label.includes('message textarea')
     })())
+    const svgTargetCount = this.selection && this.targetSurface === 'element' ? svgTargetsForElement(activeScope(this.selection).element ?? this.selection.target.element).length : 0
     const visible = PACKETS.filter((entry) => (!allow || allow.has(entry.type)) && (entry.type !== 'composer-icons' || composerIconsRelevant || used.has('composer-icons')) && (entry.type !== 'media-flow' || mediaFlowRelevant || used.has('media-flow')) && (entry.type !== 'text-entry' || textEntryRelevant || used.has('text-entry')))
-    return `<div class="ts-card ts-style-menu">${groups.map((group) => { const entries = visible.filter((entry) => entry.group === group); return entries.length ? `<section class="ts-style-group"><div class="ts-group-title">${group}</div><div class="ts-style-grid">${entries.map((entry) => `<button class="ts-style-option" type="button" data-add-packet="${entry.type}" ${used.has(entry.type) ? 'disabled' : ''}><span class="ts-style-icon" aria-hidden="true">${entry.icon}</span><span><strong>${entry.label}</strong><small>${entry.hint}</small></span></button>`).join('')}</div></section>` : '' }).join('')}</div>`
+    return `<div class="ts-card ts-style-menu">${groups.map((group) => { const entries = visible.filter((entry) => entry.group === group); return entries.length ? `<section class="ts-style-group"><div class="ts-group-title">${group}</div><div class="ts-style-grid">${entries.map((entry) => { const hint = entry.type === 'svg-asset' && svgTargetCount ? `${svgTargetCount} SVG${svgTargetCount === 1 ? '' : 's'} found · replace or restyle` : entry.hint; return `<button class="ts-style-option ${entry.type === 'svg-asset' && svgTargetCount ? 'is-capability-match' : ''}" type="button" data-add-packet="${entry.type}" ${used.has(entry.type) ? 'disabled' : ''}><span class="ts-style-icon" aria-hidden="true">${entry.icon}</span><span><strong>${entry.label}</strong><small>${hint}</small></span></button>` }).join('')}</div></section>` : '' }).join('')}</div>`
   }
   private packetShell(override: ComponentOverride, packet: StylePacket, title: string, summary: string, body: string): string {
     const definition = PACKETS.find((entry) => entry.type === packet.type)
@@ -2240,13 +2268,23 @@ export class ThemeStudioUI {
       }
       case 'svg-asset': {
         const saved = this.store.activeProject.svgAssets
+        const targetElement = this.selection && this.targetSurface === 'element' ? (activeScope(this.selection).element ?? this.selection.target.element) : undefined
+        const svgTargets = svgTargetsForElement(targetElement)
+        const targetMode = packet.targetMode ?? 'surface'
         const previewUri = packet.svg ? composerSvgDataUri(packet.svg) : ''
-        const savedGrid = saved.length ? `<div class="ts-saved-svg-grid">${saved.map((entry) => `<div class="ts-saved-svg-item"><button type="button" data-svg-asset-apply="${escapeHtml(entry.id)}" title="Use ${escapeHtml(entry.name)}"><span style="--ts-composer-svg:url(${escapeHtml(composerSvgDataUri(entry.svg))})"></span><strong>${escapeHtml(entry.name)}</strong></button></div>`).join('')}</div>` : '<div class="ts-empty-inline">No saved SVGs yet. Store one here or from Composer Composer.</div>'
-        const active = packet.svg ? `<div class="ts-composer-icon-current"><span style="--ts-composer-svg:url(${escapeHtml(previewUri)})"></span><div><strong>${escapeHtml(packet.assetName ?? 'SVG asset')}</strong><small>${packet.renderMode === 'mask' ? 'Tintable stencil' : 'Full-color image'}</small></div></div>` : '<div class="ts-empty-inline">Choose a saved SVG below.</div>'
-        const mode = `<div class="ts-field"><label class="ts-label">Render</label><div class="ts-segment"><button type="button" data-svg-render-mode="mask" aria-pressed="${packet.renderMode === 'mask'}">Stencil</button><button type="button" data-svg-render-mode="image" aria-pressed="${packet.renderMode === 'image'}">Image</button></div></div>`
-        const tint = packet.renderMode === 'mask' ? this.colorField('Stencil color', 'svg-asset-color', packet.color, packet.alpha) : ''
-        const body = `${active}${mode}${tint}<div class="ts-field"><label class="ts-label">Fit</label><div class="ts-segment"><button type="button" data-svg-fit="contain" aria-pressed="${packet.fit === 'contain'}">Contain</button><button type="button" data-svg-fit="cover" aria-pressed="${packet.fit === 'cover'}">Cover</button></div></div>${this.rangeField('Horizontal position','svg-asset-x',packet.positionX,0,100,'%')}${this.rangeField('Vertical position','svg-asset-y',packet.positionY,0,100,'%')}<div class="ts-field"><label class="ts-label">Saved SVG library <span>${saved.length}</span></label>${savedGrid}</div><details class="ts-advanced ts-svg-save"><summary>＋ Store a new SVG</summary><div class="ts-svg-save-fields"><input class="ts-input" type="text" data-svg-library-name placeholder="SVG name"><input class="ts-input" type="file" accept=".svg,image/svg+xml" data-svg-library-file><textarea class="ts-input ts-svg-source" rows="5" data-svg-library-source placeholder="Paste <svg …>…</svg> here, or choose an SVG file above."></textarea><div class="ts-actions"><button class="ts-btn ts-btn-primary" type="button" data-svg-library-save>Save SVG</button><span class="ts-svg-save-status" aria-live="polite"></span></div></div></details><p class="ts-note">Saved SVGs are project-wide. Add this packet to a Front/Back layer for reusable ::before / ::after ornaments, or use the same library in Composer Composer.</p>`
-        return this.packetShell(override, packet, 'SVG Asset', packet.svg ? (packet.assetName ?? 'Saved SVG') : 'Choose SVG', body)
+        const savedGrid = saved.length ? `<div class="ts-saved-svg-grid">${saved.map((entry) => `<div class="ts-saved-svg-item"><button type="button" data-svg-asset-apply="${escapeHtml(entry.id)}" title="Use ${escapeHtml(entry.name)}"><span style="--ts-composer-svg:url(${escapeHtml(composerSvgDataUri(entry.svg))})"></span><strong>${escapeHtml(entry.name)}</strong></button><button type="button" class="ts-saved-svg-delete" data-svg-library-delete="${escapeHtml(entry.id)}" aria-label="Delete ${escapeHtml(entry.name)}">×</button></div>`).join('')}</div>` : '<div class="ts-empty-inline">Nothing saved yet. Store an SVG below and it joins this project wardrobe.</div>'
+        const builtinGrid = `<div class="ts-saved-svg-grid ts-svg-builtin-grid">${BUILTIN_ORNAMENTS.map((entry) => `<div class="ts-saved-svg-item"><button type="button" data-svg-builtin-apply="${escapeHtml(entry.id)}" title="Use Palette built-in: ${escapeHtml(entry.label)}" aria-pressed="${packet.assetId === `builtin:${entry.id}`}"><span style="--ts-composer-svg:url(${escapeHtml(entry.assetPath)})"></span><strong>${escapeHtml(entry.label)}</strong></button></div>`).join('')}</div>`
+        const active = packet.svg ? `<div class="ts-composer-icon-current"><span style="--ts-composer-svg:url(${escapeHtml(previewUri)})"></span><div><strong>${escapeHtml(packet.assetName ?? 'Custom SVG')}</strong><small>${targetMode === 'replace' ? `Replacing ${escapeHtml(packet.svgLabel ?? 'nested SVG')}` : packet.renderMode === 'mask' ? 'Tintable stencil' : 'Full-color image'}</small></div><button class="ts-btn" type="button" data-svg-asset-clear>Default</button></div>` : '<div class="ts-empty-inline">Choose a Palette SVG, a saved SVG, or paste your own.</div>'
+        const modeSwitch = svgTargets.length || targetMode === 'replace' ? `<div class="ts-field"><label class="ts-label">Use as</label><div class="ts-segment"><button type="button" data-svg-target-mode="replace" aria-pressed="${targetMode === 'replace'}" ${svgTargets.length || targetMode === 'replace' ? '' : 'disabled'}>Replace icon</button><button type="button" data-svg-target-mode="surface" aria-pressed="${targetMode !== 'replace'}">Paint surface</button></div>${svgTargets.length ? `<p class="ts-note">Palette found ${svgTargets.length} inline SVG${svgTargets.length === 1 ? '' : 's'} inside this target. Replace mode keeps the native SVG box/click target and swaps only its pixels.</p>` : '<p class="ts-note">The saved replacement path is kept even if this particular mount is temporarily missing its SVG.</p>'}</div>` : ''
+        const targetPicker = targetMode === 'replace' ? `<div class="ts-field"><label class="ts-label">SVG target <span>${svgTargets.length || 'saved path'}</span></label>${svgTargets.length ? `<div class="ts-svg-target-picker">${svgTargets.map((entry, index) => `<button type="button" data-svg-target-path="${escapeHtml(entry.path)}" data-svg-target-label="${escapeHtml(entry.label)}" aria-pressed="${packet.svgPath === entry.path || (!packet.svgPath && index === 0)}"><span>${index + 1}</span><strong>${escapeHtml(entry.label)}</strong></button>`).join('')}${svgTargets.length > 1 ? `<button type="button" data-svg-target-path="svg" data-svg-target-label="All SVGs" aria-pressed="${packet.svgPath === 'svg'}"><span>∞</span><strong>All SVGs</strong></button>` : ''}</div>` : `<code class="ts-selector-code">${escapeHtml(packet.svgPath ?? 'svg')}</code>`}</div>` : ''
+        const renderMode = `<div class="ts-field"><label class="ts-label">Render</label><div class="ts-segment"><button type="button" data-svg-render-mode="mask" aria-pressed="${packet.renderMode === 'mask'}">Tintable</button><button type="button" data-svg-render-mode="image" aria-pressed="${packet.renderMode === 'image'}">Preserve colors</button></div></div>`
+        const tint = packet.renderMode === 'mask' ? (targetMode === 'replace' ? `<div class="ts-field"><label class="ts-label">Color</label><div class="ts-segment"><button type="button" data-svg-color-mode="inherit" aria-pressed="${(packet.colorMode ?? 'inherit') === 'inherit'}">Inherit icon color</button><button type="button" data-svg-color-mode="custom" aria-pressed="${packet.colorMode === 'custom'}">Custom</button></div></div>${packet.colorMode === 'custom' ? this.colorField('Custom color', 'svg-asset-color', packet.color, packet.alpha) : this.rangeField('Opacity', 'svg-asset-opacity', Math.round(packet.alpha * 100), 0, 100, '%')}` : this.colorField('Stencil color', 'svg-asset-color', packet.color, packet.alpha)) : ''
+        const replaceGeometry = targetMode === 'replace' ? `<div class="ts-field"><label class="ts-label">Icon box</label><div class="ts-segment"><button type="button" data-svg-size-mode="native" aria-pressed="${packet.size === undefined}">Native size</button><button type="button" data-svg-size-mode="fixed" aria-pressed="${packet.size !== undefined}">Fixed</button></div></div>${packet.size !== undefined ? this.rangeField('Size', 'svg-asset-size', packet.size, 4, 128, 'px') : ''}${this.rangeField('Rotation', 'svg-asset-rotate', packet.rotate ?? 0, -180, 180, '°')}` : `${this.rangeField('Horizontal position','svg-asset-x',packet.positionX,0,100,'%')}${this.rangeField('Vertical position','svg-asset-y',packet.positionY,0,100,'%')}`
+        const fit = `<div class="ts-field"><label class="ts-label">Fit</label><div class="ts-segment"><button type="button" data-svg-fit="contain" aria-pressed="${packet.fit === 'contain'}">Contain</button><button type="button" data-svg-fit="cover" aria-pressed="${packet.fit === 'cover'}">Cover</button></div></div>`
+        const custom = `<details class="ts-advanced ts-svg-save"><summary>＋ Custom SVG</summary><div class="ts-svg-save-fields"><input class="ts-input" type="text" data-svg-library-name placeholder="SVG name"><input class="ts-input" type="file" accept=".svg,image/svg+xml" data-svg-library-file><textarea class="ts-input ts-svg-source" rows="5" data-svg-library-source placeholder="Paste <svg …>…</svg> here, or choose an SVG file above."></textarea><div class="ts-actions"><button class="ts-btn ts-btn-primary" type="button" data-svg-custom-use>Use once</button><button class="ts-btn" type="button" data-svg-library-save>Save + use</button><span class="ts-svg-save-status" aria-live="polite"></span></div></div></details>`
+        const libraries = `<details class="ts-advanced ts-svg-library" open><summary>Palette library <span>${BUILTIN_ORNAMENTS.length}</span></summary>${builtinGrid}</details><details class="ts-advanced ts-svg-library" ${saved.length ? 'open' : ''}><summary>Saved SVGs <span>${saved.length}</span></summary>${savedGrid}</details>${custom}`
+        const note = targetMode === 'replace' ? '<p class="ts-note">Replacement is CSS-only: Palette paints the selected inline SVG box with your vector and makes the native SVG descendants transparent. Event handlers, button semantics, layout ownership, and React DOM stay untouched.</p>' : '<p class="ts-note">Surface mode is the original SVG Asset primitive: use it on an element or Front/Back layer for reusable vector ornaments.</p>'
+        return this.packetShell(override, packet, 'SVG / Icon', targetMode === 'replace' ? `Replace · ${packet.svgLabel ?? (svgTargets[0]?.label ?? 'SVG')}` : packet.svg ? (packet.assetName ?? 'Vector surface') : 'Vector surface', `${modeSwitch}${targetPicker}${active}${renderMode}${tint}${fit}${replaceGeometry}${libraries}${note}`)
       }
       case 'media-flow': {
         const label = packet.mode === 'full' ? 'Full width' : packet.mode === 'natural' ? 'Natural block' : 'Native flow'
@@ -3220,7 +3258,12 @@ export class ThemeStudioUI {
     root.querySelector('[data-action="toggle-style-menu"]')?.addEventListener('click', () => { this.packetMenuOpen = !this.packetMenuOpen; this.render() })
     root.querySelectorAll<HTMLButtonElement>('[data-add-packet]').forEach((button) => button.addEventListener('click', () => {
       const type = button.dataset.addPacket as PacketType
-      const packet = createStylePacket(type)
+      let packet = createStylePacket(type)
+      if (type === 'svg-asset' && packet.type === 'svg-asset' && this.selection && this.targetSurface === 'element') {
+        const target = activeScope(this.selection).element ?? this.selection.target.element
+        const svgs = svgTargetsForElement(target)
+        if (svgs.length) packet = { ...packet, targetMode: 'replace', svgPath: svgs[0].path, svgLabel: svgs[0].label, colorMode: 'inherit' }
+      }
       this.activeGuidePacketType = type
       this.packetMenuOpen = false
       if (this.designTool === 'group' && this.activeLayoutGroup() && this.groupEditorTab !== 'layout') { this.upsertActiveGroupPacket(packet); this.revealStylePacket(packet.id); return }
@@ -3340,6 +3383,32 @@ export class ThemeStudioUI {
       const saved = this.store.saveSvgAsset(name?.value ?? '', clean)
       if (!saved && status) status.textContent = 'Could not store SVG.'
     }))
+    root.querySelectorAll<HTMLButtonElement>('[data-svg-target-mode]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => {
+      if (packet.type !== 'svg-asset') return packet
+      const mode = button.dataset.svgTargetMode === 'replace' ? 'replace' : 'surface'
+      if (mode === 'replace' && !packet.svgPath && this.selection) {
+        const target = activeScope(this.selection).element ?? this.selection.target.element
+        const candidate = svgTargetsForElement(target)[0]
+        return { ...packet, targetMode: mode, svgPath: candidate?.path ?? 'svg', svgLabel: candidate?.label ?? 'SVG', colorMode: packet.colorMode ?? 'inherit' }
+      }
+      return { ...packet, targetMode: mode }
+    })))
+    root.querySelectorAll<HTMLButtonElement>('[data-svg-target-path]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'svg-asset' ? { ...packet, targetMode: 'replace', svgPath: button.dataset.svgTargetPath ?? 'svg', svgLabel: button.dataset.svgTargetLabel ?? 'SVG' } : packet)))
+    root.querySelectorAll<HTMLButtonElement>('[data-svg-color-mode]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'svg-asset' ? { ...packet, colorMode: button.dataset.svgColorMode === 'custom' ? 'custom' : 'inherit' } : packet)))
+    root.querySelectorAll<HTMLButtonElement>('[data-svg-size-mode]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'svg-asset' ? { ...packet, size: button.dataset.svgSizeMode === 'fixed' ? (packet.size ?? 16) : undefined } : packet)))
+    root.querySelectorAll<HTMLButtonElement>('[data-svg-builtin-apply]').forEach((button) => button.addEventListener('click', () => {
+      const asset = BUILTIN_ORNAMENTS.find((entry) => entry.id === button.dataset.svgBuiltinApply)
+      if (!asset) return
+      this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'svg-asset' ? { ...packet, svg: asset.svg, assetId: `builtin:${asset.id}`, assetName: asset.label } : packet)
+    }))
+    root.querySelectorAll<HTMLButtonElement>('[data-svg-asset-clear]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'svg-asset' ? { ...packet, svg: '', assetId: undefined, assetName: undefined } : packet)))
+    root.querySelectorAll<HTMLButtonElement>('[data-svg-library-delete]').forEach((button) => button.addEventListener('click', (event) => { event.stopPropagation(); const id = button.dataset.svgLibraryDelete; if (id) this.store.removeSvgAsset(id) }))
+    root.querySelectorAll<HTMLButtonElement>('[data-svg-custom-use]').forEach((button) => button.addEventListener('click', () => {
+      const form = button.closest<HTMLElement>('.ts-svg-save'); const source = form?.querySelector<HTMLTextAreaElement>('[data-svg-library-source]'); const name = form?.querySelector<HTMLInputElement>('[data-svg-library-name]'); const status = form?.querySelector<HTMLElement>('.ts-svg-save-status')
+      const clean = normalizeSvgSource(source?.value ?? '')
+      if (!clean) { if (status) status.textContent = 'That does not look like a safe standalone SVG.'; return }
+      this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'svg-asset' ? { ...packet, svg: clean, assetId: undefined, assetName: name?.value.trim().slice(0, 80) || 'Custom SVG' } : packet)
+    }))
     root.querySelectorAll<HTMLButtonElement>('[data-svg-asset-apply]').forEach((button) => button.addEventListener('click', () => {
       const asset = this.store.activeProject.svgAssets.find((entry) => entry.id === button.dataset.svgAssetApply)
       if (!asset) return
@@ -3359,7 +3428,8 @@ export class ThemeStudioUI {
       if (!clean) { if (status) status.textContent = 'That does not look like a safe standalone SVG.'; return }
       const saved = this.store.saveSvgAsset(name?.value ?? '', clean)
       if (!saved) { if (status) status.textContent = 'Could not store SVG.'; return }
-      if (status) status.textContent = `Saved ${saved.name}.`
+      this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'svg-asset' ? { ...packet, svg: saved.svg, assetId: saved.id, assetName: saved.name } : packet)
+      if (status) status.textContent = `Saved + using ${saved.name}.`
     }))
     root.querySelectorAll<HTMLButtonElement>('[data-image-quality]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'image' ? { ...packet, sourceQuality: button.dataset.imageQuality === 'full' ? 'full' : button.dataset.imageQuality === 'auto' ? 'auto' : 'native' } : packet)))
     root.querySelectorAll<HTMLButtonElement>('[data-image-fit]').forEach((button) => button.addEventListener('click', () => this.updatePacket(button.closest<HTMLElement>('[data-packet-id]')?.dataset.packetId, (packet) => packet.type === 'image' ? { ...packet, objectFit: button.dataset.imageFit as typeof packet.objectFit } : packet)))
@@ -3583,8 +3653,11 @@ ${compileComponentOverride(draft, previewOptions)}`)
       if (packet.type === 'svg-asset') {
         if (field === 'svg-asset-color') return { ...packet, color: input.value }
         if (field === 'svg-asset-color-alpha') return { ...packet, alpha: alpha() }
+        if (field === 'svg-asset-opacity') return { ...packet, alpha: Math.max(0, Math.min(1, numeric() / 100)) }
         if (field === 'svg-asset-x') return { ...packet, positionX: Math.max(0, Math.min(100, numeric())) }
         if (field === 'svg-asset-y') return { ...packet, positionY: Math.max(0, Math.min(100, numeric())) }
+        if (field === 'svg-asset-size') return { ...packet, size: Math.max(4, Math.min(512, numeric())) }
+        if (field === 'svg-asset-rotate') return { ...packet, rotate: Math.max(-3600, Math.min(3600, numeric())) }
       }
       if (packet.type === 'media-flow') {
         if (field === 'media-flow-mode') return { ...packet, mode: input.value === 'full' ? 'full' : input.value === 'natural' ? 'natural' : 'native' }

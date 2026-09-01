@@ -1,6 +1,8 @@
 export interface BuiltinOrnament {
   id: string
   label: string
+  /** Raw safe inline SVG so Palette can reuse its own shipped art in the SVG/Icon primitive. */
+  svg: string
   assetPath: string
   keywords: string[]
 }
@@ -9,12 +11,10 @@ function svgData(svg: string): string {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`
 }
 
-const ornament = (id: string, label: string, viewBox: string, body: string, keywords: string[] = []): BuiltinOrnament => ({
-  id,
-  label,
-  assetPath: svgData(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">${body}</svg>`),
-  keywords,
-})
+const ornament = (id: string, label: string, viewBox: string, body: string, keywords: string[] = []): BuiltinOrnament => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">${body}</svg>`
+  return { id, label, svg, assetPath: svgData(svg), keywords }
+}
 
 export const BUILTIN_ORNAMENTS: BuiltinOrnament[] = [
   ornament('manga-anger', 'Temper mark', '0 0 512 512', '<g transform="translate(0 512) scale(.1 -.1)" fill="white" stroke="none"><path d="M1973 4763l-202-106 51-96c28-53 71-134 96-181 276-522 565-803 918-892 127-32 339-32 474 1 217 53 456 173 675 339 146 111 336 276 331 289-3 7-70 89-148 182l-143 168-70-59c-317-267-476-371-676-440-86-30-104-32-214-32-102 0-128 3-174 22-209 88-366 277-609 737-49 93-94 170-98 172-5 1-100-45-211-104z"/><path d="M889 4208c-80-68-160-135-178-150l-32-28 83-97c139-163 163-194 242-311 214-316 266-560 164-769-94-193-315-362-786-602-56-29-102-57-102-63 0-9 82-170 172-335l39-73 82 41c587 295 867 524 1017 833 72 147 94 248 93 421-1 354-140 652-521 1112-64 78-119 142-122 143-3 0-71-55-151-122z"/><path d="M4455 3274c-349-186-538-316-691-477-213-222-308-443-307-717 1-351 164-692 550-1144 52-61 97-110 100-110 2 1 83 68 179 149l175 147-23 29c-13 15-71 86-130 157-228 275-348 495-379 700-16 108-2 191 50 298 92 185 274 329 703 556l187 99-80 152c-44 84-92 176-107 205-14 28-31 52-37 52-5 0-91-44-190-96z"/><path d="M1860 1671c-217-48-451-161-680-329-83-61-360-291-360-299 0-4 78-98 271-327l27-31 118 101c327 276 553 403 766 433 77 11 185 0 249-25 74-29 172-100 247-178 118-124 200-251 363-559 51-95 93-173 94-175 2-2 401 204 413 213 5 4-174 339-240 450-136 231-304 429-463 548-91 69-226 136-335 168-108 31-350 36-470 10z"/></g>', ['manga','anger','anime','temper','vein']),
