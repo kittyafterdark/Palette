@@ -9,8 +9,8 @@
 
 Palette is built around one idea: **Palette knows the CSS; you design your space.** A normal user can resize, recolor, rearrange, crop, fade, group, and reuse real Lumiverse UI without learning selector syntax. Advanced users can still inspect the generated CSS or add a separate Custom CSS layer.
 
-> **Public release:** 1.0.0  
-> **Project schema:** v41  
+> **Public release:** 1.0.3  
+> **Project schema:** v42  
 > **Minimum Lumiverse version:** 1.1.6
 
 ## Highlights
@@ -135,6 +135,8 @@ Palette currently requests:
 | Permission | Why |
 | --- | --- |
 | `app_manipulation` | Apply scoped visual presentation and interact with the public native theme authoring surface. |
+| `ui_panels` | Move the Style Library into Lumiverse’s native resizable left dock without covering the live chat. |
+
 
 ## Privacy and data
 
