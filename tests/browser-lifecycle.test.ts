@@ -26,6 +26,7 @@ beforeEach(() => {
     Element: globalThis.Element,
     HTMLElement: globalThis.HTMLElement,
     HTMLStyleElement: globalThis.HTMLStyleElement,
+    MutationObserver: globalThis.MutationObserver,
     getComputedStyle: globalThis.getComputedStyle,
   }
   Object.assign(globalThis, {
@@ -36,6 +37,7 @@ beforeEach(() => {
     Element: testWindow.Element,
     HTMLElement: testWindow.HTMLElement,
     HTMLStyleElement: testWindow.HTMLStyleElement,
+    MutationObserver: testWindow.MutationObserver,
     getComputedStyle: testWindow.getComputedStyle.bind(testWindow),
   })
 })
@@ -187,6 +189,195 @@ describe('browser-owned lifecycle', () => {
     expect(document.querySelector('[data-theme-studio-preview="custom"]')?.textContent).not.toContain('https://example.com')
     preview.destroy()
     expect(document.querySelectorAll('[data-theme-studio-preview]')).toHaveLength(0)
+  })
+
+  test('native Style Library dock survives host collapse and closes only when the dock shell is removed', async () => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1280 })
+    const root = document.createElement('div')
+    document.body.append(root)
+
+    const hostPanel = document.createElement('aside')
+    let contentHost = document.createElement('div')
+    const panelRoot = document.createElement('div')
+    const header = document.createElement('div')
+    hostPanel.append(header, contentHost)
+    contentHost.append(panelRoot)
+    document.body.append(hostPanel)
+    let requestedOptions: Record<string, unknown> | null = null
+
+    const context = mockContext() as unknown as SpindleFrontendContext & {
+      ui: {
+        requestDockPanel(options: Record<string, unknown>): {
+          root: HTMLElement
+          destroy(): void
+          expand(): void
+        }
+      }
+    }
+    context.ui = {
+      requestDockPanel(options) {
+        requestedOptions = options
+        return {
+          root: panelRoot,
+          destroy() { hostPanel.remove(); panelRoot.remove() },
+          expand() {
+            if (panelRoot.isConnected) return
+            contentHost = document.createElement('div')
+            hostPanel.append(contentHost)
+            contentHost.append(panelRoot)
+          },
+        }
+      },
+    }
+
+    const store = new ProjectStore()
+    const preview = new LiveStylesheet(context)
+    const picker = new ElementPicker(context)
+    const studio = new ThemeStudioUI(context, root, store, picker, preview)
+    const access = studio as unknown as {
+      mountStyleLibrary(): void
+      renderStyleLibrary(): void
+      setStyleLibraryPresentation(mode: 'fullscreen' | 'dock'): void
+      styleLibraryOpen: boolean
+      styleLibraryPresentation: 'fullscreen' | 'dock'
+      styleLibraryRoot: HTMLElement | null
+    }
+
+    access.mountStyleLibrary()
+    access.styleLibraryOpen = true
+    access.renderStyleLibrary()
+    access.setStyleLibraryPresentation('dock')
+
+    expect(requestedOptions?.showCollapsedTitle).toBe(true)
+    expect(access.styleLibraryPresentation).toBe('dock')
+    const libraryRoot = access.styleLibraryRoot
+    expect(libraryRoot?.isConnected).toBe(true)
+    expect(libraryRoot?.querySelector('.ts-style-library-modal')).not.toBeNull()
+
+    // Spindle collapses by unmounting its content host. The extension root is
+    // intentionally detached during that time and must remain live state.
+    contentHost.remove()
+    await new Promise((resolve) => window.setTimeout(resolve, 0))
+    expect(panelRoot.isConnected).toBe(false)
+    expect(hostPanel.isConnected).toBe(true)
+    expect(access.styleLibraryPresentation).toBe('dock')
+    expect(access.styleLibraryOpen).toBe(true)
+    expect(access.styleLibraryRoot).toBe(libraryRoot)
+    expect(libraryRoot?.querySelector('.ts-style-library-modal')).not.toBeNull()
+
+    // Expanding reattaches the same live extension root, preserving the library.
+    contentHost = document.createElement('div')
+    hostPanel.append(contentHost)
+    contentHost.append(panelRoot)
+    await new Promise((resolve) => window.setTimeout(resolve, 0))
+    expect(panelRoot.isConnected).toBe(true)
+    expect(libraryRoot?.isConnected).toBe(true)
+    expect(access.styleLibraryPresentation).toBe('dock')
+
+    // Removing the native shell is the real close signal.
+    hostPanel.remove()
+    await new Promise((resolve) => window.setTimeout(resolve, 0))
+    expect(access.styleLibraryPresentation).toBe('fullscreen')
+    expect(access.styleLibraryOpen).toBe(false)
+
+    studio.destroy(); picker.destroy(); preview.destroy()
+  })
+
+  test('Apply and edit collapses and preserves a native Style Library dock for return browsing', () => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1280 })
+    const root = document.createElement('div')
+    document.body.append(root)
+
+    const hostPanel = document.createElement('aside')
+    let contentHost = document.createElement('div')
+    const panelRoot = document.createElement('div')
+    hostPanel.append(contentHost)
+    contentHost.append(panelRoot)
+    document.body.append(hostPanel)
+    let destroyCount = 0
+    let collapseCount = 0
+    let expandCount = 0
+
+    const context = mockContext() as unknown as SpindleFrontendContext & {
+      ui: {
+        requestDockPanel(options: Record<string, unknown>): {
+          root: HTMLElement
+          destroy(): void
+          expand(): void
+          collapse(): void
+        }
+      }
+    }
+    context.ui = {
+      requestDockPanel() {
+        return {
+          root: panelRoot,
+          destroy() { destroyCount += 1; hostPanel.remove(); panelRoot.remove() },
+          collapse() { collapseCount += 1; contentHost.remove() },
+          expand() {
+            expandCount += 1
+            if (panelRoot.isConnected) return
+            contentHost = document.createElement('div')
+            hostPanel.append(contentHost)
+            contentHost.append(panelRoot)
+          },
+        }
+      },
+    }
+
+    const store = new ProjectStore()
+    const preview = new LiveStylesheet(context)
+    const picker = new ElementPicker(context)
+    const studio = new ThemeStudioUI(context, root, store, picker, preview)
+    const access = studio as unknown as {
+      mountStyleLibrary(): void
+      renderStyleLibrary(): void
+      openStyleLibrary(): void
+      setStyleLibraryPresentation(mode: 'fullscreen' | 'dock'): void
+      styleLibraryOpen: boolean
+      styleLibraryPresentation: 'fullscreen' | 'dock'
+      styleLibraryRoot: HTMLElement | null
+      styleLibraryOverlayRoot: HTMLElement | null
+      styleLibraryArea: 'all' | 'message' | 'prose' | 'avatar' | 'composer' | 'global'
+      workspace: 'design' | 'code' | 'themes'
+    }
+
+    access.mountStyleLibrary()
+    access.styleLibraryOpen = true
+    access.styleLibraryArea = 'message'
+    access.renderStyleLibrary()
+    access.setStyleLibraryPresentation('dock')
+
+    expect(access.styleLibraryPresentation).toBe('dock')
+    expect(hostPanel.isConnected).toBe(true)
+    const dockRoot = access.styleLibraryRoot
+    const initialExpandCount = expandCount
+    const edit = dockRoot?.querySelector<HTMLButtonElement>('[data-edit-common-preset]:not([disabled])')
+    expect(edit).not.toBeNull()
+    edit?.click()
+
+    expect(collapseCount).toBe(1)
+    expect(destroyCount).toBe(0)
+    expect(hostPanel.isConnected).toBe(true)
+    expect(panelRoot.isConnected).toBe(false)
+    expect(access.styleLibraryPresentation).toBe('dock')
+    expect(access.styleLibraryOpen).toBe(true)
+    expect(access.styleLibraryRoot).toBe(dockRoot)
+    expect(access.styleLibraryRoot).not.toBe(access.styleLibraryOverlayRoot)
+    expect(access.styleLibraryArea).toBe('message')
+    expect(access.workspace).toBe('design')
+
+    // Browse styles should return to the same dock rather than opening the
+    // fullscreen overlay and forcing the user to choose Dock left again.
+    access.openStyleLibrary()
+    expect(expandCount).toBe(initialExpandCount + 1)
+    expect(panelRoot.isConnected).toBe(true)
+    expect(access.styleLibraryPresentation).toBe('dock')
+    expect(access.styleLibraryOpen).toBe(true)
+    expect(access.styleLibraryRoot).toBe(dockRoot)
+    expect(dockRoot?.querySelector('.ts-style-library-modal')).not.toBeNull()
+
+    studio.destroy(); picker.destroy(); preview.destroy()
   })
 
   test('live preview resolves canonical theme asset paths without mutating generated CSS', () => {

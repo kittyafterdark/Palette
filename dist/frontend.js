@@ -1,7 +1,7 @@
-// Palette frontend bundle generated from TypeScript sources without external runtime dependencies.
-// Public extension version 1.0.2 · project schema v42.
-const __paletteModules = {
-"src/compiler/boost.ts": function(module, exports, require) {
+// Generated fallback bundle for Palette 1.0.3 QA follow-up V (TypeScript CJS module graph wrapped as ESM).
+// Project schema v42. Runtime has no external module dependencies; normal project builds still use esbuild.
+const __modules = Object.create(null);
+__modules['compiler/boost.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.inspectBoostCssValue = inspectBoostCssValue;
@@ -297,9 +297,8 @@ function deriveLegacyBoostOverrides(boost) { const result = {}, compile = { prim
         Object.assign(result, family(value));
 } return result; }
 function deriveBoostTokenOverrides(boost, baseline = {}) { return boost.enabled ? transformThemeVariables(baseline, boost).variables : {}; }
-
-},
-"src/compiler/color.ts": function(module, exports, require) {
+};
+__modules['compiler/color.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parseHexColor = parseHexColor;
@@ -330,9 +329,8 @@ function colorWithAlpha(value, alpha = 1) {
         return value.trim();
     return `rgba(${parsed.r}, ${parsed.g}, ${parsed.b}, ${formatAlpha(combined)})`;
 }
-
-},
-"src/compiler/compiler.ts": function(module, exports, require) {
+};
+__modules['compiler/compiler.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.compileBackgroundPacket = compileBackgroundPacket;
@@ -1543,9 +1541,8 @@ function compileProject(project, preview, nativeVariables = {}) {
 function compileThemeProject(project, nativeVariables = {}) { return compileProject(project, {}, nativeVariables); }
 function compilePreviewThemeProject(project, options = {}, nativeVariables = {}) { return compileProject(project, options, nativeVariables); }
 function compileTheme(project, nativeVariables = {}) { return { css: compileThemeProject(project, nativeVariables), customCss: project.customCss, assets: structuredClone(project.assets), tokenOverrides: structuredClone(project.tokens), metadata: { name: project.name } }; }
-
-},
-"src/compiler/validation.ts": function(module, exports, require) {
+};
+__modules['compiler/validation.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateOverride = validateOverride;
@@ -1594,9 +1591,8 @@ function validateOverride(override, context = {}) {
     }
     return warnings;
 }
-
-},
-"src/frontend.ts": function(module, exports, require) {
+};
+__modules['frontend.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setup = setup;
@@ -1755,9 +1751,8 @@ async function setup(ctx) {
         ctx.dom.cleanup();
     };
 }
-
-},
-"src/inspector/picker.ts": function(module, exports, require) {
+};
+__modules['inspector/picker.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ElementPicker = void 0;
@@ -2192,9 +2187,8 @@ class ElementPicker {
     }
 }
 exports.ElementPicker = ElementPicker;
-
-},
-"src/nativeBridge/assets.ts": function(module, exports, require) {
+};
+__modules['nativeBridge/assets.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.adaptNativeAsset = adaptNativeAsset;
@@ -2248,9 +2242,8 @@ async function uploadNativeThemeAsset(ctx, file, bundleId) {
     const uploaded = await ctx.theme.assets.upload(await fileToSpindleUpload(file), { bundleId });
     return adaptNativeAsset(uploaded);
 }
-
-},
-"src/nativeBridge/capabilities.ts": function(module, exports, require) {
+};
+__modules['nativeBridge/capabilities.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.THEME_AUTHORING_CAPABILITIES = void 0;
@@ -2283,9 +2276,8 @@ function getNativeThemeCapabilities(ctx) {
         openNativeEditor: editor,
     };
 }
-
-},
-"src/nativeBridge/components.ts": function(module, exports, require) {
+};
+__modules['nativeBridge/components.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.adaptNativeComponentMetadata = adaptNativeComponentMetadata;
@@ -2374,9 +2366,8 @@ function findNativeComponent(components, idOrLabel) {
     const normalized = idOrLabel.toLowerCase();
     return components.find((component) => component.id.toLowerCase() === normalized || component.label.toLowerCase() === normalized);
 }
-
-},
-"src/nativeBridge/fonts.ts": function(module, exports, require) {
+};
+__modules['nativeBridge/fonts.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.knownTypographyChoices = knownTypographyChoices;
@@ -2393,9 +2384,8056 @@ function knownTypographyChoices(project, variables = []) {
             choices.add(clean(font.family)); });
     return [...choices];
 }
-
-},
-"src/nativeBridge/index.ts": function(module, exports, require) {
+};
+__modules['nativeBridge/generated-native-data.js'] = function(module,exports,require){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.GENERATED_NATIVE_SOURCE = exports.GENERATED_NATIVE_VARIABLES = exports.GENERATED_NATIVE_COMPONENTS = void 0;
+// AUTO-GENERATED from the Lumiverse staging source. DO NOT EDIT.
+exports.GENERATED_NATIVE_COMPONENTS = [
+    {
+        "id": "src/App",
+        "label": "App",
+        "area": "App",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "app",
+            "tsx",
+            "css",
+            "safeThemeBanner",
+            "main"
+        ],
+        "nativeKey": "src/App"
+    },
+    {
+        "id": "src/components/panels/character-browser/AlternateAvatarManager",
+        "label": "AlternateAvatarManager",
+        "area": "Character browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "header",
+            "label",
+            "helper",
+            "selectionHint",
+            "strip",
+            "avatarCard",
+            "cardActions",
+            "avatarCardSelectable",
+            "thumb",
+            "thumbSelected",
+            "thumbPlaceholder",
+            "avatarLabel",
+            "avatarLabelButton",
+            "labelEditIcon",
+            "iconBtn",
+            "addCard",
+            "renameRow",
+            "renameInput",
+            "uploadingThumb",
+            "uploadFill",
+            "uploadPercent",
+            "bindingBtn",
+            "bindingEditor",
+            "bindingTitle",
+            "bindingRow"
+        ],
+        "nativeKey": "src/components/panels/character-browser/AlternateAvatarManager"
+    },
+    {
+        "id": "src/components/panels/character-browser/AlternateFieldEditor",
+        "label": "AlternateFieldEditor",
+        "area": "Character browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "headerRow",
+            "headerActions",
+            "addVariantLink",
+            "variantBar",
+            "variantTabWrapper",
+            "variantTab",
+            "variantTabActive",
+            "variantActions",
+            "addVariantBtn",
+            "renameWrapper",
+            "renameInput",
+            "renameConfirm"
+        ],
+        "nativeKey": "src/components/panels/character-browser/AlternateFieldEditor"
+    },
+    {
+        "id": "src/components/panels/character-browser/BatchBar",
+        "label": "BatchBar",
+        "area": "Character browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "bar",
+            "info",
+            "actions",
+            "moveControls",
+            "folderPicker",
+            "moveBtn",
+            "btn",
+            "tagsBtn",
+            "deleteBtn",
+            "cancelBtn"
+        ],
+        "nativeKey": "src/components/panels/character-browser/BatchBar"
+    },
+    {
+        "id": "src/components/panels/character-browser/BulkTagsModal",
+        "label": "BulkTagsModal",
+        "area": "Character browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "overlay",
+            "modal",
+            "header",
+            "title",
+            "body",
+            "count",
+            "segmented",
+            "segBtn",
+            "segBtnActive",
+            "hint",
+            "tagInputRow",
+            "tagInput",
+            "tagAddBtn",
+            "stagedTags",
+            "tagChip",
+            "tagRemove",
+            "suggestions",
+            "suggestionsLabel",
+            "suggestionChips",
+            "suggestionChip",
+            "actions",
+            "cancelBtn",
+            "applyBtn"
+        ],
+        "nativeKey": "src/components/panels/character-browser/BulkTagsModal"
+    },
+    {
+        "id": "src/components/panels/character-browser/CharacterCard",
+        "label": "CharacterCard",
+        "area": "Character browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "card",
+            "selected",
+            "imageWrap",
+            "coverImg",
+            "avatarFallback",
+            "editBtn",
+            "favBtn",
+            "favBtnActive",
+            "checkbox",
+            "info",
+            "name",
+            "creator",
+            "tags",
+            "tag",
+            "tagOverflow",
+            "compact"
+        ],
+        "nativeKey": "src/components/panels/character-browser/CharacterCard"
+    },
+    {
+        "id": "src/components/panels/character-browser/CharacterEditorPage",
+        "label": "CharacterEditorPage",
+        "area": "Character browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "backdrop",
+            "modal",
+            "header",
+            "avatarZone",
+            "avatarImg",
+            "avatarFallback",
+            "avatarOverlay",
+            "avatarOverlayUploading",
+            "avatarProgressText",
+            "hiddenInput",
+            "headerInfo",
+            "nameInput",
+            "creatorText",
+            "headerActions",
+            "mobileActionMenu",
+            "exportWrapper",
+            "exportDropdown",
+            "savingIndicator",
+            "tabBarRow",
+            "tabBar",
+            "extensionGuideButton",
+            "tab",
+            "tabActive",
+            "tabContent",
+            "fieldGroup",
+            "fieldLabelRow",
+            "fieldLabel",
+            "perspectiveLayerGrid",
+            "perspectiveStackEditor",
+            "perspectiveLayerList",
+            "perspectiveLayerRow",
+            "perspectiveLayerDragging",
+            "perspectiveLayerDrag",
+            "perspectiveLayerRowPreview",
+            "perspectiveLayerRowImg",
+            "perspectiveLayerRowBody",
+            "perspectiveLayerRowTop",
+            "perspectiveLayerNameInput",
+            "perspectiveLayerSliderRow",
+            "perspectiveLayerSliderHeader",
+            "perspectiveLayerEmptyState",
+            "perspectiveLayerAdd",
+            "perspectiveLayerCard",
+            "perspectiveLayerPreview",
+            "perspectiveLayerImg",
+            "perspectiveLayerEmpty",
+            "perspectiveLayerBusy",
+            "perspectiveLayerBody",
+            "perspectiveLayerTitle",
+            "perspectiveLayerHint",
+            "perspectiveLayerActions",
+            "perspectiveLayerUpload",
+            "perspectiveLayerRemove",
+            "fieldHelper",
+            "creatorAttribution",
+            "creatorAttributionLink",
+            "fieldTextarea",
+            "fieldInput",
+            "greetingItem",
+            "greetingHeader",
+            "greetingLabel",
+            "greetingActions",
+            "removeBtn",
+            "addBtn",
+            "tagsList",
+            "tag",
+            "tagRemove",
+            "tagAdd",
+            "tagInput",
+            "tagAddBtn",
+            "galleryTab",
+            "galleryHeader",
+            "galleryScrollArea",
+            "galleryVirtualContainer",
+            "galleryGridRow",
+            "galleryItem",
+            "galleryThumb",
+            "galleryThumbPlaceholder",
+            "galleryRemoveBtn",
+            "galleryAddBtn"
+        ],
+        "nativeKey": "src/components/panels/character-browser/CharacterEditorPage"
+    },
+    {
+        "id": "src/components/panels/character-browser/CharacterGrid",
+        "label": "CharacterGrid",
+        "area": "Character browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "scrollContainer",
+            "row",
+            "geometryProbe"
+        ],
+        "nativeKey": "src/components/panels/character-browser/CharacterGrid"
+    },
+    {
+        "id": "src/components/panels/character-browser/CharacterList",
+        "label": "CharacterList",
+        "area": "Character browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "scrollContainer"
+        ],
+        "nativeKey": "src/components/panels/character-browser/CharacterList"
+    },
+    {
+        "id": "src/components/panels/character-browser/CharacterRow",
+        "label": "CharacterRow",
+        "area": "Character browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "row",
+            "selected",
+            "editBtn",
+            "checkbox",
+            "avatar",
+            "avatarFallback",
+            "info",
+            "name",
+            "creator",
+            "tags",
+            "tag",
+            "favBtn",
+            "favBtnActive"
+        ],
+        "nativeKey": "src/components/panels/character-browser/CharacterRow"
+    },
+    {
+        "id": "src/components/panels/character-browser/CharacterTokenReportModal",
+        "label": "CharacterTokenReportModal",
+        "area": "Character browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "header",
+            "title",
+            "subtitle",
+            "body",
+            "summary",
+            "note",
+            "approximation",
+            "group",
+            "rows",
+            "row",
+            "count"
+        ],
+        "nativeKey": "src/components/panels/character-browser/CharacterTokenReportModal"
+    },
+    {
+        "id": "src/components/panels/character-browser/CharacterToolbar",
+        "label": "CharacterToolbar",
+        "area": "Character browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "toolbar",
+            "controlRow",
+            "filterTabs",
+            "tabBtn",
+            "tabBtnActive",
+            "iconBtn",
+            "iconBtnActive"
+        ],
+        "nativeKey": "src/components/panels/character-browser/CharacterToolbar"
+    },
+    {
+        "id": "src/components/panels/character-browser/DragDropOverlay",
+        "label": "DragDropOverlay",
+        "area": "Character browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "overlay",
+            "content",
+            "text",
+            "hint"
+        ],
+        "nativeKey": "src/components/panels/character-browser/DragDropOverlay"
+    },
+    {
+        "id": "src/components/panels/character-browser/ExpressionEditorTab",
+        "label": "ExpressionEditorTab",
+        "area": "Character browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "header",
+            "controls",
+            "controlBtn",
+            "enableRow",
+            "detectionSection",
+            "detectionHeader",
+            "detectionHint",
+            "detectionModes",
+            "modeOption",
+            "modeLabel",
+            "modeName",
+            "modeDesc",
+            "contextRow",
+            "contextInput",
+            "detectionField",
+            "detectionFieldLabel",
+            "detectionFieldHint",
+            "defaultRow",
+            "defaultSelect",
+            "grid",
+            "addCard",
+            "empty",
+            "emptyIcon",
+            "emptyTitle",
+            "emptyHint",
+            "emptyActions",
+            "count",
+            "groupTabs",
+            "groupTab",
+            "groupTabActive",
+            "groupTabCount",
+            "groupHeader",
+            "groupDeleteBtn",
+            "uploading",
+            "galleryModal",
+            "galleryPickItem",
+            "selected",
+            "galleryPickImage",
+            "labelPrompt",
+            "labelPromptInput",
+            "labelPromptActions",
+            "labelPromptBtn",
+            "labelPromptBtnPrimary"
+        ],
+        "nativeKey": "src/components/panels/character-browser/ExpressionEditorTab"
+    },
+    {
+        "id": "src/components/panels/character-browser/ExpressionSlotCard",
+        "label": "ExpressionSlotCard",
+        "area": "Character browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "card",
+            "imageWrap",
+            "image",
+            "deleteBtn",
+            "labelInput"
+        ],
+        "nativeKey": "src/components/panels/character-browser/ExpressionSlotCard"
+    },
+    {
+        "id": "src/components/panels/character-browser/FavoritesSlider",
+        "label": "FavoritesSlider",
+        "area": "Character browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "header",
+            "headerStart",
+            "iconBadge",
+            "label",
+            "countBadge",
+            "inlineAvatars",
+            "avatarChip",
+            "avatarChipImg",
+            "avatarChipFallback",
+            "chevron",
+            "slider",
+            "slideItem"
+        ],
+        "nativeKey": "src/components/panels/character-browser/FavoritesSlider"
+    },
+    {
+        "id": "src/components/panels/character-browser/GroupChatsPanel",
+        "label": "GroupChatsPanel",
+        "area": "Character browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panel",
+            "mosaic",
+            "mosaicSmall",
+            "mosaicLarge",
+            "mosaic2",
+            "mosaic3",
+            "mosaicCell",
+            "mosaic4",
+            "mosaicFallback",
+            "gridLayout",
+            "gridColumns1",
+            "gridCard",
+            "gridCardImage",
+            "gridCardOverlay",
+            "gridCardContent",
+            "gridCardName",
+            "gridCardMeta",
+            "memberBadge",
+            "gridDeleteBtn",
+            "listLayout",
+            "listCard",
+            "listCardInfo",
+            "listCardName",
+            "listCardMeta",
+            "listDeleteBtn",
+            "empty",
+            "emptyIcon",
+            "createBtn"
+        ],
+        "nativeKey": "src/components/panels/character-browser/GroupChatsPanel"
+    },
+    {
+        "id": "src/components/panels/character-browser/ImportMenu",
+        "label": "ImportMenu",
+        "area": "Character browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "trigger",
+            "dropdown",
+            "item",
+            "folderCreateRow",
+            "folderInput",
+            "folderAction"
+        ],
+        "nativeKey": "src/components/panels/character-browser/ImportMenu"
+    },
+    {
+        "id": "src/components/panels/character-browser/ImportUrlModal",
+        "label": "ImportUrlModal",
+        "area": "Character browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "overlay",
+            "modal",
+            "header",
+            "title",
+            "hint",
+            "input",
+            "error",
+            "actions",
+            "cancelBtn",
+            "importBtn"
+        ],
+        "nativeKey": "src/components/panels/character-browser/ImportUrlModal"
+    },
+    {
+        "id": "src/components/panels/character-browser/TagFilter",
+        "label": "TagFilter",
+        "area": "Character browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "trigger",
+            "triggerActive",
+            "clearBtn",
+            "dropdown",
+            "searchWrap",
+            "search",
+            "searchClear",
+            "list",
+            "tagItem",
+            "tagItemIncluded",
+            "tagItemExcluded",
+            "tagState",
+            "iconInclude",
+            "iconExclude",
+            "tagPill",
+            "tagPillExcluded",
+            "tagCount",
+            "empty",
+            "hint"
+        ],
+        "nativeKey": "src/components/panels/character-browser/TagFilter"
+    },
+    {
+        "id": "src/components/chat/AddGroupMemberModal",
+        "label": "AddGroupMemberModal",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "backdrop",
+            "modal",
+            "header",
+            "headerIcon",
+            "title",
+            "countBadge",
+            "body",
+            "searchBar",
+            "searchInput",
+            "searchIcon",
+            "searchClear",
+            "charGrid",
+            "charItem",
+            "charAvatarWrap",
+            "charAvatar",
+            "charAvatarFallback",
+            "addingOverlay",
+            "charName",
+            "emptyState",
+            "footer",
+            "footerBtn"
+        ],
+        "nativeKey": "src/components/chat/AddGroupMemberModal"
+    },
+    {
+        "id": "src/components/chat/AlternateFieldSwitcher",
+        "label": "AlternateFieldSwitcher",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "wrapper",
+            "triggerBtn",
+            "triggerBtnActive",
+            "badge",
+            "popover",
+            "popoverTitle",
+            "fieldRow",
+            "fieldLabel",
+            "fieldSelect"
+        ],
+        "nativeKey": "src/components/chat/AlternateFieldSwitcher"
+    },
+    {
+        "id": "src/components/chat/AuthorsNotePanel",
+        "label": "AuthorsNotePanel",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panel",
+            "header",
+            "title",
+            "closeBtn",
+            "body",
+            "field",
+            "label",
+            "textarea",
+            "row",
+            "input",
+            "select",
+            "w3",
+            "org",
+            "helper"
+        ],
+        "nativeKey": "src/components/chat/AuthorsNotePanel"
+    },
+    {
+        "id": "src/components/chat/AvatarSwitcherPopover",
+        "label": "AvatarSwitcherPopover",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "wrapper",
+            "strip",
+            "thumbGrid",
+            "thumb",
+            "thumbActive",
+            "thumbImg",
+            "thumbFallback",
+            "moreBtn",
+            "collapseBtn"
+        ],
+        "nativeKey": "src/components/chat/AvatarSwitcherPopover"
+    },
+    {
+        "id": "src/components/chat/BubbleActions",
+        "label": "BubbleActions",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [
+            "[data-component=\"BubbleActions\"]"
+        ],
+        "cssClasses": [
+            "pill",
+            "contextAnchorActive"
+        ],
+        "nativeKey": "src/components/chat/BubbleActions"
+    },
+    {
+        "id": "src/components/chat/BubbleMessage",
+        "label": "BubbleMessage",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "card",
+            "character",
+            "user",
+            "userLeft",
+            "streaming",
+            "avatarBg",
+            "avatarBgScrim",
+            "avatarBgImg",
+            "hidden",
+            "hiddenBadge",
+            "selectMode",
+            "selected",
+            "highlight",
+            "bubble",
+            "content",
+            "header",
+            "headerLeft",
+            "avatar",
+            "avatarFallback",
+            "name",
+            "nameChar",
+            "nameUser",
+            "metaWrap",
+            "metaPill",
+            "metaSegment",
+            "metaPillTooltip",
+            "tooltipRow",
+            "tooltipLabel",
+            "tooltipValue",
+            "metaDot",
+            "actionsPill"
+        ],
+        "nativeKey": "src/components/chat/BubbleMessage"
+    },
+    {
+        "id": "src/components/chat/ChatFindBar",
+        "label": "ChatFindBar",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [
+            "[data-component=\"ChatFindBar\"]"
+        ],
+        "cssClasses": [
+            "bar",
+            "searchIcon",
+            "input",
+            "matchCount",
+            "iconButton"
+        ],
+        "nativeKey": "src/components/chat/ChatFindBar"
+    },
+    {
+        "id": "src/components/chat/ChatView",
+        "label": "ChatView",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [
+            "[data-component=\"ChatView\"]"
+        ],
+        "cssClasses": [
+            "container",
+            "hasSceneBackground",
+            "wallpaperTransitionLayer",
+            "wallpaperTransitionLayerActive",
+            "sceneBackgroundLayer",
+            "sceneTextContextLayer",
+            "body",
+            "half",
+            "workspace",
+            "indicator",
+            "panel",
+            "chatColumn",
+            "chatColumnInner",
+            "chatToolbar",
+            "noticeDock",
+            "cortexNoticeDock",
+            "cortexNotice",
+            "cortexNoticeError",
+            "cortexNoticeStatus",
+            "cortexNoticeTitle",
+            "cortexNoticeSeparator",
+            "cortexNoticeDetail",
+            "cortexNoticePercent",
+            "cortexNoticeBar",
+            "cortexNoticeFill",
+            "spindleNotice",
+            "spindleNoticeBar",
+            "spindleNoticeFill",
+            "toolbarBtn",
+            "toolbarBtnPrimary",
+            "toolbarBtnActive",
+            "toolbarSpinner",
+            "streaming",
+            "portraitSide",
+            "portraitSideRight",
+            "portraitSideLeft",
+            "portraitSideOpen",
+            "drawerTab",
+            "portraitTab",
+            "portraitTabActive",
+            "portraitTabRight",
+            "portraitTabLeft",
+            "portraitBackdrop",
+            "panelOuterMobile",
+            "module",
+            "css",
+            "g"
+        ],
+        "nativeKey": "src/components/chat/ChatView"
+    },
+    {
+        "id": "src/components/chat/CouncilPill",
+        "label": "CouncilPill",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "wrapper",
+            "fadingOut",
+            "indicator",
+            "loading",
+            "complete",
+            "label",
+            "avatarStack",
+            "avatar",
+            "overflow",
+            "completeIcon"
+        ],
+        "nativeKey": "src/components/chat/CouncilPill"
+    },
+    {
+        "id": "src/components/chat/expressions/ExpressionDisplay",
+        "label": "ExpressionDisplay",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "containerDragging",
+            "clickThrough",
+            "dragHandle",
+            "dragHandleFrameless",
+            "resizeHandle",
+            "frameless",
+            "framed",
+            "handleName",
+            "handleBtn",
+            "imageContainer",
+            "expressionImg",
+            "labelBadge",
+            "minimized",
+            "minimizedIcon",
+            "opacityRow",
+            "opacitySlider",
+            "groupRow",
+            "groupSlot",
+            "groupSlotIdle",
+            "groupSlotActive",
+            "groupNameTag"
+        ],
+        "nativeKey": "src/components/chat/expressions/ExpressionDisplay"
+    },
+    {
+        "id": "src/components/chat/FloatingAvatarViewer",
+        "label": "FloatingAvatarViewer",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "containerDragging",
+            "dragHandle",
+            "handleName",
+            "handleBtn",
+            "imageContainer",
+            "avatarImg",
+            "resizeHandle"
+        ],
+        "nativeKey": "src/components/chat/FloatingAvatarViewer"
+    },
+    {
+        "id": "src/components/chat/GreetingNav",
+        "label": "GreetingNav",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "indicator",
+            "badge",
+            "indicatorBubble"
+        ],
+        "nativeKey": "src/components/chat/GreetingNav"
+    },
+    {
+        "id": "src/components/chat/GroupChatMemberBar",
+        "label": "GroupChatMemberBar",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "barWrapper",
+            "bar",
+            "scrollFade",
+            "scrollFadeLeft",
+            "scrollFadeRight",
+            "member",
+            "memberActive",
+            "avatar",
+            "avatarFallback",
+            "name",
+            "memberMuted",
+            "mutedBadge",
+            "voiceBadge",
+            "talkHigh",
+            "talkLow",
+            "addMemberBtn"
+        ],
+        "nativeKey": "src/components/chat/GroupChatMemberBar"
+    },
+    {
+        "id": "src/components/chat/GroupChatProgressBar",
+        "label": "GroupChatProgressBar",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "bar",
+            "characterDots",
+            "dot",
+            "dotActive",
+            "dotSpoken",
+            "dotAvatar",
+            "dotAvatarFallback",
+            "connector",
+            "status"
+        ],
+        "nativeKey": "src/components/chat/GroupChatProgressBar"
+    },
+    {
+        "id": "src/components/chat/InputArea",
+        "label": "InputArea",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [
+            "[data-component=\"InputArea\"]"
+        ],
+        "cssClasses": [
+            "container",
+            "app",
+            "tsx",
+            "dropOverlay",
+            "actionBar",
+            "actionDivider",
+            "actionBtn",
+            "actionBtnActive",
+            "g",
+            "actionBtnHasSelection",
+            "badge",
+            "popoverSlot",
+            "popoverSlotOpen",
+            "popoverSlotInner",
+            "popover",
+            "popoverClosing",
+            "popDivider",
+            "popEmpty",
+            "popRowBtn",
+            "personaMain",
+            "personaSearch",
+            "personaGroup",
+            "personaGroupHeader",
+            "personaAvatar",
+            "personaAvatarImg",
+            "personaFallback",
+            "personaNameGroup",
+            "personaTitle",
+            "popRowBtnActive",
+            "popMeta",
+            "popLink",
+            "quickSet",
+            "quickSetName",
+            "addonPopoverHeader",
+            "addonCreateToggle",
+            "addonCreateForm",
+            "addonCreateInput",
+            "addonCreateTextarea",
+            "stopBtn",
+            "attachmentStrip",
+            "attachmentPreview",
+            "attachmentThumb",
+            "attachmentLabel",
+            "attachmentRemove",
+            "attachBtn",
+            "sttBtnActive",
+            "sttSpinner",
+            "inputRow",
+            "inputWrapper",
+            "sttRecordingPanel",
+            "sttIndicatorProcessing",
+            "sttRecordingStatus",
+            "sttRecordingHint",
+            "sttRecordingWave",
+            "sttIndicatorBar",
+            "sttIndicatorReactive",
+            "textarea",
+            "textareaMirror",
+            "mentionPill",
+            "mentionPillMuted",
+            "documentPill",
+            "sendBtnShell",
+            "sendBtn",
+            "sendBtnIcon",
+            "sendBtnSpinner",
+            "sendBtnHoldTracking",
+            "sendBtnHoldReady",
+            "sendBtnQueueing",
+            "sendBtnStop",
+            "mobileQueueHint",
+            "mobileQueueHintHolding",
+            "mobileQueueHintReady",
+            "mobileQueueHintQueueing",
+            "extrasSection",
+            "extrasDivider",
+            "extrasExtHeader",
+            "extrasExtBadge"
+        ],
+        "nativeKey": "src/components/chat/InputArea"
+    },
+    {
+        "id": "src/components/chat/MessageActions",
+        "label": "MessageActions",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "actions",
+            "contextAnchorActive"
+        ],
+        "nativeKey": "src/components/chat/MessageActions"
+    },
+    {
+        "id": "src/components/chat/MessageAttachments",
+        "label": "MessageAttachments",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "attachments",
+            "attachmentsUser",
+            "imageThumbUser",
+            "inlineImageBtn",
+            "inlineImageWrap",
+            "inlineImage"
+        ],
+        "nativeKey": "src/components/chat/MessageAttachments"
+    },
+    {
+        "id": "src/components/chat/MessageAudioPlayer",
+        "label": "MessageAudioPlayer",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "wrapper",
+            "wrapperInner",
+            "wrapperFresh",
+            "wrapperExiting",
+            "player",
+            "playerUser",
+            "playerRegenerating",
+            "playBtn",
+            "slider",
+            "time",
+            "volumeBtn",
+            "deleteBtn",
+            "regenOverlay",
+            "regenSpinner",
+            "regenLabel",
+            "volumeMuteBtn",
+            "sliderSeek",
+            "sliderVolume",
+            "volumeWrap",
+            "volumePopover"
+        ],
+        "nativeKey": "src/components/chat/MessageAudioPlayer"
+    },
+    {
+        "id": "src/components/chat/MessageAudioSlot",
+        "label": "MessageAudioSlot",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "slot",
+            "slotActive",
+            "inner",
+            "content",
+            "slotUser"
+        ],
+        "nativeKey": "src/components/chat/MessageAudioSlot"
+    },
+    {
+        "id": "src/components/chat/MessageContent",
+        "label": "MessageContent",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [
+            "[data-component=\"MessageContent\"]"
+        ],
+        "cssClasses": [
+            "content",
+            "contentUser",
+            "contentChar",
+            "findMatch",
+            "prose",
+            "proseItalic",
+            "proseBold",
+            "proseInlineEmphasis",
+            "proseDialogue",
+            "codeBlock",
+            "codeHeader",
+            "codeLang",
+            "codeCopy",
+            "codeCopied",
+            "hljs-keyword",
+            "hljs-selector-tag",
+            "hljs-built_in",
+            "hljs-type",
+            "hljs-string",
+            "hljs-addition",
+            "hljs-number",
+            "hljs-literal",
+            "hljs-selector-id",
+            "hljs-comment",
+            "hljs-quote",
+            "hljs-meta",
+            "hljs-meta-keyword",
+            "hljs-function",
+            "hljs-title",
+            "hljs-attr",
+            "hljs-attribute",
+            "hljs-selector-attr",
+            "hljs-variable",
+            "hljs-template-variable",
+            "hljs-params",
+            "hljs-regexp",
+            "hljs-deletion",
+            "hljs-operator",
+            "hljs-punctuation",
+            "hljs-tag",
+            "hljs-name",
+            "hljs-selector-class",
+            "hljs-symbol",
+            "hljs-bullet",
+            "hljs-section",
+            "hljs-emphasis",
+            "hljs-strong",
+            "proseLink",
+            "proseImageWrap",
+            "proseImage",
+            "proseTable",
+            "proseTableHead",
+            "proseTableCell",
+            "proseTableRow",
+            "spindle-message-tag-pending",
+            "spindle-message-tag-pending-dot",
+            "htmlIsland",
+            "youtubeEmbedWrap",
+            "youtubeEmbed",
+            "chunkFade"
+        ],
+        "nativeKey": "src/components/chat/MessageContent"
+    },
+    {
+        "id": "src/components/chat/MessageEditArea",
+        "label": "MessageEditArea",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "editArea",
+            "editTextarea",
+            "textareaWrapper",
+            "expandBtn",
+            "reasoningSection",
+            "reasoningTextarea",
+            "contentSection",
+            "sectionLabel",
+            "editActions",
+            "editCancelBtn",
+            "editSaveBtn"
+        ],
+        "nativeKey": "src/components/chat/MessageEditArea"
+    },
+    {
+        "id": "src/components/chat/MessageList",
+        "label": "MessageList",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [
+            "[data-component=\"MessageList\"]"
+        ],
+        "cssClasses": [
+            "list",
+            "module",
+            "css",
+            "sentinel",
+            "loadingOlder",
+            "virtualSpace",
+            "virtualRow",
+            "errorBubble",
+            "errorLabel"
+        ],
+        "nativeKey": "src/components/chat/MessageList"
+    },
+    {
+        "id": "src/components/chat/MessageNavigator",
+        "label": "MessageNavigator",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panel",
+            "header",
+            "footer",
+            "list",
+            "messageRow",
+            "rowMeta",
+            "preview",
+            "status",
+            "iconButton"
+        ],
+        "nativeKey": "src/components/chat/MessageNavigator"
+    },
+    {
+        "id": "src/components/chat/MessageSelectBar",
+        "label": "MessageSelectBar",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [
+            "[data-component=\"MessageSelectBar\"]"
+        ],
+        "cssClasses": [
+            "bar",
+            "left",
+            "selectToggle",
+            "count",
+            "actions",
+            "actionBtn",
+            "hideBtn",
+            "unhideBtn",
+            "deleteBtn",
+            "cancelBtn",
+            "actionLabel"
+        ],
+        "nativeKey": "src/components/chat/MessageSelectBar"
+    },
+    {
+        "id": "src/components/chat/MinimalMessage",
+        "label": "MinimalMessage",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "card",
+            "character",
+            "user",
+            "hidden",
+            "selectMode",
+            "selected",
+            "highlight",
+            "streaming",
+            "avatar",
+            "avatarFallback",
+            "bubble",
+            "header",
+            "name",
+            "metaPill",
+            "metaSegment",
+            "metaDot",
+            "hiddenBadge",
+            "metaPillTooltip",
+            "tooltipRow",
+            "tooltipLabel",
+            "tooltipValue",
+            "nameUser",
+            "nameChar",
+            "actionsWrap"
+        ],
+        "nativeKey": "src/components/chat/MinimalMessage"
+    },
+    {
+        "id": "src/components/chat/ooc/OOCStyles",
+        "label": "OOCStyles",
+        "area": "Chat",
+        "sources": [
+            "css"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "socialCard",
+            "socialAvatarContainer",
+            "socialAvatar",
+            "socialAvatarPlaceholder",
+            "socialContentColumn",
+            "socialHeaderRow",
+            "socialName",
+            "socialThread",
+            "socialContent",
+            "marginNote",
+            "marginNoteAlt",
+            "marginTag",
+            "marginTagAvatar",
+            "marginTagLetter",
+            "marginContentArea",
+            "marginLabel",
+            "marginText",
+            "whisper",
+            "whisperAlt",
+            "whisperAvatarWrap",
+            "whisperAvatar",
+            "whisperAvatarPlaceholder",
+            "whisperBubble",
+            "whisperHeader",
+            "whisperName",
+            "whisperText",
+            "raw",
+            "ircContainer",
+            "ircHeader",
+            "ircToggleBtn",
+            "ircToggleBtnCollapsed",
+            "ircBodyWrapper",
+            "ircBodyWrapperCollapsed",
+            "ircMessages",
+            "ircMsg",
+            "ircMsgAlt",
+            "ircTimestamp",
+            "ircNick",
+            "ircText",
+            "ircMention"
+        ],
+        "nativeKey": "src/components/chat/ooc/OOCStyles"
+    },
+    {
+        "id": "src/components/chat/PortraitDock",
+        "label": "PortraitDock",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "dock",
+            "dockedDock",
+            "floatingLayer",
+            "floatingDock",
+            "mobileDock",
+            "image",
+            "controls",
+            "resizeHandle",
+            "resizeN",
+            "resizeS",
+            "resizeE",
+            "resizeW",
+            "resizeNE",
+            "resizeNW",
+            "resizeSE",
+            "resizeSW"
+        ],
+        "nativeKey": "src/components/chat/PortraitDock"
+    },
+    {
+        "id": "src/components/chat/PortraitPanel",
+        "label": "PortraitPanel",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panelOuter",
+            "panelOuterRight",
+            "panelOuterLeft",
+            "panel",
+            "closeBtn",
+            "frame",
+            "avatarImg",
+            "avatarImgIn",
+            "avatarImgLoading",
+            "avatarImgOut",
+            "avatarSpinner",
+            "placeholder",
+            "name",
+            "mosaic",
+            "mosaicCell",
+            "mosaicWide",
+            "mosaicTall",
+            "mosaicLarge",
+            "mosaicImg",
+            "mosaicPlaceholder",
+            "portraitSide",
+            "module",
+            "css",
+            "panelOuterMobile",
+            "panelOuterMobileRight",
+            "panelOuterMobileLeft",
+            "panelOuterMobileOpen"
+        ],
+        "nativeKey": "src/components/chat/PortraitPanel"
+    },
+    {
+        "id": "src/components/chat/ReasoningBlock",
+        "label": "ReasoningBlock",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "alignRight",
+            "toggle",
+            "chevron",
+            "chevronOpen",
+            "brain",
+            "label",
+            "bodyWrapper",
+            "bodyWrapperOpen",
+            "bodyInner",
+            "bodyToolbar",
+            "bodyHint",
+            "modeSwitch",
+            "modeButton",
+            "modeButtonActive",
+            "body",
+            "bodyPlainText",
+            "bubble"
+        ],
+        "nativeKey": "src/components/chat/ReasoningBlock"
+    },
+    {
+        "id": "src/components/chat/ScrollToBottom",
+        "label": "ScrollToBottom",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "btn"
+        ],
+        "nativeKey": "src/components/chat/ScrollToBottom"
+    },
+    {
+        "id": "src/components/chat/StreamingIndicator",
+        "label": "StreamingIndicator",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "indicator",
+            "dot"
+        ],
+        "nativeKey": "src/components/chat/StreamingIndicator"
+    },
+    {
+        "id": "src/components/chat/SwipeControls",
+        "label": "SwipeControls",
+        "area": "Chat",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [
+            "[data-component=\"SwipeControls\"]"
+        ],
+        "cssClasses": [
+            "controls",
+            "btn",
+            "btnAccent",
+            "dot",
+            "dotLive",
+            "dotReady",
+            "counter",
+            "bubble"
+        ],
+        "nativeKey": "src/components/chat/SwipeControls"
+    },
+    {
+        "id": "src/components/chat-heads/ChatHeads",
+        "label": "ChatHeads",
+        "area": "Chat-heads",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "containerDragging",
+            "head",
+            "headExiting",
+            "headActive",
+            "avatar",
+            "avatarDimmed",
+            "avatarFallback",
+            "badge",
+            "badgeAssembling",
+            "badgeActive",
+            "badgeCompleted",
+            "badgeError",
+            "badgeWaiting",
+            "badgeIcon",
+            "assemblyRing",
+            "waitingRing",
+            "wrenchIcon",
+            "notifPip",
+            "notifPipUnread",
+            "notifPipTurn",
+            "notifPipWaiting",
+            "notifPipIcon",
+            "thoughtCloud",
+            "thoughtCloudSvg",
+            "speechBubble",
+            "speechBubbleSvg",
+            "bubbleDots",
+            "bubbleDot",
+            "tooltip",
+            "tooltipSub"
+        ],
+        "nativeKey": "src/components/chat-heads/ChatHeads"
+    },
+    {
+        "id": "src/components/panels/connection-manager/ConnectionItem",
+        "label": "ConnectionItem",
+        "area": "Connection manager",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [
+            "[data-component=\"ConnectionItem\"]"
+        ],
+        "cssClasses": [
+            "item",
+            "itemDragging",
+            "itemActive",
+            "itemRow",
+            "dragHandle",
+            "itemBtn",
+            "itemIcon",
+            "rouletteIcon",
+            "itemInfo",
+            "itemName",
+            "defaultStar",
+            "reasoningBound",
+            "itemMeta",
+            "itemReasoningMeta",
+            "itemCachingMeta",
+            "activeCheck",
+            "itemActions",
+            "testSuccess",
+            "testFail",
+            "testMessage",
+            "testMessageSuccess",
+            "testMessageFail",
+            "oauthBanner",
+            "creditsBar",
+            "tsx",
+            "creditsBarAnimateIn",
+            "creditCell",
+            "creditLabel",
+            "creditValue",
+            "creditsRefresh",
+            "nanoGptUsageBar",
+            "creditsHidden"
+        ],
+        "nativeKey": "src/components/panels/connection-manager/ConnectionItem"
+    },
+    {
+        "id": "src/components/panels/connection-manager/ModelCombobox",
+        "label": "ModelCombobox",
+        "area": "Connection manager",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "combobox",
+            "comboboxCompact",
+            "comboboxStandard",
+            "comboboxEditor",
+            "inputRow",
+            "input",
+            "inputEditor",
+            "refreshBtn",
+            "refreshBtnEditor",
+            "dropdown",
+            "dropdownItem",
+            "modelLabel",
+            "modelId",
+            "dropdownEmpty",
+            "browseHint",
+            "browseHintIcon"
+        ],
+        "nativeKey": "src/components/panels/connection-manager/ModelCombobox"
+    },
+    {
+        "id": "src/components/panels/connection-manager/MultiChipSelect",
+        "label": "MultiChipSelect",
+        "area": "Connection manager",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "chipArea",
+            "chip",
+            "chipLabel",
+            "chipRemove",
+            "searchInput",
+            "chevron",
+            "dropdown",
+            "dropdownItem",
+            "dropdownLabel",
+            "dropdownSlug",
+            "dropdownEmpty"
+        ],
+        "nativeKey": "src/components/panels/connection-manager/MultiChipSelect"
+    },
+    {
+        "id": "src/components/panels/connection-manager/OpenRouterSettings",
+        "label": "OpenRouterSettings",
+        "area": "Connection manager",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "brandHeader",
+            "brandDot",
+            "brandLabel",
+            "oauthSection",
+            "oauthHint",
+            "creditsRow",
+            "creditCell",
+            "creditLabel",
+            "creditValue",
+            "creditsActions",
+            "refreshBtn",
+            "freeTierBadge",
+            "creditsUnavailable",
+            "sectionToggle",
+            "sectionToggleIcon",
+            "sectionChevron",
+            "sectionChevronOpen",
+            "sectionContent",
+            "attribution"
+        ],
+        "nativeKey": "src/components/panels/connection-manager/OpenRouterSettings"
+    },
+    {
+        "id": "src/components/connections-picker/ConnectionsPicker",
+        "label": "ConnectionsPicker",
+        "area": "Connections-picker",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [
+            "[data-component=\"ConnectionsPicker\"]"
+        ],
+        "cssClasses": [
+            "portalLayer",
+            "frame",
+            "picker",
+            "densityCompact",
+            "densityBalanced",
+            "densitySpacious",
+            "headerButton",
+            "starButton",
+            "cardStarButton",
+            "variantButton",
+            "columnResizer",
+            "squareAction",
+            "variantSwitch",
+            "variantButtonActive",
+            "searchBox",
+            "tags",
+            "tagButton",
+            "tagButtonActive",
+            "tagVariant",
+            "splitVariant",
+            "fullVariant",
+            "profileColumn",
+            "favoriteColumn",
+            "modelsPanel",
+            "splitConnectionsPane",
+            "connectionCatalog",
+            "cardSections",
+            "variantToolbar",
+            "splitBody",
+            "fullBody",
+            "activeSummary",
+            "activeSummaryIcon",
+            "activeSummaryText",
+            "variantATop",
+            "variantAControls",
+            "providerTabs",
+            "providerTab",
+            "providerSearchButton",
+            "providerTabActive",
+            "profileRow",
+            "profileRowActive",
+            "profileMain",
+            "profileIcon",
+            "profileText",
+            "cardRailViewport",
+            "cardRail",
+            "cardRailArrow",
+            "cardRailPrevious",
+            "cardRailNext",
+            "profileCard",
+            "profileCardActive",
+            "profileCardMain",
+            "profileCardIcon",
+            "profileCardText",
+            "profileCardCheck",
+            "starButtonActive",
+            "modelTile",
+            "modelButton",
+            "modelFavoriteButton",
+            "modelFavoriteButtonActive",
+            "modelsHeading",
+            "modelsGrid",
+            "modelGridSection",
+            "modelGrid",
+            "modelGridButton",
+            "modelGridButtonActive",
+            "modelButtonActive",
+            "panelFooter",
+            "empty",
+            "spinner"
+        ],
+        "nativeKey": "src/components/connections-picker/ConnectionsPicker"
+    },
+    {
+        "id": "src/components/panels/creator-workshop/ContentWorkshop",
+        "label": "ContentWorkshop",
+        "area": "Creator workshop",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "workshop",
+            "sectionTitle",
+            "sectionHeader",
+            "newPackBtn",
+            "packSelector",
+            "quickCreateGrid",
+            "quickCard",
+            "quickCardIcon",
+            "quickCardLabel",
+            "quickCardSub",
+            "packSection",
+            "packHeader",
+            "packChevron",
+            "packChevronOpen",
+            "packName",
+            "packActions",
+            "packActionBtn",
+            "packActionBtnDanger",
+            "packBody",
+            "itemGroup",
+            "itemGroupHeader",
+            "itemGroupCount",
+            "itemGroupAdd",
+            "itemRow",
+            "itemIcon",
+            "itemAvatar",
+            "itemAvatarFallback",
+            "itemName",
+            "itemBadge",
+            "itemActions",
+            "itemActionBtn",
+            "itemActionBtnDanger",
+            "importSection",
+            "importBtn",
+            "emptyPacks",
+            "emptyItems",
+            "loading"
+        ],
+        "nativeKey": "src/components/panels/creator-workshop/ContentWorkshop"
+    },
+    {
+        "id": "src/components/panels/creator-workshop/LoomEditorModal",
+        "label": "LoomEditorModal",
+        "area": "Creator workshop",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "title",
+            "body",
+            "categoryTabs",
+            "categoryTab",
+            "categoryTabActive",
+            "footer"
+        ],
+        "nativeKey": "src/components/panels/creator-workshop/LoomEditorModal"
+    },
+    {
+        "id": "src/components/panels/creator-workshop/LumiaEditorModal",
+        "label": "LumiaEditorModal",
+        "area": "Creator workshop",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "title",
+            "body",
+            "row",
+            "rowHalf",
+            "footer"
+        ],
+        "nativeKey": "src/components/panels/creator-workshop/LumiaEditorModal"
+    },
+    {
+        "id": "src/components/panels/creator-workshop/PackDropdown",
+        "label": "PackDropdown",
+        "area": "Creator workshop",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "wrapper",
+            "trigger",
+            "triggerOpen",
+            "triggerLabel",
+            "triggerPlaceholder",
+            "triggerChevron",
+            "triggerChevronOpen",
+            "dropdown",
+            "searchInput",
+            "option",
+            "optionActive",
+            "createOption"
+        ],
+        "nativeKey": "src/components/panels/creator-workshop/PackDropdown"
+    },
+    {
+        "id": "src/components/panels/creator-workshop/ToolEditorModal",
+        "label": "ToolEditorModal",
+        "area": "Creator workshop",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "title",
+            "body",
+            "helpCard",
+            "subtleCard",
+            "previewBlock",
+            "helpTitle",
+            "subtleCardTitle",
+            "previewTitle",
+            "helpText",
+            "subtleCardText",
+            "inlineHint",
+            "helpList",
+            "codeBlock",
+            "row",
+            "rowHalf",
+            "schemaRow",
+            "schemaFields",
+            "checkboxLabel",
+            "schemaFieldRow",
+            "schemaRemoveBtn",
+            "addPropertyBtn",
+            "toggleRow",
+            "toggleLabel",
+            "toggle",
+            "toggleActive",
+            "toggleKnob",
+            "footer"
+        ],
+        "nativeKey": "src/components/panels/creator-workshop/ToolEditorModal"
+    },
+    {
+        "id": "src/components/panels/image-gen-connections/ComfyWorkflowEditor",
+        "label": "ComfyWorkflowEditor",
+        "area": "Image gen connections",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "overlay",
+            "modal",
+            "header",
+            "eyebrow",
+            "title",
+            "headerActions",
+            "ghostBtn",
+            "primaryBtn",
+            "closeBtn",
+            "body",
+            "lead",
+            "steps",
+            "importRow",
+            "importOr",
+            "fileInput",
+            "paste",
+            "importActions",
+            "statusReady",
+            "statusBlocked",
+            "statusDot",
+            "statusMeta",
+            "notice",
+            "warning",
+            "group",
+            "groupLabel",
+            "groupHint",
+            "row",
+            "rowLabel",
+            "req",
+            "select",
+            "customRow",
+            "customLabel",
+            "removeBtn",
+            "wfRow",
+            "wfName",
+            "wfMeta",
+            "wfActions",
+            "wfBadge",
+            "saveRow",
+            "textInput",
+            "error"
+        ],
+        "nativeKey": "src/components/panels/image-gen-connections/ComfyWorkflowEditor"
+    },
+    {
+        "id": "src/components/landing/HomepageCharacterLibrary",
+        "label": "HomepageCharacterLibrary",
+        "area": "Landing",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [
+            "[data-component=\"HomepageCharacterLibrary\"]"
+        ],
+        "cssClasses": [
+            "ts",
+            "library",
+            "header",
+            "preview",
+            "searchField",
+            "search",
+            "settingsBtn",
+            "filters",
+            "controls",
+            "filter",
+            "filterActive",
+            "select",
+            "state",
+            "body",
+            "grid",
+            "card",
+            "cardSelected",
+            "imageFrame",
+            "cardFooter",
+            "loadingMore",
+            "sentinel",
+            "cardName",
+            "cardMeta",
+            "cardDescription",
+            "tags",
+            "tag",
+            "tagOverflow",
+            "previewBody",
+            "previewMetadata",
+            "css",
+            "resizeHandle",
+            "previewControls",
+            "previewImageFrame",
+            "imageHeightControl",
+            "previewHeader",
+            "editBtn",
+            "previewTags",
+            "previewTag",
+            "previewSection",
+            "lastChat",
+            "lorebooks",
+            "openChatBtn",
+            "previewBackdrop",
+            "previewBackdropGlow",
+            "previewBackdropViewportLayer",
+            "previewDescription"
+        ],
+        "nativeKey": "src/components/landing/HomepageCharacterLibrary"
+    },
+    {
+        "id": "src/components/landing/LandingPage",
+        "label": "LandingPage",
+        "area": "Landing",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [
+            "[data-component=\"LandingPage\"]"
+        ],
+        "cssClasses": [
+            "page",
+            "container",
+            "bg",
+            "bgGlow",
+            "bgGlow1",
+            "bgGlow2",
+            "bgGlow3",
+            "grid",
+            "content",
+            "contentExpanded",
+            "header",
+            "landingToolbar",
+            "landingTabs",
+            "landingSearch",
+            "hiddenManagerBtn",
+            "galleryWidthBtnActive",
+            "logo",
+            "headerActions",
+            "tempChatWrap",
+            "tempChatMenu",
+            "tempChatMenuItem",
+            "tempChatMenuLabel",
+            "tempChatMenuHint",
+            "accountBtn",
+            "accountName",
+            "logoIcon",
+            "logoGlow",
+            "logoText",
+            "taglineBtn",
+            "main",
+            "gridCards",
+            "compactList",
+            "virtualChats",
+            "virtualRow",
+            "chatsLeaving",
+            "cardTilt",
+            "tilting",
+            "mobileMotionTilting",
+            "card",
+            "cardEntry",
+            "cardImage",
+            "listAvatar",
+            "mosaicCell",
+            "perspectiveLayer",
+            "listItem",
+            "cardAvatarFallback",
+            "perspectiveStack",
+            "cardImageOverlay",
+            "cardBtn",
+            "cardContent",
+            "cardName",
+            "listName",
+            "favoriteCard",
+            "favoriteListItem",
+            "cardMeta",
+            "chatCountBadge",
+            "cardTime",
+            "listAvatarFallback",
+            "deleteBtn",
+            "deleteBtnShift",
+            "groupCard",
+            "groupMosaic",
+            "groupMosaic2",
+            "groupMosaic3",
+            "groupMosaic4",
+            "mosaicFallback",
+            "groupOverlay",
+            "groupMeta",
+            "groupBadge",
+            "listItemEntry",
+            "listItemGroup",
+            "listBtn",
+            "listBody",
+            "listTopRow",
+            "listBottomRow",
+            "listTime",
+            "listSubtitle",
+            "listMeta",
+            "listStatusPill",
+            "listDeleteBtn"
+        ],
+        "nativeKey": "src/components/landing/LandingPage"
+    },
+    {
+        "id": "src/components/lore-indicator/LoreIndicator",
+        "label": "LoreIndicator",
+        "area": "Lore-indicator",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "floatingRoot",
+            "composerRoot",
+            "panel",
+            "config",
+            "v2Wrap",
+            "compactTrigger",
+            "paletteTrigger",
+            "stripItem",
+            "dragHandle",
+            "paletteDragBar",
+            "strip",
+            "chevronOpen",
+            "compactPanel",
+            "compactPopover",
+            "v4PanelPopover",
+            "v4ConfigPopover",
+            "expandedPanel",
+            "panelHeader",
+            "panelHeaderIcon",
+            "panelHeaderIdentity",
+            "panelHeaderBadge",
+            "panelHeaderAction",
+            "paletteControls",
+            "searchBox",
+            "typeChips",
+            "typeChip",
+            "moreEntries",
+            "paletteFooter",
+            "compactHeader",
+            "compactDisplayToggle",
+            "compactTypeCount",
+            "compactPasses",
+            "panelBody",
+            "palettePanel",
+            "expandedBody",
+            "entryList",
+            "bookGroup",
+            "compactList",
+            "compactEntries",
+            "compactEntry",
+            "compactBookHeading",
+            "compactEntryName",
+            "compactTypeMarker",
+            "compactBookChip",
+            "compactBookMarker",
+            "compactEntryTokens",
+            "bookHeading",
+            "entry",
+            "entryActive",
+            "entryIdentity",
+            "entryTokens",
+            "unavailable",
+            "typeLabel",
+            "detail",
+            "detailTitle",
+            "detailActions",
+            "traceQuote",
+            "tracePreview",
+            "empty",
+            "compactFooter",
+            "compactTokenMetric",
+            "compactProgress",
+            "compactActions",
+            "paletteLayer",
+            "paletteDialog",
+            "paletteContent",
+            "resizeHandle",
+            "configHeader",
+            "configItem",
+            "resetRow",
+            "configItems"
+        ],
+        "nativeKey": "src/components/lore-indicator/LoreIndicator"
+    },
+    {
+        "id": "src/components/panels/memory-cortex/MemoryCortexEditors",
+        "label": "MemoryCortexEditors",
+        "area": "Memory cortex",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "subsection",
+            "subsectionHeader",
+            "subsectionTitle",
+            "countPill",
+            "subsectionBody",
+            "emptyMessage",
+            "row",
+            "rowMain",
+            "rowTitle",
+            "rowMeta",
+            "rowActions",
+            "rowBtn",
+            "rowBtnDanger",
+            "curatedBadge",
+            "statusPill",
+            "statusActive",
+            "statusInactive",
+            "statusFormer",
+            "statusDormant",
+            "statusBroken",
+            "toolbarRow",
+            "toolbarBtn",
+            "iconBtn",
+            "modalHeader",
+            "modalTitle",
+            "modalBody",
+            "modalFooter",
+            "field",
+            "fieldLabel",
+            "textInput",
+            "textArea",
+            "selectInput",
+            "fieldRow",
+            "chipContainer",
+            "chip",
+            "chipLearned",
+            "chipRemove",
+            "chipInput",
+            "factList",
+            "factRow",
+            "factText",
+            "factRemove",
+            "addFactRow",
+            "addBtn",
+            "primaryBtn",
+            "secondaryBtn",
+            "helperText",
+            "colorSwatch"
+        ],
+        "nativeKey": "src/components/panels/memory-cortex/MemoryCortexEditors"
+    },
+    {
+        "id": "src/components/panels/memory-cortex/MemoryCortexPanel",
+        "label": "MemoryCortexPanel",
+        "area": "Memory cortex",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "empty",
+            "loadingText",
+            "emptyList",
+            "tabBar",
+            "tab",
+            "tabActive",
+            "tabBadge",
+            "refreshBtn",
+            "noticeBanner",
+            "noticeIcon",
+            "noticeTitle",
+            "noticeText",
+            "searchBar",
+            "searchIcon",
+            "searchInput",
+            "typeFilter",
+            "selectionModeBtn",
+            "selectionModeBtnActive",
+            "selectionToolbar",
+            "selectionCount",
+            "selectionToolbarBtn",
+            "selectionToolbarDanger",
+            "entityList",
+            "entityCard",
+            "entityCardSelected",
+            "entityCardArchived",
+            "entityHeader",
+            "entitySelectCheckbox",
+            "entityBody",
+            "entityIcon",
+            "entityInfo",
+            "entityName",
+            "entityStatus",
+            "entityMeta",
+            "salienceBadge",
+            "chevron",
+            "entityDescription",
+            "entityField",
+            "fieldLabel",
+            "tagRow",
+            "miniTag",
+            "emotionTag",
+            "factList",
+            "entityActions",
+            "dangerBtn",
+            "editBtn",
+            "curatedBadge",
+            "relationActions",
+            "addRelationBtn",
+            "colorEditBtn",
+            "colorReattributeSelect",
+            "archivedSection",
+            "archivedLabel",
+            "colorGroup",
+            "colorGroupHeader",
+            "colorRow",
+            "colorRowMain",
+            "colorRowReassign",
+            "colorRowReassignLabel",
+            "colorSwatch",
+            "colorHex",
+            "colorUsage",
+            "colorConfidence",
+            "colorDeleteBtn",
+            "colorSample",
+            "statsScroll",
+            "chatCortexToggle",
+            "chatCortexToggleTitle",
+            "chatCortexToggleHint",
+            "toggleSwitch",
+            "toggleSwitchOn",
+            "toggleThumb",
+            "statsGrid",
+            "statCard",
+            "statCardClickable",
+            "statArrow",
+            "statTop",
+            "statIcon",
+            "statContent"
+        ],
+        "nativeKey": "src/components/panels/memory-cortex/MemoryCortexPanel"
+    },
+    {
+        "id": "src/components/modals/BulkImportProgressModal",
+        "label": "BulkImportProgressModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "header",
+            "title",
+            "body",
+            "progressSection",
+            "progressLabel",
+            "progressCount",
+            "progressTrack",
+            "progressFill",
+            "currentFile",
+            "resultsList",
+            "resultItem",
+            "resultIcon",
+            "resultSuccess",
+            "resultError",
+            "resultSkipped",
+            "resultName",
+            "resultDetail",
+            "summary",
+            "summaryItem",
+            "summaryDot",
+            "footer",
+            "dedupToggle"
+        ],
+        "nativeKey": "src/components/modals/BulkImportProgressModal"
+    },
+    {
+        "id": "src/components/modals/ChatPickerModal",
+        "label": "ChatPickerModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "closeBtnPos",
+            "header",
+            "title",
+            "count",
+            "headerActions",
+            "deleteAllBtn",
+            "list",
+            "card",
+            "cardActive",
+            "newChatCard",
+            "newChatIcon",
+            "cardLabel",
+            "freshChatCard",
+            "freshChatIcon",
+            "freshChatHeader",
+            "freshChatSubtitle",
+            "cardHeader",
+            "cardTitleRow",
+            "activeBadge",
+            "cardPreview",
+            "previewText",
+            "metaRow",
+            "metaItem",
+            "menuBtn",
+            "menuBtnActive",
+            "editInput"
+        ],
+        "nativeKey": "src/components/modals/ChatPickerModal"
+    },
+    {
+        "id": "src/components/modals/CommandPalette",
+        "label": "CommandPalette",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "overlay",
+            "palette",
+            "inputRow",
+            "searchIcon",
+            "input",
+            "clearBtn",
+            "divider",
+            "results",
+            "group",
+            "groupLabel",
+            "item",
+            "itemActive",
+            "itemIcon",
+            "itemIconRelevant",
+            "itemBody",
+            "itemLabel",
+            "itemDesc",
+            "match",
+            "empty",
+            "footer",
+            "footerHint",
+            "kbd"
+        ],
+        "nativeKey": "src/components/modals/CommandPalette"
+    },
+    {
+        "id": "src/components/modals/ConfigureDrawerTabsModal",
+        "label": "ConfigureDrawerTabsModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "title",
+            "subtitle",
+            "body",
+            "section",
+            "sectionHeader",
+            "sectionTitle",
+            "sectionDescription",
+            "list",
+            "row",
+            "rowLocked",
+            "rowHidden",
+            "rowDragging",
+            "dragHandle",
+            "badgeMuted",
+            "rowInfo",
+            "iconWrap",
+            "copy",
+            "rowTitleWrap",
+            "rowTitle",
+            "badge",
+            "rowDescription"
+        ],
+        "nativeKey": "src/components/modals/ConfigureDrawerTabsModal"
+    },
+    {
+        "id": "src/components/modals/CustomCSSDock",
+        "label": "CustomCSSDock",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panel",
+            "left",
+            "right",
+            "content",
+            "resizeHandle",
+            "resizeLeft",
+            "resizeRight"
+        ],
+        "nativeKey": "src/components/modals/CustomCSSDock"
+    },
+    {
+        "id": "src/components/modals/DryRunModal",
+        "label": "DryRunModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "headerTitle",
+            "closeBtn",
+            "body",
+            "messagesCollapsibleBody",
+            "messagesScroll",
+            "messageRow",
+            "messageRowClipBoundary",
+            "messageRowActive",
+            "messageRowHeader",
+            "roleBadge",
+            "messagePreview",
+            "messageIndex",
+            "messageClipBadge",
+            "messageReasoningBadge",
+            "messagePartBadge",
+            "messageMeta",
+            "messageInspector",
+            "messageInspectorHeader",
+            "messageInspectorTitleRow",
+            "mobileBackButton",
+            "messageInspectorMeta",
+            "messageInspectorContent",
+            "messageInspectorSection",
+            "messageInspectorLabel",
+            "messageInspectorText",
+            "inlineExpandButton",
+            "chunkPreview",
+            "collapsible",
+            "collapsibleHeader",
+            "collapsibleTitleText",
+            "clippedInlineLabel",
+            "chevron",
+            "chevronOpen",
+            "collapsibleBody",
+            "breakdownSummary",
+            "breakdownList",
+            "breakdownEntry",
+            "breakdownLabel",
+            "breakdownSource",
+            "breakdownRole",
+            "breakdownCacheHint",
+            "breakdownCacheHintCached",
+            "breakdownCacheHintMiss",
+            "breakdownTokens",
+            "parametersJson",
+            "prefillSection",
+            "prefillLabel",
+            "prefillContent",
+            "rawView",
+            "footer",
+            "footerTotal",
+            "footerMax",
+            "footerSpacer",
+            "messagesMobileInspectorVisible",
+            "findBar",
+            "findBarIcon",
+            "findInput",
+            "findCounter",
+            "findMark",
+            "findMarkCurrent"
+        ],
+        "nativeKey": "src/components/modals/DryRunModal"
+    },
+    {
+        "id": "src/components/modals/GlobalAddonsLibraryModal",
+        "label": "GlobalAddonsLibraryModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "headerLeft",
+            "headerIcon",
+            "title",
+            "body",
+            "empty",
+            "addonCard",
+            "addonTopRow",
+            "globalIndicator",
+            "addonLabelInput",
+            "addonActionBtn",
+            "addonDeleteBtn",
+            "addonContent",
+            "footer",
+            "addonCount"
+        ],
+        "nativeKey": "src/components/modals/GlobalAddonsLibraryModal"
+    },
+    {
+        "id": "src/components/modals/GreetingPickerModal",
+        "label": "GreetingPickerModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "closeBtnPos",
+            "header",
+            "title",
+            "count",
+            "list",
+            "card",
+            "cardActive",
+            "cardHeader",
+            "cardLabel",
+            "badgeRow",
+            "activeBadge",
+            "mediaBadge",
+            "cardPreview",
+            "bgPickerBtn",
+            "bgPickerThumb",
+            "bgGalleryPicker",
+            "bgGalleryGrid",
+            "bgGalleryItem",
+            "bgGalleryItemActive",
+            "bgGalleryClear",
+            "bgGalleryEmpty"
+        ],
+        "nativeKey": "src/components/modals/GreetingPickerModal"
+    },
+    {
+        "id": "src/components/modals/GroupChatCreatorModal",
+        "label": "GroupChatCreatorModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "title",
+            "stepIndicator",
+            "body",
+            "selectedPills",
+            "pill",
+            "pillAvatar",
+            "pillAvatarFallback",
+            "pillRemove",
+            "searchBar",
+            "searchInput",
+            "searchIcon",
+            "searchClear",
+            "charGrid",
+            "charItem",
+            "charItemSelected",
+            "charAvatar",
+            "charAvatarFallback",
+            "charName",
+            "checkMark",
+            "greetingList",
+            "greetingCard",
+            "greetingCardActive",
+            "greetingCharName",
+            "greetingLabel",
+            "greetingPreview",
+            "settingsSection",
+            "fieldGroup",
+            "fieldLabel",
+            "fieldInput",
+            "talkSlider",
+            "talkAvatar",
+            "talkAvatarFallback",
+            "talkName",
+            "talkRange",
+            "talkValue",
+            "footer",
+            "emptyState"
+        ],
+        "nativeKey": "src/components/modals/GroupChatCreatorModal"
+    },
+    {
+        "id": "src/components/modals/HiddenFromHomeModal",
+        "label": "HiddenFromHomeModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "titleRow",
+            "tabs",
+            "tab",
+            "tabActive",
+            "toolbar",
+            "search",
+            "list",
+            "row",
+            "rowIcon",
+            "rowText",
+            "empty",
+            "loading",
+            "footer"
+        ],
+        "nativeKey": "src/components/modals/HiddenFromHomeModal"
+    },
+    {
+        "id": "src/components/modals/ImageCaptionModal",
+        "label": "ImageCaptionModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "title",
+            "subtitle",
+            "body",
+            "fieldGroup",
+            "label",
+            "dropZone",
+            "dropZoneActive",
+            "dropZoneHint",
+            "hiddenInput",
+            "preview",
+            "clearBtn",
+            "textarea",
+            "outputWrap",
+            "outputArea",
+            "copyBtn",
+            "actions",
+            "btn",
+            "btnCancel",
+            "btnSubmit",
+            "error",
+            "avatarRow",
+            "avatarBtn",
+            "presetRow",
+            "presetSelect"
+        ],
+        "nativeKey": "src/components/modals/ImageCaptionModal"
+    },
+    {
+        "id": "src/components/modals/ImagePromptPreviewModal",
+        "label": "ImagePromptPreviewModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "title",
+            "subtitle",
+            "body",
+            "fieldGroup",
+            "label",
+            "textarea",
+            "textareaShort",
+            "actions",
+            "btn",
+            "btnCancel",
+            "btnSecondary",
+            "btnSubmit",
+            "error"
+        ],
+        "nativeKey": "src/components/modals/ImagePromptPreviewModal"
+    },
+    {
+        "id": "src/components/modals/ImportWorldBookModal",
+        "label": "ImportWorldBookModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "header",
+            "title",
+            "tabs",
+            "tab",
+            "tabActive",
+            "body",
+            "dropZone",
+            "dropZoneActive",
+            "dropZoneText",
+            "dropZoneSub",
+            "fieldGroup",
+            "fieldLabel",
+            "fieldInput",
+            "error",
+            "status",
+            "footer"
+        ],
+        "nativeKey": "src/components/modals/ImportWorldBookModal"
+    },
+    {
+        "id": "src/components/modals/LoomSelector",
+        "label": "LoomSelector",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "headerIcon",
+            "headerText",
+            "title",
+            "subtitle",
+            "clearBtn",
+            "controls",
+            "searchBox",
+            "searchInput",
+            "searchClear",
+            "controlBtns",
+            "controlBtn",
+            "scrollArea",
+            "empty",
+            "packSection",
+            "packHeader",
+            "packChevron",
+            "packChevronCollapsed",
+            "packName",
+            "packCount",
+            "itemsList",
+            "item",
+            "itemSelected",
+            "itemContent",
+            "itemName",
+            "itemAuthor",
+            "toggle",
+            "toggleOn",
+            "toggleThumb",
+            "footer",
+            "footerCount",
+            "doneBtn"
+        ],
+        "nativeKey": "src/components/modals/LoomSelector"
+    },
+    {
+        "id": "src/components/modals/LorebookImportModal",
+        "label": "LorebookImportModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "header",
+            "headerLeft",
+            "title",
+            "badge",
+            "body",
+            "selectAll",
+            "lorebookList",
+            "lorebookItem",
+            "lorebookInfo",
+            "lorebookName",
+            "lorebookMeta",
+            "entryBadge",
+            "footer"
+        ],
+        "nativeKey": "src/components/modals/LorebookImportModal"
+    },
+    {
+        "id": "src/components/modals/LumiaSelector",
+        "label": "LumiaSelector",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "headerIcon",
+            "headerText",
+            "title",
+            "subtitle",
+            "clearBtn",
+            "controls",
+            "searchBox",
+            "searchInput",
+            "searchClear",
+            "controlBtns",
+            "controlBtn",
+            "scrollArea",
+            "empty",
+            "packSection",
+            "packHeader",
+            "packChevron",
+            "packChevronCollapsed",
+            "packName",
+            "packCount",
+            "cardGrid",
+            "card",
+            "cardSelected",
+            "cardImage",
+            "cardImg",
+            "cardPlaceholder",
+            "cardCheck",
+            "cardCheckVisible",
+            "cardName",
+            "footer",
+            "footerCount",
+            "doneBtn"
+        ],
+        "nativeKey": "src/components/modals/LumiaSelector"
+    },
+    {
+        "id": "src/components/modals/ManageChatsModal",
+        "label": "ManageChatsModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "headerLeft",
+            "title",
+            "subtitle",
+            "toolbar",
+            "searchWrap",
+            "searchInput",
+            "searchIcon",
+            "searchClear",
+            "bulkModeBtn",
+            "bulkModeBtnActive",
+            "bulkBar",
+            "bulkSummary",
+            "bulkActions",
+            "bulkSelectAll",
+            "bulkCount",
+            "bulkActionBtn",
+            "bulkDeleteBtn",
+            "sortBtn",
+            "body",
+            "card",
+            "cardActive",
+            "cardSelectable",
+            "cardSelected",
+            "selectionBtn",
+            "cardIcon",
+            "cardIconActive",
+            "cardInfo",
+            "cardName",
+            "cardPreview",
+            "cardMeta",
+            "cardMetaItem",
+            "activeBadge",
+            "cardActions",
+            "actionBtn",
+            "actionBtnDanger",
+            "actionBtnPrimary",
+            "editInput",
+            "empty",
+            "loading",
+            "newChatBtn"
+        ],
+        "nativeKey": "src/components/modals/ManageChatsModal"
+    },
+    {
+        "id": "src/components/modals/MemoryCortexDiagnosticsModal",
+        "label": "MemoryCortexDiagnosticsModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "shell",
+            "header",
+            "titleWrap",
+            "eyebrow",
+            "title",
+            "subtitle",
+            "headerActions",
+            "actions",
+            "body",
+            "actionBtn",
+            "actionBtnDone",
+            "actionBtnError",
+            "overview",
+            "overviewPass",
+            "overviewWarn",
+            "overviewFail",
+            "overviewInfo",
+            "overviewHeader",
+            "overviewTitleWrap",
+            "overviewTitle",
+            "overviewMeta",
+            "summaryGrid",
+            "summaryItem",
+            "summaryValue",
+            "summaryLabel",
+            "section",
+            "sectionHeader",
+            "checkList",
+            "checkListWrap",
+            "checkRow",
+            "checkTop",
+            "checkLabel",
+            "checkMessage",
+            "statusBadge",
+            "statusPass",
+            "statusWarn",
+            "statusFail",
+            "statusInfo",
+            "detailGrid",
+            "metaList",
+            "selectedChatWrap",
+            "metaRow",
+            "loadingRow",
+            "emptyRow",
+            "errorState",
+            "errorCopy",
+            "errorTitle",
+            "errorDetails",
+            "spinning"
+        ],
+        "nativeKey": "src/components/modals/MemoryCortexDiagnosticsModal"
+    },
+    {
+        "id": "src/components/modals/PermissionRequestModal",
+        "label": "PermissionRequestModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "content",
+            "iconWrap",
+            "title",
+            "extensionName",
+            "description",
+            "reason",
+            "permissionList",
+            "permPill",
+            "actions",
+            "denyBtn",
+            "grantBtn"
+        ],
+        "nativeKey": "src/components/modals/PermissionRequestModal"
+    },
+    {
+        "id": "src/components/modals/PersonaAddonsModal",
+        "label": "PersonaAddonsModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "headerLeft",
+            "headerIcon",
+            "title",
+            "body",
+            "empty",
+            "sectionHeader",
+            "sectionIconPersona",
+            "sectionIconGlobal",
+            "manageLibraryBtn",
+            "emptySection",
+            "sectionHint",
+            "sectionDivider",
+            "sectionAddRow",
+            "sectionAddBtn",
+            "addonCard",
+            "addonCardGlobal",
+            "addonCardDisabled",
+            "addonTopRow",
+            "addonAvatarControls",
+            "addonAvatarThumb",
+            "avatarFileInput",
+            "addonAvatarBtn",
+            "addonAvatarRemoveBtn",
+            "addonDragHandle",
+            "addonToggle",
+            "addonToggleActive",
+            "addonToggleActiveGlobal",
+            "globalIndicator",
+            "globalAddonLabel",
+            "globalAddonPreview",
+            "detachBtn",
+            "addonLabelInput",
+            "addonDeleteBtn",
+            "addonContent",
+            "outletRow",
+            "outletLabel",
+            "outletInput",
+            "outletHint",
+            "attachWrapper",
+            "attachPopover",
+            "attachPopoverItem",
+            "attachPopoverIcon",
+            "footer",
+            "addonCount"
+        ],
+        "nativeKey": "src/components/modals/PersonaAddonsModal"
+    },
+    {
+        "id": "src/components/modals/PromptItemizerModal",
+        "label": "PromptItemizerModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "title",
+            "headerBadge",
+            "body",
+            "stackedBar",
+            "stackedBarSegment",
+            "legend",
+            "legendItem",
+            "legendDot",
+            "legendTokens",
+            "cacheSummary",
+            "cacheSummaryMetric",
+            "accordion",
+            "accordionHeader",
+            "accordionDot",
+            "accordionTokens",
+            "accordionChevron",
+            "accordionChevronOpen",
+            "accordionBody",
+            "entryList",
+            "entryRow",
+            "entryRowActive",
+            "entryMetrics",
+            "tokenName",
+            "tokenColor",
+            "tokenRole",
+            "roleSystem",
+            "roleUser",
+            "roleAssistant",
+            "tokenCount",
+            "cacheHint",
+            "cacheHintCached",
+            "cacheHintMiss",
+            "tokenPct",
+            "footer",
+            "footerTotal",
+            "footerMax",
+            "footerSpacer",
+            "footerBtn",
+            "sidecarDivider",
+            "rawCaveat",
+            "entryInspector",
+            "entryInspectorHeader",
+            "entryInspectorTitleWrap",
+            "entryInspectorEyebrow",
+            "entryInspectorTitleRow",
+            "entryInspectorTitle",
+            "entryInspectorContent",
+            "entryInspectorEmpty",
+            "messageInspectorList",
+            "messageInspectorNotice",
+            "messageCard",
+            "messageCardHeader",
+            "messageCardIndex",
+            "messageCardMeta",
+            "messageCardPreview",
+            "messageCardContent",
+            "rawView",
+            "loading",
+            "empty",
+            "findBar",
+            "findBarIcon",
+            "findInput",
+            "findCount",
+            "findMark",
+            "findMarkCurrent"
+        ],
+        "nativeKey": "src/components/modals/PromptItemizerModal"
+    },
+    {
+        "id": "src/components/modals/RegenFeedbackModal",
+        "label": "RegenFeedbackModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "title",
+            "subtitle",
+            "body",
+            "textarea",
+            "actions",
+            "btn",
+            "btnCancel",
+            "btnSkip",
+            "btnSubmit"
+        ],
+        "nativeKey": "src/components/modals/RegenFeedbackModal"
+    },
+    {
+        "id": "src/components/modals/RegexEditorModal",
+        "label": "RegexEditorModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "title",
+            "body",
+            "section",
+            "targetCols",
+            "targetCol",
+            "identityRow",
+            "field",
+            "fieldGrow",
+            "monoText",
+            "sectionLabel",
+            "sectionToggle",
+            "fieldLabel",
+            "fieldHint",
+            "fieldInput",
+            "monoInput",
+            "descTextarea",
+            "findHeader",
+            "flagPills",
+            "flagPill",
+            "flagPillActive",
+            "tokenBar",
+            "tokenChip",
+            "tokenChipHtml",
+            "tokenDivider",
+            "actionSectionHeader",
+            "actionCardHeader",
+            "actionTitleRow",
+            "actionCount",
+            "addActionButton",
+            "removeActionButton",
+            "actionEffectButtons",
+            "actionList",
+            "actionHint",
+            "actionEmpty",
+            "actionCard",
+            "actionType",
+            "segmented",
+            "segmentedBtn",
+            "segmentedBtnActive",
+            "placementGrid",
+            "placementChip",
+            "placementChipActive",
+            "depthRow",
+            "depthSep",
+            "depthInput",
+            "advancedContent",
+            "advancedRow",
+            "inlineToggle",
+            "presetGrid",
+            "presetCard",
+            "presetName",
+            "presetDesc",
+            "testSection",
+            "testInput",
+            "testResultArea",
+            "testOutput",
+            "testMeta",
+            "matchBadge",
+            "testError",
+            "testHint",
+            "footer"
+        ],
+        "nativeKey": "src/components/modals/RegexEditorModal"
+    },
+    {
+        "id": "src/components/modals/RegexImportModal",
+        "label": "RegexImportModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "header",
+            "title",
+            "body",
+            "tabs",
+            "tab",
+            "tabActive",
+            "dropZone",
+            "dropZoneActive",
+            "pasteArea",
+            "result",
+            "resultError",
+            "footer"
+        ],
+        "nativeKey": "src/components/modals/RegexImportModal"
+    },
+    {
+        "id": "src/components/modals/SettingsModal",
+        "label": "SettingsModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "overlay",
+            "modal",
+            "header",
+            "title",
+            "body",
+            "sidebar",
+            "navBtn",
+            "navBtnActive",
+            "content",
+            "errorText",
+            "successText",
+            "embeddingChecklist",
+            "embeddingChecklistHeader",
+            "embeddingChecklistHeaderCopy",
+            "embeddingChecklistEyebrow",
+            "embeddingChecklistTitle",
+            "embeddingChecklistSubtitle",
+            "embeddingChecklistScore",
+            "embeddingChecklistScoreValue",
+            "embeddingChecklistScoreLabel",
+            "embeddingChecklistProgress",
+            "embeddingChecklistProgressFill",
+            "embeddingChecklistItems",
+            "embeddingChecklistItem",
+            "embeddingChecklistItemComplete",
+            "embeddingChecklistStep",
+            "embeddingChecklistItemBody",
+            "embeddingChecklistItemTop",
+            "embeddingChecklistItemLabel",
+            "embeddingChecklistItemDescription",
+            "embeddingChecklistDone",
+            "embeddingChecklistTodo",
+            "settingsCardHeader",
+            "settingsGridTwo",
+            "poolSummaryGrid",
+            "poolSummaryCard",
+            "poolList",
+            "poolRow",
+            "poolRowTop",
+            "poolIdentifier",
+            "poolNumbers",
+            "poolBar",
+            "poolBarFill",
+            "adminPoolSection",
+            "settingsSection",
+            "extensionMount",
+            "extensionMountHost",
+            "extensionMountHostHidden",
+            "sectionTitle",
+            "sectionFlash",
+            "danger",
+            "field",
+            "fieldLabel",
+            "select",
+            "placeholder",
+            "displayModeGrid",
+            "displayModeCard",
+            "displayModeCardActive",
+            "displayModeLabel",
+            "displayModeLabelActive",
+            "previewLine",
+            "previewMinimal",
+            "previewMinimalMsg",
+            "previewMinimalMsgUser",
+            "previewAccentLeft",
+            "previewAccentRight",
+            "previewMinimalAvatar",
+            "previewMinimalBody",
+            "previewBubble",
+            "previewBubbleMsg",
+            "previewBubbleFade",
+            "previewBubbleFadeUser",
+            "previewBubbleHeader",
+            "previewBubbleAvatar",
+            "previewBubbleMeta",
+            "previewBubbleName",
+            "previewBubblePill",
+            "previewBubbleContent",
+            "previewBubbleMsgUser",
+            "segmented"
+        ],
+        "nativeKey": "src/components/modals/SettingsModal"
+    },
+    {
+        "id": "src/components/modals/SettingsSearch",
+        "label": "SettingsSearch",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "inputRow",
+            "searchIcon",
+            "input",
+            "clearBtn",
+            "dropdown",
+            "group",
+            "groupLabel",
+            "item",
+            "itemActive",
+            "itemIcon",
+            "itemTitle",
+            "match",
+            "empty"
+        ],
+        "nativeKey": "src/components/modals/SettingsSearch"
+    },
+    {
+        "id": "src/components/modals/WorldBookEditorModal",
+        "label": "WorldBookEditorModal",
+        "area": "Modals",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "fullscreen",
+            "header",
+            "title",
+            "headerActions",
+            "fullscreenBtn",
+            "body",
+            "sidebar",
+            "sidebarHeader",
+            "sidebarSearchRow",
+            "searchInput",
+            "searchClear",
+            "sidebarControlRow",
+            "sidebarSelect",
+            "sidebarPageSizeSelect",
+            "sidebarIconBtn",
+            "sidebarIconBtnActive",
+            "newBookBtn",
+            "bookList",
+            "bookItem",
+            "bookItemActive",
+            "bookItemSelected",
+            "bookName",
+            "bookCheckbox",
+            "bookActions",
+            "bookExportBtn",
+            "bookDeleteBtn",
+            "bookPagination",
+            "bulkBar",
+            "bulkSelectionRow",
+            "bulkToggle",
+            "bulkCount",
+            "bulkActions",
+            "bulkActionBtn",
+            "bulkDeleteBtn",
+            "bulkFolderDropdown",
+            "sourceBadge",
+            "content",
+            "contentScroll",
+            "contentFooter",
+            "emptyState",
+            "bookFields",
+            "fieldRow",
+            "fieldLabel",
+            "fieldInput",
+            "entryListHeader",
+            "entryListTitle",
+            "entrySortRow",
+            "entrySortSelect",
+            "entrySortDirBtn",
+            "entrySearch",
+            "entrySearchIcon",
+            "entrySearchInput",
+            "newEntryBtn",
+            "secondaryBtn",
+            "primaryActionBtn",
+            "bulkDialogBody",
+            "bulkDialogTitle",
+            "bulkDialogText",
+            "exportFormatOptions",
+            "exportFormatOption",
+            "exportFormatOptionActive",
+            "bulkDialogActions",
+            "vectorSummary",
+            "vectorSummaryTitle",
+            "vectorSummaryGrid",
+            "bulkSemanticToggle",
+            "bulkSemanticCheckbox",
+            "bulkSemanticBody",
+            "bulkSemanticTitle",
+            "bulkSemanticMeta",
+            "bulkSemanticHint",
+            "bookActionRow",
+            "vectorStatusText",
+            "entryList",
+            "entryRow",
+            "entryRowActive",
+            "entryRowDisabled",
+            "entryTop",
+            "entryComment"
+        ],
+        "nativeKey": "src/components/modals/WorldBookEditorModal"
+    },
+    {
+        "id": "src/components/panels/pack-browser/PackBrowser",
+        "label": "PackBrowser",
+        "area": "Pack browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panel",
+            "toolbar",
+            "searchBar",
+            "searchIcon",
+            "searchInput",
+            "iconBtn",
+            "filterTabs",
+            "filterTab",
+            "filterTabActive",
+            "grid",
+            "card",
+            "cardCover",
+            "cardCoverImg",
+            "cardCoverFallback",
+            "cardBody",
+            "cardName",
+            "cardAuthor",
+            "cardBadges",
+            "detail",
+            "detailHeader",
+            "backBtn",
+            "detailMeta",
+            "detailName",
+            "detailAuthor",
+            "detailActions",
+            "detailBody",
+            "section",
+            "sectionHeader",
+            "sectionTitle",
+            "sectionCount",
+            "sectionAddBtn",
+            "sectionContent",
+            "lumiaCard",
+            "lumiaAvatar",
+            "lumiaAvatarFallback",
+            "lumiaInfo",
+            "lumiaName",
+            "lumiaAuthor",
+            "genderBadge",
+            "loomRow",
+            "loomName",
+            "loomPreview",
+            "categoryBadge",
+            "itemActions",
+            "itemActionBtn",
+            "itemActionBtnDanger",
+            "itemActionBtnActive",
+            "lumiaEntry",
+            "lumiaPreviewPanel",
+            "lumiaPreviewTabs",
+            "lumiaPreviewTab",
+            "lumiaPreviewTabActive",
+            "lumiaPreviewContent",
+            "lumiaPreviewText",
+            "emptyState",
+            "overlay",
+            "modal",
+            "modalLarge",
+            "modalHeader",
+            "modalTitle",
+            "modalCloseBtn",
+            "modalBody",
+            "modalFooter",
+            "fieldGroup",
+            "fieldLabel",
+            "fieldInput",
+            "fieldSelect",
+            "fieldTextarea",
+            "charCount",
+            "btnCancel",
+            "btnSave",
+            "tabs",
+            "tab",
+            "tabActive",
+            "tabContent",
+            "importError",
+            "importStatus",
+            "importStatusWarn",
+            "lucidHeader",
+            "lucidHeaderIcon"
+        ],
+        "nativeKey": "src/components/panels/pack-browser/PackBrowser"
+    },
+    {
+        "id": "src/components/panels/BranchTreePanel",
+        "label": "BranchTreePanel",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panel",
+            "center",
+            "centerTitle",
+            "centerHint",
+            "root",
+            "treeItem",
+            "children",
+            "node",
+            "nodeCurrent",
+            "nodeIcon",
+            "nodeBody",
+            "nodeName",
+            "nodeMeta",
+            "branchPreview",
+            "nodeCurrentBadge",
+            "childrenFlush",
+            "hint"
+        ],
+        "nativeKey": "src/components/panels/BranchTreePanel"
+    },
+    {
+        "id": "src/components/panels/CharacterBrowser",
+        "label": "CharacterBrowser",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "browser",
+            "emptyState",
+            "folderGroups",
+            "folderGroup",
+            "folderGroupCollapsed",
+            "folderHeaderRow",
+            "folderHeader",
+            "folderChevron",
+            "folderChevronOpen",
+            "folderName",
+            "folderCount",
+            "folderActionBtn",
+            "folderDeleteBtn",
+            "folderRenameRow",
+            "folderRenameInput",
+            "skeletonGrid",
+            "skeletonSingle",
+            "skeletonList",
+            "skeletonShimmer",
+            "skeletonCard",
+            "skeletonCardImage",
+            "skeletonCardInfo",
+            "skeletonCardName",
+            "skeletonCardCreator",
+            "skeletonCardTags",
+            "skeletonCardTag",
+            "skeletonRow",
+            "skeletonRowAvatar",
+            "skeletonRowText",
+            "skeletonRowTitle",
+            "skeletonRowSub",
+            "importError",
+            "importProgress",
+            "importProgressSpinner",
+            "importProgressInfo",
+            "importProgressLabel",
+            "importProgressFilename",
+            "importProgressStep",
+            "importProgressBar",
+            "importProgressFill",
+            "paginationBar"
+        ],
+        "nativeKey": "src/components/panels/CharacterBrowser"
+    },
+    {
+        "id": "src/components/panels/CharacterProfile",
+        "label": "CharacterProfile",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "profileShell",
+            "viewTabs",
+            "viewTab",
+            "viewTabActive",
+            "profile",
+            "creatorNotesView",
+            "creatorNotesHeader",
+            "creatorNotesEyebrow",
+            "creatorNotesTitle",
+            "creatorNotesCreator",
+            "creatorNotesHelper",
+            "creatorNotesSurface",
+            "hero",
+            "heroImage",
+            "heroMeta",
+            "avatarFallback",
+            "name",
+            "creator",
+            "editBtn",
+            "tags",
+            "tag",
+            "tagMore",
+            "fieldContent",
+            "placeholder",
+            "empty",
+            "loading",
+            "groupProfile",
+            "groupMosaic",
+            "groupMosaic2",
+            "groupMosaic3",
+            "groupMosaicCell",
+            "groupMosaic4",
+            "groupMosaicFallback",
+            "groupInfo",
+            "groupName",
+            "groupMemberCount",
+            "groupSettingsBtn",
+            "groupDivider",
+            "groupSectionLabel",
+            "groupMembers",
+            "memberCard",
+            "memberCardExpanded",
+            "memberHeader",
+            "memberAvatar",
+            "memberAvatarFallback",
+            "memberInfo",
+            "memberName",
+            "memberCreator",
+            "memberChevron",
+            "memberChevronOpen",
+            "memberExpanded",
+            "memberTags",
+            "memberTag",
+            "memberField",
+            "memberFieldHeader",
+            "memberFieldContent",
+            "memberFieldToggle",
+            "memberEditBtn"
+        ],
+        "nativeKey": "src/components/panels/CharacterProfile"
+    },
+    {
+        "id": "src/components/panels/ConnectionManager",
+        "label": "ConnectionManager",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "manager",
+            "loading",
+            "empty",
+            "createActions",
+            "createBtn",
+            "form",
+            "formActions",
+            "fileUploadRow",
+            "fileUploadName",
+            "byopRow",
+            "byopStatus",
+            "bindingCard",
+            "bindingCardHeader",
+            "bindingCardTitle",
+            "bindingCardSummary",
+            "bindingCardHint",
+            "toggleStack",
+            "list",
+            "tsx",
+            "itemDragging",
+            "itemActive",
+            "itemDraggingOverlay",
+            "item"
+        ],
+        "nativeKey": "src/components/panels/ConnectionManager"
+    },
+    {
+        "id": "src/components/panels/CouncilFeedback",
+        "label": "CouncilFeedback",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "statusBar",
+            "statusRunning",
+            "statusComplete",
+            "duration",
+            "statusIdle",
+            "memberSection",
+            "memberHeader",
+            "memberName",
+            "memberResultCount",
+            "resultCard",
+            "resultHeader",
+            "resultIcon",
+            "successIcon",
+            "failIcon",
+            "resultToolName",
+            "resultDuration",
+            "resultContent",
+            "resultText",
+            "copyBtn",
+            "resultError",
+            "emptyState"
+        ],
+        "nativeKey": "src/components/panels/CouncilFeedback"
+    },
+    {
+        "id": "src/components/panels/CouncilManager",
+        "label": "CouncilManager",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "loading",
+            "profileBar",
+            "profileHeader",
+            "profileLabel",
+            "profileBtnGroup",
+            "profileBtn",
+            "profileBtnActive",
+            "profileBtnDismiss",
+            "profileSourceBadge",
+            "masterToggle",
+            "toggleActive",
+            "toggleInactive",
+            "modeToggle",
+            "modeBtn",
+            "modeBtnActive",
+            "inlineHint",
+            "inlineWarning",
+            "fieldRow",
+            "checkboxGroup",
+            "memberCard",
+            "memberBody",
+            "memberHeader",
+            "memberAvatar",
+            "memberAvatarImg",
+            "memberInfo",
+            "memberName",
+            "memberStats",
+            "statBadge",
+            "memberActions",
+            "actionBtn",
+            "actionBtnDanger",
+            "chevron",
+            "inlineField",
+            "inlineLabel",
+            "inlineValue",
+            "chanceRow",
+            "chanceHint",
+            "memberDivider",
+            "toolsSection",
+            "toolsSectionHeader",
+            "assignToolsBtn",
+            "toolPills",
+            "toolPill",
+            "toolPillExtension",
+            "toolPillRemove",
+            "toolHistoryControls",
+            "toolHistoryRow",
+            "toolHistoryInfo",
+            "toolHistoryName",
+            "toolHistoryHint",
+            "noTools",
+            "toolPickerInline",
+            "memberHelperText",
+            "memberForm",
+            "formActions",
+            "btnPrimary",
+            "btnSecondary",
+            "addButtons",
+            "addBtn",
+            "addDropdown",
+            "addDropdownHeader",
+            "addSearchWrapper",
+            "addSearchInput",
+            "addSearchClear",
+            "addDropdownClose",
+            "addDropdownList",
+            "addDropdownEmpty",
+            "addDropdownItem",
+            "addDropdownAvatar",
+            "addDropdownInfo",
+            "addDropdownName",
+            "addDropdownPack",
+            "addDropdownPlus",
+            "toolSelector",
+            "toolCategory",
+            "toolCategoryLabel",
+            "toolCategoryLabelExt",
+            "toolExtBadge",
+            "toolCheckbox"
+        ],
+        "nativeKey": "src/components/panels/CouncilManager"
+    },
+    {
+        "id": "src/components/panels/databank/DatabankPanel",
+        "label": "DatabankPanel",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panel",
+            "attachSection",
+            "attachHeader",
+            "attachIcon",
+            "attachLabel",
+            "attachAddBtn",
+            "chevronOpen",
+            "attachPicker",
+            "attachPickerEmpty",
+            "attachPickerItem",
+            "attachPickerItemActive",
+            "attachCheck",
+            "attachPickerName",
+            "attachPickerScope",
+            "attachPills",
+            "attachPill",
+            "attachPillRemove",
+            "attachPillDisabled",
+            "attachPillState",
+            "attachHint",
+            "scopeToggle",
+            "scopeBtn",
+            "scopeBtnActive",
+            "scopeCharPicker",
+            "settingsHeaderRow",
+            "settingsTitle",
+            "settingsHint",
+            "settingsStatus",
+            "settingsGrid",
+            "topBar",
+            "bankSelect",
+            "actionBtn",
+            "deleteBtn",
+            "fusePickerHint",
+            "fuseStatus",
+            "editorHeader",
+            "editorTitleGroup",
+            "editorTitle",
+            "editorSubtitle",
+            "editorBody",
+            "editorTextarea",
+            "bankDetails",
+            "fieldGroup",
+            "fieldLabel",
+            "fieldInput",
+            "scopeBadge",
+            "enableToggle",
+            "uploadZone",
+            "uploadZoneDragging",
+            "toolbarRow",
+            "secondaryBtn",
+            "toolbarHint",
+            "spin",
+            "uploadIcon",
+            "uploadHint",
+            "scrapeRow",
+            "docSearch",
+            "docSearchIcon",
+            "docSearchInput",
+            "docList",
+            "docRow",
+            "docIcon",
+            "docInfo",
+            "docName",
+            "docNameInput",
+            "docMeta",
+            "docActions",
+            "statusBadge",
+            "statusPending",
+            "statusProcessing",
+            "statusReady",
+            "statusError",
+            "emptyState",
+            "emptyIcon",
+            "emptyText",
+            "emptyHint",
+            "smallDeleteBtn",
+            "smallActionBtn"
+        ],
+        "nativeKey": "src/components/panels/databank/DatabankPanel"
+    },
+    {
+        "id": "src/components/panels/ImageGenExportModal",
+        "label": "ImageGenExportModal",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "header",
+            "title",
+            "body",
+            "section",
+            "presetHeader",
+            "sectionTitle",
+            "bulkActions",
+            "empty",
+            "group",
+            "groupHeader",
+            "groupList",
+            "presetRow",
+            "presetCheckbox",
+            "modeBadge",
+            "footer",
+            "count",
+            "footerButtons"
+        ],
+        "nativeKey": "src/components/panels/ImageGenExportModal"
+    },
+    {
+        "id": "src/components/panels/ImageGenPanel",
+        "label": "ImageGenPanel",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panel",
+            "toggle",
+            "slider",
+            "textarea",
+            "promptTextarea",
+            "editorTargetBanner",
+            "preview",
+            "previewImg",
+            "sceneInfo",
+            "actions",
+            "inlineRow",
+            "inlineGrow",
+            "loraRows",
+            "loraRow",
+            "loraRowDragging",
+            "loraRowHeader",
+            "loraRowHeading",
+            "loraRowTitle",
+            "loraDragHandle",
+            "loraDragHandleDisabled",
+            "loraFilenameControls",
+            "loraWeightGrid",
+            "error",
+            "loraDiscoveryStatus",
+            "loraReorderAnnouncement",
+            "workflowCard",
+            "workflowInfo",
+            "workflowTitle",
+            "workflowMeta",
+            "workflowActions",
+            "workflowCustomFields",
+            "refGrid",
+            "refTile",
+            "refRemove"
+        ],
+        "nativeKey": "src/components/panels/ImageGenPanel"
+    },
+    {
+        "id": "src/components/panels/ImageGenProgressBar",
+        "label": "ImageGenProgressBar",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "wrapper",
+            "headerRow",
+            "label",
+            "stepCount",
+            "track",
+            "fill",
+            "fillIndeterminate",
+            "preview"
+        ],
+        "nativeKey": "src/components/panels/ImageGenProgressBar"
+    },
+    {
+        "id": "src/components/panels/LoadoutSelector",
+        "label": "LoadoutSelector",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "row",
+            "selectorWrap",
+            "selector",
+            "selectorLabel",
+            "chevron",
+            "chevronOpen",
+            "dropdown",
+            "dropdownItem",
+            "dropdownItemActive",
+            "dropdownEmpty",
+            "saveBtn",
+            "saveRow",
+            "saveInput",
+            "saveConfirm",
+            "saveCancel",
+            "menuWrap",
+            "menuBtn",
+            "menu",
+            "menuItem",
+            "menuItemDanger",
+            "renameRow",
+            "renameInput",
+            "renameBtn"
+        ],
+        "nativeKey": "src/components/panels/LoadoutSelector"
+    },
+    {
+        "id": "src/components/panels/LoomBuilder",
+        "label": "LoomBuilder",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "layout",
+            "layoutCompact",
+            "header",
+            "title",
+            "toolbar",
+            "presetSelector",
+            "presetSelect",
+            "toolbarActions",
+            "extensionToolbar",
+            "extensionTabBar",
+            "extensionTab",
+            "extensionTabActive",
+            "extensionTabContent",
+            "searchToggle",
+            "searchToggleActive",
+            "categoryToggle",
+            "toolbarButtonLabel",
+            "searchBarRow",
+            "searchField",
+            "searchIcon",
+            "searchInput",
+            "searchClear",
+            "searchMeta",
+            "presetCoverHeader",
+            "presetCoverImage",
+            "presetCoverContent",
+            "presetCoverBadgeRow",
+            "presetCoverBadge",
+            "presetCoverTitle",
+            "presetCoverDescription",
+            "extensionTabRow",
+            "extensionGuideButton",
+            "scrollArea",
+            "blockList",
+            "form",
+            "formGroup",
+            "label",
+            "input",
+            "textarea",
+            "select",
+            "item",
+            "itemDragging",
+            "rootDropSlotWrap",
+            "rootDropSlot",
+            "rootDropSlotActive",
+            "rootDropSlotOver",
+            "rootDropSlotAppendArmed",
+            "itemIndented",
+            "itemDisabled",
+            "marker",
+            "categoryHeader",
+            "categoryMeta",
+            "categoryName",
+            "categoryNameText",
+            "categoryCount",
+            "categoryMetaBadges",
+            "badge",
+            "badgeSystem",
+            "badgeUser",
+            "badgeAssistant",
+            "badgeUserAppend",
+            "badgeAssistantAppend",
+            "badgeMarker",
+            "triggerBadge",
+            "groupBadge",
+            "dragHandle",
+            "dragHandleDisabled",
+            "btn",
+            "btnPrimary",
+            "btnDanger",
+            "btnSmall",
+            "blockNameIconSealed",
+            "sealedBlockPanel",
+            "sealedBlockPanelActive",
+            "sealedBlockReveal",
+            "sealedBlockRevealCopy",
+            "sealedBlockChevron",
+            "sealedBlockChevronOpen",
+            "sealedBlockBody",
+            "sealedBlockText"
+        ],
+        "nativeKey": "src/components/panels/LoomBuilder"
+    },
+    {
+        "id": "src/components/panels/OOCPanel",
+        "label": "OOCPanel",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panel"
+        ],
+        "nativeKey": "src/components/panels/OOCPanel"
+    },
+    {
+        "id": "src/components/panels/PersonaManager",
+        "label": "PersonaManager",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "manager",
+            "loading",
+            "folderGroup",
+            "folderHeaderRow",
+            "recentHeader",
+            "folderHeader",
+            "folderChevron",
+            "folderChevronOpen",
+            "folderName",
+            "folderCount",
+            "folderActionBtn",
+            "folderDeleteBtn",
+            "folderRenameRow",
+            "folderRenameInput"
+        ],
+        "nativeKey": "src/components/panels/PersonaManager"
+    },
+    {
+        "id": "src/components/panels/PresetManager",
+        "label": "PresetManager",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panel",
+            "reasoningContent",
+            "promptBehaviorContent",
+            "bindingBanner",
+            "bindingBannerTitle",
+            "bindingBannerText",
+            "bindingBannerHint",
+            "presetRow",
+            "presetBtn",
+            "presetBtnActive",
+            "tagRow",
+            "fieldGroup",
+            "fieldGroupDisabled",
+            "label",
+            "input",
+            "toggleRow",
+            "toggleLabel",
+            "toggleDesc",
+            "select",
+            "selectDisabled",
+            "toggleOnlyHint",
+            "textarea",
+            "customBodyHeader",
+            "customBodyDisabled",
+            "jsonError",
+            "quickBtnRow",
+            "quickBtn",
+            "historyRow",
+            "historyMeta",
+            "historyHint",
+            "historySubHint",
+            "clearBtn"
+        ],
+        "nativeKey": "src/components/panels/PresetManager"
+    },
+    {
+        "id": "src/components/panels/PromptPanel",
+        "label": "PromptPanel",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panel",
+            "desc",
+            "toggleRow",
+            "toggleRowDisabled",
+            "toggleLabel",
+            "toggleText",
+            "toggleHint",
+            "collapsible",
+            "collapsibleOpen",
+            "collapsibleInner",
+            "modeOption",
+            "infoBox",
+            "infoBoxMuted",
+            "infoBoxHeader",
+            "infoBoxList",
+            "modeNote",
+            "quirksSection",
+            "quirksSectionDisabled",
+            "quirksHeader",
+            "quirksHeaderLeft",
+            "quirksLabel",
+            "quirksHint",
+            "quirksEditBtn",
+            "quirksEdit",
+            "quirksTextarea",
+            "quirksActions",
+            "quirksBtn",
+            "quirksBtnPrimary",
+            "quirksPreview",
+            "quirksEmpty",
+            "selectionGroup",
+            "selectionGroupDisabled",
+            "selectionBtn",
+            "selectionBtnDisabled",
+            "selectionBtnIcon",
+            "selectionBtnLabel",
+            "selectionBtnBadge",
+            "selectionBtnChevron",
+            "filterItem",
+            "filterSub",
+            "filterModeBlock",
+            "filterDepthRow",
+            "filterDepthLabel",
+            "filterDepthInput"
+        ],
+        "nativeKey": "src/components/panels/PromptPanel"
+    },
+    {
+        "id": "src/components/panels/PromptStashModal",
+        "label": "PromptStashModal",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "headerIcon",
+            "headerText",
+            "title",
+            "subtitle",
+            "controls",
+            "searchBox",
+            "searchInput",
+            "entries",
+            "entry",
+            "entrySelect",
+            "entryName",
+            "entryPreview",
+            "entrySource",
+            "unStashButton",
+            "status",
+            "error",
+            "empty"
+        ],
+        "nativeKey": "src/components/panels/PromptStashModal"
+    },
+    {
+        "id": "src/components/panels/PromptVariableMoveModal",
+        "label": "PromptVariableMoveModal",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "headerIcon",
+            "headerText",
+            "title",
+            "variableName",
+            "closeButton",
+            "searchWrap",
+            "searchIcon",
+            "searchInput",
+            "tree",
+            "group",
+            "groupHeaderRow",
+            "groupHeader",
+            "groupMoveButton",
+            "chevron",
+            "chevronOpen",
+            "folderIcon",
+            "groupName",
+            "groupCount",
+            "groupChildren",
+            "target",
+            "targetIcon",
+            "targetText",
+            "targetName",
+            "targetMeta",
+            "empty"
+        ],
+        "nativeKey": "src/components/panels/PromptVariableMoveModal"
+    },
+    {
+        "id": "src/components/panels/PromptVariablesEditor",
+        "label": "PromptVariablesEditor",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "root",
+            "header",
+            "headerToggle",
+            "headerCount",
+            "hint",
+            "list",
+            "card",
+            "cardDragging",
+            "typeText",
+            "typeTextarea",
+            "typeNumber",
+            "typeSlider",
+            "typeSelect",
+            "typeSwitch",
+            "typeMultiselect",
+            "optionsList",
+            "optionsListHeader",
+            "optionRow",
+            "optionDefaultCell",
+            "optionDefaultInput",
+            "optionLabelInput",
+            "optionValueInput",
+            "optionDelete",
+            "optionAddBtn",
+            "optionsEmpty",
+            "placementBinding",
+            "placementHeader",
+            "placementTitle",
+            "placementEnable",
+            "placementHint",
+            "placementUnavailable",
+            "placementBody",
+            "placementOptions",
+            "placementProfilesHeader",
+            "placementOption",
+            "placementOptionHeader",
+            "placementOptionKicker",
+            "placementOptionName",
+            "placementSummary",
+            "placementFields",
+            "switchToggleRow",
+            "switchToggleLabel",
+            "switchToggleHint",
+            "field",
+            "fieldLabel",
+            "input",
+            "select",
+            "textarea",
+            "inputMono",
+            "colFull",
+            "colHalf",
+            "colThird",
+            "headerRow",
+            "handle",
+            "handleDisabled",
+            "nameField",
+            "nameRow",
+            "dupChip",
+            "variableActions",
+            "deleteBtn",
+            "sliderPreview",
+            "sliderPreviewTrack",
+            "sliderPreviewScale",
+            "empty",
+            "btn",
+            "addBtn",
+            "typeField"
+        ],
+        "nativeKey": "src/components/panels/PromptVariablesEditor"
+    },
+    {
+        "id": "src/components/panels/RegexPanel",
+        "label": "RegexPanel",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panel",
+            "topBar",
+            "topBarTitle",
+            "topBarActions",
+            "bulkModeButtonActive",
+            "scopeFilter",
+            "scopePill",
+            "scopePillActive",
+            "bulkBar",
+            "bulkSummary",
+            "bulkSelectAll",
+            "bulkCount",
+            "bulkActions",
+            "bulkActionBtn",
+            "bulkDeleteBtn",
+            "scriptList",
+            "scriptRow",
+            "scriptRowSlow",
+            "scriptRowSelected",
+            "scriptRowExpanded",
+            "scriptName",
+            "scriptNameDisabled",
+            "deleteBtn",
+            "slowBadge",
+            "selectionBtn",
+            "dragHandle",
+            "inlineEditor",
+            "field",
+            "warningBox",
+            "fieldRow",
+            "fieldLabel",
+            "fieldHint",
+            "fieldInput",
+            "fieldTextarea",
+            "tokenBar",
+            "tokenChip",
+            "tokenChipHtml",
+            "tokenDivider",
+            "flagsRow",
+            "flagCheck",
+            "placementRow",
+            "editModalLink",
+            "emptyState",
+            "folderHeader",
+            "folderHeaderDropTarget",
+            "folderChevron",
+            "folderChevronOpen",
+            "folderName",
+            "folderCount",
+            "folderActions",
+            "folderActionBtn",
+            "folderDeleteBtn",
+            "folderToggleActive",
+            "createPopoverWrapper",
+            "createPopover",
+            "createPopoverOption",
+            "createPopoverFolder",
+            "createPopoverInput",
+            "createPopoverField",
+            "createPopoverBtn"
+        ],
+        "nativeKey": "src/components/panels/RegexPanel"
+    },
+    {
+        "id": "src/components/panels/SpindlePanel",
+        "label": "SpindlePanel",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panel",
+            "installRow",
+            "addMenuWrap",
+            "installInput",
+            "installBtn",
+            "addMenu",
+            "menuActionBtn",
+            "menuDivider",
+            "menuLabel",
+            "sectionLabel",
+            "listHeaderRow",
+            "listHeaderActions",
+            "updateAllBtn",
+            "importSummary",
+            "extensionList",
+            "extensionCard",
+            "extensionHeader",
+            "extensionInfo",
+            "extensionName",
+            "extensionMeta",
+            "extensionDesc",
+            "extensionActions",
+            "updateNotificationBtn",
+            "updateNotificationBtnActive",
+            "updateIconWrap",
+            "updateDot",
+            "githubLink",
+            "toggleBtn",
+            "toggleOn",
+            "toggleOff",
+            "statusDot",
+            "statusRunning",
+            "statusStopped",
+            "statusError",
+            "permissions",
+            "permissionsBlock",
+            "permissionsHeader",
+            "permissionsLabel",
+            "enableAllBtn",
+            "permPill",
+            "permPillActive",
+            "permPillInactive",
+            "emptyState",
+            "installError",
+            "branchBadge",
+            "branchMenu",
+            "branchMenuLoading",
+            "branchMenuItem",
+            "branchMenuItemCurrent",
+            "branchCurrentLabel",
+            "actionBtnActive",
+            "branchSelect",
+            "branchSelectLabel",
+            "branchSelectInput",
+            "branchFetchHint",
+            "operationStatus",
+            "permPillToggling",
+            "actionRow",
+            "primaryActions",
+            "labeledBtn",
+            "updateAvailableBtn",
+            "labeledBtnActive",
+            "secondaryActions",
+            "iconBtnSmall",
+            "iconBtnDanger"
+        ],
+        "nativeKey": "src/components/panels/SpindlePanel"
+    },
+    {
+        "id": "src/components/panels/SpindleSettings",
+        "label": "SpindleSettings",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "card",
+            "headerRow",
+            "label",
+            "inputGroup",
+            "segmented",
+            "segmentedBtn",
+            "input",
+            "suffix",
+            "hint"
+        ],
+        "nativeKey": "src/components/panels/SpindleSettings"
+    },
+    {
+        "id": "src/components/panels/SummaryEditor",
+        "label": "SummaryEditor",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "editor",
+            "section",
+            "sectionHeader",
+            "chevron",
+            "chevronOpen",
+            "sectionIcon",
+            "sectionTitle",
+            "sectionBody",
+            "status",
+            "statusNoChat",
+            "statusExists",
+            "statusEmpty",
+            "textarea",
+            "actions",
+            "unsaved",
+            "rebuildProgress",
+            "radioGroup",
+            "radioOption",
+            "radioSelected",
+            "desc",
+            "field",
+            "fieldLabel",
+            "fieldHint",
+            "fieldInput",
+            "fieldSelect",
+            "fieldRow",
+            "fieldRow3",
+            "toggleRow",
+            "promptBlockHeader",
+            "warning",
+            "errorBox",
+            "toggleLabel",
+            "promptBlock",
+            "promptBlockLabel",
+            "promptResetBtn",
+            "placeholderList",
+            "placeholderChip"
+        ],
+        "nativeKey": "src/components/panels/SummaryEditor"
+    },
+    {
+        "id": "src/components/panels/ThemePanel",
+        "label": "ThemePanel",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panel",
+            "section",
+            "sectionLabel",
+            "themeActions",
+            "actionBtn",
+            "resetBtn"
+        ],
+        "nativeKey": "src/components/panels/ThemePanel"
+    },
+    {
+        "id": "src/components/panels/ViewportDrawer",
+        "label": "ViewportDrawer",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "wrapper",
+            "panelContent",
+            "wrapperCompact",
+            "wrapperRight",
+            "wrapperLeft",
+            "wrapperOpen",
+            "drawerTab",
+            "drawerTabActive",
+            "drawerTabCompact",
+            "tabIconBox",
+            "backdrop",
+            "drawer",
+            "sidebar",
+            "tabListWrap",
+            "tabListScrollUp",
+            "tabListScrollDown",
+            "tabList",
+            "tabBtn",
+            "tabBtnLabeled",
+            "tabBtnActive",
+            "tabLabel",
+            "tabDivider",
+            "tabBtnExtension",
+            "extIconSvg",
+            "extIconImg",
+            "tabBadge",
+            "sidebarBottom",
+            "panel",
+            "panelHeader",
+            "panelTitle",
+            "panelHeaderMain",
+            "guideButton",
+            "panelContentFull",
+            "stubPanel"
+        ],
+        "nativeKey": "src/components/panels/ViewportDrawer"
+    },
+    {
+        "id": "src/components/panels/WallpaperLibraryModal",
+        "label": "WallpaperLibraryModal",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "closeBtnPos",
+            "header",
+            "title",
+            "subtitle",
+            "count",
+            "error",
+            "state",
+            "scrollArea",
+            "grid",
+            "card",
+            "cardCurrent",
+            "thumb",
+            "thumbImage",
+            "thumbPlaceholder",
+            "badge",
+            "currentBadge",
+            "meta",
+            "filename",
+            "metaRow",
+            "applyBtn",
+            "deleteBtn",
+            "loadMoreBtn",
+            "cardActions",
+            "spin",
+            "footer"
+        ],
+        "nativeKey": "src/components/panels/WallpaperLibraryModal"
+    },
+    {
+        "id": "src/components/panels/WallpaperPanel",
+        "label": "WallpaperPanel",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panel",
+            "preview",
+            "previewImg",
+            "previewPlaceholder",
+            "previewBadge",
+            "actions",
+            "uploadStatus",
+            "uploadStatusComplete",
+            "uploadStatusHeader",
+            "uploadStatusTitle",
+            "uploadStatusPercent",
+            "uploadStatusMessage",
+            "uploadStatusMeta",
+            "progressTrack",
+            "progressFill",
+            "progressFillComplete",
+            "primaryBtn",
+            "secondaryBtn",
+            "dangerBtn",
+            "slider",
+            "error",
+            "info",
+            "scopeLabel",
+            "divider"
+        ],
+        "nativeKey": "src/components/panels/WallpaperPanel"
+    },
+    {
+        "id": "src/components/panels/WeaverPanel",
+        "label": "WeaverPanel",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panel",
+            "head",
+            "eyebrow",
+            "blurb",
+            "block",
+            "sectRow",
+            "sectLabel",
+            "sectCount",
+            "resume",
+            "resumeTop",
+            "resumeId",
+            "resumeTitle",
+            "resumeMeta",
+            "resumeStage",
+            "dotSep",
+            "resumeArrow",
+            "resumeTicks",
+            "actions",
+            "openStudio",
+            "newBtn",
+            "list",
+            "row",
+            "rowTitle",
+            "rowTicks",
+            "rowDate",
+            "emptyHint"
+        ],
+        "nativeKey": "src/components/panels/WeaverPanel"
+    },
+    {
+        "id": "src/components/panels/WorldInfoFeedback",
+        "label": "WorldInfoFeedback",
+        "area": "Panels",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "statusBar",
+            "statusComplete",
+            "statusIdle",
+            "entryCount",
+            "sourceGroup",
+            "sourceHeader",
+            "scopeIcon",
+            "sourceName",
+            "sourceCount",
+            "entryCard",
+            "entryHeader",
+            "entryIcon",
+            "keywordIcon",
+            "vectorIcon",
+            "entryText",
+            "entryComment",
+            "entryBook",
+            "methodBadge",
+            "entryScore",
+            "entryContent",
+            "entryKeys",
+            "statsBar",
+            "statsBarWarning",
+            "statsRow",
+            "statLabel",
+            "statValue",
+            "statValueWarn",
+            "warningIcon",
+            "emptyState"
+        ],
+        "nativeKey": "src/components/panels/WorldInfoFeedback"
+    },
+    {
+        "id": "src/components/panels/persona-browser/CreatePersonaForm",
+        "label": "CreatePersonaForm",
+        "area": "Persona browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "form",
+            "avatarArea",
+            "avatarPreview",
+            "avatarPlaceholder",
+            "hiddenInput",
+            "nameInput",
+            "actions",
+            "confirmBtn",
+            "cancelBtn"
+        ],
+        "nativeKey": "src/components/panels/persona-browser/CreatePersonaForm"
+    },
+    {
+        "id": "src/components/panels/persona-browser/PersonaBulkBar",
+        "label": "PersonaBulkBar",
+        "area": "Persona browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "bar",
+            "summaryRow",
+            "actionRow",
+            "info",
+            "linkBtn",
+            "closeBtn",
+            "applyBtn",
+            "select",
+            "targetInput",
+            "fileBtn",
+            "deleteBtn"
+        ],
+        "nativeKey": "src/components/panels/persona-browser/PersonaBulkBar"
+    },
+    {
+        "id": "src/components/panels/persona-browser/PersonaCardGrid",
+        "label": "PersonaCardGrid",
+        "area": "Persona browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "grid",
+            "empty",
+            "card",
+            "cardSelected",
+            "cardActive",
+            "avatarWrap",
+            "batchCheck",
+            "batchCheckSelected",
+            "avatarImg",
+            "avatarFallback",
+            "badges",
+            "badge",
+            "badgeActive",
+            "badgeDefault",
+            "badgeConnected",
+            "nameGroup",
+            "name",
+            "title",
+            "inlineEditor"
+        ],
+        "nativeKey": "src/components/panels/persona-browser/PersonaCardGrid"
+    },
+    {
+        "id": "src/components/panels/persona-browser/PersonaCardList",
+        "label": "PersonaCardList",
+        "area": "Persona browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "list",
+            "empty",
+            "row",
+            "rowSelected",
+            "rowActive",
+            "batchCheck",
+            "batchCheckSelected",
+            "avatar",
+            "avatarImg",
+            "avatarFallback",
+            "info",
+            "name",
+            "title",
+            "desc",
+            "badges",
+            "badge",
+            "badgeActive",
+            "badgeDefault",
+            "badgeConnected"
+        ],
+        "nativeKey": "src/components/panels/persona-browser/PersonaCardList"
+    },
+    {
+        "id": "src/components/panels/persona-browser/PersonaEditor",
+        "label": "PersonaEditor",
+        "area": "Persona browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "editor",
+            "topRow",
+            "avatarZone",
+            "avatarImg",
+            "avatarFallback",
+            "avatarOverlay",
+            "avatarOverlayActive",
+            "avatarZoneUploading",
+            "hiddenInput",
+            "nameGroup",
+            "nameInput",
+            "titleInput",
+            "section",
+            "descriptionHeader",
+            "descriptionLabel",
+            "descTextarea",
+            "descControls",
+            "pronounSection",
+            "pronounHeader",
+            "pronounTitle",
+            "pronounHint",
+            "pronounGrid",
+            "pronounField",
+            "pronounLabel",
+            "pronounInputWrap",
+            "pronounMacro",
+            "pronounInput",
+            "select",
+            "depthInput",
+            "folderRow",
+            "folderInput",
+            "locksRow",
+            "toggleBtn",
+            "toggleBtnActive",
+            "lorebookRow",
+            "lorebookSelectWrapper",
+            "actions",
+            "bindingRow",
+            "bindingToggle",
+            "bindingToggleActive",
+            "bindingLabel",
+            "bindingLabelActive",
+            "tagBindingSection",
+            "tagBindingHeader",
+            "tagBindingTitle",
+            "tagBindingHint",
+            "tagBindingControls",
+            "tagBindingSelect",
+            "tagModeSelect",
+            "clearBindingBtn",
+            "tagChipList",
+            "tagChip",
+            "tagChipRemove",
+            "tagSuggestionRow",
+            "tagSuggestionLabel",
+            "tagSuggestionList",
+            "tagSuggestionBtn",
+            "tagBindingMeta",
+            "rebindBtn",
+            "addonsBtn"
+        ],
+        "nativeKey": "src/components/panels/persona-browser/PersonaEditor"
+    },
+    {
+        "id": "src/components/panels/persona-browser/PersonaToolbar",
+        "label": "PersonaToolbar",
+        "area": "Persona browser",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "toolbar",
+            "searchBar",
+            "searchIcon",
+            "searchInput",
+            "clearBtn",
+            "controlRow",
+            "filterTabs",
+            "tabBtn",
+            "tabBtnActive",
+            "iconBtn",
+            "iconBtnActive",
+            "count",
+            "createPopoverWrapper",
+            "createPopover",
+            "createPopoverOption",
+            "createPopoverFolder",
+            "createPopoverInput",
+            "createPopoverField",
+            "createPopoverBtn"
+        ],
+        "nativeKey": "src/components/panels/persona-browser/PersonaToolbar"
+    },
+    {
+        "id": "src/components/quick-toolbar/QuickToolbar",
+        "label": "QuickToolbar",
+        "area": "Quick-toolbar",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [
+            "[data-component=\"QuickToolbar\"]"
+        ],
+        "cssClasses": [
+            "root",
+            "rootFree",
+            "toolbar",
+            "module",
+            "css",
+            "topDockToolbarSlot",
+            "rootAnchored",
+            "card",
+            "item",
+            "toolbarHorizontal",
+            "toolbarVertical",
+            "toolbarFree",
+            "resizeHandle",
+            "cardStripSettings",
+            "topDockActions",
+            "cardStrip",
+            "toolbarAnchored",
+            "chatToolbar",
+            "strip",
+            "cardScroller",
+            "cardSlot",
+            "measureRail",
+            "overflowButton",
+            "ts",
+            "toolbarBtnActive",
+            "cardActive",
+            "cardIcon",
+            "cardCopy",
+            "cardTitle",
+            "cardValue",
+            "cardPortrait",
+            "cardProfile",
+            "cardIconPortrait",
+            "cardCopyProfile",
+            "cardChevron",
+            "cardChevronOpen",
+            "resize_n",
+            "dragHandle",
+            "dragHandleVertical",
+            "itemLabel",
+            "itemActive",
+            "overflowPopover",
+            "overflowHeader",
+            "overflowSearch",
+            "overflowList",
+            "overflowRow",
+            "overflowAction",
+            "overflowPin",
+            "overflowEmpty",
+            "customizer",
+            "customizerBody",
+            "customizerHeader",
+            "searchField",
+            "toggleRow",
+            "segmented",
+            "segmentActive",
+            "actionList",
+            "actionRow",
+            "actionEmpty",
+            "resetButton",
+            "resize_s",
+            "resize_e",
+            "resize_w",
+            "resize_ne",
+            "resize_nw",
+            "resize_se",
+            "resize_sw",
+            "modalRestoreHandle"
+        ],
+        "nativeKey": "src/components/quick-toolbar/QuickToolbar"
+    },
+    {
+        "id": "src/components/quick-toolbar/QuickToolbarCustomizeModal",
+        "label": "QuickToolbarCustomizeModal",
+        "area": "Quick-toolbar",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [
+            "[data-component=\"QuickToolbarCustomizeModal\"]"
+        ],
+        "cssClasses": [
+            "modal",
+            "root",
+            "header",
+            "body",
+            "footer",
+            "title",
+            "subtitle",
+            "section",
+            "sectionHeader",
+            "sectionTitle",
+            "sectionDescription",
+            "module",
+            "css",
+            "searchField",
+            "searchHint",
+            "list",
+            "emptyState",
+            "row",
+            "rowDisabled",
+            "rowDragging",
+            "dragHandle",
+            "iconWrap",
+            "copy",
+            "rowTitle",
+            "rowDescription",
+            "controls",
+            "rangeRow",
+            "rangeLabel",
+            "rangeValue",
+            "switchRow",
+            "segmented",
+            "segmentActive",
+            "resetButton",
+            "doneButton",
+            "ts",
+            "test"
+        ],
+        "nativeKey": "src/components/quick-toolbar/QuickToolbarCustomizeModal"
+    },
+    {
+        "id": "src/components/settings/ConnectionPicker",
+        "label": "ConnectionPicker",
+        "area": "Settings",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "wrapper",
+            "tabs",
+            "tab",
+            "tabActive",
+            "tabIcon",
+            "configForm",
+            "fieldRow",
+            "field",
+            "fieldSmall",
+            "label",
+            "input",
+            "inputMono",
+            "textarea",
+            "authTabs",
+            "authTab",
+            "authTabActive",
+            "testRow",
+            "testBtn",
+            "testResult",
+            "testOk",
+            "testFail",
+            "fileUploadRow",
+            "fileUploadBtn",
+            "fileUploaded",
+            "fileClear",
+            "hint"
+        ],
+        "nativeKey": "src/components/settings/ConnectionPicker"
+    },
+    {
+        "id": "src/components/settings/DataPortability",
+        "label": "DataPortability",
+        "area": "Settings",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "section",
+            "title",
+            "description",
+            "checkboxRow",
+            "actions",
+            "fileInput",
+            "progress",
+            "progressLabel",
+            "progressBar",
+            "progressFill",
+            "progressFillIndeterminate",
+            "summaryTable",
+            "summaryHead",
+            "summaryCell",
+            "summaryTableName",
+            "error",
+            "success",
+            "warning"
+        ],
+        "nativeKey": "src/components/settings/DataPortability"
+    },
+    {
+        "id": "src/components/settings/Diagnostics",
+        "label": "Diagnostics",
+        "area": "Settings",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "headerRow",
+            "heading",
+            "headerActions",
+            "actionBtn",
+            "copyBtn",
+            "copyBtnDone",
+            "section",
+            "sectionHeader",
+            "grid",
+            "infoRow",
+            "infoLabel",
+            "infoValue",
+            "featureRow",
+            "featureLabel",
+            "featureTags",
+            "featureTag",
+            "featureOk",
+            "featureMissing",
+            "extList",
+            "extRow",
+            "extName",
+            "extVersion",
+            "extStatus",
+            "extEnabled",
+            "extDisabled",
+            "maintenanceRow",
+            "maintenanceDesc",
+            "maintenanceResult",
+            "loadingRow",
+            "errorRow",
+            "emptyRow"
+        ],
+        "nativeKey": "src/components/settings/Diagnostics"
+    },
+    {
+        "id": "src/components/settings/DirectoryBrowser",
+        "label": "DirectoryBrowser",
+        "area": "Settings",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "breadcrumbs",
+            "breadcrumbBtn",
+            "breadcrumbSep",
+            "list",
+            "entry",
+            "entryUp",
+            "entryIcon",
+            "empty",
+            "loading",
+            "error",
+            "pathInput"
+        ],
+        "nativeKey": "src/components/settings/DirectoryBrowser"
+    },
+    {
+        "id": "src/components/settings/mcp-servers/McpServerForm",
+        "label": "McpServerForm",
+        "area": "Settings",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "kvList",
+            "kvRow",
+            "kvRemove",
+            "kvAdd"
+        ],
+        "nativeKey": "src/components/settings/mcp-servers/McpServerForm"
+    },
+    {
+        "id": "src/components/settings/mcp-servers/McpServerItem",
+        "label": "McpServerItem",
+        "area": "Settings",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "item",
+            "header",
+            "info",
+            "statusDot",
+            "name",
+            "badge",
+            "toolBadge",
+            "disabledBadge",
+            "actions",
+            "actionBtn",
+            "testResult",
+            "error",
+            "toolsSection",
+            "toolsToggle",
+            "toolsList",
+            "toolItem",
+            "toolName",
+            "toolDesc"
+        ],
+        "nativeKey": "src/components/settings/mcp-servers/McpServerItem"
+    },
+    {
+        "id": "src/components/settings/MemoryCortexSettings",
+        "label": "MemoryCortexSettings",
+        "area": "Settings",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "loadingText",
+            "section",
+            "sectionHeader",
+            "sectionHeaderActions",
+            "grid",
+            "infoRow",
+            "infoLabel",
+            "infoValue",
+            "modelPicker",
+            "toggleRow",
+            "statusDot",
+            "statusActive",
+            "statusInactive",
+            "statusLabel",
+            "disabledNotice",
+            "presetGrid",
+            "presetCard",
+            "presetCardActive",
+            "presetCardHeader",
+            "presetCardDesc",
+            "formatterGrid",
+            "formatterOption",
+            "formatterOptionActive",
+            "formatterLabel",
+            "formatterDesc",
+            "presetRow",
+            "presetBtn",
+            "presetBtnActive",
+            "markerGrid",
+            "markerField",
+            "markerLabel",
+            "whitelistHint",
+            "whitelistInput",
+            "textInput",
+            "addBtn",
+            "whitelistTags",
+            "filterGroup",
+            "filterGroupHeader",
+            "filterGrid",
+            "filterField",
+            "textareaInput",
+            "tag",
+            "tagRemove",
+            "advancedToggle",
+            "numberInput",
+            "selectInput",
+            "hintText",
+            "actionBtn",
+            "spinning"
+        ],
+        "nativeKey": "src/components/settings/MemoryCortexSettings"
+    },
+    {
+        "id": "src/components/settings/MigrationSettings",
+        "label": "MigrationSettings",
+        "area": "Settings",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "section",
+            "title",
+            "subtitle",
+            "stepIndicator",
+            "stepDot",
+            "stepDotActive",
+            "stepDotDone",
+            "stepLine",
+            "validationRow",
+            "validGood",
+            "validBad",
+            "validChecking",
+            "validHint",
+            "selectRow",
+            "selectLabel",
+            "select",
+            "scanCard",
+            "scanRow",
+            "scanCount",
+            "scanWarning",
+            "uploadCard",
+            "uploadHeader",
+            "uploadHint",
+            "fileInput",
+            "uploadMeta",
+            "actions",
+            "btn",
+            "btnPrimary",
+            "summaryCard",
+            "summaryRow",
+            "summaryLabel",
+            "summaryValue",
+            "progressContainer",
+            "progressPhase",
+            "progressBarOuter",
+            "progressBarInner",
+            "progressLabel",
+            "logPanel",
+            "logEntry",
+            "logWarn",
+            "logError",
+            "resultCard",
+            "resultSuccess",
+            "resultFailed",
+            "resultRow"
+        ],
+        "nativeKey": "src/components/settings/MigrationSettings"
+    },
+    {
+        "id": "src/components/settings/NotificationSettings",
+        "label": "NotificationSettings",
+        "area": "Settings",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "section",
+            "sectionHeader",
+            "sectionHeaderActions",
+            "grid",
+            "infoRow",
+            "infoLabel",
+            "infoValue",
+            "statusDot",
+            "statusActive",
+            "statusInactive",
+            "toggleRow",
+            "toggleRowDisabled",
+            "deviceRow",
+            "deviceIcon",
+            "deviceName",
+            "deviceDate",
+            "deviceRemove",
+            "actionBtn",
+            "actionBtnPrimary",
+            "actionBtnDanger",
+            "unsupported",
+            "emptyRow"
+        ],
+        "nativeKey": "src/components/settings/NotificationSettings"
+    },
+    {
+        "id": "src/components/settings/ProductivitySettings",
+        "label": "ProductivitySettings",
+        "area": "Settings",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panel",
+            "card",
+            "cardHeader",
+            "cardHeaderAction",
+            "cardMeta",
+            "cardBody",
+            "field",
+            "segmentedField",
+            "checkField",
+            "reorder",
+            "tagList",
+            "colors",
+            "appearanceRow",
+            "reorderRow",
+            "loreStripRow",
+            "tagRow",
+            "listHeader",
+            "searchField",
+            "segmented",
+            "rangeControl",
+            "preciseValue",
+            "quickToolbarSliderPair",
+            "search",
+            "segmentedActive",
+            "resetButton",
+            "presetRow",
+            "metadataGrid",
+            "productivityRowMuted",
+            "disabledSettingsGroup",
+            "runtimeStateRow",
+            "quickToolbarControls",
+            "quickToolbarDisabledField",
+            "quickToolbarPairHint",
+            "quickToolbarCheck",
+            "characterInheritance",
+            "characterControlsShell",
+            "characterTabControls",
+            "characterThumbnailPair",
+            "characterTagRows",
+            "lorebookCardBody",
+            "lorebookFullWidth",
+            "lorebookPaneRows",
+            "lorebookCounting",
+            "lorebookMetadata",
+            "lorebookResets",
+            "lorebookFeatureRow",
+            "lorebookCountingChecks",
+            "lorebookPaneRow",
+            "lorebookFloatingRectangle",
+            "homepageLivePreview",
+            "homepagePreviewLabel",
+            "homepagePreviewCanvas",
+            "homepagePreviewGrid",
+            "homepagePreviewCard",
+            "homepagePreviewPlaceholder",
+            "homepagePreviewFooter",
+            "homepagePreviewTags",
+            "homepagePreviewPanel",
+            "homepagePreviewPanelImage"
+        ],
+        "nativeKey": "src/components/settings/ProductivitySettings"
+    },
+    {
+        "id": "src/components/settings/SsoProviderSettings",
+        "label": "SsoProviderSettings",
+        "area": "Settings",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "intro",
+            "introTitle",
+            "introText",
+            "notice",
+            "section",
+            "header",
+            "title",
+            "providerGrid",
+            "providerCard",
+            "providerName",
+            "providerHint",
+            "form",
+            "formGrid",
+            "field",
+            "fieldWide",
+            "label",
+            "input",
+            "select",
+            "hint",
+            "toggleRow",
+            "actions",
+            "error",
+            "success",
+            "providerList",
+            "providerRow",
+            "rowMain",
+            "rowTitle",
+            "badge",
+            "badgeEnabled",
+            "rowMeta",
+            "mono",
+            "rowActions",
+            "empty"
+        ],
+        "nativeKey": "src/components/settings/SsoProviderSettings"
+    },
+    {
+        "id": "src/components/settings/StreamDeckSettings",
+        "label": "StreamDeckSettings",
+        "area": "Settings",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "description",
+            "empty",
+            "createRow",
+            "reveal",
+            "delete",
+            "list",
+            "token",
+            "error"
+        ],
+        "nativeKey": "src/components/settings/StreamDeckSettings"
+    },
+    {
+        "id": "src/components/settings/TokenizerManager",
+        "label": "TokenizerManager",
+        "area": "Settings",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "sectionTitle",
+            "sectionDesc",
+            "tableWrap",
+            "table",
+            "builtInBadgeSpacing",
+            "actions",
+            "iconBtn",
+            "dangerBtn",
+            "form",
+            "formRow",
+            "field",
+            "fieldLabel",
+            "input",
+            "select",
+            "textarea",
+            "submitBtn",
+            "testPanel",
+            "testResult",
+            "testResultLabel",
+            "testResultValue",
+            "error",
+            "divider",
+            "cardList",
+            "paginationBar",
+            "card",
+            "cardHeader",
+            "cardTitle",
+            "cardName",
+            "cardBody",
+            "metaLine",
+            "metaLineMuted",
+            "metaLabel",
+            "code",
+            "sourceBlock",
+            "repoRow",
+            "repoLink",
+            "fileChips",
+            "fileChip",
+            "fileChipMissing",
+            "hfStatus",
+            "hfSaved",
+            "addBox",
+            "inlineRow",
+            "resolveFail",
+            "failIcon",
+            "resolveFailTitle",
+            "resolveFailMsg",
+            "resolveOk",
+            "verifiedLine",
+            "warnLine",
+            "checkRow",
+            "advanced",
+            "advancedToggle",
+            "chevron",
+            "chevronOpen",
+            "advancedDesc"
+        ],
+        "nativeKey": "src/components/settings/TokenizerManager"
+    },
+    {
+        "id": "src/components/settings/VoiceSettings",
+        "label": "VoiceSettings",
+        "area": "Settings",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "section",
+            "sectionHeader",
+            "sectionHeaderActions",
+            "row",
+            "rowVertical",
+            "toggleRow",
+            "toggleRowDisabled",
+            "label",
+            "hint",
+            "select",
+            "rangeRow",
+            "rangeSlider",
+            "rangeValue",
+            "actionBtn",
+            "actionBtnPrimary",
+            "subHeader",
+            "infoBox"
+        ],
+        "nativeKey": "src/components/settings/VoiceSettings"
+    },
+    {
+        "id": "src/components/shared/Badge",
+        "label": "Badge",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "badge",
+            "sm",
+            "md",
+            "pill",
+            "neutral",
+            "primary",
+            "success",
+            "warning",
+            "danger",
+            "info"
+        ],
+        "nativeKey": "src/components/shared/Badge"
+    },
+    {
+        "id": "src/components/shared/CloseButton",
+        "label": "CloseButton",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "closeBtn",
+            "sm",
+            "md",
+            "subtle",
+            "solid",
+            "absolute"
+        ],
+        "nativeKey": "src/components/shared/CloseButton"
+    },
+    {
+        "id": "src/components/shared/CollapsibleSection",
+        "label": "CollapsibleSection",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "section",
+            "header",
+            "icon",
+            "title",
+            "chevron",
+            "content"
+        ],
+        "nativeKey": "src/components/shared/CollapsibleSection"
+    },
+    {
+        "id": "src/components/shared/ConfirmationModal",
+        "label": "ConfirmationModal",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "closeBtn",
+            "content",
+            "iconWrap",
+            "title",
+            "message",
+            "inputGroup",
+            "inputLabel",
+            "input",
+            "checkbox",
+            "actions",
+            "cancelBtn",
+            "confirmBtn",
+            "loadingLabel"
+        ],
+        "nativeKey": "src/components/shared/ConfirmationModal"
+    },
+    {
+        "id": "src/components/shared/ConnectionLostOverlay",
+        "label": "ConnectionLostOverlay",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "backdrop",
+            "card",
+            "iconRing",
+            "iconRingUpdate",
+            "pulse",
+            "title",
+            "message",
+            "status"
+        ],
+        "nativeKey": "src/components/shared/ConnectionLostOverlay"
+    },
+    {
+        "id": "src/components/shared/ConnectionSelect",
+        "label": "ConnectionSelect",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "withModel",
+            "leadingSlot"
+        ],
+        "nativeKey": "src/components/shared/ConnectionSelect"
+    },
+    {
+        "id": "src/components/shared/ContextMenu",
+        "label": "ContextMenu",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "contextMenu",
+            "item",
+            "itemActive",
+            "itemDanger",
+            "divider",
+            "custom"
+        ],
+        "nativeKey": "src/components/shared/ContextMenu"
+    },
+    {
+        "id": "src/components/shared/DesktopPwaTitlebar",
+        "label": "DesktopPwaTitlebar",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [
+            "[data-component=\"DesktopPwaTitlebar\"]"
+        ],
+        "cssClasses": [
+            "titlebar",
+            "dragRegion",
+            "brandMark",
+            "title",
+            "windowControls",
+            "windowControl",
+            "closeControl"
+        ],
+        "nativeKey": "src/components/shared/DesktopPwaTitlebar"
+    },
+    {
+        "id": "src/components/shared/ExpandedTextEditor",
+        "label": "ExpandedTextEditor",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "overlay",
+            "dialog",
+            "inlineDialog",
+            "header",
+            "headerContent",
+            "title",
+            "toolbar",
+            "toolbarBtn",
+            "toolbarBtnActive",
+            "closeBtn",
+            "findPanel",
+            "findRow",
+            "replaceRow",
+            "findIcon",
+            "findInput",
+            "matchCount",
+            "findIconBtn",
+            "replaceBtn",
+            "body",
+            "editorArea",
+            "markdownPreview",
+            "textarea",
+            "css",
+            "highlightContainer",
+            "highlightInner",
+            "highlightPre",
+            "textareaHighlighted",
+            "hlBracket",
+            "hlMacroName",
+            "hlSep",
+            "hlXmlTag",
+            "hlMdDelim",
+            "hlMdCode",
+            "hlMdHeader",
+            "findMatch",
+            "findMatchCurrent",
+            "macroSidebar",
+            "macroList",
+            "macroSearch",
+            "macroSearchInner",
+            "macroSearchInput",
+            "macroSearchClear",
+            "macroGroup",
+            "macroGroupTitle",
+            "macroItem",
+            "macroSyntax",
+            "macroDesc",
+            "textareaWrapper",
+            "expandBtn"
+        ],
+        "nativeKey": "src/components/shared/ExpandedTextEditor"
+    },
+    {
+        "id": "src/components/shared/FolderDropdown",
+        "label": "FolderDropdown",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "wrapper",
+            "trigger",
+            "triggerOpen",
+            "triggerLabel",
+            "triggerPlaceholder",
+            "triggerChevron",
+            "triggerChevronOpen",
+            "dropdown",
+            "searchBox",
+            "searchInput",
+            "searchClear",
+            "option",
+            "optionRow",
+            "optionActions",
+            "optionAction",
+            "optionDeleteAction",
+            "optionActive",
+            "createOption",
+            "createRow",
+            "createInput",
+            "createBtn"
+        ],
+        "nativeKey": "src/components/shared/FolderDropdown"
+    },
+    {
+        "id": "src/components/shared/FormComponents",
+        "label": "FormComponents",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "editorLayout",
+            "editorContent",
+            "editorFooter",
+            "formField",
+            "formLabel",
+            "required",
+            "formHint",
+            "formError",
+            "editorSection",
+            "sectionHeader",
+            "sectionIcon",
+            "sectionTitle",
+            "sectionChevron",
+            "input",
+            "textarea",
+            "selectWrapper",
+            "select",
+            "selectChevron",
+            "btn",
+            "btnPrimary",
+            "btnDanger",
+            "btnGhost",
+            "btnSm",
+            "btnIcon",
+            "btnIconSm",
+            "btnDangerGhost",
+            "btnSpinner",
+            "imageInput",
+            "imageInputRow",
+            "imageInputField",
+            "imagePreview",
+            "imagePreviewImg",
+            "imagePlaceholder"
+        ],
+        "nativeKey": "src/components/shared/FormComponents"
+    },
+    {
+        "id": "src/components/shared/GuideViewer",
+        "label": "GuideViewer",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "headerTitle",
+            "headerLeading",
+            "backButton",
+            "searchArea",
+            "searchInputWrap",
+            "searchInput",
+            "searchClear",
+            "searchResults",
+            "searchResult",
+            "searchResultTitle",
+            "searchResultPath",
+            "searchEmpty",
+            "body",
+            "status",
+            "error",
+            "prose",
+            "guide-admonition",
+            "guide-admonition-title",
+            "guide-content-tabs",
+            "guide-content-tab-list",
+            "guide-content-tab",
+            "guide-content-tab-panel"
+        ],
+        "nativeKey": "src/components/shared/GuideViewer"
+    },
+    {
+        "id": "src/components/shared/ImageCropModal",
+        "label": "ImageCropModal",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "overlay",
+            "modal",
+            "cropContainer",
+            "controls",
+            "zoomLabel",
+            "zoomSlider",
+            "actions",
+            "cancelBtn",
+            "confirmBtn"
+        ],
+        "nativeKey": "src/components/shared/ImageCropModal"
+    },
+    {
+        "id": "src/components/shared/ImageLightbox",
+        "label": "ImageLightbox",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "backdrop",
+            "image",
+            "spinner",
+            "error"
+        ],
+        "nativeKey": "src/components/shared/ImageLightbox"
+    },
+    {
+        "id": "src/components/shared/InputPromptModal",
+        "label": "InputPromptModal",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "title",
+            "attribution",
+            "subtitle",
+            "body",
+            "textarea",
+            "input",
+            "actions",
+            "btn",
+            "btnCancel",
+            "btnSecondary",
+            "btnSubmit"
+        ],
+        "nativeKey": "src/components/shared/InputPromptModal"
+    },
+    {
+        "id": "src/components/shared/LanguageSwitcher",
+        "label": "LanguageSwitcher",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "root",
+            "sectionTitle",
+            "helperText",
+            "label",
+            "helper",
+            "select"
+        ],
+        "nativeKey": "src/components/shared/LanguageSwitcher"
+    },
+    {
+        "id": "src/components/shared/ModalPresentation",
+        "label": "ModalPresentation",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "header",
+            "headerText",
+            "title",
+            "subtitle",
+            "body",
+            "footer"
+        ],
+        "nativeKey": "src/components/shared/ModalPresentation"
+    },
+    {
+        "id": "src/components/shared/NumberStepper",
+        "label": "NumberStepper",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "stepper",
+            "input",
+            "controls",
+            "btn"
+        ],
+        "nativeKey": "src/components/shared/NumberStepper"
+    },
+    {
+        "id": "src/components/shared/Pagination",
+        "label": "Pagination",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "pagination",
+            "perPage",
+            "perPageSelect",
+            "perPageLabel",
+            "nav",
+            "navBtn",
+            "pageBtn",
+            "pageBtnActive",
+            "ellipsis",
+            "info"
+        ],
+        "nativeKey": "src/components/shared/Pagination"
+    },
+    {
+        "id": "src/components/shared/PostImportWorldBookModal",
+        "label": "PostImportWorldBookModal",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "body",
+            "header",
+            "eyebrow",
+            "title",
+            "intro",
+            "copy",
+            "copySubtle",
+            "skipBtn",
+            "actionCard",
+            "error",
+            "actions",
+            "actionCardRecommended",
+            "actionTopRow",
+            "actionIcon",
+            "actionBadge",
+            "actionBadgeMuted",
+            "actionEyebrow",
+            "actionTitle",
+            "actionMeta",
+            "actionHint",
+            "footer",
+            "footerHint"
+        ],
+        "nativeKey": "src/components/shared/PostImportWorldBookModal"
+    },
+    {
+        "id": "src/components/shared/PromptVariablesModal",
+        "label": "PromptVariablesModal",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "modal",
+            "header",
+            "title",
+            "subtitle",
+            "body",
+            "empty",
+            "blockSection",
+            "blockHeader",
+            "blockHeaderLabel",
+            "blockHeaderCount",
+            "blockBody",
+            "variableRow",
+            "variableLabel",
+            "variableName",
+            "resetBtn",
+            "variableDescription",
+            "placementSummary",
+            "textInput",
+            "textArea",
+            "sliderRow",
+            "slider",
+            "sliderValue",
+            "sliderRange",
+            "Switch",
+            "switchRow",
+            "switchStateLabel",
+            "multiselectEmpty",
+            "footer",
+            "footerLeft",
+            "btn",
+            "btnCancel",
+            "btnGhost",
+            "btnSubmit"
+        ],
+        "nativeKey": "src/components/shared/PromptVariablesModal"
+    },
+    {
+        "id": "src/components/shared/ProviderIcon",
+        "label": "ProviderIcon",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "icon"
+        ],
+        "nativeKey": "src/components/shared/ProviderIcon"
+    },
+    {
+        "id": "src/components/shared/RangeSlider",
+        "label": "RangeSlider",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "trackArea",
+            "disabled",
+            "track",
+            "fill",
+            "thumb",
+            "labeledRow",
+            "labeledHeader",
+            "labeledLabel",
+            "labeledValue",
+            "labeledHint"
+        ],
+        "nativeKey": "src/components/shared/RangeSlider"
+    },
+    {
+        "id": "src/components/shared/ResizablePanelFrame",
+        "label": "ResizablePanelFrame",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "frame",
+            "header",
+            "title",
+            "toolbar",
+            "body",
+            "handle",
+            "handleN",
+            "handleS",
+            "handleE",
+            "handleW",
+            "handleNe",
+            "handleNw",
+            "handleSe",
+            "handleSw"
+        ],
+        "nativeKey": "src/components/shared/ResizablePanelFrame"
+    },
+    {
+        "id": "src/components/shared/SearchableSelect",
+        "label": "SearchableSelect",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "wrapper",
+            "trigger",
+            "triggerOpen",
+            "triggerDisabled",
+            "triggerIcon",
+            "triggerLeading",
+            "optionLeading",
+            "triggerLabel",
+            "triggerPlaceholder",
+            "triggerTextWrap",
+            "triggerName",
+            "triggerSublabel",
+            "chevron",
+            "chevronOpen",
+            "popover",
+            "popoverPortal",
+            "searchRow",
+            "searchIcon",
+            "searchInput",
+            "searchClear",
+            "optionList",
+            "option",
+            "optionHover",
+            "optionActive",
+            "optionDisabled",
+            "optionCheck",
+            "optionTextWrap",
+            "optionLabel",
+            "optionSublabel",
+            "optionGroupHeader",
+            "emptyMessage"
+        ],
+        "nativeKey": "src/components/shared/SearchableSelect"
+    },
+    {
+        "id": "src/components/shared/SearchField",
+        "label": "SearchField",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "searchField",
+            "searchIcon",
+            "searchInput",
+            "clearButton"
+        ],
+        "nativeKey": "src/components/shared/SearchField"
+    },
+    {
+        "id": "src/components/shared/SortControl",
+        "label": "SortControl",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "dropdown",
+            "dropdownEnd",
+            "item",
+            "itemActive",
+            "iconButton"
+        ],
+        "nativeKey": "src/components/shared/SortControl"
+    },
+    {
+        "id": "src/components/shared/Spinner",
+        "label": "Spinner",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "spinner",
+            "spin",
+            "fast"
+        ],
+        "nativeKey": "src/components/shared/Spinner"
+    },
+    {
+        "id": "src/components/shared/ToastContainer",
+        "label": "ToastContainer",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "topright",
+            "topleft",
+            "bottomright",
+            "bottomleft",
+            "top",
+            "bottom",
+            "toast",
+            "success",
+            "warning",
+            "error",
+            "info",
+            "iconWrap",
+            "body",
+            "title",
+            "message",
+            "actionBtn",
+            "closeBtn",
+            "progressTrack",
+            "progressBar",
+            "successBar",
+            "warningBar",
+            "errorBar",
+            "infoBar"
+        ],
+        "nativeKey": "src/components/shared/ToastContainer"
+    },
+    {
+        "id": "src/components/shared/Toggle",
+        "label": "Toggle",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "checkbox",
+            "checkboxDisabled",
+            "labelWrap",
+            "hint",
+            "switch",
+            "switchMd",
+            "switchSm",
+            "switchOn",
+            "switchDisabled"
+        ],
+        "nativeKey": "src/components/shared/Toggle"
+    },
+    {
+        "id": "src/components/shared/TokenCountButton",
+        "label": "TokenCountButton",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "button",
+            "value"
+        ],
+        "nativeKey": "src/components/shared/TokenCountButton"
+    },
+    {
+        "id": "src/components/shared/VoicePicker",
+        "label": "VoicePicker",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "picker",
+            "row",
+            "label"
+        ],
+        "nativeKey": "src/components/shared/VoicePicker"
+    },
+    {
+        "id": "src/components/shared/WallpaperLayer",
+        "label": "WallpaperLayer",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "layer",
+            "videoLayer",
+            "fixed"
+        ],
+        "nativeKey": "src/components/shared/WallpaperLayer"
+    },
+    {
+        "id": "src/components/shared/WorldBookEntriesSection",
+        "label": "WorldBookEntriesSection",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "entryListHeader",
+            "entryListHeaderMobile",
+            "entryListTitle",
+            "toolbarActions",
+            "toolbarActionsMobile",
+            "toolbarBtn",
+            "newEntryBtn",
+            "bulkActionBtn",
+            "toolbarBtnActive",
+            "entrySortRow",
+            "entrySortRowMobile",
+            "entrySortSelect",
+            "entryPageSizeSelect",
+            "entrySortDirBtn",
+            "quickSelect",
+            "entrySearchRow",
+            "entrySearchRowMobile",
+            "entrySearch",
+            "entrySearchIcon",
+            "entrySearchInput",
+            "entrySearchCount",
+            "entrySearchClear",
+            "entryTypeFilters",
+            "entryTypeFilter",
+            "entryTypeFilterActive",
+            "entryTypeFilter_constant",
+            "entryTypeFilter_vector",
+            "listOptionsToggle",
+            "listOptionsToggleActive",
+            "listOptionsSummary",
+            "listOptionsChevron",
+            "listOptionsChevronOpen",
+            "customSortHint",
+            "bulkBar",
+            "bulkLeft",
+            "bulkActions",
+            "bulkToggle",
+            "enableToggle",
+            "selectionToggle",
+            "inlineToggle",
+            "bulkCount",
+            "bulkDeleteBtn",
+            "section",
+            "sectionStandaloneScroll",
+            "sectionSharedScroll",
+            "sectionMobile",
+            "entryScroll",
+            "entryScrollShared",
+            "entryList",
+            "entryListItem",
+            "entryPagination",
+            "entryPaginationControls",
+            "entryPaginationDocked",
+            "rowDragging",
+            "entryRow",
+            "entryRowActive",
+            "entryRowDisabled",
+            "entryRowSelected",
+            "entryHeader",
+            "entryLeading",
+            "dragHandle",
+            "moreBtn",
+            "expandBtn",
+            "typeBadgeBtn",
+            "positionBadgeBtn",
+            "dragHandleDisabled",
+            "entryIdentity",
+            "entryComment",
+            "retainedEntryLabel",
+            "entrySearchContext",
+            "entrySearchMark",
+            "entrySearchMarkFuzzy",
+            "entryMeta",
+            "entryBadge",
+            "entryMetaItem",
+            "badgeConstant",
+            "badgeVector",
+            "badgeTrigger",
+            "orderBadge",
+            "tokenCell"
+        ],
+        "nativeKey": "src/components/shared/WorldBookEntriesSection"
+    },
+    {
+        "id": "src/components/shared/WorldBookEntryEditor",
+        "label": "WorldBookEntryEditor",
+        "area": "Shared",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "entryEditor",
+            "compactEntryEditor",
+            "entryFieldGroup",
+            "entryFieldRow",
+            "entryInput",
+            "entrySelect",
+            "entryTextarea",
+            "readOnlyValue",
+            "identityContentSection",
+            "sectionHeading",
+            "identityFields",
+            "contentField",
+            "fieldLabelRow",
+            "entryField",
+            "entryFieldSmall",
+            "fieldLabel",
+            "disclosureSection",
+            "disclosurePanel",
+            "fieldHint",
+            "toggleRow",
+            "vectorStatusRow",
+            "vectorStatusBadge",
+            "vectorStatusNotEnabled",
+            "vectorStatusPending",
+            "vectorStatusIndexed",
+            "vectorStatusError",
+            "vectorStatusText",
+            "inactiveNote",
+            "groupToggle",
+            "groupToggleLabel",
+            "groupToggleSummary",
+            "groupToggleIcon",
+            "groupToggleOpen",
+            "vectorStatusTrigger"
+        ],
+        "nativeKey": "src/components/shared/WorldBookEntryEditor"
+    },
+    {
+        "id": "src/components/spindle/SpindleDockPanel",
+        "label": "SpindleDockPanel",
+        "area": "Spindle",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panel",
+            "resizing",
+            "left",
+            "right",
+            "top",
+            "bottom",
+            "collapsed",
+            "header",
+            "title",
+            "headerBtn",
+            "content",
+            "resizeHandle",
+            "resizeLeft",
+            "resizeRight",
+            "resizeTop",
+            "resizeBottom"
+        ],
+        "nativeKey": "src/components/spindle/SpindleDockPanel"
+    },
+    {
+        "id": "src/components/spindle/SpindleFloatWidget",
+        "label": "SpindleFloatWidget",
+        "area": "Spindle",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "widget",
+            "chromeless",
+            "content",
+            "fullscreen"
+        ],
+        "nativeKey": "src/components/spindle/SpindleFloatWidget"
+    },
+    {
+        "id": "src/components/spindle/SpindleUIControlPanel",
+        "label": "SpindleUIControlPanel",
+        "area": "Spindle",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panel",
+            "header",
+            "headerLabel",
+            "headerActions",
+            "smallBtn",
+            "list",
+            "item",
+            "itemHidden",
+            "itemInfo",
+            "itemLabel",
+            "itemMeta",
+            "toggleBtn"
+        ],
+        "nativeKey": "src/components/spindle/SpindleUIControlPanel"
+    },
+    {
+        "id": "src/components/panels/theme-panel/AccentPicker",
+        "label": "AccentPicker",
+        "area": "Theme",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "picker",
+            "swatches",
+            "swatch",
+            "swatchActive",
+            "customBtn",
+            "customBtnActive",
+            "sliders",
+            "sliderRow",
+            "sliderLabel",
+            "sliderValue",
+            "hueSlider",
+            "satSlider",
+            "lumSlider"
+        ],
+        "nativeKey": "src/components/panels/theme-panel/AccentPicker"
+    },
+    {
+        "id": "src/components/panels/theme-panel/BaseColorPicker",
+        "label": "BaseColorPicker",
+        "area": "Theme",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "container",
+            "swatchRow",
+            "swatchBtn",
+            "swatchCircle",
+            "swatchBtnActive",
+            "swatchLabel",
+            "editingLabel",
+            "canvasWrap",
+            "canvas",
+            "canvasCursor",
+            "hueSliderWrap",
+            "hueThumb",
+            "inputRow",
+            "inputGroup",
+            "inputLabel",
+            "inputField",
+            "actions",
+            "actionBtn"
+        ],
+        "nativeKey": "src/components/panels/theme-panel/BaseColorPicker"
+    },
+    {
+        "id": "src/components/panels/theme-panel/DepthControls",
+        "label": "DepthControls",
+        "area": "Theme",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "controls",
+            "row",
+            "label",
+            "slider",
+            "value",
+            "desktopControls",
+            "colorInput",
+            "select"
+        ],
+        "nativeKey": "src/components/panels/theme-panel/DepthControls"
+    },
+    {
+        "id": "src/components/panels/theme-panel/ExtensionThemes",
+        "label": "ExtensionThemes",
+        "area": "Theme",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "section",
+            "header",
+            "headerIcon",
+            "headerLabel",
+            "list",
+            "card",
+            "swatches",
+            "swatch",
+            "info",
+            "name",
+            "attribution",
+            "badge",
+            "dismissBtn",
+            "varCount"
+        ],
+        "nativeKey": "src/components/panels/theme-panel/ExtensionThemes"
+    },
+    {
+        "id": "src/components/panels/theme-panel/ModeSelector",
+        "label": "ModeSelector",
+        "area": "Theme",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "segmented",
+            "segment",
+            "segmentActive"
+        ],
+        "nativeKey": "src/components/panels/theme-panel/ModeSelector"
+    },
+    {
+        "id": "src/components/panels/theme-panel/PresetGrid",
+        "label": "PresetGrid",
+        "area": "Theme",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "grid",
+            "card",
+            "cardActive",
+            "swatch",
+            "name"
+        ],
+        "nativeKey": "src/components/panels/theme-panel/PresetGrid"
+    },
+    {
+        "id": "src/components/panels/theme-panel/SavedThemes",
+        "label": "SavedThemes",
+        "area": "Theme",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "section",
+            "header",
+            "headerIcon",
+            "headerLabel",
+            "list",
+            "card",
+            "cardActive",
+            "swatch",
+            "info",
+            "name",
+            "nameInput",
+            "attribution",
+            "actions",
+            "iconBtn",
+            "deleteBtn",
+            "emptyHint"
+        ],
+        "nativeKey": "src/components/panels/theme-panel/SavedThemes"
+    },
+    {
+        "id": "src/components/panels/tts-connections/QwenCustomVoiceManager",
+        "label": "QwenCustomVoiceManager",
+        "area": "Tts connections",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panel",
+            "header",
+            "titleBlock",
+            "title",
+            "hint",
+            "createCard",
+            "fileRow",
+            "fileName",
+            "hiddenInput",
+            "list",
+            "voiceCard",
+            "voiceInfo",
+            "voiceNameRow",
+            "voiceName",
+            "voiceBadge",
+            "voiceMeta",
+            "transcript",
+            "voiceActions",
+            "empty"
+        ],
+        "nativeKey": "src/components/panels/tts-connections/QwenCustomVoiceManager"
+    },
+    {
+        "id": "src/components/weaver/ExpressionsPane",
+        "label": "ExpressionsPane",
+        "area": "Weaver",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "pane",
+            "body",
+            "gridCol",
+            "controls",
+            "grid",
+            "cell",
+            "cellCommitted",
+            "cellImgWrap",
+            "cellImg",
+            "cellEmpty",
+            "cellWorking",
+            "cellBadge",
+            "cellBar",
+            "cellLabel",
+            "addRow",
+            "addInput",
+            "gateNote",
+            "mechanismNote",
+            "emptyPane",
+            "emptyFrame"
+        ],
+        "nativeKey": "src/components/weaver/ExpressionsPane"
+    },
+    {
+        "id": "src/components/weaver/ImportPane",
+        "label": "ImportPane",
+        "area": "Weaver",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "root",
+            "body",
+            "center",
+            "centerDrop",
+            "drop",
+            "dropActive",
+            "dropTitle",
+            "dropOr",
+            "formats",
+            "notes",
+            "note",
+            "idband",
+            "idbandIcon",
+            "idbandId",
+            "idbandName",
+            "idbandChips",
+            "idbandSwap",
+            "sect",
+            "sectLabel",
+            "sectCount",
+            "sectEnd",
+            "carry",
+            "carryRow",
+            "carryEmpty",
+            "carryNote",
+            "suggest",
+            "opt",
+            "optText",
+            "optName",
+            "optDesc",
+            "foot",
+            "erow",
+            "erowName",
+            "erowPending",
+            "erowKept",
+            "erowStatus",
+            "erowStatusDone",
+            "erowStatusKept",
+            "runFoot",
+            "runFootNote",
+            "runFootEnd",
+            "hiddenInput"
+        ],
+        "nativeKey": "src/components/weaver/ImportPane"
+    },
+    {
+        "id": "src/components/weaver/PortraitPane",
+        "label": "PortraitPane",
+        "area": "Weaver",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "pane",
+            "body",
+            "canvasCol",
+            "controls",
+            "head",
+            "title",
+            "sub",
+            "canvas",
+            "canvasImg",
+            "preview",
+            "empty",
+            "emptyFrame",
+            "generating",
+            "pulse",
+            "progressText",
+            "stepText",
+            "error",
+            "band",
+            "bandHead",
+            "bandLabel",
+            "suggest",
+            "tags",
+            "adapterRow",
+            "adapterEmpty",
+            "paramGrid",
+            "field",
+            "fieldInline",
+            "fieldLabel",
+            "input",
+            "select",
+            "advancedToggle",
+            "grid",
+            "cell",
+            "cellFocused",
+            "cellCommitted",
+            "committedBadge",
+            "cellActions",
+            "dl",
+            "paneFooter"
+        ],
+        "nativeKey": "src/components/weaver/PortraitPane"
+    },
+    {
+        "id": "src/components/weaver/StudioHome",
+        "label": "StudioHome",
+        "area": "Weaver",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "root",
+            "body",
+            "bodyDimmed",
+            "inner",
+            "sect",
+            "sectShelf",
+            "sectLabel",
+            "sectCount",
+            "sectHint",
+            "rows",
+            "row",
+            "rowMain",
+            "rowTitleLine",
+            "rowTitle",
+            "rowExcerpt",
+            "isEmpty",
+            "isHint",
+            "rowTime",
+            "rowDelete",
+            "card",
+            "shelf",
+            "cardArt",
+            "cardMono",
+            "cardBody",
+            "cardName",
+            "cardLine",
+            "cardMeta",
+            "cardDate",
+            "newAnchor",
+            "menu",
+            "menuHead",
+            "menuLabel",
+            "menuRow",
+            "menuRowText",
+            "menuRowName",
+            "menuRowDesc",
+            "kbd",
+            "menuRowOff"
+        ],
+        "nativeKey": "src/components/weaver/StudioHome"
+    },
+    {
+        "id": "src/components/weaver/WeaverStudio",
+        "label": "WeaverStudio",
+        "area": "Weaver",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "overlay",
+            "shell",
+            "spin",
+            "hdr",
+            "hdrId",
+            "hdrEyebrow",
+            "hdrTitle",
+            "iconBtn",
+            "sq32",
+            "sq28",
+            "sq26",
+            "sq22",
+            "track",
+            "trackSep",
+            "trackStep",
+            "trackReachable",
+            "trackActive",
+            "trackLocked",
+            "panel",
+            "stageHead",
+            "stageHeadL",
+            "stageH",
+            "stageHelp",
+            "spend",
+            "prog",
+            "scroll",
+            "work",
+            "workRail",
+            "workMain",
+            "bandLabel",
+            "bandCount",
+            "bandHint",
+            "railGroupLabel",
+            "railList",
+            "railItem",
+            "railItemActive",
+            "railName",
+            "railNameDim",
+            "railMarker",
+            "railMini",
+            "railMiniCommitted",
+            "railMiniElicit",
+            "railMiniMixed",
+            "railMiniWrite",
+            "railKey",
+            "railKeyRow",
+            "railNote",
+            "homeList",
+            "homeRow",
+            "homeRowMain",
+            "homeRowName",
+            "homeRowMeta",
+            "chooser",
+            "chooserTile",
+            "chooserTileOff",
+            "chooserTileName",
+            "chooserTileDesc",
+            "configRail",
+            "configField",
+            "configLabel",
+            "checkRow",
+            "railLegend",
+            "railLegendRow",
+            "sdot",
+            "sdotPassed",
+            "sdotFlagged",
+            "sdotRendering",
+            "sdotCommitted",
+            "sdotElicit",
+            "sdotMixed",
+            "sdotGenerate",
+            "sdotStale",
+            "sdotNone",
+            "tag",
+            "tagNeutral",
+            "tagWarning",
+            "tagSuccess",
+            "tagRendering",
+            "btn",
+            "btnPrimary"
+        ],
+        "nativeKey": "src/components/weaver/WeaverStudio"
+    },
+    {
+        "id": "src/components/panels/world-book/WorldBookDiagnosticsModal",
+        "label": "WorldBookDiagnosticsModal",
+        "area": "World book",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "backdrop",
+            "modal",
+            "header",
+            "headerCopy",
+            "eyebrow",
+            "title",
+            "subtitle",
+            "headerActions",
+            "secondaryButton",
+            "refreshButton",
+            "closeButton",
+            "secondaryButtonSuccess",
+            "secondaryButtonError",
+            "refreshIconSpinning",
+            "body",
+            "heroCard",
+            "herosuccess",
+            "herowarning",
+            "heroneutral",
+            "heroIcon",
+            "heroContent",
+            "heroTitle",
+            "heroBody",
+            "heroTags",
+            "heroTag",
+            "inlineWarning",
+            "inlineNotice",
+            "inlineNoticeSuccess",
+            "inlineNoticeError",
+            "metricsGrid",
+            "metricCard",
+            "sectionCard",
+            "hitCard",
+            "metricLabel",
+            "metricValue",
+            "metricMeta",
+            "contentGrid",
+            "primaryColumn",
+            "sideColumn",
+            "sectionHeader",
+            "sectionEyebrow",
+            "sectionTitle",
+            "sectionCount",
+            "collapsibleSection",
+            "collapsibleSummary",
+            "collapsibleSummaryCopy",
+            "collapsibleSummaryText",
+            "collapsibleSummaryMeta",
+            "collapsibleChevron",
+            "collapsibleBody",
+            "searchField",
+            "searchIcon",
+            "searchInput",
+            "traceSearchMeta",
+            "scrollPanel",
+            "shortlistScrollPanel",
+            "traceScrollPanel",
+            "scoreGuide",
+            "scoreGuideTitle",
+            "scoreGuideText",
+            "hitList",
+            "hitHeader",
+            "hitText",
+            "hitTitleRow",
+            "hitTitle",
+            "keywordBadge",
+            "rankBadge",
+            "outcomeBadge",
+            "outcomeBadgeSuccess",
+            "outcomeBadgeWarning",
+            "outcomeBadgeMuted",
+            "hitSummary",
+            "hitOutcomeReason",
+            "hitScores",
+            "scorePill",
+            "distancePill",
+            "matchChip",
+            "breakdownChip",
+            "keywordChip",
+            "matchChipRow"
+        ],
+        "nativeKey": "src/components/panels/world-book/WorldBookDiagnosticsModal"
+    },
+    {
+        "id": "src/components/panels/world-book/WorldBookPanel",
+        "label": "WorldBookPanel",
+        "area": "World book",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "panel",
+            "panelScroll",
+            "panelBody",
+            "panelMobile",
+            "panelFooter",
+            "globalSection",
+            "chatSection",
+            "globalPills",
+            "chatPills",
+            "attachmentAccordion",
+            "attachmentAccordionExpanded",
+            "attachmentAccordionHeader",
+            "attachmentAccordionStart",
+            "attachmentAccordionIconBadge",
+            "attachmentAccordionGlobal",
+            "attachmentAccordionChat",
+            "attachmentAccordionLabel",
+            "attachmentAccordionCount",
+            "attachmentAccordionPreview",
+            "attachmentAccordionPreviewChip",
+            "attachmentAccordionPreviewMore",
+            "attachmentAccordionPreviewChipGlobal",
+            "attachmentAccordionPreviewChipChat",
+            "attachmentAccordionEmpty",
+            "attachmentAccordionChevron",
+            "attachmentAccordionBody",
+            "attachmentAccordionActions",
+            "globalHeader",
+            "globalIcon",
+            "globalLabel",
+            "bookPickerSelect",
+            "exportWrapper",
+            "exportPopover",
+            "exportPopoverItem",
+            "globalPill",
+            "globalPillName",
+            "globalPillRemove",
+            "globalHint",
+            "chatSectionDisabled",
+            "chatHeader",
+            "chatIcon",
+            "chatLabel",
+            "chatPill",
+            "chatPillName",
+            "chatPillRemove",
+            "chatHint",
+            "topBar",
+            "topBarMobile",
+            "bookSelectWrapper",
+            "mobileTopActions",
+            "sourceBadge",
+            "chevron",
+            "chevronOpen",
+            "bookFields",
+            "bookFieldsMobile",
+            "bookSourceNote",
+            "bookSourceIcon",
+            "fieldGroup",
+            "fieldLabel",
+            "fieldInput",
+            "bookActionRow",
+            "vectorSummary",
+            "vectorSummaryTitle",
+            "vectorSummaryGrid",
+            "vectorStatusText",
+            "bulkSemanticToggle",
+            "bulkSemanticCheckbox",
+            "bulkSemanticBody",
+            "bulkSemanticTitle",
+            "bulkSemanticMeta",
+            "bulkSemanticHint",
+            "diagnosticsCard",
+            "diagnosticsHeader",
+            "diagnosticsSummary",
+            "diagnosticsMeta",
+            "diagnosticsQuery",
+            "diagnosticsBlockers",
+            "diagnosticsBlocker",
+            "diagnosticsSectionLabel",
+            "diagnosticsHits"
+        ],
+        "nativeKey": "src/components/panels/world-book/WorldBookPanel"
+    },
+    {
+        "id": "src/components/panels/world-book/WorldBookTokenReportModal",
+        "label": "WorldBookTokenReportModal",
+        "area": "World book",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "header",
+            "title",
+            "subtitle",
+            "body",
+            "summary",
+            "note",
+            "approximation",
+            "empty",
+            "error",
+            "loading",
+            "entries",
+            "accordion",
+            "entry",
+            "chevron",
+            "entryLabel",
+            "count",
+            "disabled",
+            "content"
+        ],
+        "nativeKey": "src/components/panels/world-book/WorldBookTokenReportModal"
+    },
+    {
+        "id": "src/components/world-book-editor/LorebookEditorLayout",
+        "label": "LorebookEditorLayout",
+        "area": "World-book-editor",
+        "sources": [
+            "css"
+        ],
+        "selectors": [],
+        "cssClasses": [
+            "body",
+            "halfScreenHost",
+            "workspace",
+            "workspaceHeader",
+            "paneTitle",
+            "headerIdentity",
+            "headerActions",
+            "searchField",
+            "listActions",
+            "displayToggle",
+            "bulkBar",
+            "halfBookPickerTrigger",
+            "primaryButton",
+            "panes",
+            "booksPane",
+            "entriesPane",
+            "inspectorPane",
+            "splitter",
+            "paneTitleLabel",
+            "paneTitleCount",
+            "selectAllBox",
+            "paneTitleActions",
+            "entriesToolbar",
+            "halfBookPicker",
+            "toolbarToggle",
+            "toolbarToggleActive",
+            "typeFilterRow",
+            "typeFilterChip",
+            "typeFilterChipActive",
+            "trigger_constant",
+            "trigger_keyword",
+            "trigger_vector",
+            "entrySearchCount",
+            "entrySearchClear",
+            "scrollList",
+            "bookRow",
+            "entryRow",
+            "activeRow",
+            "bottomAction",
+            "entryTableHeader",
+            "entryTableRegion",
+            "offsetTop",
+            "entryTableContent",
+            "e",
+            "entryTableLead",
+            "entrySelectionNotice",
+            "enabledHeader",
+            "rowEnabled",
+            "rowKeys",
+            "rowTokens",
+            "entryScrollList",
+            "entryVirtualRow",
+            "getTotalSize",
+            "entryVirtualSpacer",
+            "entryName",
+            "entryNameText",
+            "entrySearchSnippet",
+            "entrySearchSnippetText",
+            "entrySearchMark",
+            "entrySearchMarkFuzzy",
+            "entryDragHandle",
+            "entrySortableDragging",
+            "triggerBadge",
+            "rowNumberInput",
+            "rowTypeControl",
+            "rowTypeSelect",
+            "conflictBanner",
+            "empty",
+            "emptyActions",
+            "halfWorkspace",
+            "module",
+            "css",
+            "trigger",
+            "halfResizeHandle"
+        ],
+        "nativeKey": "src/components/world-book-editor/LorebookEditorLayout"
+    },
+    {
+        "id": "src/components/world-book-editor/LorebookHalfScreenEditor",
+        "label": "LorebookHalfScreenEditor",
+        "area": "World-book-editor",
+        "sources": [
+            "css",
+            "tsx"
+        ],
+        "selectors": [
+            "[data-component=\"LorebookHalfScreenEditor\"]"
+        ],
+        "cssClasses": [
+            "module",
+            "css",
+            "chatColumn",
+            "halfScreenHost",
+            "body",
+            "halfResizeHandle",
+            "container",
+            "chatToolbar",
+            "frame",
+            "halfFloatingFrame",
+            "test",
+            "ts"
+        ],
+        "nativeKey": "src/components/world-book-editor/LorebookHalfScreenEditor"
+    }
+];
+exports.GENERATED_NATIVE_VARIABLES = {
+    "--lumiverse-primary": "rgba(147, 112, 219, 0.9)",
+    "--lumiverse-primary-hover": "rgba(167, 132, 239, 0.95)",
+    "--lumiverse-primary-light": "rgba(147, 112, 219, 0.1)",
+    "--lumiverse-primary-muted": "rgba(147, 112, 219, 0.6)",
+    "--lumiverse-primary-text": "rgba(186, 135, 255, 0.95)",
+    "--lumiverse-primary-010": "rgba(147, 112, 219, 0.1)",
+    "--lumiverse-primary-015": "rgba(147, 112, 219, 0.15)",
+    "--lumiverse-primary-020": "rgba(147, 112, 219, 0.2)",
+    "--lumiverse-primary-050": "rgba(147, 112, 219, 0.5)",
+    "--lumiverse-primary-deep": "rgb(26 20 39)",
+    "--lumiverse-primary-deep-hover": "rgb(38 29 57)",
+    "--lumiverse-primary-deep-contrast": "hsl(273, 30%, 95%)",
+    "--lumiverse-secondary": "rgba(128, 128, 128, 0.15)",
+    "--lumiverse-secondary-hover": "rgba(128, 128, 128, 0.25)",
+    "--lumiverse-secondary-border": "rgba(128, 128, 128, 0.25)",
+    "--lumiverse-danger": "#ef4444",
+    "--lumiverse-danger-hover": "#dc2626",
+    "--lumiverse-danger-015": "rgba(239, 68, 68, 0.15)",
+    "--lumiverse-danger-020": "rgba(239, 68, 68, 0.2)",
+    "--lumiverse-danger-050": "rgba(239, 68, 68, 0.5)",
+    "--lumiverse-success": "#22c55e",
+    "--lumiverse-success-015": "rgba(34, 197, 94, 0.15)",
+    "--lumiverse-success-020": "rgba(34, 197, 94, 0.2)",
+    "--lumiverse-success-050": "rgba(34, 197, 94, 0.5)",
+    "--lumiverse-warning": "#f59e0b",
+    "--lumiverse-warning-015": "rgba(245, 158, 11, 0.15)",
+    "--lumiverse-warning-020": "rgba(245, 158, 11, 0.2)",
+    "--lumiverse-warning-050": "rgba(245, 158, 11, 0.5)",
+    "--lumiverse-error": "var(--lumiverse-danger)",
+    "--lumiverse-bg": "rgba(28, 24, 38, 0.95)",
+    "--lumiverse-bg-elevated": "rgba(35, 30, 48, 0.9)",
+    "--lumiverse-bg-hover": "rgba(45, 40, 58, 0.9)",
+    "--lumiverse-bg-dark": "rgba(0, 0, 0, 0.15)",
+    "--lumiverse-bg-darker": "rgba(0, 0, 0, 0.25)",
+    "--lumiverse-bg-040": "rgba(28, 24, 38, 0.4)",
+    "--lumiverse-bg-050": "rgba(28, 24, 38, 0.5)",
+    "--lumiverse-bg-070": "rgba(28, 24, 38, 0.7)",
+    "--lumiverse-bg-elevated-040": "rgba(35, 30, 48, 0.4)",
+    "--lumiverse-bg-deep-080": "rgba(20, 17, 28, 0.8)",
+    "--lumiverse-scene-text-scrim": "rgba(7, 9, 16, 0.46)",
+    "--lumiverse-border": "rgba(147, 112, 219, 0.12)",
+    "--lumiverse-border-hover": "rgba(147, 112, 219, 0.25)",
+    "--lumiverse-border-light": "rgba(128, 128, 128, 0.12)",
+    "--lumiverse-text": "rgba(255, 255, 255, 0.9)",
+    "--lumiverse-text-muted": "rgba(255, 255, 255, 0.65)",
+    "--lumiverse-text-dim": "rgba(255, 255, 255, 0.4)",
+    "--lumiverse-text-hint": "rgba(255, 255, 255, 0.3)",
+    "--lumiverse-radius-sm": "5px",
+    "--lumiverse-radius": "8px",
+    "--lumiverse-radius-md": "10px",
+    "--lumiverse-radius-lg": "12px",
+    "--lumiverse-radius-xl": "16px",
+    "--lumiverse-shadow": "0 4px 6px -1px rgba(0, 0, 0, 0.3)",
+    "--lumiverse-shadow-sm": "0 2px 8px rgba(0, 0, 0, 0.2)",
+    "--lumiverse-shadow-md": "0 8px 24px rgba(0, 0, 0, 0.4)",
+    "--lumiverse-shadow-lg": "0 24px 80px rgba(0, 0, 0, 0.5), 0 0 1px rgba(147, 112, 219, 0.3)",
+    "--lumiverse-shadow-xl": "0 20px 60px rgba(0, 0, 0, 0.5)",
+    "--lumiverse-highlight-inset": "inset 0 1px 0 rgba(255, 255, 255, 0.1)",
+    "--lumiverse-highlight-inset-md": "inset 0 1px 0 rgba(255, 255, 255, 0.2)",
+    "--lumiverse-highlight-inset-lg": "inset 0 1px 0 rgba(255, 255, 255, 0.25)",
+    "--lumiverse-modal-backdrop": "rgba(0, 0, 0, 0.6)",
+    "--lumiverse-swatch-border": "rgba(255, 255, 255, 0.15)",
+    "--lumiverse-gradient-modal": "linear-gradient(135deg, rgba(35, 30, 48, 0.98), rgba(20, 17, 28, 0.98))",
+    "--lumiverse-icon": "rgba(255, 255, 255, 0.9)",
+    "--lumiverse-icon-muted": "rgba(255, 255, 255, 0.6)",
+    "--lumiverse-icon-dim": "rgba(255, 255, 255, 0.4)",
+    "--lumiverse-fill-subtle": "rgba(0, 0, 0, 0.1)",
+    "--lumiverse-fill": "rgba(0, 0, 0, 0.15)",
+    "--lumiverse-fill-hover": "rgba(0, 0, 0, 0.2)",
+    "--lumiverse-fill-medium": "rgba(0, 0, 0, 0.25)",
+    "--lumiverse-fill-strong": "rgba(0, 0, 0, 0.3)",
+    "--lumiverse-fill-heavy": "rgba(0, 0, 0, 0.5)",
+    "--lumiverse-fill-deepest": "rgba(0, 0, 0, 0.7)",
+    "--lumiverse-card-bg": "linear-gradient(165deg, rgba(28, 24, 38, 1) 0%, rgba(24, 20, 34, 1) 50%, rgba(20, 17, 30, 1) 100%)",
+    "--lumiverse-card-bg-solid": "rgb(24, 20, 34)",
+    "--lumiverse-card-bg-top": "rgb(28, 24, 38)",
+    "--lumiverse-card-bg-bottom": "rgb(20, 17, 30)",
+    "--lumiverse-card-image-bg": "linear-gradient(135deg, rgba(20, 17, 28, 1) 0%, rgba(28, 22, 40, 1) 100%)",
+    "--lumiverse-border-neutral": "rgba(128, 128, 128, 0.15)",
+    "--lumiverse-border-neutral-hover": "rgba(128, 128, 128, 0.25)",
+    "--lumiverse-transition": "200ms ease",
+    "--lumiverse-transition-fast": "150ms ease",
+    "--lumiverse-btn-icon": "32px",
+    "--lumiverse-btn-icon-sm": "28px",
+    "--lumiverse-btn-icon-xs": "22px",
+    "--lumiverse-btn-tab": "32px",
+    "--lumiverse-font-family": "-apple-system, BlinkMacSystemFont, \"SF Pro Text\", \"Segoe UI\", sans-serif",
+    "--lumiverse-font-mono": "\"SF Mono\", \"Menlo\", \"Monaco\", \"Consolas\", monospace",
+    "--lumiverse-bg-deep": "rgba(10, 8, 18, 1)",
+    "--lumiverse-font-scale": "1",
+    "--lumiverse-ui-scale": "1",
+    "--lumiverse-prose-italic": "var(--lumiverse-text-muted)",
+    "--lumiverse-prose-bold": "inherit",
+    "--lumiverse-prose-dialogue": "var(--lumiverse-primary-text)",
+    "--lumiverse-prose-blockquote": "var(--lumiverse-text-muted)"
+};
+exports.GENERATED_NATIVE_SOURCE = {
+    "lumiverseVersion": "1.1.6",
+    "generatedAt": 1787026118501
+};
+};
+__modules['nativeBridge/index.js'] = function(module,exports,require){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -2417,9 +10455,8 @@ __exportStar(require("./capabilities"), exports);
 __exportStar(require("./components"), exports);
 __exportStar(require("./themes"), exports);
 __exportStar(require("./variables"), exports);
-
-},
-"src/nativeBridge/theme-runtime.ts": function(module, exports, require) {
+};
+__modules['nativeBridge/theme-runtime.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ThemeRuntimeBridge = void 0;
@@ -3060,9 +11097,8 @@ class ThemeRuntimeBridge {
     }
 }
 exports.ThemeRuntimeBridge = ThemeRuntimeBridge;
-
-},
-"src/nativeBridge/themes.ts": function(module, exports, require) {
+};
+__modules['nativeBridge/themes.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.projectToNativeDraft = projectToNativeDraft;
@@ -3111,9 +11147,8 @@ async function importLumitheme(ctx, bytes) {
 async function sendToLumiverse(ctx, draft, saveToLibrary = true) {
     return ctx.theme.packs.installDraft(draft, { apply: true, saveToLibrary });
 }
-
-},
-"src/nativeBridge/variables.ts": function(module, exports, require) {
+};
+__modules['nativeBridge/variables.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.listNativeThemeVariables = listNativeThemeVariables;
@@ -3142,9 +11177,8 @@ function findKnownThemeVariable(variables, value) {
     const normalized = value.replaceAll(' ', '').toLowerCase();
     return variables.find((entry) => entry.value?.replaceAll(' ', '').toLowerCase() === normalized);
 }
-
-},
-"src/presets/common-parts.ts": function(module, exports, require) {
+};
+__modules['presets/common-parts.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.COMMON_PART_PRESETS = exports.COMMON_PART_CATEGORIES = exports.KNOWN_PART_ROLES = void 0;
@@ -6035,9 +14069,8 @@ function presetRoles(preset) {
     const ids = [...preset.steps.map((step) => step.role), ...(preset.groups ?? []).flatMap((group) => [group.parentRole, ...group.memberRoles])];
     return [...new Set(ids)].map((id) => exports.KNOWN_PART_ROLES[id]);
 }
-
-},
-"src/presets/message-anatomy.ts": function(module, exports, require) {
+};
+__modules['presets/message-anatomy.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MESSAGE_LAYOUT_AUDITS = void 0;
@@ -6119,9 +14152,8 @@ function mountedMessageRole(layout, role) {
     }
     return null;
 }
-
-},
-"src/presets/ornaments.ts": function(module, exports, require) {
+};
+__modules['presets/ornaments.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BUILTIN_ORNAMENTS = void 0;
@@ -6158,9 +14190,8 @@ exports.BUILTIN_ORNAMENTS = [
 function builtinOrnament(id) {
     return exports.BUILTIN_ORNAMENTS.find((entry) => entry.id === id);
 }
-
-},
-"src/presets/style-library.ts": function(module, exports, require) {
+};
+__modules['presets/style-library.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.STYLE_LIBRARY_AREAS = exports.STYLE_LIBRARY_PACKS = exports.STYLE_LIBRARY_RECIPES = void 0;
@@ -6486,9 +14517,8 @@ function packDefaultPresetIdsForLayout(pack, layout = 'all') {
 }
 function packForId(id) { return exports.STYLE_LIBRARY_PACKS.find((pack) => pack.id === id); }
 function recipeMetaForId(id) { return exports.STYLE_LIBRARY_RECIPES.find((entry) => entry.preset.id === id); }
-
-},
-"src/preview/image-source-runtime.ts": function(module, exports, require) {
+};
+__modules['preview/image-source-runtime.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ImageSourceRuntime = void 0;
@@ -6786,9 +14816,8 @@ class ImageSourceRuntime {
     }
 }
 exports.ImageSourceRuntime = ImageSourceRuntime;
-
-},
-"src/preview/live-stylesheet.ts": function(module, exports, require) {
+};
+__modules['preview/live-stylesheet.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LiveStylesheet = void 0;
@@ -6918,9 +14947,8 @@ class LiveStylesheet {
     }
 }
 exports.LiveStylesheet = LiveStylesheet;
-
-},
-"src/project/migrations.ts": function(module, exports, require) {
+};
+__modules['project/migrations.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.normalizePacket = normalizePacket;
@@ -7581,9 +15609,8 @@ function normalizeState(value) {
     const requested = string(value.activeProjectId);
     return { version: model_1.STATE_VERSION, activeProjectId: projects.some((entry) => entry.id === requested) ? requested : projects[0].id, projects, savedStyles: (Array.isArray(value.savedStyles) ? value.savedStyles : []).map(savedStyleBundle).filter((entry) => entry !== null) };
 }
-
-},
-"src/project/model.ts": function(module, exports, require) {
+};
+__modules['project/model.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.normalizeComposerSvgSource = exports.COMPOSER_ICON_ACTIONS = exports.MOBILE_BREAKPOINT_PX = exports.RESPONSIVE_SCOPES = exports.STYLE_STATES = exports.STATE_VERSION = exports.PROJECT_VERSION = void 0;
@@ -7733,9 +15760,8 @@ function stateInheritanceSummary(override, state) {
     const explicitSet = new Set(explicit);
     return { inherited: state === 'normal' ? [] : override.states.normal.map((packet) => packet.type).filter((type) => !explicitSet.has(type)), explicit };
 }
-
-},
-"src/project/persistence.ts": function(module, exports, require) {
+};
+__modules['project/persistence.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProjectPersistence = void 0;
@@ -7820,9 +15846,8 @@ class ProjectPersistence {
     }
 }
 exports.ProjectPersistence = ProjectPersistence;
-
-},
-"src/project/reverse-engineer.ts": function(module, exports, require) {
+};
+__modules['project/reverse-engineer.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.collectAuthoredSources = collectAuthoredSources;
@@ -8406,9 +16431,8 @@ function reverseEngineerElement(element, pseudo = '') {
     }
     return { packets, authoredProperties: [...authored].sort(), usedComputedFallback: fallback, sources: collectAuthoredSources(element, pseudo) };
 }
-
-},
-"src/project/smart-invert.ts": function(module, exports, require) {
+};
+__modules['project/smart-invert.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.smartInvertColor = smartInvertColor;
@@ -8517,9 +16541,8 @@ function synthesizeSmartInvertPackets(presentation, config) {
     return result;
 }
 function invertBoostColor(value, role, config) { return { ...value, color: smartInvertColor(value.color, role, config) }; }
-
-},
-"src/project/store.ts": function(module, exports, require) {
+};
+__modules['project/store.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProjectStore = void 0;
@@ -8953,9 +16976,8 @@ class ProjectStore {
         listener(this.state); }
 }
 exports.ProjectStore = ProjectStore;
-
-},
-"src/project/values.ts": function(module, exports, require) {
+};
+__modules['project/values.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.finite = finite;
@@ -8992,9 +17014,8 @@ function compileDimension(value) {
     const number = Math.round(finite(value.value, 0) * 1000) / 1000;
     return `${number}${value.unit}`;
 }
-
-},
-"src/registry/layout-context.ts": function(module, exports, require) {
+};
+__modules['registry/layout-context.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.inspectLayoutContext = inspectLayoutContext;
@@ -9030,9 +17051,8 @@ function detectSizeController(element, scopes = []) {
     }
     return undefined;
 }
-
-},
-"src/registry/selector-resolver.ts": function(module, exports, require) {
+};
+__modules['registry/selector-resolver.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.normalizeCssModuleClass = normalizeCssModuleClass;
@@ -10044,9 +18064,8 @@ function resolveCatalogComponent(component, root = document) {
         component, breadcrumb: [component], candidates: ranked.length ? ranked : [recommended], recommended, element: mountedElement, tagName: mountedElement?.tagName.toLowerCase(),
     };
 }
-
-},
-"src/registry/selector-utils.ts": function(module, exports, require) {
+};
+__modules['registry/selector-utils.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.composeContextSelector = composeContextSelector;
@@ -10220,21 +18239,18 @@ function evaluateSelectorHealth(selector, root = document, broadThreshold = 100)
         return { selector, matchCount: 0, status: 'invalid' };
     }
 }
-
-},
-"src/registry/types.ts": function(module, exports, require) {
+};
+__modules['registry/types.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-
-},
-"src/ui/guide.ts": function(module, exports, require) {
+};
+__modules['ui/guide.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.THEME_STUDIO_GUIDE = void 0;
-exports.THEME_STUDIO_GUIDE = "# Palette\n\n> **Visual theme authoring for Lumiverse.** Pick the thing you mean, describe the visual intent, and Palette turns it into scoped, reusable CSS. Generated CSS is output; your semantic Palette project is the source of truth.\n\n**Palette 1.0.2 · schema v42**  \nRelease history lives in the project changelog; this page is the actual manual.\n\n**Jump to:** [Start here](#palette-guide-start) · [Pick & scope](#palette-guide-pick) · [Style packets](#palette-guide-packets) · [Groups](#palette-guide-groups) · [Read styles](#palette-guide-read) · [Reuse](#palette-guide-reuse) · [Boost](#palette-guide-boost) · [Widget & Code](#palette-guide-code) · [CSS field guide](#palette-guide-css) · [Debugging](#palette-guide-debug)\n\n## Start here\n\nPalette is easiest to understand as **visual DevTools with memory**. It knows enough about Lumiverse anatomy to avoid making you write selectors for normal work, but it never traps advanced users inside a black box.\n\n| Workspace | What it is for |\n| --- | --- |\n| **Design** | Pick a real mounted element and author semantic style packets. |\n| **Themes** | App-wide Boost, Typography, Quick Looks, pack workbenches, and theme projects. |\n| **Style Library** | Browse reusable looks and your cross-project **My Styles**. |\n| **Code** | Inspect compiler-owned CSS, add Custom CSS, and use native `.lumitheme` handoff. |\n\nA normal workflow is:\n\n1. Open **Design** and turn on **Pick**.\n2. Click the thing you actually want to change.\n3. Use the breadcrumb, **Edit Part**, or **Browse Inside** if Lumi wrapped your target in three divs and a trench coat.\n4. Add packets such as Background, Typography, Size, Image, or Position.\n5. Switch **Base / Mobile** or **Normal / Hover / Active / Focus / Disabled** when needed.\n6. Save the result as a **My Style**, keep building the current theme, or inspect the generated CSS in **Code**.\n\n> **Rule of thumb:** if you are reaching for Custom CSS during ordinary styling, first ask whether Palette already has a visual packet for that intent. The packet is safer, responsive, reusable, and pack-aware.\n\n## Pick & scope\n\n### Pick stays armed\n\nThe main Design picker stays active until **Done** or **Esc**. This makes it practical to inspect several nearby pieces without reopening the picker every time. The floating mini-widget uses a lighter one-shot picking flow so it does not become a tiny second DevTools.\n\nPalette separates four things that browsers often blur together:\n\n| Layer | Example | Why it matters |\n| --- | --- | --- |\n| **Clicked node** | the exact `<img>` under your cursor | What you physically picked. |\n| **DOM ladder** | Image → Avatar → Header Left → Header → Bubble | How the mounted tree is built. |\n| **Semantic owner** | BubbleMessage / Personas / InputArea | Which Lumiverse surface owns it. |\n| **Persistent scope** | Avatar in BubbleMessage | What future rerenders should keep styling. |\n\n### Edit Part vs Browse Inside\n\n**Edit Part** is the curated semantic map of useful parts for the current component. It is where you go when you know you want *Avatar*, *Meta Wrap*, *Actions*, *Message Content*, and similar authored pieces.\n\n**Browse Inside** follows the actual mounted subtree. Use it when the thing you need is deeper, conditional, or too weird to belong in the curated list.\n\nThey intentionally do not show the same list.\n\n### Dynamic labels and Use generic\n\nInteractive controls sometimes need their live `aria-label` or `title` to distinguish one mounted button from its siblings. Palette may therefore select something precise such as `button[aria-label=\"Copy\"]`. When the target panel offers **Use generic**, that is an explicit escape hatch to the reusable sibling selector (for example the whole Minimal action-button group). The switch is exact and keeps the current message side; it should not bounce back to the label-specific target.\n\nThis is useful when one button taught you the styling recipe but the intent is really “all buttons in this row.” Keep the precise target when the buttons genuinely need different appearances.\n\n### Stable selectors beat generated hashes\n\nPalette prefers public semantic boundaries such as:\n\n```css\n[data-component=\"BubbleMessage\"]\n[data-component=\"InputArea\"]\n[data-spindle-drawer-tab=\"personas\"]\n[data-composer-action=\"send\"]\n```\n\nThen it can narrow to a stable CSS-module family:\n\n```css\n[data-component=\"BubbleMessage\"] [class*=\"_avatar_\"]\n```\n\ninstead of persisting an exact generated class such as:\n\n```css\n._avatar_1hvlc_181\n```\n\nGenerated hashes can change. The family selector communicates the actual visual part.\n\n### Assistant, User, and Both\n\nMessage targets can be side-aware. When Lumi shares internal classes between both sides, Palette keeps the side discriminator in the selector instead of pretending one `_avatar_` means every avatar in civilization.\n\nTypical shapes:\n\n```css\n/* Assistant */\n[data-component=\"BubbleMessage\"]:not([data-part=\"user\"]) [class*=\"_avatar_\"]\n\n/* User */\n[data-component=\"BubbleMessage\"][data-part=\"user\"] [class*=\"_avatar_\"]\n```\n\nUse **Both** only when you actually want the same treatment on both speakers. In Design, Both is a real combined scope rather than shorthand for the speaker you clicked first: its editable stack represents styling common to the mounted Assistant/User branches, and new edits persist against the combined selector. One-sided authored packets remain available from their Assistant or User facet instead of masquerading as Both.\n\n### Surface means the real thing, not just its box\n\nMany Lumi parts have multiple useful surfaces:\n\n- Element\n- `::before` / Back layer\n- `::after` / Front layer\n- `::placeholder` when the mounted control actually has placeholder text\n\nGenerated surfaces are useful for labels, ornaments, stickers, frames, SVG stencils, and other decorative planes without inserting DOM.\n\n## Style packets\n\nPalette packets describe intent. You should not need to remember the CSS property names for ordinary work.\n\n| Packet | Think of it as | Common CSS underneath |\n| --- | --- | --- |\n| **Background** | paint the surface | `background`, gradients, images |\n| **Ink** | visual ink for text, glyphs, and current-color graphics | `color`, gradient fill, stroke, shadow/glow |\n| **Typography** | type structure | family, size, weight, line-height, spacing |\n| **Text Entry** | where typing starts + how it measures | textarea inset/metrics + synchronized autosize mirror + placeholder appearance |\n| **Border / Corners** | edge treatment | border longhands, radius |\n| **Spacing** | breathing room | padding + margin |\n| **Shadow / Glass** | depth/material | shadow, blur, backdrop-filter |\n| **Opacity** | fade the entire target | `opacity` |\n| **Container Layout** | arrange direct children | flex/grid, gap, distribute, align |\n| **Quick Align** | put this element where you mean | logical auto margins + safe self-alignment |\n| **Layout Item** | advanced behavior inside Flex/Grid | grow/shrink, order, self-alignment |\n| **Size** | fit, fill, or fix the box | width/height/min/max |\n| **Image** | crop and treat media pixels | source quality, object-fit, object-position, filter |\n| **Mask** | fade or clip a visual surface | mask-image, multi-edge masks, compositing |\n| **Media Flow** | make prose/native media behave | natural height, unclipping, full-width flow |\n| **Position & Layer** | move/place/stack | translate, anchored position, sticky/fixed, z-index |\n| **Transform** | pose it | rotate, scale, skew |\n| **Background Image** | decorative image layer | background-image/position/size |\n| **Visibility** | visible / hidden / gone | visibility/display |\n| **Generated Content** | label a generated surface | CSS `content` on `::after` / explicit pseudo surfaces |\n| **SVG Asset** | reusable icon/ornament | sanitized project SVG stencil |\n\n### Image, Mask, and Ink are separate jobs\n\n**Image** is for media treatment: source quality, brightness/saturation/contrast and other tone controls, crop/fit, and focal position. It stays an Image packet even when the semantic Palette target is a wrapper; use **Browse Inside** when object-fit/object-position must land on the actual media leaf.\n\n**Mask** is surface geometry, not an image-only effect. Use it to preserve the native mask, clear masking, add a directional/radial fade, or build multi-edge custom masks. Because Mask is independent, it can style ordinary wrappers, generated surfaces, media, and other CSS-mask-capable targets without pretending they are images.\n\n**Ink** is the renamed visual-paint packet formerly shown as **Text Style**. The persisted packet type remains compatible with older projects, but the UI name reflects what it really does: solid/gradient color, stroke/outline, and glow for text, icon glyphs, SVG/currentColor surfaces, and similar painted marks. Typography remains responsible for type structure such as family, size, weight, line-height, spacing, and case.\n\nSchema v42 migrates pre-v42 combined Image packets automatically. A legacy Image that owned both tone/crop settings and a mask is normalized into sibling **Image + Mask** packets on the same target/state, including recipe provenance, so old themes keep their rendered intent while new edits use the clearer taxonomy.\n\nColor-bearing packets always expose a real **Pick** swatch beside the editable color string. **Recents** are convenience history, not the only way to open a picker; pack-authored colors therefore remain editable even when they were never picked manually in the current project. Independent Corners are arranged spatially as top-left / top-right over bottom-left / bottom-right, matching the box you are actually shaping.\n\n### Text outlines: Edge vs Outside\n\n**Edge** uses the browser glyph stroke and is fast/clean for thin lettering. **Outside** is the \"do not eat my fill\" option: Palette manufactures a crisp ring of zero-blur text shadows behind the glyph and exposes it through the same Thickness / Color / Opacity controls. Your ordinary directional text shadow can still coexist with that outline.\n\n### Generated Content can mirror native labels\n\nGenerated Content can use a literal string, or mirror the owner's existing `title` / `aria-label` through CSS `attr(...)`. If you add it to a normal element, Palette automatically emits the content on that element's `::after` skin because Chromium does not reliably render `content` on ordinary elements. If you explicitly selected Back/Front, Palette keeps that pseudo-surface. This is useful for skins that replace a native icon with text while keeping the actual button as the semantic/layout target.\n\nPseudo-elements are generated surfaces, not DOM siblings. If several labeled buttons need even distribution, group/style the **real buttons** and use their `::before`/`::after` only as visual skins.\n\n### Quick Align: say where, not how\n\nUse **Quick Align** when your intent is simply “put this on the left / center / right” (or the vertical equivalent). Palette resolves that intent through layout-safe CSS instead of making you memorize when `align-self`, `justify-self`, or auto margins happen to work.\n\nFor ordinary horizontal placement, Palette uses logical auto margins and `fit-content`, so it works in normal block flow as well as common Flex/Grid contexts:\n\n```css\n/* Right */\nwidth: fit-content;\nmargin-inline-start: auto;\nmargin-inline-end: 0;\n```\n\nAn explicit **Size** packet still wins if you deliberately set Width, so Quick Align does not silently undo authored sizing. Vertical placement can use Flex/Grid alignment when that layout exists; Palette warns when a plain block parent has no free vertical space to distribute. Use **Position & Layer** when you need a pinned top/bottom relationship instead.\n\n**Quick Align** is the friendly placement primitive. **Layout Item** remains the advanced control for grow/shrink/order and raw Flex/Grid self-alignment.\n\n### Spacing: simple first, per-side when you need it\n\nSpacing keeps **Padding** and **Margin** as fast linked sliders for normal work. Open **Advanced padding** or **Advanced margin** directly underneath when one side needs a different value; Palette exposes Top / Right / Bottom / Left there and leaves the other sides alone. Moving the main slider afterward deliberately links all four sides again. Negative values are allowed for margin, not padding.\n\n### Text Entry: move the typing origin honestly\n\nUse **Text Entry** on the mounted composer textarea when the intent is simply “typing should begin here.” Horizontal/vertical inset moves entered text and the placeholder together, while font metrics stay synchronized with Lumiverse's hidden textarea mirror so auto-height measurement does not drift.\n\nPalette deliberately keeps two responsibilities separate:\n\n- **Text inset + metrics** belong to the textarea and its hidden autosize mirror.\n- **Placeholder appearance** (ink, opacity, italic/weight) belongs only to `textarea::placeholder`.\n\nThat means Palette does **not** fake placeholder placement with transforms or pseudo positioning. If the placeholder is annoyingly glued to the upper-left corner, change Text Entry inset; the real typed text will start in the same honest place.\n\n### Size: Fit, Fill, Fixed\n\nUse **Fit** when the box should hug its content. Use **Fill** when it should claim the available space. Use **Fixed** when you really want a number.\n\nIf Fill appears not to fill anything, inspect the parent. A flex/grid child can only fill the space its parent actually gives it.\n\n### Position: Nudge vs Anchored\n\n**Nudge** is visual movement that keeps the native layout contract intact. It compiles as translation and is excellent for “this is correct, just 12px too high.”\n\n**Anchored** means Palette owns the positioning relationship: top/right/bottom/left relative to a chosen containing block.\n\nUse Nudge when Lumi already knows where an element belongs. Use Anchored when you are intentionally building a new composition.\n\n### Image: wrapper vs image\n\nThis distinction saves hours.\n\n```css\n/* Avatar frame / wrapper */\n[data-component=\"BubbleMessage\"] [class*=\"_avatar_\"]\n\n/* Pixels inside that frame */\n[data-component=\"BubbleMessage\"] [class*=\"_avatar_\"] img\n\n/* Large native ghost/backdrop image — different target */\n[data-component=\"BubbleMessage\"] [class*=\"_avatarBgImg_\"]\n```\n\nResize the wrapper when you need a larger stage. Use **Image → Move inside frame** when the frame is correct and only the crop/focal point is wrong.\n\n### Media Flow\n\nLumiverse prose images and native attachments are not the same DOM species. Palette treats both lanes deliberately:\n\n**Markdown/XML lane**  \nimage paragraph → linked/span wrapper → image\n\n**Native attachment lane**  \nattachments → inline image button → inline image frame → inline image\n\nUse **Full width** or **Unclipped** when native thumbnail chrome is fighting an authored reading layout. Do not solve every media problem with a global `img { width:100% }` missile.\n\n### Guides\n\n**Guides → Smart** follows the active packet:\n\n- Spacing → box model\n- Size → dimensions + containing block\n- Layout → flex/grid geometry\n- Quick Align / Layout Item → target + layout parent\n- Position → placement/anchor relationship\n- Image → crop/focal frame\n- Background/Text/Shadow → lightweight outline\n\nIf a tiny text node has no useful box of its own, inspect its meaningful wrapper or parent boundary instead of assuming the guide is broken.\n\n## Groups\n\n**Group** is for several real siblings that should behave as one authored composition. Palette does **not** reparent React DOM and does not invent wrappers.\n\nGroup mode now has two ways to select members:\n\n- **Visual:** click siblings on the page.\n- **Structural:** retarget a picked member through nearby DOM levels, then use **Add sibling** once Palette knows the shared parent.\n\nThis is specifically useful for Lumi's favorite anatomy:\n\n```text\nrow\n└─ wrapper\n   └─ inner wrapper\n      └─ actual control\n```\n\nA valid saved group requires one real shared direct parent. Palette can temporarily let draft members sit at different depths while you line them up, but **Create group** stays disabled until the structural relationship is safe.\n\nA Layout Group has four jobs:\n\n| Tab | Purpose |\n| --- | --- |\n| **Layout** | Row / Column / Grid, columns, gap, responsive behavior. |\n| **Members** | Shared packets on the member roots. |\n| **Contents** | Shared descendant treatment for icons, text, buttons, or images. |\n| **Frame** | One generated visual plane behind the group using the real parent. |\n\nUnsafe cases reject instead of generating nth-child spaghetti: different parents, ancestor/descendant members, or selectors that cannot be distinguished safely.\n\n## Read styles\n\n### Read Style\n\n**Read Style** reverse-engineers the selected target into familiar Palette controls.\n\nThe important contract is **Read is inspection; editing is capture**.\n\nObserved values can appear in the controls without becoming project state. Palette only materializes the semantic operation you actually change. If you inspect a heading and only change its font size, Palette should not suddenly claim its native border, margin, color, shadow, and seventeen inherited properties.\n\n### Read Page\n\n**Read Page** is the larger map. It inventories mounted, visibly styled targets by semantic surface and lets you inspect where a result came from before deciding to edit it.\n\nUse the search box for things like:\n\n```text\nheading\nbutton\nInputArea\navatar\n::before\n```\n\nSource information is diagnostic context; the semantic target is the star. Click a target to inspect/capture it rather than translating an entire foreign stylesheet into semantic oatmeal at once.\n\n## Reuse\n\nPalette has three different reuse layers because they solve different jobs.\n\n### Quick Looks\n\nQuick Looks are curated starter recipes. **Apply** merges the packet types the recipe owns. The pencil applies it and opens the result in Design. Reset only peels that recipe layer back off.\n\n### My Styles\n\nMy Styles are your reusable semantic styling, stored above individual theme projects.\n\n| Save mode | Captures |\n| --- | --- |\n| **This target** | current target + decorative surfaces |\n| **This component** | authored styling under the current semantic component |\n| **Choose parts…** | any checked multi-component combination as a Bundle |\n\nApplying a My Style merges packet types. If the destination already has Border + Shadow and your saved style contains Background + Typography, the unrelated Border + Shadow survive.\n\nStable targets do not need to be mounted at apply time to remain reusable.\n\n### Library cards show what they touch\n\nPreview art is only a visual hint. Reusable recipe cards also show their **Component** and **Affects** summaries so you can tell “action row” from “content frame” before Apply, Edit, or Reset. Do not rely on preview silhouettes as semantic names.\n\n### Packs\n\nPacks are curated compositions built from the same semantic engine as Design: targets, packets, Base/Mobile, groups, media policy, asset slots, and provenance.\n\n**Apply pack** should never mean “paste a giant CSS blob.” After applying a pack, every owned piece remains editable through ordinary Design controls.\n\n**Reset pack** removes the pack's layers and reveals whatever was underneath. Manual styling and other packs remain unless that reset actually owns them.\n\n#### Bubble and Minimal are recipe families, not one selector missile\n\nA pack can support **BubbleMessage**, **MinimalMessage**, or both, but renderer-specific choreography stays renderer-specific. A Minimal portrait/actions/thinking recipe targets Minimal only; its Bubble counterpart targets Bubble only. Choosing/applying **Both** installs both families so switching Lumiverse's message renderer reveals the already-authored matching composition.\n\nOnly genuinely renderer-independent targets such as `MessageContent` prose, exact semantic controls, or other shared surfaces should be authored once for both layouts. \"Same aesthetic\" does not require \"same recipe.\"\n\n## Boost\n\nApp-wide controls are split by what they actually depend on.\n\n### Boost\n\nBoost transforms Lumiverse's native variable map. **Colors** is the main recolor layer; **Backdrop** lives inside Boost because wallpaper/canvas treatment participates in that same transformed world.\n\nThe source flow is intentionally one-way:\n\n```text\nLumiverse canonical generated variables\n        ↓\nPalette transform\n        ↓\nPresented app variables\n```\n\nPalette should never recursively recolor its already transformed root output.\n\n### Typography\n\nTypography is standalone. You can change global font family/scale without enabling palette recoloring.\n\nThis is a valid configuration:\n\n```text\nBoost colors: OFF\nBackdrop:     OFF\nTypography:   ON\n```\n\n### Acceptance-test nonsense that is actually useful\n\nIf you are developing Palette itself:\n\n- **Blood Mode** — absurd red anchors; catches untransformed surfaces.\n- **Pinkpocalypse** — absurd pink; catches old complex gradient values.\n- Typography-only — catches accidental palette coupling.\n- Wallpaper test — catches backdrop layers that remain hidden under a wash.\n\n## Widget & Code\n\n### Floating mini-widget\n\nThe widget is a utility cockpit, not a second full editor:\n\n- Pick\n- Guides\n- Zap\n- Code/selector peek\n- Float/dock\n\nDesktop: right-click the collapsed widget for its context menu.  \nTouch: long-press it.  \n**Hide mini widget** is reversible from Palette's sidebar/workbar control.\n\nOn phones the floating editor can attach to the top or bottom edge; the resize handle follows the anchored edge. Mobile Float also has a **density** control that cycles **100% → 80% → 60% → 100%**. Density applies only to the scrolling inspector body, so the workspace tabs, Pick/Guides workbar, edge control, Minimize, and Close remain full-size touch targets.\n\nThe mobile inspector keeps narrow empty gutters on both sides of its scroll body. Those gutters are intentional touch-safe vertical pan lanes: if a packet is mostly sliders, drag the gutter instead of negotiating with a range thumb. Palette also pins its own mobile control typography/height so the active Lumiverse theme cannot make editor dropdown labels oversized or clipped.\n\n### Generated CSS vs Custom CSS\n\n**Generated CSS** is compiler-owned and read-only. It exists so advanced users can inspect exactly what Palette emitted.\n\n**Custom CSS** is your deliberate escape hatch. It stays separate from semantic project state.\n\nDo not treat generated CSS as persistence input. Palette should regenerate it deterministically from semantic state.\n\n### Native handoff and assets\n\nThe Code workspace can send/export the current work through Lumiverse's native theme bridge and import compatible `.lumitheme` data.\n\nNative Theme Assets are project-owned. Palette stores canonical `./assets/...` references so an exported native theme does not depend on a temporary browser URL. Images can be optimized, and font assets can be registered into the Typography browser.\n\nSVG imports are sanitized before entering the project wardrobe. XML declarations and harmless old exporter wrappers can be cleaned, but scripts/events/remote-content are not treated as decoration.\n\n## CSS field guide\n\nPalette is designed so you do not *need* CSS, but knowing a few patterns makes debugging and Custom CSS dramatically easier.\n\n### 1. Scope before specificity\n\nPrefer a meaningful owner plus a stable part:\n\n```css\n[data-component=\"BubbleMessage\"] [class*=\"_nameChar_\"] {\n  color: white;\n}\n```\n\nover a naked reusable family:\n\n```css\n[class*=\"_nameChar_\"] {\n  color: white;\n}\n```\n\nThe second rule may style another component that happens to reuse the same local class word.\n\n### 2. `:where()` makes strong-looking selectors easier to override\n\nPalette often wraps authored selectors in `:where(...)` so the structural scope itself contributes zero specificity while Palette controls authority deliberately:\n\n```css\n:where([data-component=\"BubbleMessage\"] [class*=\"_avatar_\"] img) {\n  object-fit: cover;\n}\n```\n\nThis is different from solving everything by piling on more IDs/classes.\n\n### 3. `!important` is not automatically evil\n\nA visual theme editor sometimes has to beat native component CSS. The real sin is using `!important` without correct scope.\n\nGood:\n\n```css\n[data-component=\"InputArea\"] [data-composer-action=\"send\"] button {\n  color: white !important;\n}\n```\n\nBad:\n\n```css\nbutton {\n  color: white !important;\n}\n```\n\n### 4. Flex and Grid: style the parent to arrange children\n\nIf you want siblings to become columns, the important rule usually belongs to their parent:\n\n```css\n.parent {\n  display: grid;\n  grid-template-columns: repeat(2, minmax(0, 1fr));\n  gap: 8px;\n}\n```\n\nA child cannot make its siblings become a grid by itself. Layout Item therefore warns when the actual parent is not a layout container. If your actual intent is only left / center / right placement, use Quick Align instead; it is designed to work in ordinary block flow too.\n\n### 5. `width:100%` only means 100% of the available containing width\n\nIf a child still looks tiny after `width:100%`, inspect the parent chain. A 100%-wide child inside a 112px wrapper is still 112px.\n\nUseful debugging sequence:\n\n```text\nTarget width\n→ parent width\n→ parent display/layout\n→ min/max constraints\n→ overflow/clipping\n```\n\n### 6. Move the image *inside* the frame with `object-position`\n\nFor cropped images:\n\n```css\n.avatar img {\n  width: 100%;\n  height: 100%;\n  object-fit: cover;\n  object-position: 50% 28%;\n}\n```\n\nChanging `object-position` moves the focal point inside the existing frame. Translating `.avatar` moves the whole frame instead.\n\n### 7. Fades are masks, not opacity gradients\n\nA common portrait fade:\n\n```css\n.avatar img {\n  -webkit-mask-image: linear-gradient(\n    to bottom,\n    #000 0%,\n    #000 68%,\n    transparent 100%\n  );\n  mask-image: linear-gradient(\n    to bottom,\n    #000 0%,\n    #000 68%,\n    transparent 100%\n  );\n}\n```\n\nIf native Lumi already applies a mask and you want the full image, explicitly clear it:\n\n```css\nmask-image: none;\n-webkit-mask-image: none;\n```\n\n### 8. Pseudo-elements need `content`\n\nA `::before` or `::after` does not exist visually until content is generated:\n\n```css\n.target::before {\n  content: \"\";\n  position: absolute;\n  inset: 0;\n  pointer-events: none;\n}\n```\n\nFor a host-local decorative back plane, the host usually needs a positioning context:\n\n```css\n.target {\n  position: relative;\n  isolation: isolate;\n}\n```\n\nPalette adds isolation automatically when one of its generated pseudo surfaces uses a custom negative z-index.\n\n### 9. Nudge is safer than re-owning native positioning\n\nIf Lumi already has a correct absolute/sticky/flow relationship and you only need a visual adjustment:\n\n```css\n.target {\n  translate: 0 -12px;\n}\n```\n\nis often safer than changing `position`, `top`, and `left` just to move it twelve pixels.\n\n### 10. Mobile deltas should override only what changes\n\n```css\n.target {\n  font-size: 30px;\n  translate: 0 -40px;\n}\n\n@media (max-width: 720px) {\n  .target {\n    font-size: 22px;\n  }\n}\n```\n\nIf the mobile composition should keep the Base Nudge, do not unnecessarily re-author positioning. If you need to cancel the Base movement, explicitly set the mobile translation back to zero.\n\n### 11. Composer actions have stable identities\n\nPrefer the stable wrappers on current Lumiverse:\n\n```css\n[data-component=\"InputArea\"]\n[data-composer-action=\"persona\"]\n[data-toolbar-action=\"persona\"] {\n  /* persona action */\n}\n```\n\nThe Spindle `chat_toolbar` mount is a separate extension toolbar. Do not confuse it with native composer actions just because they appear beside each other.\n\nThe current native typing lane is also intentionally split into stable semantic parts:\n\n```css\n[data-component=\"InputArea\"] textarea[name=\"chat-message\"]\n[data-component=\"InputArea\"] [class*=\"_textareaMirror_\"]\n[data-component=\"InputArea\"] [class*=\"_sendBtnShell_\"]\n```\n\nThe textarea mirror is measurement infrastructure, not a second visible text box. Let **Text Entry** synchronize its metrics instead of styling the mirror independently.\n\n### 12. CSS variables are the app-wide language\n\nLumiverse theme variables look like:\n\n```css\n:root {\n  --lumiverse-bg: #111;\n  --lumiverse-text: #f7f2fa;\n  --lumiverse-primary: #b78cff;\n  --lumiverse-card-bg: linear-gradient(...);\n}\n```\n\nBoost transforms the canonical variable map rather than hue-rotating the rendered app. That is why images/media can remain intact while the UI changes palette.\n\n### 13. A few useful selector recipes\n\n```css\n/* Assistant message only */\n[data-component=\"BubbleMessage\"]:not([data-part=\"user\"]) { }\n\n/* User message only */\n[data-component=\"BubbleMessage\"][data-part=\"user\"] { }\n\n/* Message prose */\n[data-component=\"BubbleMessage\"] [data-component=\"MessageContent\"] { }\n\n/* H2 inside message prose */\n[data-component=\"MessageContent\"] h2 { }\n\n/* Persona drawer surface */\n[data-spindle-drawer-tab=\"personas\"] { }\n\n/* Native send action */\n[data-component=\"InputArea\"] [data-composer-action=\"send\"] { }\n\n/* Only paragraphs that contain an image */\n[data-component=\"MessageContent\"] p:has(img) { }\n```\n\n### 14. Full-width prose image without stretching its aspect ratio\n\n```css\n[data-component=\"MessageContent\"] p:has(img) {\n  width: 100%;\n  max-width: 100%;\n  margin: 14px 0 22px;\n  text-align: center;\n}\n\n[data-component=\"MessageContent\"] img {\n  display: block;\n  width: 100%;\n  max-width: 100%;\n  height: auto;\n  margin-inline: auto;\n  object-fit: contain;\n}\n```\n\nFor native Lumi attachments, use Palette's **Media Flow** rather than assuming this raw prose selector also owns the attachment button/frame wrappers.\n\n## Debugging\n\nWhen something “does nothing,” check these before inventing new infrastructure:\n\n| Symptom | First thing to inspect |\n| --- | --- |\n| Border is mysteriously invisible | color alpha / opacity is not literally 0%. Yes, this happened. |\n| `width:100%` is still tiny | containing parent width + max-width. |\n| Element will not move as expected | native `position`/inset contract; try Nudge. |\n| Image crop is wrong | wrapper size vs image `object-position`. |\n| Mobile layer vanished | native `display:none` can defeat mere `visibility:visible`. |\n| Style leaks to unrelated UI | selector lost its semantic owner/context. |\n| Read Style created too much CSS | observed values should stay unowned until edited. |\n| Pack reset resurrects something deleted | provenance/ownership detach is wrong. |\n| `::after` decoration sits on top instead of bottom | mobile override accidentally reset Base positioning. |\n| Composer selector broke after upstream change | use stable `data-composer-action` / `data-toolbar-action` identity. |\n\nA good escalation order is:\n\n1. Check the actual authored packet values.\n2. Check the mounted target and parent geometry.\n3. Inspect the generated selector in **Code**.\n4. Use browser DevTools to inspect the winning declaration/cascade.\n5. Only then decide whether Palette is missing a primitive or selector boundary.\n\n> **Mounted visual truth wins.** A mathematically elegant selector or positioning scheme that does not match the real screen is still wrong.\n\n## Credits\n\nPalette drawer icon: **paintbrush by Alum Design (CC BY 3.0)**.  \nPalette is built as a Lumiverse Spindle extension and intentionally keeps its internal `theme_studio` identity stable for persistence/runtime compatibility.\n\n\n### Editorial left proof rail\n\nReader Correspondence intentionally replaces native Minimal user-side rail distribution with its own left editorial proof rail. The frame owns the real 106px rail reservation and switches to ordinary block flow so the host flex row cannot keep a ghost lane after the avatar/actions are anchored out of flow. The header stays padding-free, while portrait and proofmark actions share the same rail axis.\n\nOn mobile the desktop proof rail is released, but the portrait is still anchored against the card so it does not consume a separate row. The compact byline reserves only the portrait width, which keeps name + metadata beside the image while prose and proofmark actions continue in ordinary full-width flow below. Editorial assistant mobile uses the same principle: portrait + byline at the top, actions released to the bottom instead of occupying the native right-side action lane. The generic Minimal actions overlay must materialize before Editorial's Author Rail so the phone-only flow reset wins the pack cascade. SwipeControls use their own button/counter semantic subroles; flatten those native controls directly instead of compensating around the outer pager shell.\n\n### Editorial Contributors kicker\n\nThe Contributors masthead uses `chat.roster.bar::before` as a generated publication kicker. The host roster can carry its own pseudo positioning, so Editorial explicitly resets that surface to normal flow, zeros inherited pseudo padding, gives it a compact fixed footprint, and centers it as a non-shrinking flex item before the contributor cards. Do not compensate for overlap by moving the member cards themselves.\n\n\n### Editorial reasoning marginalia\n\nEditorial reasoning deliberately avoids the native full-width outlined lane. Both BubbleMessage and MinimalMessage use the same publication language: a transparent shell, a narrow cool-slate marginal rule/wash, small Georgia italic live duration text, and a restrained serif body when expanded. Desktop reasoning is constrained to the reading column; mobile releases it to full width rather than preserving a percentage lane.\n\nCurrent Lumiverse mounts `button[data-reasoning-toggle=\"true\"]` as both the reasoning header and the toggle surface. Keep the header responsible for chrome and the toggle role responsible for ink only. If both roles author background/border, the later toggle packet can erase the header treatment even though Palette appears to have styled both correctly.\n\n\n### Visual Novel Minimal: classic dialogue stage, not Editorial-with-neon\n\nVisual Novel deliberately uses two renderer grammars. **BubbleMessage is the active cinematic scene**: large scene choreography, choice windows, route HUD, and more theatrical game chrome belong there. **MinimalMessage is the compact classic VN dialogue stage**: centered landscape portrait, fading character banner, a game-like gradient speaker plate, translucent/double-line patterned dialogue frame, and authored VN furniture. The assistant action group may use stacked text plates while mobile releases it back into compact flow; Greetings can become a narrow status bar below dialogue rather than a generic pill. Do not collapse Minimal back into an Editorial author column or a smaller Bubble card stack.\n\nThe Minimal root intentionally owns generated scene decoration. `minimal.decorative-rail.assistant` / `.user` target the message `::before` surface as a fading banner behind the centered portrait and name plate; the side-specific corner-ornament roles use `::after` for restrained VN embellishment. Because that `::before` is authored content, the Visual Novel pack must **not** apply `minimal-native-strip-off`.\n\nIdentity lives above the dialogue frame rather than inside an opaque header card. The header itself stays transparent and centered; the speaker name becomes a gradient plate while desktop metadata remains in ordinary header flow so long dialogue cannot drag the pill into the middle of the response. Mobile may deliberately anchor the compact metadata back near the portrait. Greetings is flattened into a narrow status bar below the dialogue frame instead of competing with the portrait.\n\nAfter mounted QA, the player side now **transposes the same stage geometry** instead of shrinking into a separate card grammar: both sides share the 92% stage, centered landscape portrait, 76% transparent identity lane, and broad double-line dialogue window, with assistant blue/lilac and player rose route families carrying the side distinction. Desktop actions use the same stacked text-command grammar on both sides; mobile releases both into compact wrapped flow.\n\nReasoning is an **Inner Voice plate** beneath the name and slightly over the dialogue frame. Message actions are text-first VN controls generated over the real native buttons, including dedicated static roles for Edit, Copy, Hide, Anchor, Fork, Prompt, and Delete. Native SVGs are hidden without replacing the click targets. The omitted-action fallback must exclude every named action, including Copy.\n\nSwipe navigation belongs at the **bottom-left** as compact route furniture in normal flow. `minimal.swipes.previous` and `.next` replace native chevrons with maskable built-in arrow SVGs; `minimal.swipes.counter` owns the route count; `minimal.swipes.ornament` supplies a small decorative flower. Keeping the pager in flow prevents long messages from separating the controls from the actual dialogue footer. The long-message toggle is also scoped under Minimal so it cannot inherit Bubble's serif/purple continuation chrome.\n\nTypography remains renderer-specific. Bubble VN keeps its cinematic serif language. Minimal dialogue/body copy uses compact UI sans and mono metadata through `minimal.prose.*`, applied after shared `visual-novel-prose`, so fresh Apply All preserves the renderer split. Those VN roles themselves remain static DOM anatomy. Palette project/state schema is currently **v42** because Image and Mask now persist as separate packet types.\n";
-
-},
-"src/ui/studio.ts": function(module, exports, require) {
+exports.THEME_STUDIO_GUIDE = "# Palette\n\n> **Visual theme authoring for Lumiverse.** Pick the thing you mean, describe the visual intent, and Palette turns it into scoped, reusable CSS. Generated CSS is output; your semantic Palette project is the source of truth.\n\n**Palette 1.0.3 \u00b7 schema v42**  \nRelease history lives in the project changelog; this page is the actual manual.\n\n**Jump to:** [Start here](#palette-guide-start) \u00b7 [Pick & scope](#palette-guide-pick) \u00b7 [Style packets](#palette-guide-packets) \u00b7 [Groups](#palette-guide-groups) \u00b7 [Read styles](#palette-guide-read) \u00b7 [Reuse](#palette-guide-reuse) \u00b7 [Boost](#palette-guide-boost) \u00b7 [Widget & Code](#palette-guide-code) \u00b7 [CSS field guide](#palette-guide-css) \u00b7 [Debugging](#palette-guide-debug)\n\n## Start here\n\nPalette is easiest to understand as **visual DevTools with memory**. It knows enough about Lumiverse anatomy to avoid making you write selectors for normal work, but it never traps advanced users inside a black box.\n\n| Workspace | What it is for |\n| --- | --- |\n| **Design** | Pick a real mounted element and author semantic style packets. |\n| **Themes** | App-wide Boost, Typography, Quick Looks, pack workbenches, and theme projects. |\n| **Style Library** | Browse reusable looks and your cross-project **My Styles**. |\n| **Code** | Inspect compiler-owned CSS, add Custom CSS, and use native `.lumitheme` handoff. |\n\nA normal workflow is:\n\n1. Open **Design** and turn on **Pick**.\n2. Click the thing you actually want to change.\n3. Use the breadcrumb, **Edit Part**, or **Browse Inside** if Lumi wrapped your target in three divs and a trench coat.\n4. Add packets such as Background, Typography, Size, Image, or Position.\n5. Switch **Base / Mobile** or **Normal / Hover / Active / Focus / Disabled** when needed.\n6. Save the result as a **My Style**, keep building the current theme, or inspect the generated CSS in **Code**.\n\n> **Rule of thumb:** if you are reaching for Custom CSS during ordinary styling, first ask whether Palette already has a visual packet for that intent. The packet is safer, responsive, reusable, and pack-aware.\n\n## Pick & scope\n\n### Pick stays armed\n\nThe main Design picker stays active until **Done** or **Esc**. This makes it practical to inspect several nearby pieces without reopening the picker every time. The floating mini-widget uses a lighter one-shot picking flow so it does not become a tiny second DevTools.\n\nPalette separates four things that browsers often blur together:\n\n| Layer | Example | Why it matters |\n| --- | --- | --- |\n| **Clicked node** | the exact `<img>` under your cursor | What you physically picked. |\n| **DOM ladder** | Image \u2192 Avatar \u2192 Header Left \u2192 Header \u2192 Bubble | How the mounted tree is built. |\n| **Semantic owner** | BubbleMessage / Personas / InputArea | Which Lumiverse surface owns it. |\n| **Persistent scope** | Avatar in BubbleMessage | What future rerenders should keep styling. |\n\n### Edit Part vs Browse Inside\n\n**Edit Part** is the curated semantic map of useful parts for the current component. It is where you go when you know you want *Avatar*, *Meta Wrap*, *Actions*, *Message Content*, and similar authored pieces.\n\n**Browse Inside** follows the actual mounted subtree. Use it when the thing you need is deeper, conditional, or too weird to belong in the curated list.\n\nThey intentionally do not show the same list.\n\n### Dynamic labels and Use generic\n\nInteractive controls sometimes need their live `aria-label` or `title` to distinguish one mounted button from its siblings. Palette may therefore select something precise such as `button[aria-label=\"Copy\"]`. When the target panel offers **Use generic**, that is an explicit escape hatch to the reusable sibling selector (for example the whole Minimal action-button group). The switch is exact and keeps the current message side; it should not bounce back to the label-specific target.\n\nThis is useful when one button taught you the styling recipe but the intent is really \u201call buttons in this row.\u201d Keep the precise target when the buttons genuinely need different appearances.\n\n### Stable selectors beat generated hashes\n\nPalette prefers public semantic boundaries such as:\n\n```css\n[data-component=\"BubbleMessage\"]\n[data-component=\"InputArea\"]\n[data-spindle-drawer-tab=\"personas\"]\n[data-composer-action=\"send\"]\n```\n\nThen it can narrow to a stable CSS-module family:\n\n```css\n[data-component=\"BubbleMessage\"] [class*=\"_avatar_\"]\n```\n\ninstead of persisting an exact generated class such as:\n\n```css\n._avatar_1hvlc_181\n```\n\nGenerated hashes can change. The family selector communicates the actual visual part.\n\n### Assistant, User, and Both\n\nMessage targets can be side-aware. When Lumi shares internal classes between both sides, Palette keeps the side discriminator in the selector instead of pretending one `_avatar_` means every avatar in civilization.\n\nTypical shapes:\n\n```css\n/* Assistant */\n[data-component=\"BubbleMessage\"]:not([data-part=\"user\"]) [class*=\"_avatar_\"]\n\n/* User */\n[data-component=\"BubbleMessage\"][data-part=\"user\"] [class*=\"_avatar_\"]\n```\n\nUse **Both** only when you actually want the same treatment on both speakers. In Design, Both is a real combined scope rather than shorthand for the speaker you clicked first: its editable stack represents styling common to the mounted Assistant/User branches, and new edits persist against the combined selector. One-sided authored packets remain available from their Assistant or User facet instead of masquerading as Both.\n\n### Surface means the real thing, not just its box\n\nMany Lumi parts have multiple useful surfaces:\n\n- Element\n- `::before` / Back layer\n- `::after` / Front layer\n- `::placeholder` when the mounted control actually has placeholder text\n\nGenerated surfaces are useful for labels, ornaments, stickers, frames, SVG stencils, and other decorative planes without inserting DOM.\n\n## Style packets\n\nPalette packets describe intent. You should not need to remember the CSS property names for ordinary work.\n\n| Packet | Think of it as | Common CSS underneath |\n| --- | --- | --- |\n| **Background** | paint the surface | `background`, gradients, images |\n| **Ink** | visual ink for text, glyphs, and current-color graphics | `color`, gradient fill, stroke, shadow/glow |\n| **Typography** | type structure | family, size, weight, line-height, spacing |\n| **Text Entry** | where typing starts + how it measures | textarea inset/metrics + synchronized autosize mirror + placeholder appearance |\n| **Border / Corners** | edge treatment | border longhands, radius |\n| **Spacing** | breathing room | padding + margin |\n| **Shadow / Glass** | depth/material | shadow, blur, backdrop-filter |\n| **Opacity** | fade the entire target | `opacity` |\n| **Container Layout** | arrange direct children | flex/grid, gap, distribute, align |\n| **Quick Align** | put this element where you mean | logical auto margins + safe self-alignment |\n| **Layout Item** | advanced behavior inside Flex/Grid | grow/shrink, order, self-alignment |\n| **Size** | fit, fill, or fix the box | width/height/min/max |\n| **Image** | crop and treat media pixels | source quality, object-fit, object-position, filter |\n| **Mask** | fade or clip a visual surface | mask-image, multi-edge masks, compositing |\n| **Media Flow** | make prose/native media behave | natural height, unclipping, full-width flow |\n| **Position & Layer** | move/place/stack | translate, anchored position, sticky/fixed, z-index |\n| **Transform** | pose it | rotate, scale, skew |\n| **Background Image** | decorative image layer | background-image/position/size |\n| **Visibility** | visible / hidden / gone | visibility/display |\n| **Generated Content** | label a generated surface | CSS `content` on `::after` / explicit pseudo surfaces |\n| **SVG Asset** | reusable icon/ornament | sanitized project SVG stencil |\n\n### Image, Mask, and Ink are separate jobs\n\n**Image** is for media treatment: source quality, brightness/saturation/contrast and other tone controls, crop/fit, and focal position. It stays an Image packet even when the semantic Palette target is a wrapper; use **Browse Inside** when object-fit/object-position must land on the actual media leaf.\n\n**Mask** is surface geometry, not an image-only effect. Use it to preserve the native mask, clear masking, add a directional/radial fade, or build multi-edge custom masks. Because Mask is independent, it can style ordinary wrappers, generated surfaces, media, and other CSS-mask-capable targets without pretending they are images.\n\n**Ink** is the renamed visual-paint packet formerly shown as **Text Style**. The persisted packet type remains compatible with older projects, but the UI name reflects what it really does: solid/gradient color, stroke/outline, and glow for text, icon glyphs, SVG/currentColor surfaces, and similar painted marks. Typography remains responsible for type structure such as family, size, weight, line-height, spacing, and case.\n\nSchema v42 migrates pre-v42 combined Image packets automatically. A legacy Image that owned both tone/crop settings and a mask is normalized into sibling **Image + Mask** packets on the same target/state, including recipe provenance, so old themes keep their rendered intent while new edits use the clearer taxonomy.\n\nColor-bearing packets always expose a real **Pick** swatch beside the editable color string. **Recents** are convenience history, not the only way to open a picker; pack-authored colors therefore remain editable even when they were never picked manually in the current project. Independent Corners are arranged spatially as top-left / top-right over bottom-left / bottom-right, matching the box you are actually shaping.\n\n### Text outlines: Edge vs Outside\n\n**Edge** uses the browser glyph stroke and is fast/clean for thin lettering. **Outside** is the \"do not eat my fill\" option: Palette manufactures a crisp ring of zero-blur text shadows behind the glyph and exposes it through the same Thickness / Color / Opacity controls. Your ordinary directional text shadow can still coexist with that outline.\n\n### Generated Content can mirror native labels\n\nGenerated Content can use a literal string, or mirror the owner's existing `title` / `aria-label` through CSS `attr(...)`. If you add it to a normal element, Palette automatically emits the content on that element's `::after` skin because Chromium does not reliably render `content` on ordinary elements. If you explicitly selected Back/Front, Palette keeps that pseudo-surface. This is useful for skins that replace a native icon with text while keeping the actual button as the semantic/layout target.\n\nPseudo-elements are generated surfaces, not DOM siblings. If several labeled buttons need even distribution, group/style the **real buttons** and use their `::before`/`::after` only as visual skins.\n\n### Quick Align: say where, not how\n\nUse **Quick Align** when your intent is simply \u201cput this on the left / center / right\u201d (or the vertical equivalent). Palette resolves that intent through layout-safe CSS instead of making you memorize when `align-self`, `justify-self`, or auto margins happen to work.\n\nFor ordinary horizontal placement, Palette uses logical auto margins and `fit-content`, so it works in normal block flow as well as common Flex/Grid contexts:\n\n```css\n/* Right */\nwidth: fit-content;\nmargin-inline-start: auto;\nmargin-inline-end: 0;\n```\n\nAn explicit **Size** packet still wins if you deliberately set Width, so Quick Align does not silently undo authored sizing. Vertical placement can use Flex/Grid alignment when that layout exists; Palette warns when a plain block parent has no free vertical space to distribute. Use **Position & Layer** when you need a pinned top/bottom relationship instead.\n\n**Quick Align** is the friendly placement primitive. **Layout Item** remains the advanced control for grow/shrink/order and raw Flex/Grid self-alignment.\n\n### Spacing: simple first, per-side when you need it\n\nSpacing keeps **Padding** and **Margin** as fast linked sliders for normal work. Open **Advanced padding** or **Advanced margin** directly underneath when one side needs a different value; Palette exposes Top / Right / Bottom / Left there and leaves the other sides alone. Moving the main slider afterward deliberately links all four sides again. Negative values are allowed for margin, not padding.\n\n### Text Entry: move the typing origin honestly\n\nUse **Text Entry** on the mounted composer textarea when the intent is simply \u201ctyping should begin here.\u201d Horizontal/vertical inset moves entered text and the placeholder together, while font metrics stay synchronized with Lumiverse's hidden textarea mirror so auto-height measurement does not drift.\n\nPalette deliberately keeps two responsibilities separate:\n\n- **Text inset + metrics** belong to the textarea and its hidden autosize mirror.\n- **Placeholder appearance** (ink, opacity, italic/weight) belongs only to `textarea::placeholder`.\n\nThat means Palette does **not** fake placeholder placement with transforms or pseudo positioning. If the placeholder is annoyingly glued to the upper-left corner, change Text Entry inset; the real typed text will start in the same honest place.\n\n### Size: Fit, Fill, Fixed\n\nUse **Fit** when the box should hug its content. Use **Fill** when it should claim the available space. Use **Fixed** when you really want a number.\n\nIf Fill appears not to fill anything, inspect the parent. A flex/grid child can only fill the space its parent actually gives it.\n\n### Position: Nudge vs Anchored\n\n**Nudge** is visual movement that keeps the native layout contract intact. It compiles as translation and is excellent for \u201cthis is correct, just 12px too high.\u201d\n\n**Anchored** means Palette owns the positioning relationship: top/right/bottom/left relative to a chosen containing block.\n\nUse Nudge when Lumi already knows where an element belongs. Use Anchored when you are intentionally building a new composition.\n\n### Image: wrapper vs image\n\nThis distinction saves hours.\n\n```css\n/* Avatar frame / wrapper */\n[data-component=\"BubbleMessage\"] [class*=\"_avatar_\"]\n\n/* Pixels inside that frame */\n[data-component=\"BubbleMessage\"] [class*=\"_avatar_\"] img\n\n/* Large native ghost/backdrop image \u2014 different target */\n[data-component=\"BubbleMessage\"] [class*=\"_avatarBgImg_\"]\n```\n\nResize the wrapper when you need a larger stage. Use **Image \u2192 Move inside frame** when the frame is correct and only the crop/focal point is wrong.\n\n### Media Flow\n\nLumiverse prose images and native attachments are not the same DOM species. Palette treats both lanes deliberately:\n\n**Markdown/XML lane**  \nimage paragraph \u2192 linked/span wrapper \u2192 image\n\n**Native attachment lane**  \nattachments \u2192 inline image button \u2192 inline image frame \u2192 inline image\n\nUse **Full width** or **Unclipped** when native thumbnail chrome is fighting an authored reading layout. Do not solve every media problem with a global `img { width:100% }` missile.\n\n### Guides\n\n**Guides \u2192 Smart** follows the active packet:\n\n- Spacing \u2192 box model\n- Size \u2192 dimensions + containing block\n- Layout \u2192 flex/grid geometry\n- Quick Align / Layout Item \u2192 target + layout parent\n- Position \u2192 placement/anchor relationship\n- Image \u2192 crop/focal frame\n- Background/Text/Shadow \u2192 lightweight outline\n\nIf a tiny text node has no useful box of its own, inspect its meaningful wrapper or parent boundary instead of assuming the guide is broken.\n\n## Groups\n\n**Group** is for several real siblings that should behave as one authored composition. Palette does **not** reparent React DOM and does not invent wrappers.\n\nGroup mode now has two ways to select members:\n\n- **Visual:** click siblings on the page.\n- **Structural:** retarget a picked member through nearby DOM levels, then use **Add sibling** once Palette knows the shared parent.\n\nThis is specifically useful for Lumi's favorite anatomy:\n\n```text\nrow\n\u2514\u2500 wrapper\n   \u2514\u2500 inner wrapper\n      \u2514\u2500 actual control\n```\n\nA valid saved group requires one real shared direct parent. Palette can temporarily let draft members sit at different depths while you line them up, but **Create group** stays disabled until the structural relationship is safe.\n\nA Layout Group has four jobs:\n\n| Tab | Purpose |\n| --- | --- |\n| **Layout** | Row / Column / Grid, columns, gap, responsive behavior. |\n| **Members** | Shared packets on the member roots. |\n| **Contents** | Shared descendant treatment for icons, text, buttons, or images. |\n| **Frame** | One generated visual plane behind the group using the real parent. |\n\nUnsafe cases reject instead of generating nth-child spaghetti: different parents, ancestor/descendant members, or selectors that cannot be distinguished safely.\n\n## Read styles\n\n### Read Style\n\n**Read Style** reverse-engineers the selected target into familiar Palette controls.\n\nThe important contract is **Read is inspection; editing is capture**.\n\nObserved values can appear in the controls without becoming project state. Palette only materializes the semantic operation you actually change. If you inspect a heading and only change its font size, Palette should not suddenly claim its native border, margin, color, shadow, and seventeen inherited properties.\n\n### Read Page\n\n**Read Page** is the larger map. It inventories mounted, visibly styled targets by semantic surface and lets you inspect where a result came from before deciding to edit it.\n\nUse the search box for things like:\n\n```text\nheading\nbutton\nInputArea\navatar\n::before\n```\n\nSource information is diagnostic context; the semantic target is the star. Click a target to inspect/capture it rather than translating an entire foreign stylesheet into semantic oatmeal at once.\n\n## Reuse\n\nPalette has three different reuse layers because they solve different jobs.\n\n### Quick Looks\n\nQuick Looks are curated starter recipes. **Apply** merges the packet types the recipe owns. The pencil applies it and opens the result in Design. Reset only peels that recipe layer back off.\n\nThe compact Quick Looks browser can switch between **Current target** and any Style Library pack without opening the full warehouse. Looks are paged two at a time in a horizontal snap strip, with tiny page markers below it. Pack browsing only changes the preview source/palette; nothing is applied until you press **Apply**.\n\n### Fullscreen or native dock\n\nOn desktop, the Style Library opens fullscreen and exposes **Dock left** in its header. That moves the same live library state into Lumiverse's native resizable left dock so the themed conversation remains visible while you browse. The native dock can be collapsed to its labeled edge tab and expanded again without discarding Palette's live library state. When **Apply and edit** hands you into Design from a docked library, Palette tucks that dock away instead of destroying it; **Browse styles** expands the same dock again with your browse/pack/filter context intact. **Fullscreen** moves it back without reopening or cloning the library. Phones keep the full-screen presentation, with safe-area-aware geometry and a reachable Close control.\n\n### My Styles\n\nMy Styles are your reusable semantic styling, stored above individual theme projects.\n\n| Save mode | Captures |\n| --- | --- |\n| **This target** | current target + decorative surfaces |\n| **This component** | authored styling under the current semantic component |\n| **Choose parts\u2026** | any checked multi-component combination as a Bundle |\n\nApplying a My Style merges packet types. If the destination already has Border + Shadow and your saved style contains Background + Typography, the unrelated Border + Shadow survive.\n\nStable targets do not need to be mounted at apply time to remain reusable.\n\n### Library cards show what they touch\n\nPreview art is only a visual hint. Reusable recipe cards also show their **Component** and **Affects** summaries so you can tell \u201caction row\u201d from \u201ccontent frame\u201d before Apply, Edit, or Reset. Do not rely on preview silhouettes as semantic names.\n\n### Packs\n\nPacks are curated compositions built from the same semantic engine as Design: targets, packets, Base/Mobile, groups, media policy, asset slots, and provenance.\n\n**Apply pack** should never mean \u201cpaste a giant CSS blob.\u201d After applying a pack, every owned piece remains editable through ordinary Design controls.\n\n**Reset pack** removes the pack's layers and reveals whatever was underneath. Manual styling and other packs remain unless that reset actually owns them.\n\n#### Bubble and Minimal are recipe families, not one selector missile\n\nA pack can support **BubbleMessage**, **MinimalMessage**, or both, but renderer-specific choreography stays renderer-specific. A Minimal portrait/actions/thinking recipe targets Minimal only; its Bubble counterpart targets Bubble only. Choosing/applying **Both** installs both families so switching Lumiverse's message renderer reveals the already-authored matching composition.\n\nOnly genuinely renderer-independent targets such as `MessageContent` prose, exact semantic controls, or other shared surfaces should be authored once for both layouts. \"Same aesthetic\" does not require \"same recipe.\"\n\n## Boost\n\nApp-wide controls are split by what they actually depend on.\n\n### Boost\n\nBoost transforms Lumiverse's native variable map. **Colors** is the main recolor layer; **Backdrop** lives inside Boost because wallpaper/canvas treatment participates in that same transformed world.\n\nThe source flow is intentionally one-way:\n\n```text\nLumiverse canonical generated variables\n        \u2193\nPalette transform\n        \u2193\nPresented app variables\n```\n\nPalette should never recursively recolor its already transformed root output.\n\n### Typography\n\nTypography is standalone. You can change global font family/scale without enabling palette recoloring.\n\nThis is a valid configuration:\n\n```text\nBoost colors: OFF\nBackdrop:     OFF\nTypography:   ON\n```\n\n### Acceptance-test nonsense that is actually useful\n\nIf you are developing Palette itself:\n\n- **Blood Mode** \u2014 absurd red anchors; catches untransformed surfaces.\n- **Pinkpocalypse** \u2014 absurd pink; catches old complex gradient values.\n- Typography-only \u2014 catches accidental palette coupling.\n- Wallpaper test \u2014 catches backdrop layers that remain hidden under a wash.\n\n## Widget & Code\n\n### Floating mini-widget\n\nThe widget is a utility cockpit, not a second full editor:\n\n- Pick\n- Guides\n- Zap\n- Code/selector peek\n- Float/dock\n\nDesktop: right-click the collapsed widget for its context menu.  \nTouch: long-press it.  \n**Hide mini widget** is reversible from Palette's sidebar/workbar control.\n\nOn phones the floating editor can attach to the top or bottom edge; the resize handle follows the anchored edge. Mobile Float also has a **density** control that cycles **100% \u2192 80% \u2192 60% \u2192 100%**. Density applies only to the scrolling inspector body, so the workspace tabs, Pick/Guides workbar, edge control, Minimize, and Close remain full-size touch targets.\n\nThe mobile inspector keeps narrow empty gutters on both sides of its scroll body. Those gutters are intentional touch-safe vertical pan lanes: if a packet is mostly sliders, drag the gutter instead of negotiating with a range thumb. Palette also pins its own mobile control typography/height so the active Lumiverse theme cannot make editor dropdown labels oversized or clipped.\n\n### Generated CSS vs Custom CSS\n\n**Generated CSS** is compiler-owned and read-only. It exists so advanced users can inspect exactly what Palette emitted.\n\n**Custom CSS** is your deliberate escape hatch. It stays separate from semantic project state.\n\nDo not treat generated CSS as persistence input. Palette should regenerate it deterministically from semantic state.\n\n### Native handoff and assets\n\nThe Code workspace can send/export the current work through Lumiverse's native theme bridge and import compatible `.lumitheme` data.\n\nNative Theme Assets are project-owned. Palette stores canonical `./assets/...` references so an exported native theme does not depend on a temporary browser URL. Images can be optimized, and font assets can be registered into the Typography browser.\n\nSVG imports are sanitized before entering the project wardrobe. XML declarations and harmless old exporter wrappers can be cleaned, but scripts/events/remote-content are not treated as decoration.\n\n## CSS field guide\n\nPalette is designed so you do not *need* CSS, but knowing a few patterns makes debugging and Custom CSS dramatically easier.\n\n### 1. Scope before specificity\n\nPrefer a meaningful owner plus a stable part:\n\n```css\n[data-component=\"BubbleMessage\"] [class*=\"_nameChar_\"] {\n  color: white;\n}\n```\n\nover a naked reusable family:\n\n```css\n[class*=\"_nameChar_\"] {\n  color: white;\n}\n```\n\nThe second rule may style another component that happens to reuse the same local class word.\n\n### 2. `:where()` makes strong-looking selectors easier to override\n\nPalette often wraps authored selectors in `:where(...)` so the structural scope itself contributes zero specificity while Palette controls authority deliberately:\n\n```css\n:where([data-component=\"BubbleMessage\"] [class*=\"_avatar_\"] img) {\n  object-fit: cover;\n}\n```\n\nThis is different from solving everything by piling on more IDs/classes.\n\n### 3. `!important` is not automatically evil\n\nA visual theme editor sometimes has to beat native component CSS. The real sin is using `!important` without correct scope.\n\nGood:\n\n```css\n[data-component=\"InputArea\"] [data-composer-action=\"send\"] button {\n  color: white !important;\n}\n```\n\nBad:\n\n```css\nbutton {\n  color: white !important;\n}\n```\n\n### 4. Flex and Grid: style the parent to arrange children\n\nIf you want siblings to become columns, the important rule usually belongs to their parent:\n\n```css\n.parent {\n  display: grid;\n  grid-template-columns: repeat(2, minmax(0, 1fr));\n  gap: 8px;\n}\n```\n\nA child cannot make its siblings become a grid by itself. Layout Item therefore warns when the actual parent is not a layout container. If your actual intent is only left / center / right placement, use Quick Align instead; it is designed to work in ordinary block flow too.\n\n### 5. `width:100%` only means 100% of the available containing width\n\nIf a child still looks tiny after `width:100%`, inspect the parent chain. A 100%-wide child inside a 112px wrapper is still 112px.\n\nUseful debugging sequence:\n\n```text\nTarget width\n\u2192 parent width\n\u2192 parent display/layout\n\u2192 min/max constraints\n\u2192 overflow/clipping\n```\n\n### 6. Move the image *inside* the frame with `object-position`\n\nFor cropped images:\n\n```css\n.avatar img {\n  width: 100%;\n  height: 100%;\n  object-fit: cover;\n  object-position: 50% 28%;\n}\n```\n\nChanging `object-position` moves the focal point inside the existing frame. Translating `.avatar` moves the whole frame instead.\n\n### 7. Fades are masks, not opacity gradients\n\nA common portrait fade:\n\n```css\n.avatar img {\n  -webkit-mask-image: linear-gradient(\n    to bottom,\n    #000 0%,\n    #000 68%,\n    transparent 100%\n  );\n  mask-image: linear-gradient(\n    to bottom,\n    #000 0%,\n    #000 68%,\n    transparent 100%\n  );\n}\n```\n\nIf native Lumi already applies a mask and you want the full image, explicitly clear it:\n\n```css\nmask-image: none;\n-webkit-mask-image: none;\n```\n\n### 8. Pseudo-elements need `content`\n\nA `::before` or `::after` does not exist visually until content is generated:\n\n```css\n.target::before {\n  content: \"\";\n  position: absolute;\n  inset: 0;\n  pointer-events: none;\n}\n```\n\nFor a host-local decorative back plane, the host usually needs a positioning context:\n\n```css\n.target {\n  position: relative;\n  isolation: isolate;\n}\n```\n\nPalette adds isolation automatically when one of its generated pseudo surfaces uses a custom negative z-index.\n\n### 9. Nudge is safer than re-owning native positioning\n\nIf Lumi already has a correct absolute/sticky/flow relationship and you only need a visual adjustment:\n\n```css\n.target {\n  translate: 0 -12px;\n}\n```\n\nis often safer than changing `position`, `top`, and `left` just to move it twelve pixels.\n\n### 10. Mobile deltas should override only what changes\n\n```css\n.target {\n  font-size: 30px;\n  translate: 0 -40px;\n}\n\n@media (max-width: 720px) {\n  .target {\n    font-size: 22px;\n  }\n}\n```\n\nIf the mobile composition should keep the Base Nudge, do not unnecessarily re-author positioning. If you need to cancel the Base movement, explicitly set the mobile translation back to zero.\n\n### 11. Composer actions have stable identities\n\nPrefer the stable wrappers on current Lumiverse:\n\n```css\n[data-component=\"InputArea\"]\n[data-composer-action=\"persona\"]\n[data-toolbar-action=\"persona\"] {\n  /* persona action */\n}\n```\n\nThe Spindle `chat_toolbar` mount is a separate extension toolbar. Do not confuse it with native composer actions just because they appear beside each other.\n\nThe current native typing lane is also intentionally split into stable semantic parts:\n\n```css\n[data-component=\"InputArea\"] textarea[name=\"chat-message\"]\n[data-component=\"InputArea\"] [class*=\"_textareaMirror_\"]\n[data-component=\"InputArea\"] [class*=\"_sendBtnShell_\"]\n```\n\nThe textarea mirror is measurement infrastructure, not a second visible text box. Let **Text Entry** synchronize its metrics instead of styling the mirror independently.\n\n### 12. CSS variables are the app-wide language\n\nLumiverse theme variables look like:\n\n```css\n:root {\n  --lumiverse-bg: #111;\n  --lumiverse-text: #f7f2fa;\n  --lumiverse-primary: #b78cff;\n  --lumiverse-card-bg: linear-gradient(...);\n}\n```\n\nBoost transforms the canonical variable map rather than hue-rotating the rendered app. That is why images/media can remain intact while the UI changes palette.\n\n### 13. A few useful selector recipes\n\n```css\n/* Assistant message only */\n[data-component=\"BubbleMessage\"]:not([data-part=\"user\"]) { }\n\n/* User message only */\n[data-component=\"BubbleMessage\"][data-part=\"user\"] { }\n\n/* Message prose */\n[data-component=\"BubbleMessage\"] [data-component=\"MessageContent\"] { }\n\n/* H2 inside message prose */\n[data-component=\"MessageContent\"] h2 { }\n\n/* Persona drawer surface */\n[data-spindle-drawer-tab=\"personas\"] { }\n\n/* Native send action */\n[data-component=\"InputArea\"] [data-composer-action=\"send\"] { }\n\n/* Only paragraphs that contain an image */\n[data-component=\"MessageContent\"] p:has(img) { }\n```\n\n### 14. Full-width prose image without stretching its aspect ratio\n\n```css\n[data-component=\"MessageContent\"] p:has(img) {\n  width: 100%;\n  max-width: 100%;\n  margin: 14px 0 22px;\n  text-align: center;\n}\n\n[data-component=\"MessageContent\"] img {\n  display: block;\n  width: 100%;\n  max-width: 100%;\n  height: auto;\n  margin-inline: auto;\n  object-fit: contain;\n}\n```\n\nFor native Lumi attachments, use Palette's **Media Flow** rather than assuming this raw prose selector also owns the attachment button/frame wrappers.\n\n## Debugging\n\nWhen something \u201cdoes nothing,\u201d check these before inventing new infrastructure:\n\n| Symptom | First thing to inspect |\n| --- | --- |\n| Border is mysteriously invisible | color alpha / opacity is not literally 0%. Yes, this happened. |\n| `width:100%` is still tiny | containing parent width + max-width. |\n| Element will not move as expected | native `position`/inset contract; try Nudge. |\n| Image crop is wrong | wrapper size vs image `object-position`. |\n| Mobile layer vanished | native `display:none` can defeat mere `visibility:visible`. |\n| Style leaks to unrelated UI | selector lost its semantic owner/context. |\n| Read Style created too much CSS | observed values should stay unowned until edited. |\n| Pack reset resurrects something deleted | provenance/ownership detach is wrong. |\n| `::after` decoration sits on top instead of bottom | mobile override accidentally reset Base positioning. |\n| Composer selector broke after upstream change | use stable `data-composer-action` / `data-toolbar-action` identity. |\n\nA good escalation order is:\n\n1. Check the actual authored packet values.\n2. Check the mounted target and parent geometry.\n3. Inspect the generated selector in **Code**.\n4. Use browser DevTools to inspect the winning declaration/cascade.\n5. Only then decide whether Palette is missing a primitive or selector boundary.\n\n> **Mounted visual truth wins.** A mathematically elegant selector or positioning scheme that does not match the real screen is still wrong.\n\n## Credits\n\nPalette drawer icon: **paintbrush by Alum Design (CC BY 3.0)**.  \nPalette is built as a Lumiverse Spindle extension and intentionally keeps its internal `theme_studio` identity stable for persistence/runtime compatibility.\n\n\n### Editorial left proof rail\n\nReader Correspondence intentionally replaces native Minimal user-side rail distribution with its own left editorial proof rail. The frame owns the real 106px rail reservation and switches to ordinary block flow so the host flex row cannot keep a ghost lane after the avatar/actions are anchored out of flow. The header stays padding-free, while portrait and proofmark actions share the same rail axis.\n\nOn mobile the desktop proof rail is released, but the portrait is still anchored against the card so it does not consume a separate row. The compact byline reserves only the portrait width, which keeps name + metadata beside the image while prose and proofmark actions continue in ordinary full-width flow below. Editorial assistant mobile uses the same principle: portrait + byline at the top, actions released to the bottom instead of occupying the native right-side action lane. The generic Minimal actions overlay must materialize before Editorial's Author Rail so the phone-only flow reset wins the pack cascade. SwipeControls use their own button/counter semantic subroles; flatten those native controls directly instead of compensating around the outer pager shell.\n\n### Editorial Contributors kicker\n\nThe Contributors masthead uses `chat.roster.bar::before` as a generated publication kicker. The host roster can carry its own pseudo positioning, so Editorial explicitly resets that surface to normal flow, zeros inherited pseudo padding, gives it a compact fixed footprint, and centers it as a non-shrinking flex item before the contributor cards. Do not compensate for overlap by moving the member cards themselves.\n\n\n### Editorial reasoning marginalia\n\nEditorial reasoning deliberately avoids the native full-width outlined lane. Both BubbleMessage and MinimalMessage use the same publication language: a transparent shell, a narrow cool-slate marginal rule/wash, small Georgia italic live duration text, and a restrained serif body when expanded. Desktop reasoning is constrained to the reading column; mobile releases it to full width rather than preserving a percentage lane.\n\nCurrent Lumiverse mounts `button[data-reasoning-toggle=\"true\"]` as both the reasoning header and the toggle surface. Keep the header responsible for chrome and the toggle role responsible for ink only. If both roles author background/border, the later toggle packet can erase the header treatment even though Palette appears to have styled both correctly.\n\n\n### Visual Novel Minimal: classic dialogue stage, not Editorial-with-neon\n\nVisual Novel deliberately uses two renderer grammars. **BubbleMessage is the active cinematic scene**: large scene choreography, choice windows, route HUD, and more theatrical game chrome belong there. **MinimalMessage is the compact classic VN dialogue stage**: centered landscape portrait, fading character banner, a game-like gradient speaker plate, translucent/double-line patterned dialogue frame, and authored VN furniture. The assistant action group may use stacked text plates while mobile releases it back into compact flow; Greetings can become a narrow status bar below dialogue rather than a generic pill. Do not collapse Minimal back into an Editorial author column or a smaller Bubble card stack.\n\nThe Minimal root intentionally owns generated scene decoration. `minimal.decorative-rail.assistant` / `.user` target the message `::before` surface as a fading banner behind the centered portrait and name plate; the side-specific corner-ornament roles use `::after` for restrained VN embellishment. Because that `::before` is authored content, the Visual Novel pack must **not** apply `minimal-native-strip-off`.\n\nIdentity lives above the dialogue frame rather than inside an opaque header card. The header itself stays transparent and centered; the speaker name becomes a gradient plate while desktop metadata remains in ordinary header flow so long dialogue cannot drag the pill into the middle of the response. Mobile may deliberately anchor the compact metadata back near the portrait. Greetings is flattened into a narrow status bar below the dialogue frame instead of competing with the portrait.\n\nAfter mounted QA, the player side now **transposes the same stage geometry** instead of shrinking into a separate card grammar: both sides share the 92% stage, centered landscape portrait, 76% transparent identity lane, and broad double-line dialogue window, with assistant blue/lilac and player rose route families carrying the side distinction. Desktop actions use the same stacked text-command grammar on both sides; mobile releases both into compact wrapped flow.\n\nReasoning is an **Inner Voice plate** beneath the name and slightly over the dialogue frame. Message actions are text-first VN controls generated over the real native buttons, including dedicated static roles for Edit, Copy, Hide, Anchor, Fork, Prompt, and Delete. Native SVGs are hidden without replacing the click targets. The omitted-action fallback must exclude every named action, including Copy.\n\nSwipe navigation belongs at the **bottom-left** as compact route furniture in normal flow. `minimal.swipes.previous` and `.next` replace native chevrons with maskable built-in arrow SVGs; `minimal.swipes.counter` owns the route count; `minimal.swipes.ornament` supplies a small decorative flower. Keeping the pager in flow prevents long messages from separating the controls from the actual dialogue footer. The long-message toggle is also scoped under Minimal so it cannot inherit Bubble's serif/purple continuation chrome.\n\nTypography remains renderer-specific. Bubble VN keeps its cinematic serif language. Minimal dialogue/body copy uses compact UI sans and mono metadata through `minimal.prose.*`, applied after shared `visual-novel-prose`, so fresh Apply All preserves the renderer split. Those VN roles themselves remain static DOM anatomy. Palette project/state schema is currently **v42** because Image and Mask now persist as separate packet types.\n";
+};
+__modules['ui/studio.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ThemeStudioUI = void 0;
@@ -10591,7 +18607,13 @@ class ThemeStudioUI {
     quickAccent = '#9370db';
     quickText = '#f4eef8';
     quickIntensity = 80;
+    quickLookSource = 'current';
+    quickLookPage = 0;
     styleLibraryRoot = null;
+    styleLibraryOverlayRoot = null;
+    styleLibraryDock = null;
+    styleLibraryDockDisconnectObserver;
+    styleLibraryPresentation = 'fullscreen';
     styleLibraryOpen = false;
     styleLibraryFiltersOpen = false;
     styleLibraryArea = 'all';
@@ -10601,6 +18623,7 @@ class ThemeStudioUI {
     styleLibraryQuery = '';
     styleLibraryView = 'browse';
     styleLibraryPackId = null;
+    styleLibraryMobileBrowseCollapsed = false;
     styleLibraryFavorites = new Set();
     styleLibraryRecent = [];
     savedStyleChooserOpen = false;
@@ -10646,6 +18669,8 @@ class ThemeStudioUI {
     scrollResizeObserver;
     handleViewportResize = () => {
         this.syncScrollViewport();
+        if (this.styleLibraryPresentation === 'dock' && !this.canDockStyleLibrary())
+            this.setStyleLibraryPresentation('fullscreen');
         if (this.responsiveScopePinned)
             return;
         const nextScope = defaultResponsiveScope();
@@ -10720,7 +18745,7 @@ class ThemeStudioUI {
         this.render();
     }
     destroy() { this.clearBoostPreview(); this.clearPreviewMarker(); this.picker.clearHighlight(); this.unsubscribeStore(); this.scrollResizeObserver?.disconnect(); if (typeof window !== 'undefined')
-        window.removeEventListener('resize', this.handleViewportResize); this.root.removeEventListener('wheel', this.handleDrawerWheel); this.dockEditor(); this.widgetRoot?.remove(); this.floatingFrame?.remove(); this.drawerPlaceholder?.remove(); this.styleLibraryRoot?.remove(); this.styleMapRoot?.remove(); this.root.replaceChildren(); }
+        window.removeEventListener('resize', this.handleViewportResize); this.root.removeEventListener('wheel', this.handleDrawerWheel); this.dockEditor(); this.widgetRoot?.remove(); this.floatingFrame?.remove(); this.drawerPlaceholder?.remove(); this.destroyStyleLibraryDock(); this.styleLibraryOverlayRoot?.remove(); this.styleLibraryRoot = null; this.styleMapRoot?.remove(); this.root.replaceChildren(); }
     render() {
         this.ensureQuickStyleSlotsHydrated();
         const scrollTop = this.root.querySelector('.ts-scroll')?.scrollTop ?? 0;
@@ -10996,13 +19021,125 @@ class ThemeStudioUI {
         this.renderStyleMap();
     }
     mountStyleLibrary() {
-        if (this.styleLibraryRoot || typeof document === 'undefined' || !document.body)
+        if (this.styleLibraryOverlayRoot || typeof document === 'undefined' || !document.body)
             return;
-        this.styleLibraryRoot = document.createElement('div');
-        this.styleLibraryRoot.className = 'ts-style-library-root';
-        this.styleLibraryRoot.setAttribute('data-theme-studio-widget', 'style-library');
-        this.styleLibraryRoot.hidden = true;
-        document.body.append(this.styleLibraryRoot);
+        this.styleLibraryOverlayRoot = document.createElement('div');
+        this.styleLibraryOverlayRoot.className = 'ts-style-library-root';
+        this.styleLibraryOverlayRoot.setAttribute('data-theme-studio-widget', 'style-library');
+        this.styleLibraryOverlayRoot.hidden = true;
+        document.body.append(this.styleLibraryOverlayRoot);
+        this.styleLibraryRoot = this.styleLibraryOverlayRoot;
+    }
+    canDockStyleLibrary() {
+        if (typeof window === 'undefined' || window.innerWidth <= 760)
+            return false;
+        return typeof this.ctx.ui.requestDockPanel === 'function';
+    }
+    openStyleLibrary() {
+        this.styleLibraryOpen = true;
+        // A docked library is persistent UI, even while Spindle has its content host
+        // collapsed. Reopening Browse should therefore expand that same dock instead
+        // of spawning the fullscreen overlay and making the user dock it again.
+        if (this.styleLibraryPresentation === 'dock')
+            this.styleLibraryDock?.expand?.();
+        this.renderStyleLibrary();
+    }
+    captureStyleLibraryScrollState() {
+        const root = this.styleLibraryRoot;
+        if (!root || !this.styleLibraryOpen)
+            return;
+        if (this.styleLibraryPackId) {
+            this.styleLibraryPackScrollTop = root.querySelector('.ts-pack-main')?.scrollTop ?? this.styleLibraryPackScrollTop;
+            this.styleLibraryPackSidebarScrollTop = root.querySelector('.ts-pack-sidebar')?.scrollTop ?? this.styleLibraryPackSidebarScrollTop;
+            return;
+        }
+        this.styleLibraryScrollTop = root.querySelector('.ts-style-library-scroll')?.scrollTop ?? this.styleLibraryScrollTop;
+        this.composerWorkshopSidecarScrollTop = root.querySelector('.ts-composer-sidecar-scroll')?.scrollTop ?? this.composerWorkshopSidecarScrollTop;
+        this.composerWorkshopAnatomyScrollTop = root.querySelector('.ts-composer-workshop-groups')?.scrollTop ?? this.composerWorkshopAnatomyScrollTop;
+    }
+    destroyStyleLibraryDock() {
+        this.styleLibraryDockDisconnectObserver?.disconnect();
+        this.styleLibraryDockDisconnectObserver = undefined;
+        this.styleLibraryDock?.destroy();
+        this.styleLibraryDock = null;
+    }
+    setStyleLibraryPresentation(next) {
+        if (next === this.styleLibraryPresentation)
+            return;
+        if (next === 'dock' && !this.canDockStyleLibrary())
+            return;
+        this.captureStyleLibraryScrollState();
+        if (next === 'dock') {
+            const requestDockPanel = this.ctx.ui.requestDockPanel;
+            if (!requestDockPanel || typeof document === 'undefined')
+                return;
+            const panel = requestDockPanel.call(this.ctx.ui, {
+                edge: 'left',
+                title: 'Palette · Style Library',
+                size: 440,
+                minSize: 340,
+                maxSize: 720,
+                resizable: true,
+                startCollapsed: false,
+                respectRequestedEdge: true,
+                showCollapsedTitle: true,
+            });
+            const dockRoot = document.createElement('div');
+            dockRoot.className = 'ts-style-library-root ts-style-library-root-docked';
+            dockRoot.setAttribute('data-theme-studio-widget', 'style-library');
+            panel.root.classList.add('ts-style-library-dock-host');
+            panel.root.replaceChildren(dockRoot);
+            this.styleLibraryDock = panel;
+            this.styleLibraryPresentation = 'dock';
+            this.styleLibraryRoot = dockRoot;
+            if (this.styleLibraryOverlayRoot) {
+                this.styleLibraryOverlayRoot.hidden = true;
+                this.styleLibraryOverlayRoot.replaceChildren();
+            }
+            if (typeof MutationObserver !== 'undefined' && document.body) {
+                // Spindle deliberately detaches the extension root while a native dock is
+                // collapsed, then reattaches that same live root when the user expands it.
+                // Watching panel.root.isConnected therefore mistakes ordinary collapse for
+                // panel destruction and kills Palette's dock state. Capture the host dock
+                // shell instead: its content host may come and go, but the shell survives a
+                // collapse and only disconnects when the native panel is actually closed.
+                let dockShell = panel.root.isConnected ? panel.root.parentElement?.parentElement ?? null : null;
+                const observer = new MutationObserver(() => {
+                    if (this.styleLibraryDock !== panel || this.styleLibraryPresentation !== 'dock') {
+                        observer.disconnect();
+                        return;
+                    }
+                    if (!dockShell && panel.root.isConnected)
+                        dockShell = panel.root.parentElement?.parentElement ?? null;
+                    if (!dockShell || dockShell.isConnected)
+                        return;
+                    observer.disconnect();
+                    this.styleLibraryDockDisconnectObserver = undefined;
+                    this.styleLibraryDock = null;
+                    this.styleLibraryPresentation = 'fullscreen';
+                    this.styleLibraryRoot = this.styleLibraryOverlayRoot;
+                    this.styleLibraryOpen = false;
+                    this.styleLibraryFiltersOpen = false;
+                    this.styleLibraryPackId = null;
+                    this.renderStyleLibrary();
+                });
+                observer.observe(document.body, { childList: true, subtree: true });
+                this.styleLibraryDockDisconnectObserver = observer;
+            }
+            panel.expand?.();
+            this.renderStyleLibrary();
+            return;
+        }
+        this.destroyStyleLibraryDock();
+        this.styleLibraryPresentation = 'fullscreen';
+        this.styleLibraryRoot = this.styleLibraryOverlayRoot;
+        this.renderStyleLibrary();
+    }
+    renderStyleLibraryPresentationButton() {
+        if (!this.canDockStyleLibrary() && this.styleLibraryPresentation !== 'dock')
+            return '';
+        const docked = this.styleLibraryPresentation === 'dock';
+        return `<button class="ts-btn ts-library-presentation-toggle" type="button" data-library-action="presentation" title="${docked ? 'Return Style Library to fullscreen' : 'Dock Style Library on the left'}" aria-label="${docked ? 'Return Style Library to fullscreen' : 'Dock Style Library on the left'}"><span aria-hidden="true">${docked ? '⛶' : '⇤'}</span><span>${docked ? 'Fullscreen' : 'Dock left'}</span></button>`;
     }
     loadStyleLibraryFavorites() {
         try {
@@ -11201,7 +19338,7 @@ class ThemeStudioUI {
         const total = (0, style_library_1.packPresetIds)(pack).length;
         const applied = this.packAppliedCount(pack);
         const favorite = this.styleLibraryFavorites.has(`pack:${pack.id}`);
-        return `<article class="ts-pack-card" data-library-card="pack:${escapeHtml(pack.id)}" data-library-kind="pack" data-library-search="${escapeHtml((0, style_library_1.styleLibraryPackSearchText)(pack))}"><button class="ts-pack-open" type="button" data-library-pack="${escapeHtml(pack.id)}"><div class="ts-pack-preview" data-pack-preview="${escapeHtml(pack.preview)}"><span class="ts-pack-panel ts-pack-panel-a"></span><span class="ts-pack-panel ts-pack-panel-b"></span><strong>${escapeHtml(pack.name)}</strong><small>${escapeHtml(pack.areas.map((area) => style_library_1.STYLE_LIBRARY_AREAS.find((entry) => entry.id === area)?.label ?? area).join(' · '))}</small></div><div class="ts-pack-copy"><div><strong>${escapeHtml(pack.name)}</strong>${applied ? `<span class="ts-chip">${applied}/${total} applied</span>` : ''}</div><span>${total} styles · ${pack.supports.length === 2 ? 'Bubble + Minimal' : pack.supports[0]}</span></div></button><button class="ts-btn ts-btn-icon ts-pack-favorite" type="button" data-library-favorite="pack:${escapeHtml(pack.id)}" aria-label="${favorite ? 'Remove' : 'Add'} ${escapeHtml(pack.name)} ${favorite ? 'from' : 'to'} favorites" aria-pressed="${favorite}">${favorite ? '★' : '☆'}</button></article>`;
+        return `<article class="ts-pack-card" data-library-card="pack:${escapeHtml(pack.id)}" data-library-kind="pack" data-library-pack="${escapeHtml(pack.id)}" data-library-search="${escapeHtml((0, style_library_1.styleLibraryPackSearchText)(pack))}"><button class="ts-pack-open" type="button"><div class="ts-pack-preview" data-pack-preview="${escapeHtml(pack.preview)}"><span class="ts-pack-panel ts-pack-panel-a"></span><span class="ts-pack-panel ts-pack-panel-b"></span><strong>${escapeHtml(pack.name)}</strong><small>${escapeHtml(pack.areas.map((area) => style_library_1.STYLE_LIBRARY_AREAS.find((entry) => entry.id === area)?.label ?? area).join(' · '))}</small></div><div class="ts-pack-copy"><div><strong>${escapeHtml(pack.name)}</strong>${applied ? `<span class="ts-chip">${applied}/${total} applied</span>` : ''}</div><span>${total} styles · ${pack.supports.length === 2 ? 'Bubble + Minimal' : pack.supports[0]}</span></div></button><button class="ts-btn ts-btn-icon ts-pack-favorite" type="button" data-library-favorite="pack:${escapeHtml(pack.id)}" aria-label="${favorite ? 'Remove' : 'Add'} ${escapeHtml(pack.name)} ${favorite ? 'from' : 'to'} favorites" aria-pressed="${favorite}">${favorite ? '★' : '☆'}</button></article>`;
     }
     packAssetBinding(packId, slotId) {
         const prefix = `Pack asset · ${packId}:${slotId} · `;
@@ -11404,7 +19541,7 @@ class ThemeStudioUI {
         const ids = (0, style_library_1.packPresetIds)(pack);
         const applied = this.packAppliedCount(pack);
         const favorite = this.styleLibraryFavorites.has(`pack:${pack.id}`);
-        const compactSidebar = typeof window !== 'undefined' && Boolean(window.matchMedia?.('(max-width: 760px)')?.matches);
+        const compactSidebar = this.styleLibraryPresentation === 'dock' || (typeof window !== 'undefined' && Boolean(window.matchMedia?.('(max-width: 760px)')?.matches));
         const workbenchOpen = compactSidebar ? '' : ' open';
         const layout = this.packWorkbenchLayout(pack.id);
         const compatibleIds = (0, style_library_1.packCompatiblePresetIds)(pack, layout);
@@ -11436,7 +19573,7 @@ class ThemeStudioUI {
             }).join('');
             return `<div class="ts-pack-manifest-group"><span>${escapeHtml(section.label)}</span>${rows}</div>`;
         }).join('');
-        return `<header class="ts-style-library-head ts-pack-detail-head"><div class="ts-pack-head-title"><button class="ts-btn ts-btn-icon" type="button" data-library-action="back" aria-label="Back to style library">←</button><div><p class="ts-kicker">Style pack workbench</p><h2 id="ts-style-library-title">${escapeHtml(pack.name)}</h2></div></div><div class="ts-pack-head-actions"><button class="ts-btn ts-btn-icon" type="button" data-library-favorite="pack:${escapeHtml(pack.id)}" aria-label="${favorite ? 'Remove pack from favorites' : 'Favorite pack'}" aria-pressed="${favorite}">${favorite ? '★' : '☆'}</button><button class="ts-btn ts-btn-icon" type="button" data-library-action="close" aria-label="Close style library">×</button></div></header><div class="ts-pack-workspace"><main class="ts-pack-main"><div class="ts-pack-hero" data-pack-layout-preview="${layout}"><div class="ts-pack-preview ts-pack-preview-large" data-pack-preview="${escapeHtml(pack.preview)}"><span class="ts-pack-panel ts-pack-panel-a"></span><span class="ts-pack-panel ts-pack-panel-b"></span><span class="ts-pack-preview-rail"></span><strong>${escapeHtml(pack.name)}</strong><small>${escapeHtml(coverage)}</small></div><div class="ts-pack-summary"><div class="ts-pack-summary-row"><span class="ts-library-badge ts-library-family">${escapeHtml(pack.family)}</span><span class="ts-library-badge">${ids.length} styles</span><span class="ts-library-badge">${escapeHtml(layoutLabel)}</span></div><strong>${selectedIds.length} selected</strong></div></div><nav class="ts-pack-section-nav" aria-label="Pack sections"><span>Jump to</span>${sectionNav}</nav><div class="ts-pack-detail-scroll">${sections}</div></main><aside class="ts-pack-sidebar" aria-label="${escapeHtml(pack.name)} pack controls"><div class="ts-pack-sidebar-inner"><section class="ts-pack-side-actions ts-pack-workbench-actions"><div class="ts-pack-side-heading"><div><span class="ts-kicker">Workbench</span><strong>${escapeHtml(pack.name)}</strong></div><span class="ts-chip">${applied}/${ids.length} applied</span></div><div class="ts-pack-layout-picker" role="group" aria-label="Pack message layout"><button type="button" data-pack-layout="all" data-pack-id="${escapeHtml(pack.id)}" aria-pressed="${layout === 'all'}">Both</button><button type="button" data-pack-layout="bubble" data-pack-id="${escapeHtml(pack.id)}" aria-pressed="${layout === 'bubble'}" ${pack.supports.includes('bubble') ? '' : 'disabled'}>Bubble</button><button type="button" data-pack-layout="minimal" data-pack-id="${escapeHtml(pack.id)}" aria-pressed="${layout === 'minimal'}" ${pack.supports.includes('minimal') ? '' : 'disabled'}>Minimal</button></div><div class="ts-pack-selection-summary"><div><strong>${selectedIds.length}</strong><span>chosen</span></div><div><strong>${selectedApplied}</strong><span>already applied</span></div><div><strong>${compatibleIds.length}</strong><span>compatible</span></div></div><div class="ts-pack-selection-tools"><button type="button" data-pack-selection-mode="defaults" data-pack-id="${escapeHtml(pack.id)}">Defaults</button><button type="button" data-pack-selection-mode="all" data-pack-id="${escapeHtml(pack.id)}">All compatible</button><button type="button" data-pack-selection-mode="clear" data-pack-id="${escapeHtml(pack.id)}" ${selectedIds.length ? '' : 'disabled'}>Clear</button></div><div class="ts-pack-main-actions ts-pack-main-actions-workbench"><button class="ts-btn ts-btn-primary" type="button" data-pack-apply-selection="${escapeHtml(pack.id)}" ${selectedIds.length ? '' : 'disabled'}>Apply selection</button><button class="ts-btn" type="button" data-pack-reset-selection="${escapeHtml(pack.id)}" ${selectedApplied ? '' : 'disabled'}>Reset selection</button></div><div class="ts-pack-secondary-actions"><button class="ts-btn" type="button" data-library-pack-apply="${escapeHtml(pack.id)}">Apply all</button><button class="ts-btn ts-btn-danger" type="button" data-library-pack-reset="${escapeHtml(pack.id)}" ${applied ? '' : 'disabled'}>Reset pack</button></div></section><details class="ts-pack-side-section ts-pack-recipe-manifest"${workbenchOpen}><summary><div><strong>Recipe set</strong><span>${selectedIds.length} chosen · ${compatibleIds.length} compatible</span></div><span class="ts-chip">Workbench</span><i aria-hidden="true">⌄</i></summary><div class="ts-pack-side-body"><div class="ts-pack-manifest">${recipeManifest}</div></div></details><details class="ts-pack-side-section"><summary><div><strong>Refine palette</strong><span>Accent, text, and intensity</span></div><span class="ts-chip">Build-a-Bear</span><i aria-hidden="true">⌄</i></summary><div class="ts-pack-side-body">${this.renderQuickPalette()}</div></details><details class="ts-pack-side-section"><summary><div><strong>Asset slots</strong><span>${pack.assetSlots.length} declared · safe defaults</span></div><span class="ts-chip">Foundation</span><i aria-hidden="true">⌄</i></summary><div class="ts-pack-side-body"><div class="ts-pack-assets">${assetRows}</div></div></details></div></aside></div>`;
+        return `<header class="ts-style-library-head ts-pack-detail-head"><div class="ts-pack-head-title"><button class="ts-btn ts-btn-icon" type="button" data-library-action="back" aria-label="Back to style library">←</button><div><p class="ts-kicker">Style pack workbench</p><h2 id="ts-style-library-title">${escapeHtml(pack.name)}</h2></div></div><div class="ts-pack-head-actions">${this.renderStyleLibraryPresentationButton()}<button class="ts-btn ts-btn-icon" type="button" data-library-favorite="pack:${escapeHtml(pack.id)}" aria-label="${favorite ? 'Remove pack from favorites' : 'Favorite pack'}" aria-pressed="${favorite}">${favorite ? '★' : '☆'}</button><button class="ts-btn ts-btn-icon" type="button" data-library-action="close" aria-label="Close style library">×</button></div></header><div class="ts-pack-workspace"><main class="ts-pack-main"><div class="ts-pack-hero" data-pack-layout-preview="${layout}"><div class="ts-pack-preview ts-pack-preview-large" data-pack-preview="${escapeHtml(pack.preview)}"><span class="ts-pack-panel ts-pack-panel-a"></span><span class="ts-pack-panel ts-pack-panel-b"></span><span class="ts-pack-preview-rail"></span><strong>${escapeHtml(pack.name)}</strong><small>${escapeHtml(coverage)}</small></div><div class="ts-pack-summary"><div class="ts-pack-summary-row"><span class="ts-library-badge ts-library-family">${escapeHtml(pack.family)}</span><span class="ts-library-badge">${ids.length} styles</span><span class="ts-library-badge">${escapeHtml(layoutLabel)}</span></div><strong>${selectedIds.length} selected</strong></div></div><nav class="ts-pack-section-nav" aria-label="Pack sections"><span>Jump to</span>${sectionNav}</nav><div class="ts-pack-detail-scroll">${sections}</div></main><aside class="ts-pack-sidebar" aria-label="${escapeHtml(pack.name)} pack controls"><div class="ts-pack-sidebar-inner"><section class="ts-pack-side-actions ts-pack-workbench-actions"><div class="ts-pack-side-heading"><div><span class="ts-kicker">Workbench</span><strong>${escapeHtml(pack.name)}</strong></div><span class="ts-chip">${applied}/${ids.length} applied</span></div><div class="ts-pack-layout-picker" role="group" aria-label="Pack message layout"><button type="button" data-pack-layout="all" data-pack-id="${escapeHtml(pack.id)}" aria-pressed="${layout === 'all'}">Both</button><button type="button" data-pack-layout="bubble" data-pack-id="${escapeHtml(pack.id)}" aria-pressed="${layout === 'bubble'}" ${pack.supports.includes('bubble') ? '' : 'disabled'}>Bubble</button><button type="button" data-pack-layout="minimal" data-pack-id="${escapeHtml(pack.id)}" aria-pressed="${layout === 'minimal'}" ${pack.supports.includes('minimal') ? '' : 'disabled'}>Minimal</button></div><div class="ts-pack-selection-summary"><div><strong>${selectedIds.length}</strong><span>chosen</span></div><div><strong>${selectedApplied}</strong><span>already applied</span></div><div><strong>${compatibleIds.length}</strong><span>compatible</span></div></div><div class="ts-pack-selection-tools"><button type="button" data-pack-selection-mode="defaults" data-pack-id="${escapeHtml(pack.id)}">Defaults</button><button type="button" data-pack-selection-mode="all" data-pack-id="${escapeHtml(pack.id)}">All compatible</button><button type="button" data-pack-selection-mode="clear" data-pack-id="${escapeHtml(pack.id)}" ${selectedIds.length ? '' : 'disabled'}>Clear</button></div><div class="ts-pack-main-actions ts-pack-main-actions-workbench"><button class="ts-btn ts-btn-primary" type="button" data-pack-apply-selection="${escapeHtml(pack.id)}" ${selectedIds.length ? '' : 'disabled'}>Apply selection</button><button class="ts-btn" type="button" data-pack-reset-selection="${escapeHtml(pack.id)}" ${selectedApplied ? '' : 'disabled'}>Reset selection</button></div><div class="ts-pack-secondary-actions"><button class="ts-btn" type="button" data-library-pack-apply="${escapeHtml(pack.id)}">Apply all</button><button class="ts-btn ts-btn-danger" type="button" data-library-pack-reset="${escapeHtml(pack.id)}" ${applied ? '' : 'disabled'}>Reset pack</button></div></section><details class="ts-pack-side-section ts-pack-recipe-manifest"${workbenchOpen}><summary><div><strong>Recipe set</strong><span>${selectedIds.length} chosen · ${compatibleIds.length} compatible</span></div><span class="ts-chip">Workbench</span><i aria-hidden="true">⌄</i></summary><div class="ts-pack-side-body"><div class="ts-pack-manifest">${recipeManifest}</div></div></details><details class="ts-pack-side-section"><summary><div><strong>Refine palette</strong><span>Accent, text, and intensity</span></div><span class="ts-chip">Build-a-Bear</span><i aria-hidden="true">⌄</i></summary><div class="ts-pack-side-body">${this.renderQuickPalette()}</div></details><details class="ts-pack-side-section"><summary><div><strong>Asset slots</strong><span>${pack.assetSlots.length} declared · safe defaults</span></div><span class="ts-chip">Foundation</span><i aria-hidden="true">⌄</i></summary><div class="ts-pack-side-body"><div class="ts-pack-assets">${assetRows}</div></div></details></div></aside></div>`;
     }
     styleLibraryActiveFilterCount() {
         // Surface is a first-class browse axis rendered directly in the library.
@@ -11464,9 +19601,12 @@ class ThemeStudioUI {
         }
         root.hidden = false;
         const pack = this.styleLibraryPackId ? (0, style_library_1.packForId)(this.styleLibraryPackId) : undefined;
+        const docked = this.styleLibraryPresentation === 'dock';
+        const backdrop = docked ? '' : '<div class="ts-style-library-backdrop" data-library-action="close"></div>';
+        const modalA11y = docked ? 'role="region"' : 'role="dialog" aria-modal="true"';
         if (pack) {
             this.styleLibraryFiltersOpen = false;
-            root.innerHTML = `<div class="ts-style-library-backdrop" data-library-action="close"></div><section class="ts-style-library-modal ts-preset-library ts-pack-detail" role="dialog" aria-modal="true" aria-labelledby="ts-style-library-title" style="--ts-quick-accent:${escapeHtml(this.quickAccent)};--ts-quick-text:${escapeHtml(this.quickText)};--ts-quick-intensity:${this.quickIntensity / 100}">${this.renderPackDetail(pack)}</section>`;
+            root.innerHTML = `${backdrop}<section class="ts-style-library-modal ts-preset-library ts-pack-detail" ${modalA11y} aria-labelledby="ts-style-library-title" style="--ts-quick-accent:${escapeHtml(this.quickAccent)};--ts-quick-text:${escapeHtml(this.quickText)};--ts-quick-intensity:${this.quickIntensity / 100}">${this.renderPackDetail(pack)}</section>`;
             this.bindStyleLibrary();
             const packMain = root.querySelector('.ts-pack-main');
             const packSidebar = root.querySelector('.ts-pack-sidebar');
@@ -11498,7 +19638,7 @@ class ThemeStudioUI {
         const composerWorkshop = this.styleLibraryView === 'browse' && this.styleLibraryArea === 'composer' ? this.renderComposerWorkshop() : '';
         const savedStyles = this.store.snapshot.savedStyles;
         const totalCopy = this.styleLibraryView === 'my-styles' ? `${savedStyles.length} saved style${savedStyles.length === 1 ? '' : 's'}` : `${recipes.length} style${recipes.length === 1 ? '' : 's'} · ${packs.length} pack${packs.length === 1 ? '' : 's'}`;
-        root.innerHTML = `<div class="ts-style-library-backdrop" data-library-action="close"></div><section class="ts-style-library-modal ts-preset-library ts-library-browser" role="dialog" aria-modal="true" aria-labelledby="ts-style-library-title" style="--ts-quick-accent:${escapeHtml(this.quickAccent)};--ts-quick-text:${escapeHtml(this.quickText)};--ts-quick-intensity:${this.quickIntensity / 100}"><header class="ts-style-library-head"><div><p class="ts-kicker">Style library</p><h2 id="ts-style-library-title">${this.styleLibraryView === 'my-styles' ? 'My Styles' : 'Browse looks'}</h2><span>${this.styleLibraryView === 'my-styles' ? 'Reusable semantic looks you saved yourself. Apply them across theme projects without copying CSS.' : 'Packs are collections. Styles are the pieces. Search the warehouse without wearing the inventory terminal as a hat.'}</span></div><button class="ts-btn ts-btn-icon" type="button" data-library-action="close" aria-label="Close style library">×</button></header><div class="ts-library-workspace"><aside class="ts-library-sidebar"><nav class="ts-library-view-nav" aria-label="Library view">${viewTabs}</nav><section class="ts-library-side-status"><span class="ts-kicker">${escapeHtml(viewLabels[this.styleLibraryView])}</span><strong data-library-result-count>${escapeHtml(totalCopy)}</strong><p>${this.styleLibraryView === 'browse' ? 'Explore packs and individual styles.' : this.styleLibraryView === 'recent' ? 'Things you touched lately.' : this.styleLibraryView === 'applied' ? 'Layers currently contributing.' : this.styleLibraryView === 'my-styles' ? 'Reusable looks you authored yourself.' : 'Your saved fashion crimes.'}</p></section><details class="ts-library-tune"><summary><div><strong>Tune previews</strong><span><i style="--swatch:${escapeHtml(this.quickAccent)}"></i><i style="--swatch:${escapeHtml(this.quickText)}"></i>${this.quickIntensity}%</span></div><b>⌄</b></summary><div class="ts-library-tune-body">${this.renderQuickPalette()}</div></details></aside><section class="ts-library-results"><div class="ts-library-results-toolbar"><div class="ts-library-results-title"><div class="ts-library-results-heading"><span class="ts-kicker">${escapeHtml(viewLabels[this.styleLibraryView])}</span><strong>${this.styleLibraryView === 'my-styles' ? 'Saved by you' : this.styleLibraryArea === 'all' ? 'All styles' : escapeHtml(style_library_1.STYLE_LIBRARY_AREAS.find((entry) => entry.id === this.styleLibraryArea)?.label ?? 'Styles')}</strong></div>${this.styleLibraryView === 'my-styles' ? '' : `<nav class="ts-library-surface-nav" aria-label="Library surface">${surfaceTabs}</nav>`}<span data-library-result-count>${escapeHtml(totalCopy)}</span></div><div class="ts-library-search-row"><label class="ts-library-search"><span>Search library</span><input class="ts-search" type="search" value="${escapeHtml(this.styleLibraryQuery)}" placeholder="${this.styleLibraryView === 'my-styles' ? 'Search your saved styles…' : 'minimal portrait, manga heading, glass composer…'}" data-library-search></label>${this.styleLibraryView === 'my-styles' ? '' : `<button class="ts-library-pack-owned-toggle" type="button" data-library-pack-owned aria-pressed="${this.styleLibraryShowPackOwned}" title="${this.styleLibraryShowPackOwned ? 'Hide' : 'Show'} individual styles that also belong to a pack"><span class="ts-library-toggle-track" aria-hidden="true"><i></i></span><span>Show pack-owned</span></button><button class="ts-btn ts-library-filter-trigger" type="button" data-library-filter-action="open" aria-expanded="${this.styleLibraryFiltersOpen}">More filters${activeFilters ? `<span>${activeFilters}</span>` : ''}</button>`}</div>${filterChips && this.styleLibraryView !== 'my-styles' ? `<div class="ts-library-active-filters"><span>Extra filters</span>${filterChips}<button type="button" data-library-filter-action="reset">Clear all</button></div>` : ''}</div><main class="ts-style-library-scroll">${this.styleLibraryView === 'my-styles' ? (savedStyles.length ? `<section class="ts-library-group ts-saved-style-group"><div class="ts-library-group-head"><div><strong>My Styles</strong><small>Cross-project semantic styles · apply without copying CSS</small></div><span>${savedStyles.length}</span></div><div class="ts-saved-style-grid">${savedStyles.map((style) => this.renderSavedStyleCard(style)).join('')}</div></section>` : `<div class="ts-library-empty"><strong>Nothing saved yet.</strong><span>${escapeHtml(emptyCopy)}</span></div>`) : `${layoutNote}${composerWorkshop}${packs.length ? `<section class="ts-library-group ts-pack-group"><div class="ts-library-group-head"><div><strong>Packs</strong><small>Coordinated collections · open before applying</small></div><span>${packs.length}</span></div><div class="ts-pack-grid">${packs.map((entry) => this.renderPackCard(entry)).join('')}</div></section>` : ''}${groups.length ? groups.map((group) => `<section class="ts-library-group"><div class="ts-library-group-head"><div><strong>${escapeHtml(group.label)}</strong><small>Individual styles · apply here or pencil into Design</small></div><span>${group.entries.length}</span></div>${this.renderPresetCards(group.entries.map((entry) => entry.preset), { library: true })}</section>`).join('') : !packs.length ? `<div class="ts-library-empty"><strong>Nothing here yet.</strong><span>${escapeHtml(emptyCopy)}</span></div>` : ''}`}</main></section></div>${this.renderStyleLibraryFilterDialog(families)}</section>`;
+        root.innerHTML = `${backdrop}<section class="ts-style-library-modal ts-preset-library ts-library-browser" ${modalA11y} aria-labelledby="ts-style-library-title" style="--ts-quick-accent:${escapeHtml(this.quickAccent)};--ts-quick-text:${escapeHtml(this.quickText)};--ts-quick-intensity:${this.quickIntensity / 100}"><header class="ts-style-library-head"><div><p class="ts-kicker">Style library</p><h2 id="ts-style-library-title">${this.styleLibraryView === 'my-styles' ? 'My Styles' : 'Browse looks'}</h2><span>${this.styleLibraryView === 'my-styles' ? 'Reusable semantic looks you saved yourself. Apply them across theme projects without copying CSS.' : 'Packs are collections. Styles are the pieces. Search the warehouse without wearing the inventory terminal as a hat.'}</span></div><div class="ts-style-library-head-actions">${this.renderStyleLibraryPresentationButton()}<button class="ts-btn ts-btn-icon" type="button" data-library-action="close" aria-label="Close style library">×</button></div></header><div class="ts-library-workspace"><aside class="ts-library-sidebar"><nav class="ts-library-view-nav" aria-label="Library view">${viewTabs}</nav><section class="ts-library-side-status"><span class="ts-kicker">${escapeHtml(viewLabels[this.styleLibraryView])}</span><strong data-library-result-count>${escapeHtml(totalCopy)}</strong><p>${this.styleLibraryView === 'browse' ? 'Explore packs and individual styles.' : this.styleLibraryView === 'recent' ? 'Things you touched lately.' : this.styleLibraryView === 'applied' ? 'Layers currently contributing.' : this.styleLibraryView === 'my-styles' ? 'Reusable looks you authored yourself.' : 'Your saved fashion crimes.'}</p></section><details class="ts-library-tune"><summary><div><strong>Tune previews</strong><span><i style="--swatch:${escapeHtml(this.quickAccent)}"></i><i style="--swatch:${escapeHtml(this.quickText)}"></i>${this.quickIntensity}%</span></div><b>⌄</b></summary><div class="ts-library-tune-body">${this.renderQuickPalette()}</div></details></aside><section class="ts-library-results${this.styleLibraryMobileBrowseCollapsed ? ' is-mobile-browse-collapsed' : ''}"><button class="ts-library-mobile-browse-toggle" type="button" data-library-action="mobile-browse-toggle" aria-expanded="${!this.styleLibraryMobileBrowseCollapsed}"><span><small>Browse controls</small><strong>${this.styleLibraryView === 'my-styles' ? 'My Styles' : this.styleLibraryArea === 'all' ? 'All styles' : escapeHtml(style_library_1.STYLE_LIBRARY_AREAS.find((entry) => entry.id === this.styleLibraryArea)?.label ?? 'Styles')}</strong></span><b aria-hidden="true">⌄</b></button><div class="ts-library-results-toolbar"><div class="ts-library-results-title"><div class="ts-library-results-heading"><span class="ts-kicker">${escapeHtml(viewLabels[this.styleLibraryView])}</span><strong>${this.styleLibraryView === 'my-styles' ? 'Saved by you' : this.styleLibraryArea === 'all' ? 'All styles' : escapeHtml(style_library_1.STYLE_LIBRARY_AREAS.find((entry) => entry.id === this.styleLibraryArea)?.label ?? 'Styles')}</strong></div>${this.styleLibraryView === 'my-styles' ? '' : `<nav class="ts-library-surface-nav" aria-label="Library surface">${surfaceTabs}</nav>`}<span data-library-result-count>${escapeHtml(totalCopy)}</span></div><div class="ts-library-search-row"><label class="ts-library-search"><span>Search library</span><input class="ts-search" type="search" value="${escapeHtml(this.styleLibraryQuery)}" placeholder="${this.styleLibraryView === 'my-styles' ? 'Search your saved styles…' : 'minimal portrait, manga heading, glass composer…'}" data-library-search></label>${this.styleLibraryView === 'my-styles' ? '' : `<button class="ts-library-pack-owned-toggle" type="button" data-library-pack-owned aria-pressed="${this.styleLibraryShowPackOwned}" title="${this.styleLibraryShowPackOwned ? 'Hide' : 'Show'} individual styles that also belong to a pack"><span class="ts-library-toggle-track" aria-hidden="true"><i></i></span><span>Show pack-owned</span></button><button class="ts-btn ts-library-filter-trigger" type="button" data-library-filter-action="open" aria-expanded="${this.styleLibraryFiltersOpen}">More filters${activeFilters ? `<span>${activeFilters}</span>` : ''}</button>`}</div>${filterChips && this.styleLibraryView !== 'my-styles' ? `<div class="ts-library-active-filters"><span>Extra filters</span>${filterChips}<button type="button" data-library-filter-action="reset">Clear all</button></div>` : ''}</div><main class="ts-style-library-scroll">${this.styleLibraryView === 'my-styles' ? (savedStyles.length ? `<section class="ts-library-group ts-saved-style-group"><div class="ts-library-group-head"><div><strong>My Styles</strong><small>Cross-project semantic styles · apply without copying CSS</small></div><span>${savedStyles.length}</span></div><div class="ts-saved-style-grid">${savedStyles.map((style) => this.renderSavedStyleCard(style)).join('')}</div></section>` : `<div class="ts-library-empty"><strong>Nothing saved yet.</strong><span>${escapeHtml(emptyCopy)}</span></div>`) : `${layoutNote}${composerWorkshop}${packs.length ? `<section class="ts-library-group ts-pack-group"><div class="ts-library-group-head"><div><strong>Packs</strong><small>Coordinated collections · open before applying</small></div><span>${packs.length}</span></div><div class="ts-pack-grid">${packs.map((entry) => this.renderPackCard(entry)).join('')}</div></section>` : ''}${groups.length ? groups.map((group) => `<section class="ts-library-group"><div class="ts-library-group-head"><div><strong>${escapeHtml(group.label)}</strong><small>Individual styles · apply here or pencil into Design</small></div><span>${group.entries.length}</span></div>${this.renderPresetCards(group.entries.map((entry) => entry.preset), { library: true })}</section>`).join('') : !packs.length ? `<div class="ts-library-empty"><strong>Nothing here yet.</strong><span>${escapeHtml(emptyCopy)}</span></div>` : ''}`}</main></section></div>${this.renderStyleLibraryFilterDialog(families)}</section>`;
         this.bindStyleLibrary();
         const composerSidecar = root.querySelector('.ts-composer-workshop-sidecar');
         if (composerSidecar)
@@ -11533,7 +19673,17 @@ class ThemeStudioUI {
         const root = this.styleLibraryRoot;
         if (!root)
             return;
-        root.querySelectorAll('[data-library-action="close"]').forEach((element) => element.addEventListener('click', () => { this.styleLibraryOpen = false; this.styleLibraryFiltersOpen = false; this.styleLibraryPackId = null; this.renderStyleLibrary(); }));
+        root.querySelectorAll('[data-library-action="close"]').forEach((element) => element.addEventListener('click', () => {
+            this.styleLibraryOpen = false;
+            this.styleLibraryFiltersOpen = false;
+            this.styleLibraryPackId = null;
+            if (this.styleLibraryPresentation === 'dock')
+                this.setStyleLibraryPresentation('fullscreen');
+            else
+                this.renderStyleLibrary();
+        }));
+        root.querySelectorAll('[data-library-action="presentation"]').forEach((button) => button.addEventListener('click', () => this.setStyleLibraryPresentation(this.styleLibraryPresentation === 'dock' ? 'fullscreen' : 'dock')));
+        root.querySelector('[data-library-action="mobile-browse-toggle"]')?.addEventListener('click', () => { this.styleLibraryMobileBrowseCollapsed = !this.styleLibraryMobileBrowseCollapsed; this.renderStyleLibrary(); });
         root.querySelectorAll('[data-library-filter-action]').forEach((button) => button.addEventListener('click', () => { const action = button.dataset.libraryFilterAction; if (action === 'open')
             this.styleLibraryFiltersOpen = true;
         else if (action === 'close')
@@ -11571,9 +19721,7 @@ class ThemeStudioUI {
         root.querySelector('[data-composer-workshop-full-design]')?.addEventListener('click', () => { if (!this.composerWorkshopRole)
             return; if (this.composerWorkshopRole === 'input.actionbar' && this.selection && activeScope(this.selection).selector.includes('[data-composer-action=')) {
             this.composerWorkshopRole = null;
-            this.styleLibraryOpen = false;
-            this.styleLibraryFiltersOpen = false;
-            this.styleLibraryPackId = null;
+            this.leaveStyleLibraryForDesign();
             this.workspace = 'design';
             this.render();
             return;
@@ -11674,7 +19822,7 @@ class ThemeStudioUI {
         packMain?.addEventListener('scroll', syncPackSectionNav, { passive: true });
         syncPackSectionNav();
         root.querySelectorAll('[data-apply-common-preset]').forEach((button) => button.addEventListener('click', () => this.applyCommonPreset(button.dataset.applyCommonPreset ?? '', false)));
-        root.querySelectorAll('[data-edit-common-preset]').forEach((button) => button.addEventListener('click', () => { this.styleLibraryOpen = false; this.styleLibraryPackId = null; this.applyCommonPreset(button.dataset.editCommonPreset ?? '', true); }));
+        root.querySelectorAll('[data-edit-common-preset]').forEach((button) => button.addEventListener('click', () => { this.leaveStyleLibraryForDesign(); this.applyCommonPreset(button.dataset.editCommonPreset ?? '', true); }));
         root.querySelectorAll('[data-reset-common-preset]').forEach((button) => button.addEventListener('click', () => this.resetCommonPreset(button.dataset.resetCommonPreset ?? '')));
         const search = root.querySelector('[data-library-search]');
         search?.addEventListener('input', () => { this.styleLibraryQuery = search.value; this.applyLibrarySearch(); });
@@ -11999,8 +20147,7 @@ class ThemeStudioUI {
         this.savedStyleSelection.clear();
         this.styleLibraryView = 'my-styles';
         this.styleLibraryPackId = null;
-        this.styleLibraryOpen = true;
-        this.renderStyleLibrary();
+        this.openStyleLibrary();
     }
     renderSavedStyleChooser() {
         if (!this.savedStyleChooserOpen)
@@ -13025,13 +21172,25 @@ class ThemeStudioUI {
         this.observedRead = null;
         return true;
     }
+    leaveStyleLibraryForDesign() {
+        this.captureStyleLibraryScrollState();
+        if (this.styleLibraryPresentation === 'dock') {
+            // Apply/Edit is a workspace handoff, not a request to forget that the user
+            // chose docked browsing. Tuck the native panel away but keep its live root,
+            // filters, pack workbench, and presentation ownership intact. The user can
+            // expand the edge tab directly, or Browse styles will expand this same dock.
+            this.styleLibraryDock?.collapse?.();
+            return;
+        }
+        this.styleLibraryOpen = false;
+        this.styleLibraryFiltersOpen = false;
+        this.styleLibraryPackId = null;
+    }
     openKnownRoleInDesign(roleId) {
         if (!this.selectKnownRole(roleId))
             return;
         this.composerWorkshopRole = null;
-        this.styleLibraryOpen = false;
-        this.styleLibraryFiltersOpen = false;
-        this.styleLibraryPackId = null;
+        this.leaveStyleLibraryForDesign();
         this.workspace = 'design';
         this.render();
     }
@@ -13357,7 +21516,7 @@ class ThemeStudioUI {
             const packCompatible = !options.packId || !options.packLayout || options.packLayout === 'all' || support.includes(options.packLayout);
             const packChosen = Boolean(options.packId && packCompatible && options.selectedPresetIds?.has(preset.id));
             const workbenchToggle = options.packId ? `<button class="ts-pack-card-select" type="button" data-pack-select-preset="${escapeHtml(preset.id)}" data-pack-id="${escapeHtml(options.packId)}" aria-pressed="${packChosen}" ${packCompatible ? '' : 'disabled'}><span aria-hidden="true">${packChosen ? '✓' : '+'}</span>${packCompatible ? (packChosen ? 'Chosen' : 'Choose') : 'Other layout'}</button>` : '';
-            return `<article class="ts-preset-card${options.compact ? ' ts-preset-card-compact' : ''}${options.packId ? ' ts-pack-recipe-card' : ''}${packChosen ? ' is-pack-chosen' : ''}${!packCompatible ? ' is-pack-incompatible' : ''}" data-library-card="${escapeHtml(preset.id)}" data-library-kind="recipe" data-library-search="${escapeHtml(meta ? (0, style_library_1.styleLibrarySearchText)(meta) : `${preset.name} ${preset.description}`.toLowerCase())}" data-preset-applied="${applied}">${this.renderPresetPreview(preset.preview)}${workbenchToggle}<div class="ts-preset-card-copy"><div class="ts-preset-card-title"><strong>${escapeHtml(preset.name)}</strong>${applied ? '<span class="ts-chip">Applied</span>' : ''}</div>${options.library ? `<div class="ts-library-targets" title="${escapeHtml(labels.join(' + '))}"><span><b>Component</b> · ${escapeHtml(componentSummary || 'DOM')}</span><span><b>Affects</b> · ${escapeHtml(affectsSummary)}</span></div><div class="ts-library-badges">${familyBadge}${layoutBadges}${scaleBadge}</div>` : `<span title="${escapeHtml(labels.join(' + '))}">Affects · ${escapeHtml(affectsSummary)}</span>`}</div><div class="ts-preset-card-actions${options.library ? ' ts-library-card-actions' : ''}"><button class="ts-btn ts-btn-primary" type="button" data-apply-common-preset="${escapeHtml(preset.id)}" ${packCompatible ? '' : 'disabled'}>Apply</button><button class="ts-btn ts-btn-icon" type="button" data-edit-common-preset="${escapeHtml(preset.id)}" title="Apply and edit in Design" aria-label="Apply ${escapeHtml(preset.name)} and edit" ${packCompatible ? '' : 'disabled'}>${pencil}</button>${options.library ? `<button class="ts-btn ts-btn-icon" type="button" data-library-favorite="${favoriteKey}" aria-label="${favorite ? 'Remove' : 'Add'} ${escapeHtml(preset.name)} ${favorite ? 'from' : 'to'} favorites" aria-pressed="${favorite}">${favorite ? '★' : '☆'}</button>` : ''}${options.library || applied ? `<button class="ts-btn ts-btn-icon ts-preset-reset" type="button" data-reset-common-preset="${escapeHtml(preset.id)}" title="Reset this recipe footprint" aria-label="Reset ${escapeHtml(preset.name)}" ${applied ? '' : 'disabled'}>↺</button>` : ''}</div></article>`;
+            return `<article class="ts-preset-card${options.compact ? ' ts-preset-card-compact' : ''}${options.packId ? ' ts-pack-recipe-card' : ''}${packChosen ? ' is-pack-chosen' : ''}${!packCompatible ? ' is-pack-incompatible' : ''}" data-library-card="${escapeHtml(preset.id)}" data-library-kind="recipe" data-library-search="${escapeHtml(meta ? (0, style_library_1.styleLibrarySearchText)(meta) : `${preset.name} ${preset.description}`.toLowerCase())}" data-preset-applied="${applied}">${this.renderPresetPreview(preset.preview)}${workbenchToggle}<div class="ts-preset-card-copy"><div class="ts-preset-card-title"><strong>${escapeHtml(preset.name)}</strong>${applied ? '<span class="ts-chip">Applied</span>' : ''}</div>${options.library ? `<div class="ts-library-targets" title="${escapeHtml(labels.join(' + '))}"><span><b>Component</b> · ${escapeHtml(componentSummary || 'DOM')}</span><span><b>Affects</b> · ${escapeHtml(affectsSummary)}</span></div><div class="ts-library-badges">${familyBadge}${layoutBadges}${scaleBadge}</div>` : `<span title="${escapeHtml(labels.join(' + '))}">Affects · ${escapeHtml(affectsSummary)}</span>`}</div><div class="ts-preset-card-actions${options.library ? ' ts-library-card-actions' : ''}">${options.compact && applied ? `<button class="ts-btn ts-quick-revert" type="button" data-reset-common-preset="${escapeHtml(preset.id)}">Revert</button>` : `<button class="ts-btn ts-btn-primary" type="button" data-apply-common-preset="${escapeHtml(preset.id)}" ${packCompatible ? '' : 'disabled'}>Apply</button>`}<button class="ts-btn ts-btn-icon" type="button" data-edit-common-preset="${escapeHtml(preset.id)}" title="Apply and edit in Design" aria-label="Apply ${escapeHtml(preset.name)} and edit" ${packCompatible ? '' : 'disabled'}>${pencil}</button>${options.library ? `<button class="ts-btn ts-btn-icon" type="button" data-library-favorite="${favoriteKey}" aria-label="${favorite ? 'Remove' : 'Add'} ${escapeHtml(preset.name)} ${favorite ? 'from' : 'to'} favorites" aria-pressed="${favorite}">${favorite ? '★' : '☆'}</button>` : ''}${options.library ? `<button class="ts-btn ts-btn-icon ts-preset-reset" type="button" data-reset-common-preset="${escapeHtml(preset.id)}" title="Reset this recipe footprint" aria-label="Reset ${escapeHtml(preset.name)}" ${applied ? '' : 'disabled'}>↺</button>` : ''}</div></article>`;
         }).join('')}</div>`;
     }
     recommendedStylePresets() {
@@ -13371,10 +21530,88 @@ class ThemeStudioUI {
                     : ['avatar-soft-fade', 'prose-headings-editorial', 'input-glass-dock', 'global-buttons-soft'];
         return ids.map((id) => common_parts_1.COMMON_PART_PRESETS.find((preset) => preset.id === id)).filter((preset) => Boolean(preset));
     }
+    quickLookLayout() {
+        const component = this.selection?.nativeContext?.component.label;
+        return component === 'MinimalMessage' ? 'minimal' : component === 'BubbleMessage' || component === 'MessageContent' ? 'bubble' : 'all';
+    }
+    quickLookTargetRoleIds() {
+        const selection = this.selection;
+        if (!selection)
+            return new Set();
+        const scope = activeScope(selection);
+        const picked = selection.targetLevels.find((level) => level.relation === 'picked')?.element ?? selection.target.element ?? scope.element ?? null;
+        const selector = scope.selector.replace(/::(?:before|after|placeholder)\s*$/i, '');
+        const matches = new Set();
+        for (const role of Object.values(common_parts_1.KNOWN_PART_ROLES)) {
+            const target = this.presetTargetForRole(role.id);
+            const targetSelector = target.selector.replace(/::(?:before|after|placeholder)\s*$/i, '');
+            if (selector && selector === targetSelector) {
+                matches.add(role.id);
+                continue;
+            }
+            const mounted = this.mountedElementForKnownRole(role.id, target.selector);
+            if (picked && mounted === picked)
+                matches.add(role.id);
+        }
+        return matches;
+    }
+    orderQuickLookPresets(candidates, targetRoles) {
+        if (!targetRoles.size)
+            return candidates;
+        const scaleRank = { small: 0, component: 1, layout: 2, pack: 3 };
+        return [...candidates].sort((a, b) => {
+            const aRoles = (0, common_parts_1.presetRoles)(a);
+            const bRoles = (0, common_parts_1.presetRoles)(b);
+            const aPrimary = a.steps.some((step) => step.primary && targetRoles.has(step.role)) ? 0 : 1;
+            const bPrimary = b.steps.some((step) => step.primary && targetRoles.has(step.role)) ? 0 : 1;
+            if (aPrimary !== bPrimary)
+                return aPrimary - bPrimary;
+            const aScale = scaleRank[(0, style_library_1.recipeMetaForId)(a.id)?.scale ?? 'component'];
+            const bScale = scaleRank[(0, style_library_1.recipeMetaForId)(b.id)?.scale ?? 'component'];
+            if (aScale !== bScale)
+                return aScale - bScale;
+            return aRoles.length - bRoles.length;
+        });
+    }
+    quickLookPresets() {
+        const targetRoles = this.quickLookTargetRoleIds();
+        const targetLabel = this.selection ? activeScope(this.selection).label : '';
+        if (this.quickLookSource === 'current') {
+            const exact = targetRoles.size
+                ? common_parts_1.COMMON_PART_PRESETS.filter((preset) => (0, common_parts_1.presetRoles)(preset).some((role) => targetRoles.has(role.id)))
+                : [];
+            const presets = exact.length ? this.orderQuickLookPresets(exact, targetRoles).slice(0, 6) : this.recommendedStylePresets();
+            const component = this.selection?.nativeContext?.component.label;
+            return { presets, label: targetLabel ? `Current target · ${targetLabel}` : component ? `Current target · ${component}` : 'Current target' };
+        }
+        const pack = (0, style_library_1.packForId)(this.quickLookSource);
+        if (!pack)
+            return { presets: this.recommendedStylePresets(), label: 'Current target' };
+        const candidates = (0, style_library_1.packDefaultPresetIdsForLayout)(pack, this.quickLookLayout())
+            .map((id) => common_parts_1.COMMON_PART_PRESETS.find((preset) => preset.id === id))
+            .filter((preset) => Boolean(preset));
+        const exact = targetRoles.size ? candidates.filter((preset) => (0, common_parts_1.presetRoles)(preset).some((role) => targetRoles.has(role.id))) : [];
+        const exactIds = new Set(exact.map((preset) => preset.id));
+        const component = this.selection?.nativeContext?.component.label;
+        const componentAliases = new Set(component === 'MessageContent' ? ['MessageContent', 'BubbleMessage'] : component ? [component] : []);
+        const componentMatches = componentAliases.size
+            ? candidates.filter((preset) => !exactIds.has(preset.id) && (0, common_parts_1.presetRoles)(preset).some((role) => componentAliases.has(role.component)))
+            : [];
+        const directIds = new Set([...exactIds, ...componentMatches.map((preset) => preset.id)]);
+        const ordered = [...this.orderQuickLookPresets(exact, targetRoles), ...componentMatches, ...candidates.filter((preset) => !directIds.has(preset.id))];
+        return { presets: ordered.slice(0, 6), label: `${pack.name} pack${targetLabel && exact.length ? ` · ${targetLabel}` : ''}` };
+    }
     renderCommonParts() {
-        const recommended = this.recommendedStylePresets();
-        const context = this.selection?.nativeContext?.component.label;
-        return `<section class="ts-section ts-preset-library ts-quick-front" style="--ts-quick-accent:${escapeHtml(this.quickAccent)};--ts-quick-text:${escapeHtml(this.quickText)};--ts-quick-intensity:${this.quickIntensity / 100}"><div class="ts-section-heading ts-quick-front-head"><div><p class="ts-kicker">Quick styles</p><p class="ts-note">A few useful looks up front. The full library lives in its own workspace now.</p></div><button class="ts-btn ts-btn-primary ts-browse-styles" type="button" data-action="open-style-library">Browse styles</button></div><details class="ts-quick-palette-fold"><summary><div><strong>Recipe palette</strong><span><i style="--swatch:${escapeHtml(this.quickAccent)}"></i><i style="--swatch:${escapeHtml(this.quickText)}"></i>${this.quickIntensity}%</span></div><b aria-hidden="true">⌄</b></summary><div class="ts-quick-palette-fold-body">${this.renderQuickPalette()}</div></details><div class="ts-preset-category-copy"><strong>${context ? `For ${escapeHtml(context)}` : 'Quick looks'}</strong><span>${recommended.length ? 'Apply stays here; the pencil opens the result in Design.' : 'No layout-safe presets are being guessed for this component yet.'}</span></div>${recommended.length ? this.renderPresetCards(recommended, { compact: true }) : `<button class="ts-library-empty-cta" type="button" data-action="open-style-library">Open the library to browse all existing looks</button>`}</section>`;
+        const quickLooks = this.quickLookPresets();
+        const pages = [];
+        for (let index = 0; index < quickLooks.presets.length; index += 2)
+            pages.push(quickLooks.presets.slice(index, index + 2));
+        const activePage = Math.min(this.quickLookPage, Math.max(0, pages.length - 1));
+        this.quickLookPage = activePage;
+        const sourceOptions = [`<option value="current"${this.quickLookSource === 'current' ? ' selected' : ''}>Current target</option>`, ...style_library_1.STYLE_LIBRARY_PACKS.map((pack) => `<option value="${escapeHtml(pack.id)}"${this.quickLookSource === pack.id ? ' selected' : ''}>${escapeHtml(pack.name)}</option>`)].join('');
+        const pageMarkup = pages.map((page, index) => `<section class="ts-quick-look-page" data-quick-look-page-index="${index}" aria-label="Quick looks page ${index + 1} of ${pages.length}">${this.renderPresetCards(page, { compact: true })}</section>`).join('');
+        const pagination = pages.length > 1 ? `<nav class="ts-quick-look-pagination" aria-label="Quick looks pages">${pages.map((_, index) => `<button type="button" data-quick-look-page="${index}" aria-label="Show quick looks page ${index + 1}" aria-pressed="${index === activePage}"></button>`).join('')}</nav>` : '';
+        return `<section class="ts-section ts-preset-library ts-quick-front" style="--ts-quick-accent:${escapeHtml(this.quickAccent)};--ts-quick-text:${escapeHtml(this.quickText)};--ts-quick-intensity:${this.quickIntensity / 100}"><div class="ts-section-heading ts-quick-front-head"><div><p class="ts-kicker">Quick styles</p><p class="ts-note">Preview the current target or raid a pack without opening the full library.</p></div><button class="ts-btn ts-btn-primary ts-browse-styles" type="button" data-action="open-style-library">Browse styles</button></div><details class="ts-quick-palette-fold"><summary><div><strong>Recipe palette</strong><span><i style="--swatch:${escapeHtml(this.quickAccent)}"></i><i style="--swatch:${escapeHtml(this.quickText)}"></i>${this.quickIntensity}%</span></div><b aria-hidden="true">⌄</b></summary><div class="ts-quick-palette-fold-body">${this.renderQuickPalette()}</div></details><div class="ts-quick-look-switch"><label><span>Quick looks</span><select class="ts-select" data-quick-look-source aria-label="Quick looks source">${sourceOptions}</select></label><small>${escapeHtml(quickLooks.label)} · ${quickLooks.presets.length} look${quickLooks.presets.length === 1 ? '' : 's'}</small></div>${pages.length ? `<div class="ts-quick-look-carousel" data-quick-look-carousel><div class="ts-quick-look-track">${pageMarkup}</div></div>${pagination}` : `<button class="ts-library-empty-cta" type="button" data-action="open-style-library">Open the library to browse all existing looks</button>`}</section>`;
     }
     applyCommonPreset(presetId, openEditor = false, renderAfter = true, recordRecent = true) {
         const preset = common_parts_1.COMMON_PART_PRESETS.find((entry) => entry.id === presetId);
@@ -14690,7 +22927,43 @@ ${(0, compiler_1.compileComponentOverride)(draft, previewOptions)}`);
     bindThemes() {
         this.root.querySelectorAll('[data-action="save-style-target"]').forEach((button) => button.addEventListener('click', () => this.saveCurrentStyle('target')));
         this.root.querySelectorAll('[data-action="save-style-component"]').forEach((button) => button.addEventListener('click', () => this.saveCurrentStyle('component')));
-        this.root.querySelectorAll('[data-action="open-style-library"]').forEach((button) => button.addEventListener('click', () => { const component = this.selection?.nativeContext?.component.label; this.styleLibraryLayout = component === 'MinimalMessage' ? 'minimal' : component === 'BubbleMessage' || component === 'MessageContent' ? 'bubble' : 'all'; this.styleLibraryOpen = true; this.renderStyleLibrary(); }));
+        this.root.querySelectorAll('[data-action="open-style-library"]').forEach((button) => button.addEventListener('click', () => { const component = this.selection?.nativeContext?.component.label; this.styleLibraryLayout = component === 'MinimalMessage' ? 'minimal' : component === 'BubbleMessage' || component === 'MessageContent' ? 'bubble' : 'all'; this.openStyleLibrary(); }));
+        this.root.querySelector('[data-quick-look-source]')?.addEventListener('change', (event) => {
+            const value = event.currentTarget.value;
+            this.quickLookSource = value === 'current' || (0, style_library_1.packForId)(value) ? value : 'current';
+            this.quickLookPage = 0;
+            if (this.quickLookSource !== 'current')
+                this.adoptPackPalette(this.quickLookSource);
+            this.render();
+        });
+        const quickLookCarousel = this.root.querySelector('[data-quick-look-carousel]');
+        const quickLookPages = quickLookCarousel ? [...quickLookCarousel.querySelectorAll('[data-quick-look-page-index]')] : [];
+        const updateQuickLookPage = (index) => {
+            this.quickLookPage = Math.max(0, Math.min(quickLookPages.length - 1, index));
+            this.root.querySelectorAll('[data-quick-look-page]').forEach((button) => button.setAttribute('aria-pressed', String(Number(button.dataset.quickLookPage) === this.quickLookPage)));
+        };
+        if (quickLookCarousel) {
+            let quickLookScrollFrame = 0;
+            quickLookCarousel.addEventListener('scroll', () => {
+                if (quickLookScrollFrame || typeof requestAnimationFrame === 'undefined')
+                    return;
+                quickLookScrollFrame = requestAnimationFrame(() => {
+                    quickLookScrollFrame = 0;
+                    const pageWidth = Math.max(1, quickLookCarousel.clientWidth);
+                    updateQuickLookPage(Math.round(quickLookCarousel.scrollLeft / pageWidth));
+                });
+            }, { passive: true });
+            if (this.quickLookPage > 0 && typeof requestAnimationFrame !== 'undefined')
+                requestAnimationFrame(() => { quickLookCarousel.scrollLeft = quickLookPages[this.quickLookPage]?.offsetLeft ?? 0; });
+        }
+        this.root.querySelectorAll('[data-quick-look-page]').forEach((button) => button.addEventListener('click', () => {
+            const index = Number(button.dataset.quickLookPage);
+            const page = quickLookPages[index];
+            if (!page || !quickLookCarousel)
+                return;
+            updateQuickLookPage(index);
+            quickLookCarousel.scrollTo({ left: page.offsetLeft, behavior: 'smooth' });
+        }));
         this.root.querySelectorAll('[data-apply-common-preset]').forEach((button) => button.addEventListener('click', () => this.applyCommonPreset(button.dataset.applyCommonPreset ?? '', false)));
         this.root.querySelectorAll('[data-edit-common-preset]').forEach((button) => button.addEventListener('click', () => this.applyCommonPreset(button.dataset.editCommonPreset ?? '', true)));
         this.root.querySelectorAll('[data-reset-common-preset]').forEach((button) => button.addEventListener('click', () => this.resetCommonPreset(button.dataset.resetCommonPreset ?? '')));
@@ -15504,9 +23777,8 @@ ${(0, compiler_1.compileComponentOverride)(draft, previewOptions)}`);
     }
 }
 exports.ThemeStudioUI = ThemeStudioUI;
-
-},
-"src/ui/styles.ts": function(module, exports, require) {
+};
+__modules['ui/styles.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.THEME_STUDIO_CSS = void 0;
@@ -16300,7 +24572,7 @@ exports.THEME_STUDIO_CSS = `
 /* The collapsed widget has a real grab handle so dragging never competes with
    the click that opens it. */
 .ts-widget-launch-shell { position:relative; display:flex; align-items:stretch; overflow:visible; border:1px solid var(--ts-border); border-radius:14px; background:color-mix(in srgb,var(--ts-elevated) 94%,transparent); box-shadow:0 12px 36px rgba(0,0,0,.36),inset 0 1px rgba(255,255,255,.06); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
-.ts-widget-launch-shell .ts-widget-launch { border:0; border-radius:0; min-width:40px; height:42px; box-shadow:none; background:transparent; }
+.ts-widget-launch-shell .ts-widget-launch { border:0; border-radius:inherit; min-width:40px; height:42px; box-shadow:none; background:transparent; }
 .ts-widget-grip { appearance:none; width:18px; border:0; border-right:1px solid var(--ts-border); padding:0; background:transparent; color:var(--ts-dim); cursor:grab; font:12px/1 var(--lumiverse-font-mono,monospace); touch-action:none; }
 .ts-widget-grip:active,.ts-widget-panel > header:active { cursor:grabbing; }
 .ts-widget-context-menu { position:absolute; left:0; bottom:calc(100% + 7px); z-index:2; min-width:132px; border:1px solid var(--ts-border); border-radius:9px; padding:4px; background:color-mix(in srgb,var(--ts-elevated) 97%,transparent); box-shadow:0 12px 34px rgba(0,0,0,.42); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
@@ -18534,10 +26806,405 @@ exports.THEME_STUDIO_CSS = `
   .ts-floating-editor .ts-inspector-density .ts-box-grid { gap:6px; margin-top:8px; }
 }
 
-`;
 
-},
-"src/utils/random-id.ts": function(module, exports, require) {
+/* v29 · 1.0.3 Community UX Pass -------------------------------------------
+   The Style Library can now move into Lumiverse's native left dock without
+   cloning state, while Quick Looks stays useful inside Palette itself. */
+.ts-quick-look-switch {
+  display:flex;
+  align-items:end;
+  justify-content:space-between;
+  gap:10px;
+  margin:10px 0 7px;
+}
+.ts-quick-look-switch label { display:grid; gap:4px; min-width:0; flex:1; }
+.ts-quick-look-switch label > span {
+  color:var(--ts-dim);
+  font-size:7.5px;
+  font-weight:800;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+}
+.ts-quick-look-switch .ts-select { width:100%; min-width:0; }
+.ts-quick-look-switch small {
+  flex:none;
+  max-width:42%;
+  overflow:hidden;
+  color:var(--ts-muted);
+  font-size:7.5px;
+  line-height:1.3;
+  text-align:right;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.ts-quick-look-carousel {
+  width:100%;
+  min-width:0;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scroll-snap-type:x mandatory;
+  overscroll-behavior-inline:contain;
+  scrollbar-width:none;
+  touch-action:pan-x pan-y;
+}
+.ts-quick-look-carousel::-webkit-scrollbar { display:none; }
+.ts-quick-look-track { display:flex; width:100%; min-width:0; }
+.ts-quick-look-page {
+  flex:0 0 100%;
+  width:100%;
+  min-width:0;
+  scroll-snap-align:start;
+  scroll-snap-stop:always;
+}
+.ts-quick-look-page .ts-preset-grid {
+  width:100%;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+.ts-quick-look-pagination {
+  display:flex;
+  justify-content:center;
+  gap:5px;
+  min-height:13px;
+  padding:7px 0 0;
+}
+.ts-quick-look-pagination button {
+  appearance:none;
+  width:5px;
+  height:5px;
+  border:0;
+  border-radius:999px;
+  padding:0;
+  background:color-mix(in srgb,var(--ts-text) 22%,transparent);
+  cursor:pointer;
+  transition:width .14s ease,background .14s ease;
+}
+.ts-quick-look-pagination button[aria-pressed="true"] {
+  width:14px;
+  background:var(--ts-accent);
+}
+
+/* Header actions remain reachable in either presentation. */
+.ts-style-library-head-actions,
+.ts-pack-head-actions { display:flex; align-items:center; justify-content:flex-end; gap:7px; }
+.ts-library-presentation-toggle {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  min-height:34px;
+  padding:6px 9px;
+  white-space:nowrap;
+}
+.ts-library-presentation-toggle > span:first-child { font-size:12px; }
+.ts-library-presentation-toggle > span:last-child { font-size:8.5px; font-weight:720; }
+
+/* Native dock mode: the host owns placement and resize geometry. Palette owns
+   only the panel contents, so there is no fixed overlay/backdrop at all. */
+.ts-style-library-dock-host {
+  min-width:0;
+  min-height:0;
+  height:100%;
+  overflow:hidden;
+}
+.ts-style-library-root-docked {
+  position:relative;
+  inset:auto;
+  z-index:auto;
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  overflow:hidden;
+}
+.ts-style-library-root-docked .ts-style-library-backdrop { display:none!important; }
+.ts-style-library-root-docked .ts-style-library-modal {
+  position:relative!important;
+  inset:auto!important;
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+.ts-style-library-root-docked .ts-style-library-head {
+  padding:10px 11px 9px;
+  align-items:center;
+}
+.ts-style-library-root-docked .ts-style-library-head h2 { font-size:16px; }
+.ts-style-library-root-docked .ts-style-library-head > div > span { display:none; }
+.ts-style-library-root-docked .ts-library-presentation-toggle > span:last-child { display:none; }
+.ts-style-library-root-docked .ts-library-presentation-toggle { width:34px; padding:0; }
+
+.ts-style-library-root-docked .ts-library-workspace {
+  grid-template-columns:1fr!important;
+  grid-template-rows:auto minmax(0,1fr);
+}
+.ts-style-library-root-docked .ts-library-sidebar {
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:8px!important;
+  min-height:0;
+  overflow:visible!important;
+  padding:9px 10px!important;
+  border-right:0!important;
+  border-bottom:1px solid var(--ts-border);
+}
+.ts-style-library-root-docked .ts-library-view-nav {
+  display:flex!important;
+  gap:4px!important;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.ts-style-library-root-docked .ts-library-view-nav::-webkit-scrollbar { display:none; }
+.ts-style-library-root-docked .ts-library-view-nav button {
+  display:flex!important;
+  flex:none;
+  width:auto;
+  min-height:34px;
+  padding:6px 8px;
+  font-size:8.5px;
+}
+.ts-style-library-root-docked .ts-library-view-nav button > span { width:18px; height:18px; }
+.ts-style-library-root-docked .ts-library-side-status { display:none!important; }
+.ts-style-library-root-docked .ts-library-tune {
+  width:100%;
+  margin:0!important;
+  align-self:stretch!important;
+}
+.ts-style-library-root-docked .ts-library-tune > summary { min-height:38px; padding:7px 9px; }
+.ts-style-library-root-docked .ts-library-tune > summary > div {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.ts-style-library-root-docked .ts-library-results-toolbar { padding:10px; }
+.ts-style-library-root-docked .ts-library-results-title {
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:7px;
+}
+.ts-style-library-root-docked .ts-library-results-heading { grid-column:1; grid-row:1; }
+.ts-style-library-root-docked .ts-library-results-title > [data-library-result-count] { grid-column:2; grid-row:1; }
+.ts-style-library-root-docked .ts-library-surface-nav {
+  grid-column:1 / -1;
+  grid-row:2;
+  margin-top:1px;
+}
+.ts-style-library-root-docked .ts-library-search-row {
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:7px;
+}
+.ts-style-library-root-docked .ts-library-search { grid-column:1 / -1; }
+.ts-style-library-root-docked .ts-library-pack-owned-toggle { justify-self:start; }
+.ts-style-library-root-docked .ts-library-filter-trigger { min-width:90px; }
+.ts-style-library-root-docked .ts-style-library-scroll { padding:11px 10px 22px!important; }
+.ts-style-library-root-docked .ts-pack-grid { grid-template-columns:1fr!important; gap:12px!important; }
+.ts-style-library-root-docked .ts-pack-open {
+  grid-template-columns:116px minmax(0,1fr)!important;
+  grid-template-rows:1fr!important;
+  min-height:132px!important;
+}
+.ts-style-library-root-docked .ts-pack-preview {
+  min-height:132px!important;
+  border-right:1px solid var(--ts-border)!important;
+  border-bottom:0!important;
+}
+.ts-style-library-root-docked .ts-pack-copy { min-height:0!important; justify-content:center; }
+.ts-style-library-root-docked .ts-style-library-modal .ts-preset-grid { grid-template-columns:1fr!important; }
+
+/* Pack workbench in a 340–720px native dock uses one scroll lane. Controls
+   come first, then the recipe gallery, instead of crushing a 310px side rail. */
+.ts-style-library-root-docked .ts-pack-workspace {
+  display:flex!important;
+  flex-direction:column;
+  min-height:0;
+  overflow:auto!important;
+  scrollbar-width:thin;
+}
+.ts-style-library-root-docked .ts-pack-sidebar {
+  order:-1;
+  flex:none;
+  overflow:visible!important;
+  padding:10px!important;
+  border-left:0!important;
+  border-bottom:1px solid var(--ts-border);
+}
+.ts-style-library-root-docked .ts-pack-main {
+  flex:none;
+  overflow:visible!important;
+  min-height:0;
+}
+.ts-style-library-root-docked .ts-pack-detail .ts-pack-hero { min-height:116px; }
+.ts-style-library-root-docked .ts-pack-detail .ts-pack-preview-large { min-height:116px; }
+.ts-style-library-root-docked .ts-pack-detail .ts-pack-summary { display:none; }
+.ts-style-library-root-docked .ts-pack-detail .ts-pack-detail-scroll { padding:13px 10px 24px; }
+.ts-style-library-root-docked .ts-pack-detail .ts-pack-section-nav { position:sticky; top:0; }
+
+/* Phone geometry: stay inside app/safe-area chrome, keep Close touchable, and
+   never force Browse + Tune previews to share one microscopic row. */
+@media (max-width:760px) {
+  .ts-style-library-root:not(.ts-style-library-root-docked) .ts-style-library-modal {
+    top:max(var(--app-interactive-safe-top, 0px), env(safe-area-inset-top, 0px))!important;
+    right:env(safe-area-inset-right, 0px)!important;
+    bottom:env(safe-area-inset-bottom, 0px)!important;
+    left:env(safe-area-inset-left, 0px)!important;
+    height:auto!important;
+  }
+  .ts-style-library-root:not(.ts-style-library-root-docked) .ts-style-library-head {
+    min-height:58px;
+    align-items:center;
+    padding:10px max(12px,env(safe-area-inset-right,0px)) 9px max(12px,env(safe-area-inset-left,0px));
+  }
+  .ts-style-library-head .ts-btn-icon {
+    flex:none;
+    width:42px;
+    min-width:42px;
+    height:42px;
+    min-height:42px;
+  }
+  .ts-library-presentation-toggle { display:none; }
+}
+@media (max-width:600px) {
+  .ts-quick-look-page .ts-preset-grid { grid-template-columns:1fr; }
+  .ts-quick-look-switch { align-items:stretch; flex-direction:column; gap:6px; }
+  .ts-quick-look-switch small { max-width:none; text-align:left; }
+
+  .ts-library-browser .ts-library-sidebar {
+    grid-template-columns:minmax(0,1fr)!important;
+    gap:8px!important;
+  }
+  .ts-library-browser .ts-library-view-nav {
+    width:100%;
+    min-width:0;
+  }
+  .ts-library-browser .ts-library-tune {
+    grid-column:1 / -1;
+    width:100%;
+    margin:0!important;
+    align-self:stretch!important;
+  }
+  .ts-library-browser .ts-library-tune > summary {
+    width:100%;
+    min-height:42px;
+    padding:7px 9px;
+  }
+  .ts-library-browser .ts-pack-grid {
+    grid-template-columns:1fr!important;
+    gap:14px!important;
+  }
+  .ts-library-browser .ts-pack-card { border-radius:14px; }
+}
+
+/* 1.0.3 QA follow-up -------------------------------------------------------
+   Mobile's view strip should read like the dock strip, not like a sequence of
+   mysterious full-width pages. The browse/filter block can also get out of
+   the way without hiding the actual style cards. */
+.ts-library-mobile-browse-toggle { display:none; }
+.ts-quick-revert {
+  border-color:color-mix(in srgb,var(--ts-accent) 48%,var(--ts-border));
+  background:color-mix(in srgb,var(--ts-accent-soft) 58%,transparent);
+  color:var(--ts-text);
+}
+
+@media (max-width:600px) {
+  .ts-library-browser .ts-library-view-nav {
+    display:flex!important;
+    width:100%!important;
+    min-width:0!important;
+    gap:4px!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    padding:0 18px 1px 0;
+    scroll-snap-type:x proximity;
+    overscroll-behavior-inline:contain;
+    scrollbar-width:none;
+  }
+  .ts-library-browser .ts-library-view-nav::-webkit-scrollbar { display:none; }
+  .ts-library-browser .ts-library-view-nav button {
+    flex:0 0 auto!important;
+    width:auto!important;
+    min-width:max-content!important;
+    scroll-snap-align:start;
+  }
+  .ts-library-mobile-browse-toggle {
+    appearance:none;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    width:100%;
+    min-height:42px;
+    border:0;
+    border-bottom:1px solid var(--ts-border);
+    padding:8px 11px;
+    background:color-mix(in srgb,var(--ts-elevated) 78%,transparent);
+    color:var(--ts-text);
+    cursor:pointer;
+    font:inherit;
+    text-align:left;
+  }
+  .ts-library-mobile-browse-toggle > span { display:grid; gap:1px; min-width:0; }
+  .ts-library-mobile-browse-toggle small {
+    color:var(--ts-dim);
+    font-size:7px;
+    font-weight:800;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  .ts-library-mobile-browse-toggle strong { overflow:hidden; font-size:10px; text-overflow:ellipsis; white-space:nowrap; }
+  .ts-library-mobile-browse-toggle b { color:var(--ts-muted); font-size:11px; font-weight:500; transition:transform .14s ease; }
+  .ts-library-results.is-mobile-browse-collapsed .ts-library-mobile-browse-toggle b { transform:rotate(-90deg); }
+  .ts-library-results.is-mobile-browse-collapsed .ts-library-results-toolbar { display:none!important; }
+}
+
+@media (max-width:520px) {
+  .ts-library-browser .ts-pack-open {
+    grid-template-columns:1fr!important;
+    grid-template-rows:126px auto!important;
+    min-height:0!important;
+  }
+  .ts-library-browser .ts-pack-preview {
+    min-height:126px!important;
+    border-right:0!important;
+    border-bottom:1px solid var(--ts-border)!important;
+  }
+  .ts-library-browser .ts-pack-copy {
+    min-height:76px!important;
+    padding:12px 48px 13px 13px!important;
+    justify-content:center;
+  }
+}
+
+
+
+/* 1.0.3 QA follow-up II -----------------------------------------------------
+   The browser now has three real rows on phones (collapse toggle, browse
+   controls, results). The old two-row grid let the implicit results row escape
+   the available viewport and visually crawl behind Packs. Pack control details
+   also promote to full width while open, and docked workbenches use the same
+   compact disclosure rhythm as narrow/mobile layouts. */
+@media (max-width:600px) {
+  .ts-library-browser .ts-library-results {
+    grid-template-rows:auto auto minmax(0,1fr)!important;
+  }
+  .ts-library-browser .ts-library-results.is-mobile-browse-collapsed {
+    grid-template-rows:auto minmax(0,1fr)!important;
+  }
+}
+
+@media (max-width:760px) {
+  .ts-pack-sidebar-inner > .ts-pack-side-section[open] {
+    grid-column:1 / -1;
+    width:100%;
+    min-width:0;
+  }
+}
+`;
+};
+__modules['utils/random-id.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.portableRandomUUID = portableRandomUUID;
@@ -18568,12 +27235,10 @@ function portableRandomUUID() {
     const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, '0'));
     return `${hex.slice(0, 4).join('')}-${hex.slice(4, 6).join('')}-${hex.slice(6, 8).join('')}-${hex.slice(8, 10).join('')}-${hex.slice(10).join('')}`;
 }
-
-}
 };
-const __paletteCache = Object.create(null);
-function __paletteNormalize(parts){const out=[];for(const p of parts){if(!p||p==='.')continue;if(p==='..')out.pop();else out.push(p)}return out.join('/')}
-function __paletteResolve(from,spec){if(!spec.startsWith('.'))throw new Error('Unexpected external runtime import: '+spec+' from '+from);const base=__paletteNormalize(from.split('/').slice(0,-1).concat(spec.split('/')));for(const c of [base,base+'.ts',base+'/index.ts'])if(Object.prototype.hasOwnProperty.call(__paletteModules,c))return c;throw new Error('Cannot resolve '+spec+' from '+from)}
-function __paletteRequire(id){if(__paletteCache[id])return __paletteCache[id].exports;const factory=__paletteModules[id];if(!factory)throw new Error('Unknown Palette module '+id);const module={exports:{}};__paletteCache[id]=module;const localRequire=(spec)=>__paletteRequire(__paletteResolve(id,spec));factory(module,module.exports,localRequire);return module.exports}
-const __paletteEntry=__paletteRequire('src/frontend.ts');
-export const setup=__paletteEntry.setup;
+const __cache = Object.create(null);
+function __normalize(parts){const out=[];for(const p of parts){if(!p||p==='.')continue;if(p==='..')out.pop();else out.push(p)}return out.join('/')}
+function __resolve(from,spec){if(!spec.startsWith('.'))throw new Error('Unexpected external runtime import: '+spec+' from '+from);const base=__normalize(from.split('/').slice(0,-1).concat(spec.split('/')));for(const c of [base,base+'.js',base+'/index.js'])if(Object.prototype.hasOwnProperty.call(__modules,c))return c;throw new Error('Cannot resolve '+spec+' from '+from)}
+function __require(id){if(__cache[id])return __cache[id].exports;const fn=__modules[id];if(!fn)throw new Error('Missing bundled module: '+id);const module={exports:{}};__cache[id]=module;const localRequire=(spec)=>__require(__resolve(id,spec));fn(module,module.exports,localRequire);return module.exports}
+const __entry = __require('frontend.js');
+export const setup = __entry.setup;

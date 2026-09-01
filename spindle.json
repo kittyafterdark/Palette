@@ -1,11 +1,12 @@
 {
-  "version": "1.0.2",
+  "version": "1.0.3",
   "name": "Palette",
   "identifier": "theme_studio",
   "author": "Palette contributors",
   "description": "An independent visual, component-aware theme editor for Lumiverse.",
   "permissions": [
-    "app_manipulation"
+    "app_manipulation",
+    "ui_panels"
   ],
   "entry_backend": "dist/backend.js",
   "entry_frontend": "dist/frontend.js",

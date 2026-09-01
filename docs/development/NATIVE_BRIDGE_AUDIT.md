@@ -91,7 +91,7 @@ spindle.theme   canonical Boost source + legacy cleanup
 
 ## 5. Permission and capability behavior
 
-Palette declares `app_manipulation`. Lumiverse remains responsible for enforcing authority at mutating native leaves. Palette still checks capability versions to control UX and degrades to visual editing/Custom CSS when a host does not provide a native authoring subtree. There are no private REST/store fallbacks.
+Palette declares `app_manipulation` plus `ui_panels` for the optional native Style Library dock. Lumiverse remains responsible for enforcing authority at mutating native leaves. Palette still checks capability versions to control UX and degrades to visual editing/Custom CSS when a host does not provide a native authoring subtree. There are no private REST/store fallbacks.
 
 ## 6. Remaining deliberate gap
 

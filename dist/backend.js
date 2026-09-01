@@ -1,6 +1,6 @@
-// Generated fallback bundle for Palette (TypeScript CJS module graph wrapped as ESM)
+// Generated fallback bundle for Palette 1.0.3 QA follow-up IV backend (TypeScript CJS wrapped for ESM execution).
 const __modules = Object.create(null);
-__modules["src/backend"] = function(module,exports,__require){
+__modules['backend.js'] = function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const STATE_PATH = 'theme-studio/projects.json';
@@ -59,5 +59,5 @@ spindle.onFrontendMessage(async (payload, userId) => {
 
 };
 const __cache = Object.create(null);
-function __require(id){ if(__cache[id]) return __cache[id].exports; const fn=__modules[id]; if(!fn) throw new Error("Missing bundled module: "+id); const module={exports:{}}; __cache[id]=module; fn(module,module.exports,__require); return module.exports; }
-const __entry = __require("src/backend");
+function __require(id){if(__cache[id])return __cache[id].exports;const fn=__modules[id];if(!fn)throw new Error('Missing bundled module: '+id);const module={exports:{}};__cache[id]=module;fn(module,module.exports,__require);return module.exports}
+__require('backend.js');

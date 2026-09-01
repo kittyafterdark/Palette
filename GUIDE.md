@@ -2,7 +2,7 @@
 
 > **Visual theme authoring for Lumiverse.** Pick the thing you mean, describe the visual intent, and Palette turns it into scoped, reusable CSS. Generated CSS is output; your semantic Palette project is the source of truth.
 
-**Palette 1.0.2 · schema v42**  
+**Palette 1.0.3 · schema v42**  
 Release history lives in the project changelog; this page is the actual manual.
 
 **Jump to:** [Start here](#palette-guide-start) · [Pick & scope](#palette-guide-pick) · [Style packets](#palette-guide-packets) · [Groups](#palette-guide-groups) · [Read styles](#palette-guide-read) · [Reuse](#palette-guide-reuse) · [Boost](#palette-guide-boost) · [Widget & Code](#palette-guide-code) · [CSS field guide](#palette-guide-css) · [Debugging](#palette-guide-debug)
@@ -313,6 +313,12 @@ Palette has three different reuse layers because they solve different jobs.
 ### Quick Looks
 
 Quick Looks are curated starter recipes. **Apply** merges the packet types the recipe owns. The pencil applies it and opens the result in Design. Reset only peels that recipe layer back off.
+
+The compact Quick Looks browser can switch between **Current target** and any Style Library pack without opening the full warehouse. Looks are paged two at a time in a horizontal snap strip, with tiny page markers below it. Pack browsing only changes the preview source/palette; nothing is applied until you press **Apply**.
+
+### Fullscreen or native dock
+
+On desktop, the Style Library opens fullscreen and exposes **Dock left** in its header. That moves the same live library state into Lumiverse's native resizable left dock so the themed conversation remains visible while you browse. The native dock can be collapsed to its labeled edge tab and expanded again without discarding Palette's live library state. When **Apply and edit** hands you into Design from a docked library, Palette tucks that dock away instead of destroying it; **Browse styles** expands the same dock again with your browse/pack/filter context intact. **Fullscreen** moves it back without reopening or cloning the library. Phones keep the full-screen presentation, with safe-area-aware geometry and a reachable Close control.
 
 ### My Styles
 

@@ -1,3 +1,24 @@
+## 1.0.3 — Community UX Pass
+
+- 1.0.3 QA follow-up V: docked **Apply and edit** now collapses the native Style Library instead of destroying it; reopening Browse expands the same dock with its browse/pack/filter state intact. Fullscreen handoffs still close the fullscreen library normally.
+
+- 1.0.3 QA follow-up IV: **Apply and edit** and other Style Library → Design handoffs now release the native dock before hiding the library, preventing a blank dock from continuing to reserve half the app after the library UI exits.
+
+- 1.0.3 QA follow-up III: native Style Library dock collapse/expand now preserves the live library root instead of treating a temporary host detach as panel destruction; collapsed docks explicitly keep their Palette title visible.
+
+- 1.0.3 QA follow-up II: fixed mobile browse grid overlap, compacted docked pack Recipe set defaults, and made open pack control sections full-width on narrow layouts.
+
+- 1.0.3 QA follow-up: Quick Looks gain Apply/Revert toggling, pack-card navigation is whole-card robust, mobile library tabs match the dock strip with collapsible browse controls, and Current Target recommendations resolve the selected semantic role instead of only its component family.
+
+- Desktop Style Library can switch between its full-screen workspace and Lumiverse's native **left dock**. The dock reuses the same Palette state, stays resizable, and keeps the themed chat visible while browsing.
+- Inline **Quick Looks** can browse **Current target** or any individual style pack without opening the full library. Results move in horizontal snap pages of two cards with compact pagination.
+- Mobile Style Library now respects host/safe-area top chrome, keeps the Close control inside a real touch target, and stops Browse/Tune Previews from competing for one tiny row.
+- Mobile pack browsing uses a roomier single-pack rhythm and vertically composed cards on narrow phones.
+- The mini-widget launch button inherits its shell radius, fixing the clipped square corner.
+- Added the `ui_panels` permission required by the public native dock API.
+- No theme recipe, selector, renderer-style, or persisted project/schema changes. Schema remains **v42** and minimum Lumiverse remains **1.1.6**.
+- Includes the preceding **1.0.2 Message Scope Correctness** fix; 1.0.3 itself is intentionally UX-only.
+
 ## 1.0.2 — Resolver & Primitive Taxonomy Hotfix
 
 - Fixed BubbleMessage user-side part selection incorrectly rewriting an outer CSS-module local such as `_content_1hvlc_*` to a nested `_contentUser_16x4f_*` just because the two locals shared the word `content`. Assistant/User variant pairing now requires mounted evidence that the locals belong to the **same CSS-module hash family**.

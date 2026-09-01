@@ -788,7 +788,7 @@ export const THEME_STUDIO_CSS = `
 /* The collapsed widget has a real grab handle so dragging never competes with
    the click that opens it. */
 .ts-widget-launch-shell { position:relative; display:flex; align-items:stretch; overflow:visible; border:1px solid var(--ts-border); border-radius:14px; background:color-mix(in srgb,var(--ts-elevated) 94%,transparent); box-shadow:0 12px 36px rgba(0,0,0,.36),inset 0 1px rgba(255,255,255,.06); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
-.ts-widget-launch-shell .ts-widget-launch { border:0; border-radius:0; min-width:40px; height:42px; box-shadow:none; background:transparent; }
+.ts-widget-launch-shell .ts-widget-launch { border:0; border-radius:inherit; min-width:40px; height:42px; box-shadow:none; background:transparent; }
 .ts-widget-grip { appearance:none; width:18px; border:0; border-right:1px solid var(--ts-border); padding:0; background:transparent; color:var(--ts-dim); cursor:grab; font:12px/1 var(--lumiverse-font-mono,monospace); touch-action:none; }
 .ts-widget-grip:active,.ts-widget-panel > header:active { cursor:grabbing; }
 .ts-widget-context-menu { position:absolute; left:0; bottom:calc(100% + 7px); z-index:2; min-width:132px; border:1px solid var(--ts-border); border-radius:9px; padding:4px; background:color-mix(in srgb,var(--ts-elevated) 97%,transparent); box-shadow:0 12px 34px rgba(0,0,0,.42); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
@@ -3022,4 +3022,400 @@ export const THEME_STUDIO_CSS = `
   .ts-floating-editor .ts-inspector-density .ts-box-grid { gap:6px; margin-top:8px; }
 }
 
+
+/* v29 · 1.0.3 Community UX Pass -------------------------------------------
+   The Style Library can now move into Lumiverse's native left dock without
+   cloning state, while Quick Looks stays useful inside Palette itself. */
+.ts-quick-look-switch {
+  display:flex;
+  align-items:end;
+  justify-content:space-between;
+  gap:10px;
+  margin:10px 0 7px;
+}
+.ts-quick-look-switch label { display:grid; gap:4px; min-width:0; flex:1; }
+.ts-quick-look-switch label > span {
+  color:var(--ts-dim);
+  font-size:7.5px;
+  font-weight:800;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+}
+.ts-quick-look-switch .ts-select { width:100%; min-width:0; }
+.ts-quick-look-switch small {
+  flex:none;
+  max-width:42%;
+  overflow:hidden;
+  color:var(--ts-muted);
+  font-size:7.5px;
+  line-height:1.3;
+  text-align:right;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.ts-quick-look-carousel {
+  width:100%;
+  min-width:0;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scroll-snap-type:x mandatory;
+  overscroll-behavior-inline:contain;
+  scrollbar-width:none;
+  touch-action:pan-x pan-y;
+}
+.ts-quick-look-carousel::-webkit-scrollbar { display:none; }
+.ts-quick-look-track { display:flex; width:100%; min-width:0; }
+.ts-quick-look-page {
+  flex:0 0 100%;
+  width:100%;
+  min-width:0;
+  scroll-snap-align:start;
+  scroll-snap-stop:always;
+}
+.ts-quick-look-page .ts-preset-grid {
+  width:100%;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+.ts-quick-look-pagination {
+  display:flex;
+  justify-content:center;
+  gap:5px;
+  min-height:13px;
+  padding:7px 0 0;
+}
+.ts-quick-look-pagination button {
+  appearance:none;
+  width:5px;
+  height:5px;
+  border:0;
+  border-radius:999px;
+  padding:0;
+  background:color-mix(in srgb,var(--ts-text) 22%,transparent);
+  cursor:pointer;
+  transition:width .14s ease,background .14s ease;
+}
+.ts-quick-look-pagination button[aria-pressed="true"] {
+  width:14px;
+  background:var(--ts-accent);
+}
+
+/* Header actions remain reachable in either presentation. */
+.ts-style-library-head-actions,
+.ts-pack-head-actions { display:flex; align-items:center; justify-content:flex-end; gap:7px; }
+.ts-library-presentation-toggle {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  min-height:34px;
+  padding:6px 9px;
+  white-space:nowrap;
+}
+.ts-library-presentation-toggle > span:first-child { font-size:12px; }
+.ts-library-presentation-toggle > span:last-child { font-size:8.5px; font-weight:720; }
+
+/* Native dock mode: the host owns placement and resize geometry. Palette owns
+   only the panel contents, so there is no fixed overlay/backdrop at all. */
+.ts-style-library-dock-host {
+  min-width:0;
+  min-height:0;
+  height:100%;
+  overflow:hidden;
+}
+.ts-style-library-root-docked {
+  position:relative;
+  inset:auto;
+  z-index:auto;
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  overflow:hidden;
+}
+.ts-style-library-root-docked .ts-style-library-backdrop { display:none!important; }
+.ts-style-library-root-docked .ts-style-library-modal {
+  position:relative!important;
+  inset:auto!important;
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+.ts-style-library-root-docked .ts-style-library-head {
+  padding:10px 11px 9px;
+  align-items:center;
+}
+.ts-style-library-root-docked .ts-style-library-head h2 { font-size:16px; }
+.ts-style-library-root-docked .ts-style-library-head > div > span { display:none; }
+.ts-style-library-root-docked .ts-library-presentation-toggle > span:last-child { display:none; }
+.ts-style-library-root-docked .ts-library-presentation-toggle { width:34px; padding:0; }
+
+.ts-style-library-root-docked .ts-library-workspace {
+  grid-template-columns:1fr!important;
+  grid-template-rows:auto minmax(0,1fr);
+}
+.ts-style-library-root-docked .ts-library-sidebar {
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:8px!important;
+  min-height:0;
+  overflow:visible!important;
+  padding:9px 10px!important;
+  border-right:0!important;
+  border-bottom:1px solid var(--ts-border);
+}
+.ts-style-library-root-docked .ts-library-view-nav {
+  display:flex!important;
+  gap:4px!important;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.ts-style-library-root-docked .ts-library-view-nav::-webkit-scrollbar { display:none; }
+.ts-style-library-root-docked .ts-library-view-nav button {
+  display:flex!important;
+  flex:none;
+  width:auto;
+  min-height:34px;
+  padding:6px 8px;
+  font-size:8.5px;
+}
+.ts-style-library-root-docked .ts-library-view-nav button > span { width:18px; height:18px; }
+.ts-style-library-root-docked .ts-library-side-status { display:none!important; }
+.ts-style-library-root-docked .ts-library-tune {
+  width:100%;
+  margin:0!important;
+  align-self:stretch!important;
+}
+.ts-style-library-root-docked .ts-library-tune > summary { min-height:38px; padding:7px 9px; }
+.ts-style-library-root-docked .ts-library-tune > summary > div {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.ts-style-library-root-docked .ts-library-results-toolbar { padding:10px; }
+.ts-style-library-root-docked .ts-library-results-title {
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:7px;
+}
+.ts-style-library-root-docked .ts-library-results-heading { grid-column:1; grid-row:1; }
+.ts-style-library-root-docked .ts-library-results-title > [data-library-result-count] { grid-column:2; grid-row:1; }
+.ts-style-library-root-docked .ts-library-surface-nav {
+  grid-column:1 / -1;
+  grid-row:2;
+  margin-top:1px;
+}
+.ts-style-library-root-docked .ts-library-search-row {
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:7px;
+}
+.ts-style-library-root-docked .ts-library-search { grid-column:1 / -1; }
+.ts-style-library-root-docked .ts-library-pack-owned-toggle { justify-self:start; }
+.ts-style-library-root-docked .ts-library-filter-trigger { min-width:90px; }
+.ts-style-library-root-docked .ts-style-library-scroll { padding:11px 10px 22px!important; }
+.ts-style-library-root-docked .ts-pack-grid { grid-template-columns:1fr!important; gap:12px!important; }
+.ts-style-library-root-docked .ts-pack-open {
+  grid-template-columns:116px minmax(0,1fr)!important;
+  grid-template-rows:1fr!important;
+  min-height:132px!important;
+}
+.ts-style-library-root-docked .ts-pack-preview {
+  min-height:132px!important;
+  border-right:1px solid var(--ts-border)!important;
+  border-bottom:0!important;
+}
+.ts-style-library-root-docked .ts-pack-copy { min-height:0!important; justify-content:center; }
+.ts-style-library-root-docked .ts-style-library-modal .ts-preset-grid { grid-template-columns:1fr!important; }
+
+/* Pack workbench in a 340–720px native dock uses one scroll lane. Controls
+   come first, then the recipe gallery, instead of crushing a 310px side rail. */
+.ts-style-library-root-docked .ts-pack-workspace {
+  display:flex!important;
+  flex-direction:column;
+  min-height:0;
+  overflow:auto!important;
+  scrollbar-width:thin;
+}
+.ts-style-library-root-docked .ts-pack-sidebar {
+  order:-1;
+  flex:none;
+  overflow:visible!important;
+  padding:10px!important;
+  border-left:0!important;
+  border-bottom:1px solid var(--ts-border);
+}
+.ts-style-library-root-docked .ts-pack-main {
+  flex:none;
+  overflow:visible!important;
+  min-height:0;
+}
+.ts-style-library-root-docked .ts-pack-detail .ts-pack-hero { min-height:116px; }
+.ts-style-library-root-docked .ts-pack-detail .ts-pack-preview-large { min-height:116px; }
+.ts-style-library-root-docked .ts-pack-detail .ts-pack-summary { display:none; }
+.ts-style-library-root-docked .ts-pack-detail .ts-pack-detail-scroll { padding:13px 10px 24px; }
+.ts-style-library-root-docked .ts-pack-detail .ts-pack-section-nav { position:sticky; top:0; }
+
+/* Phone geometry: stay inside app/safe-area chrome, keep Close touchable, and
+   never force Browse + Tune previews to share one microscopic row. */
+@media (max-width:760px) {
+  .ts-style-library-root:not(.ts-style-library-root-docked) .ts-style-library-modal {
+    top:max(var(--app-interactive-safe-top, 0px), env(safe-area-inset-top, 0px))!important;
+    right:env(safe-area-inset-right, 0px)!important;
+    bottom:env(safe-area-inset-bottom, 0px)!important;
+    left:env(safe-area-inset-left, 0px)!important;
+    height:auto!important;
+  }
+  .ts-style-library-root:not(.ts-style-library-root-docked) .ts-style-library-head {
+    min-height:58px;
+    align-items:center;
+    padding:10px max(12px,env(safe-area-inset-right,0px)) 9px max(12px,env(safe-area-inset-left,0px));
+  }
+  .ts-style-library-head .ts-btn-icon {
+    flex:none;
+    width:42px;
+    min-width:42px;
+    height:42px;
+    min-height:42px;
+  }
+  .ts-library-presentation-toggle { display:none; }
+}
+@media (max-width:600px) {
+  .ts-quick-look-page .ts-preset-grid { grid-template-columns:1fr; }
+  .ts-quick-look-switch { align-items:stretch; flex-direction:column; gap:6px; }
+  .ts-quick-look-switch small { max-width:none; text-align:left; }
+
+  .ts-library-browser .ts-library-sidebar {
+    grid-template-columns:minmax(0,1fr)!important;
+    gap:8px!important;
+  }
+  .ts-library-browser .ts-library-view-nav {
+    width:100%;
+    min-width:0;
+  }
+  .ts-library-browser .ts-library-tune {
+    grid-column:1 / -1;
+    width:100%;
+    margin:0!important;
+    align-self:stretch!important;
+  }
+  .ts-library-browser .ts-library-tune > summary {
+    width:100%;
+    min-height:42px;
+    padding:7px 9px;
+  }
+  .ts-library-browser .ts-pack-grid {
+    grid-template-columns:1fr!important;
+    gap:14px!important;
+  }
+  .ts-library-browser .ts-pack-card { border-radius:14px; }
+}
+
+/* 1.0.3 QA follow-up -------------------------------------------------------
+   Mobile's view strip should read like the dock strip, not like a sequence of
+   mysterious full-width pages. The browse/filter block can also get out of
+   the way without hiding the actual style cards. */
+.ts-library-mobile-browse-toggle { display:none; }
+.ts-quick-revert {
+  border-color:color-mix(in srgb,var(--ts-accent) 48%,var(--ts-border));
+  background:color-mix(in srgb,var(--ts-accent-soft) 58%,transparent);
+  color:var(--ts-text);
+}
+
+@media (max-width:600px) {
+  .ts-library-browser .ts-library-view-nav {
+    display:flex!important;
+    width:100%!important;
+    min-width:0!important;
+    gap:4px!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    padding:0 18px 1px 0;
+    scroll-snap-type:x proximity;
+    overscroll-behavior-inline:contain;
+    scrollbar-width:none;
+  }
+  .ts-library-browser .ts-library-view-nav::-webkit-scrollbar { display:none; }
+  .ts-library-browser .ts-library-view-nav button {
+    flex:0 0 auto!important;
+    width:auto!important;
+    min-width:max-content!important;
+    scroll-snap-align:start;
+  }
+  .ts-library-mobile-browse-toggle {
+    appearance:none;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    width:100%;
+    min-height:42px;
+    border:0;
+    border-bottom:1px solid var(--ts-border);
+    padding:8px 11px;
+    background:color-mix(in srgb,var(--ts-elevated) 78%,transparent);
+    color:var(--ts-text);
+    cursor:pointer;
+    font:inherit;
+    text-align:left;
+  }
+  .ts-library-mobile-browse-toggle > span { display:grid; gap:1px; min-width:0; }
+  .ts-library-mobile-browse-toggle small {
+    color:var(--ts-dim);
+    font-size:7px;
+    font-weight:800;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  .ts-library-mobile-browse-toggle strong { overflow:hidden; font-size:10px; text-overflow:ellipsis; white-space:nowrap; }
+  .ts-library-mobile-browse-toggle b { color:var(--ts-muted); font-size:11px; font-weight:500; transition:transform .14s ease; }
+  .ts-library-results.is-mobile-browse-collapsed .ts-library-mobile-browse-toggle b { transform:rotate(-90deg); }
+  .ts-library-results.is-mobile-browse-collapsed .ts-library-results-toolbar { display:none!important; }
+}
+
+@media (max-width:520px) {
+  .ts-library-browser .ts-pack-open {
+    grid-template-columns:1fr!important;
+    grid-template-rows:126px auto!important;
+    min-height:0!important;
+  }
+  .ts-library-browser .ts-pack-preview {
+    min-height:126px!important;
+    border-right:0!important;
+    border-bottom:1px solid var(--ts-border)!important;
+  }
+  .ts-library-browser .ts-pack-copy {
+    min-height:76px!important;
+    padding:12px 48px 13px 13px!important;
+    justify-content:center;
+  }
+}
+
+
+
+/* 1.0.3 QA follow-up II -----------------------------------------------------
+   The browser now has three real rows on phones (collapse toggle, browse
+   controls, results). The old two-row grid let the implicit results row escape
+   the available viewport and visually crawl behind Packs. Pack control details
+   also promote to full width while open, and docked workbenches use the same
+   compact disclosure rhythm as narrow/mobile layouts. */
+@media (max-width:600px) {
+  .ts-library-browser .ts-library-results {
+    grid-template-rows:auto auto minmax(0,1fr)!important;
+  }
+  .ts-library-browser .ts-library-results.is-mobile-browse-collapsed {
+    grid-template-rows:auto minmax(0,1fr)!important;
+  }
+}
+
+@media (max-width:760px) {
+  .ts-pack-sidebar-inner > .ts-pack-side-section[open] {
+    grid-column:1 / -1;
+    width:100%;
+    min-width:0;
+  }
+}
 `

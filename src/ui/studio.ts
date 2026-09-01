@@ -63,6 +63,11 @@ type ObservedReadSession = { key: string; target: StudioTarget; packets: StylePa
 type StyleMapEntry = { id: string; element: Element; label: string; component: string; summary: string; result: ReturnType<typeof reverseEngineerElement> }
 type GroupDraftMember = { element: Element; selection: ResolvedSelection; target: StudioTarget; label: string }
 type LayoutGroupDraft = { parentElement: Element | null; parentTarget: StudioTarget | null; parentLabel: string; members: GroupDraftMember[]; error: string }
+type StyleLibraryDockHandle = { root: HTMLElement; destroy(): void; expand?(): void; collapse?(): void }
+type StyleLibraryDockRequester = {
+  requestDockPanel?: (options: { edge: 'left'; title: string; size: number; minSize: number; maxSize: number; resizable: boolean; startCollapsed: boolean; respectRequestedEdge?: boolean; showCollapsedTitle?: boolean }) => StyleLibraryDockHandle
+}
+type StyleLibraryPresentation = 'fullscreen' | 'dock'
 const REPLACED_SURFACE_TAGS = new Set(['img', 'video', 'canvas', 'iframe', 'object', 'embed'])
 const COMPOSER_ACTION_LABELS: Record<ComposerIconAction, string> = {
   home: 'Home', regen: 'Regenerate', continue: 'Continue', oneliner: 'One-liner', persona: 'Persona', connections: 'Connections', altFields: 'Fields', addons: 'Add-ons', promptVariables: 'Variables', guides: 'Guided gen', quickReplies: 'Quick replies', tools: 'Tools', extras: 'More', selectMessages: 'Select'
@@ -318,7 +323,13 @@ export class ThemeStudioUI {
   private quickAccent = '#9370db'
   private quickText = '#f4eef8'
   private quickIntensity = 80
+  private quickLookSource = 'current'
+  private quickLookPage = 0
   private styleLibraryRoot: HTMLElement | null = null
+  private styleLibraryOverlayRoot: HTMLElement | null = null
+  private styleLibraryDock: StyleLibraryDockHandle | null = null
+  private styleLibraryDockDisconnectObserver?: MutationObserver
+  private styleLibraryPresentation: StyleLibraryPresentation = 'fullscreen'
   private styleLibraryOpen = false
   private styleLibraryFiltersOpen = false
   private styleLibraryArea: 'all' | StyleLibraryArea = 'all'
@@ -328,6 +339,7 @@ export class ThemeStudioUI {
   private styleLibraryQuery = ''
   private styleLibraryView: 'browse' | 'recent' | 'applied' | 'favorites' | 'my-styles' = 'browse'
   private styleLibraryPackId: string | null = null
+  private styleLibraryMobileBrowseCollapsed = false
   private styleLibraryFavorites = new Set<StyleLibraryItemKey>()
   private styleLibraryRecent: StyleLibraryItemKey[] = []
   private savedStyleChooserOpen = false
@@ -373,6 +385,7 @@ export class ThemeStudioUI {
   private scrollResizeObserver?: ResizeObserver
   private readonly handleViewportResize = () => {
     this.syncScrollViewport()
+    if (this.styleLibraryPresentation === 'dock' && !this.canDockStyleLibrary()) this.setStyleLibraryPresentation('fullscreen')
     if (this.responsiveScopePinned) return
     const nextScope = defaultResponsiveScope()
     if (nextScope !== this.editingScope) { this.editingScope = nextScope; this.render() }
@@ -424,7 +437,7 @@ export class ThemeStudioUI {
     await this.refreshAssets()
     this.render()
   }
-  destroy(): void { this.clearBoostPreview(); this.clearPreviewMarker(); this.picker.clearHighlight(); this.unsubscribeStore(); this.scrollResizeObserver?.disconnect(); if (typeof window !== 'undefined') window.removeEventListener('resize', this.handleViewportResize); this.root.removeEventListener('wheel', this.handleDrawerWheel); this.dockEditor(); this.widgetRoot?.remove(); this.floatingFrame?.remove(); this.drawerPlaceholder?.remove(); this.styleLibraryRoot?.remove(); this.styleMapRoot?.remove(); this.root.replaceChildren() }
+  destroy(): void { this.clearBoostPreview(); this.clearPreviewMarker(); this.picker.clearHighlight(); this.unsubscribeStore(); this.scrollResizeObserver?.disconnect(); if (typeof window !== 'undefined') window.removeEventListener('resize', this.handleViewportResize); this.root.removeEventListener('wheel', this.handleDrawerWheel); this.dockEditor(); this.widgetRoot?.remove(); this.floatingFrame?.remove(); this.drawerPlaceholder?.remove(); this.destroyStyleLibraryDock(); this.styleLibraryOverlayRoot?.remove(); this.styleLibraryRoot = null; this.styleMapRoot?.remove(); this.root.replaceChildren() }
 
   render(): void {
     this.ensureQuickStyleSlotsHydrated()
@@ -649,12 +662,120 @@ export class ThemeStudioUI {
   }
 
   private mountStyleLibrary(): void {
-    if (this.styleLibraryRoot || typeof document === 'undefined' || !document.body) return
-    this.styleLibraryRoot = document.createElement('div')
-    this.styleLibraryRoot.className = 'ts-style-library-root'
-    this.styleLibraryRoot.setAttribute('data-theme-studio-widget', 'style-library')
-    this.styleLibraryRoot.hidden = true
-    document.body.append(this.styleLibraryRoot)
+    if (this.styleLibraryOverlayRoot || typeof document === 'undefined' || !document.body) return
+    this.styleLibraryOverlayRoot = document.createElement('div')
+    this.styleLibraryOverlayRoot.className = 'ts-style-library-root'
+    this.styleLibraryOverlayRoot.setAttribute('data-theme-studio-widget', 'style-library')
+    this.styleLibraryOverlayRoot.hidden = true
+    document.body.append(this.styleLibraryOverlayRoot)
+    this.styleLibraryRoot = this.styleLibraryOverlayRoot
+  }
+
+  private canDockStyleLibrary(): boolean {
+    if (typeof window === 'undefined' || window.innerWidth <= 760) return false
+    return typeof (this.ctx.ui as unknown as StyleLibraryDockRequester).requestDockPanel === 'function'
+  }
+
+  private openStyleLibrary(): void {
+    this.styleLibraryOpen = true
+    // A docked library is persistent UI, even while Spindle has its content host
+    // collapsed. Reopening Browse should therefore expand that same dock instead
+    // of spawning the fullscreen overlay and making the user dock it again.
+    if (this.styleLibraryPresentation === 'dock') this.styleLibraryDock?.expand?.()
+    this.renderStyleLibrary()
+  }
+
+  private captureStyleLibraryScrollState(): void {
+    const root = this.styleLibraryRoot
+    if (!root || !this.styleLibraryOpen) return
+    if (this.styleLibraryPackId) {
+      this.styleLibraryPackScrollTop = root.querySelector<HTMLElement>('.ts-pack-main')?.scrollTop ?? this.styleLibraryPackScrollTop
+      this.styleLibraryPackSidebarScrollTop = root.querySelector<HTMLElement>('.ts-pack-sidebar')?.scrollTop ?? this.styleLibraryPackSidebarScrollTop
+      return
+    }
+    this.styleLibraryScrollTop = root.querySelector<HTMLElement>('.ts-style-library-scroll')?.scrollTop ?? this.styleLibraryScrollTop
+    this.composerWorkshopSidecarScrollTop = root.querySelector<HTMLElement>('.ts-composer-sidecar-scroll')?.scrollTop ?? this.composerWorkshopSidecarScrollTop
+    this.composerWorkshopAnatomyScrollTop = root.querySelector<HTMLElement>('.ts-composer-workshop-groups')?.scrollTop ?? this.composerWorkshopAnatomyScrollTop
+  }
+
+  private destroyStyleLibraryDock(): void {
+    this.styleLibraryDockDisconnectObserver?.disconnect()
+    this.styleLibraryDockDisconnectObserver = undefined
+    this.styleLibraryDock?.destroy()
+    this.styleLibraryDock = null
+  }
+
+  private setStyleLibraryPresentation(next: StyleLibraryPresentation): void {
+    if (next === this.styleLibraryPresentation) return
+    if (next === 'dock' && !this.canDockStyleLibrary()) return
+    this.captureStyleLibraryScrollState()
+
+    if (next === 'dock') {
+      const requestDockPanel = (this.ctx.ui as unknown as StyleLibraryDockRequester).requestDockPanel
+      if (!requestDockPanel || typeof document === 'undefined') return
+      const panel = requestDockPanel.call(this.ctx.ui, {
+        edge: 'left',
+        title: 'Palette · Style Library',
+        size: 440,
+        minSize: 340,
+        maxSize: 720,
+        resizable: true,
+        startCollapsed: false,
+        respectRequestedEdge: true,
+        showCollapsedTitle: true,
+      })
+      const dockRoot = document.createElement('div')
+      dockRoot.className = 'ts-style-library-root ts-style-library-root-docked'
+      dockRoot.setAttribute('data-theme-studio-widget', 'style-library')
+      panel.root.classList.add('ts-style-library-dock-host')
+      panel.root.replaceChildren(dockRoot)
+      this.styleLibraryDock = panel
+      this.styleLibraryPresentation = 'dock'
+      this.styleLibraryRoot = dockRoot
+      if (this.styleLibraryOverlayRoot) {
+        this.styleLibraryOverlayRoot.hidden = true
+        this.styleLibraryOverlayRoot.replaceChildren()
+      }
+      if (typeof MutationObserver !== 'undefined' && document.body) {
+        // Spindle deliberately detaches the extension root while a native dock is
+        // collapsed, then reattaches that same live root when the user expands it.
+        // Watching panel.root.isConnected therefore mistakes ordinary collapse for
+        // panel destruction and kills Palette's dock state. Capture the host dock
+        // shell instead: its content host may come and go, but the shell survives a
+        // collapse and only disconnects when the native panel is actually closed.
+        let dockShell = panel.root.isConnected ? panel.root.parentElement?.parentElement ?? null : null
+        const observer = new MutationObserver(() => {
+          if (this.styleLibraryDock !== panel || this.styleLibraryPresentation !== 'dock') { observer.disconnect(); return }
+          if (!dockShell && panel.root.isConnected) dockShell = panel.root.parentElement?.parentElement ?? null
+          if (!dockShell || dockShell.isConnected) return
+          observer.disconnect()
+          this.styleLibraryDockDisconnectObserver = undefined
+          this.styleLibraryDock = null
+          this.styleLibraryPresentation = 'fullscreen'
+          this.styleLibraryRoot = this.styleLibraryOverlayRoot
+          this.styleLibraryOpen = false
+          this.styleLibraryFiltersOpen = false
+          this.styleLibraryPackId = null
+          this.renderStyleLibrary()
+        })
+        observer.observe(document.body, { childList: true, subtree: true })
+        this.styleLibraryDockDisconnectObserver = observer
+      }
+      panel.expand?.()
+      this.renderStyleLibrary()
+      return
+    }
+
+    this.destroyStyleLibraryDock()
+    this.styleLibraryPresentation = 'fullscreen'
+    this.styleLibraryRoot = this.styleLibraryOverlayRoot
+    this.renderStyleLibrary()
+  }
+
+  private renderStyleLibraryPresentationButton(): string {
+    if (!this.canDockStyleLibrary() && this.styleLibraryPresentation !== 'dock') return ''
+    const docked = this.styleLibraryPresentation === 'dock'
+    return `<button class="ts-btn ts-library-presentation-toggle" type="button" data-library-action="presentation" title="${docked ? 'Return Style Library to fullscreen' : 'Dock Style Library on the left'}" aria-label="${docked ? 'Return Style Library to fullscreen' : 'Dock Style Library on the left'}"><span aria-hidden="true">${docked ? '⛶' : '⇤'}</span><span>${docked ? 'Fullscreen' : 'Dock left'}</span></button>`
   }
 
   private loadStyleLibraryFavorites(): Set<StyleLibraryItemKey> {
@@ -811,7 +932,7 @@ export class ThemeStudioUI {
     const total = packPresetIds(pack).length
     const applied = this.packAppliedCount(pack)
     const favorite = this.styleLibraryFavorites.has(`pack:${pack.id}` as StyleLibraryItemKey)
-    return `<article class="ts-pack-card" data-library-card="pack:${escapeHtml(pack.id)}" data-library-kind="pack" data-library-search="${escapeHtml(styleLibraryPackSearchText(pack))}"><button class="ts-pack-open" type="button" data-library-pack="${escapeHtml(pack.id)}"><div class="ts-pack-preview" data-pack-preview="${escapeHtml(pack.preview)}"><span class="ts-pack-panel ts-pack-panel-a"></span><span class="ts-pack-panel ts-pack-panel-b"></span><strong>${escapeHtml(pack.name)}</strong><small>${escapeHtml(pack.areas.map((area) => STYLE_LIBRARY_AREAS.find((entry) => entry.id === area)?.label ?? area).join(' · '))}</small></div><div class="ts-pack-copy"><div><strong>${escapeHtml(pack.name)}</strong>${applied ? `<span class="ts-chip">${applied}/${total} applied</span>` : ''}</div><span>${total} styles · ${pack.supports.length === 2 ? 'Bubble + Minimal' : pack.supports[0]}</span></div></button><button class="ts-btn ts-btn-icon ts-pack-favorite" type="button" data-library-favorite="pack:${escapeHtml(pack.id)}" aria-label="${favorite ? 'Remove' : 'Add'} ${escapeHtml(pack.name)} ${favorite ? 'from' : 'to'} favorites" aria-pressed="${favorite}">${favorite ? '★' : '☆'}</button></article>`
+    return `<article class="ts-pack-card" data-library-card="pack:${escapeHtml(pack.id)}" data-library-kind="pack" data-library-pack="${escapeHtml(pack.id)}" data-library-search="${escapeHtml(styleLibraryPackSearchText(pack))}"><button class="ts-pack-open" type="button"><div class="ts-pack-preview" data-pack-preview="${escapeHtml(pack.preview)}"><span class="ts-pack-panel ts-pack-panel-a"></span><span class="ts-pack-panel ts-pack-panel-b"></span><strong>${escapeHtml(pack.name)}</strong><small>${escapeHtml(pack.areas.map((area) => STYLE_LIBRARY_AREAS.find((entry) => entry.id === area)?.label ?? area).join(' · '))}</small></div><div class="ts-pack-copy"><div><strong>${escapeHtml(pack.name)}</strong>${applied ? `<span class="ts-chip">${applied}/${total} applied</span>` : ''}</div><span>${total} styles · ${pack.supports.length === 2 ? 'Bubble + Minimal' : pack.supports[0]}</span></div></button><button class="ts-btn ts-btn-icon ts-pack-favorite" type="button" data-library-favorite="pack:${escapeHtml(pack.id)}" aria-label="${favorite ? 'Remove' : 'Add'} ${escapeHtml(pack.name)} ${favorite ? 'from' : 'to'} favorites" aria-pressed="${favorite}">${favorite ? '★' : '☆'}</button></article>`
   }
 
   private packAssetBinding(packId: string, slotId: string): ComponentOverride | undefined {
@@ -1007,7 +1128,7 @@ export class ThemeStudioUI {
     const ids = packPresetIds(pack)
     const applied = this.packAppliedCount(pack)
     const favorite = this.styleLibraryFavorites.has(`pack:${pack.id}` as StyleLibraryItemKey)
-    const compactSidebar = typeof window !== 'undefined' && Boolean(window.matchMedia?.('(max-width: 760px)')?.matches)
+    const compactSidebar = this.styleLibraryPresentation === 'dock' || (typeof window !== 'undefined' && Boolean(window.matchMedia?.('(max-width: 760px)')?.matches))
     const workbenchOpen = compactSidebar ? '' : ' open'
     const layout = this.packWorkbenchLayout(pack.id)
     const compatibleIds = packCompatiblePresetIds(pack, layout)
@@ -1038,7 +1159,7 @@ export class ThemeStudioUI {
       }).join('')
       return `<div class="ts-pack-manifest-group"><span>${escapeHtml(section.label)}</span>${rows}</div>`
     }).join('')
-    return `<header class="ts-style-library-head ts-pack-detail-head"><div class="ts-pack-head-title"><button class="ts-btn ts-btn-icon" type="button" data-library-action="back" aria-label="Back to style library">←</button><div><p class="ts-kicker">Style pack workbench</p><h2 id="ts-style-library-title">${escapeHtml(pack.name)}</h2></div></div><div class="ts-pack-head-actions"><button class="ts-btn ts-btn-icon" type="button" data-library-favorite="pack:${escapeHtml(pack.id)}" aria-label="${favorite ? 'Remove pack from favorites' : 'Favorite pack'}" aria-pressed="${favorite}">${favorite ? '★' : '☆'}</button><button class="ts-btn ts-btn-icon" type="button" data-library-action="close" aria-label="Close style library">×</button></div></header><div class="ts-pack-workspace"><main class="ts-pack-main"><div class="ts-pack-hero" data-pack-layout-preview="${layout}"><div class="ts-pack-preview ts-pack-preview-large" data-pack-preview="${escapeHtml(pack.preview)}"><span class="ts-pack-panel ts-pack-panel-a"></span><span class="ts-pack-panel ts-pack-panel-b"></span><span class="ts-pack-preview-rail"></span><strong>${escapeHtml(pack.name)}</strong><small>${escapeHtml(coverage)}</small></div><div class="ts-pack-summary"><div class="ts-pack-summary-row"><span class="ts-library-badge ts-library-family">${escapeHtml(pack.family)}</span><span class="ts-library-badge">${ids.length} styles</span><span class="ts-library-badge">${escapeHtml(layoutLabel)}</span></div><strong>${selectedIds.length} selected</strong></div></div><nav class="ts-pack-section-nav" aria-label="Pack sections"><span>Jump to</span>${sectionNav}</nav><div class="ts-pack-detail-scroll">${sections}</div></main><aside class="ts-pack-sidebar" aria-label="${escapeHtml(pack.name)} pack controls"><div class="ts-pack-sidebar-inner"><section class="ts-pack-side-actions ts-pack-workbench-actions"><div class="ts-pack-side-heading"><div><span class="ts-kicker">Workbench</span><strong>${escapeHtml(pack.name)}</strong></div><span class="ts-chip">${applied}/${ids.length} applied</span></div><div class="ts-pack-layout-picker" role="group" aria-label="Pack message layout"><button type="button" data-pack-layout="all" data-pack-id="${escapeHtml(pack.id)}" aria-pressed="${layout === 'all'}">Both</button><button type="button" data-pack-layout="bubble" data-pack-id="${escapeHtml(pack.id)}" aria-pressed="${layout === 'bubble'}" ${pack.supports.includes('bubble') ? '' : 'disabled'}>Bubble</button><button type="button" data-pack-layout="minimal" data-pack-id="${escapeHtml(pack.id)}" aria-pressed="${layout === 'minimal'}" ${pack.supports.includes('minimal') ? '' : 'disabled'}>Minimal</button></div><div class="ts-pack-selection-summary"><div><strong>${selectedIds.length}</strong><span>chosen</span></div><div><strong>${selectedApplied}</strong><span>already applied</span></div><div><strong>${compatibleIds.length}</strong><span>compatible</span></div></div><div class="ts-pack-selection-tools"><button type="button" data-pack-selection-mode="defaults" data-pack-id="${escapeHtml(pack.id)}">Defaults</button><button type="button" data-pack-selection-mode="all" data-pack-id="${escapeHtml(pack.id)}">All compatible</button><button type="button" data-pack-selection-mode="clear" data-pack-id="${escapeHtml(pack.id)}" ${selectedIds.length ? '' : 'disabled'}>Clear</button></div><div class="ts-pack-main-actions ts-pack-main-actions-workbench"><button class="ts-btn ts-btn-primary" type="button" data-pack-apply-selection="${escapeHtml(pack.id)}" ${selectedIds.length ? '' : 'disabled'}>Apply selection</button><button class="ts-btn" type="button" data-pack-reset-selection="${escapeHtml(pack.id)}" ${selectedApplied ? '' : 'disabled'}>Reset selection</button></div><div class="ts-pack-secondary-actions"><button class="ts-btn" type="button" data-library-pack-apply="${escapeHtml(pack.id)}">Apply all</button><button class="ts-btn ts-btn-danger" type="button" data-library-pack-reset="${escapeHtml(pack.id)}" ${applied ? '' : 'disabled'}>Reset pack</button></div></section><details class="ts-pack-side-section ts-pack-recipe-manifest"${workbenchOpen}><summary><div><strong>Recipe set</strong><span>${selectedIds.length} chosen · ${compatibleIds.length} compatible</span></div><span class="ts-chip">Workbench</span><i aria-hidden="true">⌄</i></summary><div class="ts-pack-side-body"><div class="ts-pack-manifest">${recipeManifest}</div></div></details><details class="ts-pack-side-section"><summary><div><strong>Refine palette</strong><span>Accent, text, and intensity</span></div><span class="ts-chip">Build-a-Bear</span><i aria-hidden="true">⌄</i></summary><div class="ts-pack-side-body">${this.renderQuickPalette()}</div></details><details class="ts-pack-side-section"><summary><div><strong>Asset slots</strong><span>${pack.assetSlots.length} declared · safe defaults</span></div><span class="ts-chip">Foundation</span><i aria-hidden="true">⌄</i></summary><div class="ts-pack-side-body"><div class="ts-pack-assets">${assetRows}</div></div></details></div></aside></div>`
+    return `<header class="ts-style-library-head ts-pack-detail-head"><div class="ts-pack-head-title"><button class="ts-btn ts-btn-icon" type="button" data-library-action="back" aria-label="Back to style library">←</button><div><p class="ts-kicker">Style pack workbench</p><h2 id="ts-style-library-title">${escapeHtml(pack.name)}</h2></div></div><div class="ts-pack-head-actions">${this.renderStyleLibraryPresentationButton()}<button class="ts-btn ts-btn-icon" type="button" data-library-favorite="pack:${escapeHtml(pack.id)}" aria-label="${favorite ? 'Remove pack from favorites' : 'Favorite pack'}" aria-pressed="${favorite}">${favorite ? '★' : '☆'}</button><button class="ts-btn ts-btn-icon" type="button" data-library-action="close" aria-label="Close style library">×</button></div></header><div class="ts-pack-workspace"><main class="ts-pack-main"><div class="ts-pack-hero" data-pack-layout-preview="${layout}"><div class="ts-pack-preview ts-pack-preview-large" data-pack-preview="${escapeHtml(pack.preview)}"><span class="ts-pack-panel ts-pack-panel-a"></span><span class="ts-pack-panel ts-pack-panel-b"></span><span class="ts-pack-preview-rail"></span><strong>${escapeHtml(pack.name)}</strong><small>${escapeHtml(coverage)}</small></div><div class="ts-pack-summary"><div class="ts-pack-summary-row"><span class="ts-library-badge ts-library-family">${escapeHtml(pack.family)}</span><span class="ts-library-badge">${ids.length} styles</span><span class="ts-library-badge">${escapeHtml(layoutLabel)}</span></div><strong>${selectedIds.length} selected</strong></div></div><nav class="ts-pack-section-nav" aria-label="Pack sections"><span>Jump to</span>${sectionNav}</nav><div class="ts-pack-detail-scroll">${sections}</div></main><aside class="ts-pack-sidebar" aria-label="${escapeHtml(pack.name)} pack controls"><div class="ts-pack-sidebar-inner"><section class="ts-pack-side-actions ts-pack-workbench-actions"><div class="ts-pack-side-heading"><div><span class="ts-kicker">Workbench</span><strong>${escapeHtml(pack.name)}</strong></div><span class="ts-chip">${applied}/${ids.length} applied</span></div><div class="ts-pack-layout-picker" role="group" aria-label="Pack message layout"><button type="button" data-pack-layout="all" data-pack-id="${escapeHtml(pack.id)}" aria-pressed="${layout === 'all'}">Both</button><button type="button" data-pack-layout="bubble" data-pack-id="${escapeHtml(pack.id)}" aria-pressed="${layout === 'bubble'}" ${pack.supports.includes('bubble') ? '' : 'disabled'}>Bubble</button><button type="button" data-pack-layout="minimal" data-pack-id="${escapeHtml(pack.id)}" aria-pressed="${layout === 'minimal'}" ${pack.supports.includes('minimal') ? '' : 'disabled'}>Minimal</button></div><div class="ts-pack-selection-summary"><div><strong>${selectedIds.length}</strong><span>chosen</span></div><div><strong>${selectedApplied}</strong><span>already applied</span></div><div><strong>${compatibleIds.length}</strong><span>compatible</span></div></div><div class="ts-pack-selection-tools"><button type="button" data-pack-selection-mode="defaults" data-pack-id="${escapeHtml(pack.id)}">Defaults</button><button type="button" data-pack-selection-mode="all" data-pack-id="${escapeHtml(pack.id)}">All compatible</button><button type="button" data-pack-selection-mode="clear" data-pack-id="${escapeHtml(pack.id)}" ${selectedIds.length ? '' : 'disabled'}>Clear</button></div><div class="ts-pack-main-actions ts-pack-main-actions-workbench"><button class="ts-btn ts-btn-primary" type="button" data-pack-apply-selection="${escapeHtml(pack.id)}" ${selectedIds.length ? '' : 'disabled'}>Apply selection</button><button class="ts-btn" type="button" data-pack-reset-selection="${escapeHtml(pack.id)}" ${selectedApplied ? '' : 'disabled'}>Reset selection</button></div><div class="ts-pack-secondary-actions"><button class="ts-btn" type="button" data-library-pack-apply="${escapeHtml(pack.id)}">Apply all</button><button class="ts-btn ts-btn-danger" type="button" data-library-pack-reset="${escapeHtml(pack.id)}" ${applied ? '' : 'disabled'}>Reset pack</button></div></section><details class="ts-pack-side-section ts-pack-recipe-manifest"${workbenchOpen}><summary><div><strong>Recipe set</strong><span>${selectedIds.length} chosen · ${compatibleIds.length} compatible</span></div><span class="ts-chip">Workbench</span><i aria-hidden="true">⌄</i></summary><div class="ts-pack-side-body"><div class="ts-pack-manifest">${recipeManifest}</div></div></details><details class="ts-pack-side-section"><summary><div><strong>Refine palette</strong><span>Accent, text, and intensity</span></div><span class="ts-chip">Build-a-Bear</span><i aria-hidden="true">⌄</i></summary><div class="ts-pack-side-body">${this.renderQuickPalette()}</div></details><details class="ts-pack-side-section"><summary><div><strong>Asset slots</strong><span>${pack.assetSlots.length} declared · safe defaults</span></div><span class="ts-chip">Foundation</span><i aria-hidden="true">⌄</i></summary><div class="ts-pack-side-body"><div class="ts-pack-assets">${assetRows}</div></div></details></div></aside></div>`
   }
 
   private styleLibraryActiveFilterCount(): number {
@@ -1063,9 +1184,12 @@ export class ThemeStudioUI {
     }
     root.hidden = false
     const pack = this.styleLibraryPackId ? packForId(this.styleLibraryPackId) : undefined
+    const docked = this.styleLibraryPresentation === 'dock'
+    const backdrop = docked ? '' : '<div class="ts-style-library-backdrop" data-library-action="close"></div>'
+    const modalA11y = docked ? 'role="region"' : 'role="dialog" aria-modal="true"'
     if (pack) {
       this.styleLibraryFiltersOpen = false
-      root.innerHTML = `<div class="ts-style-library-backdrop" data-library-action="close"></div><section class="ts-style-library-modal ts-preset-library ts-pack-detail" role="dialog" aria-modal="true" aria-labelledby="ts-style-library-title" style="--ts-quick-accent:${escapeHtml(this.quickAccent)};--ts-quick-text:${escapeHtml(this.quickText)};--ts-quick-intensity:${this.quickIntensity / 100}">${this.renderPackDetail(pack)}</section>`
+      root.innerHTML = `${backdrop}<section class="ts-style-library-modal ts-preset-library ts-pack-detail" ${modalA11y} aria-labelledby="ts-style-library-title" style="--ts-quick-accent:${escapeHtml(this.quickAccent)};--ts-quick-text:${escapeHtml(this.quickText)};--ts-quick-intensity:${this.quickIntensity / 100}">${this.renderPackDetail(pack)}</section>`
       this.bindStyleLibrary()
       const packMain = root.querySelector<HTMLElement>('.ts-pack-main')
       const packSidebar = root.querySelector<HTMLElement>('.ts-pack-sidebar')
@@ -1095,7 +1219,7 @@ export class ThemeStudioUI {
     const composerWorkshop = this.styleLibraryView === 'browse' && this.styleLibraryArea === 'composer' ? this.renderComposerWorkshop() : ''
     const savedStyles = this.store.snapshot.savedStyles
     const totalCopy = this.styleLibraryView === 'my-styles' ? `${savedStyles.length} saved style${savedStyles.length === 1 ? '' : 's'}` : `${recipes.length} style${recipes.length === 1 ? '' : 's'} · ${packs.length} pack${packs.length === 1 ? '' : 's'}`
-    root.innerHTML = `<div class="ts-style-library-backdrop" data-library-action="close"></div><section class="ts-style-library-modal ts-preset-library ts-library-browser" role="dialog" aria-modal="true" aria-labelledby="ts-style-library-title" style="--ts-quick-accent:${escapeHtml(this.quickAccent)};--ts-quick-text:${escapeHtml(this.quickText)};--ts-quick-intensity:${this.quickIntensity / 100}"><header class="ts-style-library-head"><div><p class="ts-kicker">Style library</p><h2 id="ts-style-library-title">${this.styleLibraryView === 'my-styles' ? 'My Styles' : 'Browse looks'}</h2><span>${this.styleLibraryView === 'my-styles' ? 'Reusable semantic looks you saved yourself. Apply them across theme projects without copying CSS.' : 'Packs are collections. Styles are the pieces. Search the warehouse without wearing the inventory terminal as a hat.'}</span></div><button class="ts-btn ts-btn-icon" type="button" data-library-action="close" aria-label="Close style library">×</button></header><div class="ts-library-workspace"><aside class="ts-library-sidebar"><nav class="ts-library-view-nav" aria-label="Library view">${viewTabs}</nav><section class="ts-library-side-status"><span class="ts-kicker">${escapeHtml(viewLabels[this.styleLibraryView])}</span><strong data-library-result-count>${escapeHtml(totalCopy)}</strong><p>${this.styleLibraryView === 'browse' ? 'Explore packs and individual styles.' : this.styleLibraryView === 'recent' ? 'Things you touched lately.' : this.styleLibraryView === 'applied' ? 'Layers currently contributing.' : this.styleLibraryView === 'my-styles' ? 'Reusable looks you authored yourself.' : 'Your saved fashion crimes.'}</p></section><details class="ts-library-tune"><summary><div><strong>Tune previews</strong><span><i style="--swatch:${escapeHtml(this.quickAccent)}"></i><i style="--swatch:${escapeHtml(this.quickText)}"></i>${this.quickIntensity}%</span></div><b>⌄</b></summary><div class="ts-library-tune-body">${this.renderQuickPalette()}</div></details></aside><section class="ts-library-results"><div class="ts-library-results-toolbar"><div class="ts-library-results-title"><div class="ts-library-results-heading"><span class="ts-kicker">${escapeHtml(viewLabels[this.styleLibraryView])}</span><strong>${this.styleLibraryView === 'my-styles' ? 'Saved by you' : this.styleLibraryArea === 'all' ? 'All styles' : escapeHtml(STYLE_LIBRARY_AREAS.find((entry) => entry.id === this.styleLibraryArea)?.label ?? 'Styles')}</strong></div>${this.styleLibraryView === 'my-styles' ? '' : `<nav class="ts-library-surface-nav" aria-label="Library surface">${surfaceTabs}</nav>`}<span data-library-result-count>${escapeHtml(totalCopy)}</span></div><div class="ts-library-search-row"><label class="ts-library-search"><span>Search library</span><input class="ts-search" type="search" value="${escapeHtml(this.styleLibraryQuery)}" placeholder="${this.styleLibraryView === 'my-styles' ? 'Search your saved styles…' : 'minimal portrait, manga heading, glass composer…'}" data-library-search></label>${this.styleLibraryView === 'my-styles' ? '' : `<button class="ts-library-pack-owned-toggle" type="button" data-library-pack-owned aria-pressed="${this.styleLibraryShowPackOwned}" title="${this.styleLibraryShowPackOwned ? 'Hide' : 'Show'} individual styles that also belong to a pack"><span class="ts-library-toggle-track" aria-hidden="true"><i></i></span><span>Show pack-owned</span></button><button class="ts-btn ts-library-filter-trigger" type="button" data-library-filter-action="open" aria-expanded="${this.styleLibraryFiltersOpen}">More filters${activeFilters ? `<span>${activeFilters}</span>` : ''}</button>`}</div>${filterChips && this.styleLibraryView !== 'my-styles' ? `<div class="ts-library-active-filters"><span>Extra filters</span>${filterChips}<button type="button" data-library-filter-action="reset">Clear all</button></div>` : ''}</div><main class="ts-style-library-scroll">${this.styleLibraryView === 'my-styles' ? (savedStyles.length ? `<section class="ts-library-group ts-saved-style-group"><div class="ts-library-group-head"><div><strong>My Styles</strong><small>Cross-project semantic styles · apply without copying CSS</small></div><span>${savedStyles.length}</span></div><div class="ts-saved-style-grid">${savedStyles.map((style) => this.renderSavedStyleCard(style)).join('')}</div></section>` : `<div class="ts-library-empty"><strong>Nothing saved yet.</strong><span>${escapeHtml(emptyCopy)}</span></div>`) : `${layoutNote}${composerWorkshop}${packs.length ? `<section class="ts-library-group ts-pack-group"><div class="ts-library-group-head"><div><strong>Packs</strong><small>Coordinated collections · open before applying</small></div><span>${packs.length}</span></div><div class="ts-pack-grid">${packs.map((entry) => this.renderPackCard(entry)).join('')}</div></section>` : ''}${groups.length ? groups.map((group) => `<section class="ts-library-group"><div class="ts-library-group-head"><div><strong>${escapeHtml(group.label)}</strong><small>Individual styles · apply here or pencil into Design</small></div><span>${group.entries.length}</span></div>${this.renderPresetCards(group.entries.map((entry) => entry.preset), { library: true })}</section>`).join('') : !packs.length ? `<div class="ts-library-empty"><strong>Nothing here yet.</strong><span>${escapeHtml(emptyCopy)}</span></div>` : ''}`}</main></section></div>${this.renderStyleLibraryFilterDialog(families)}</section>`
+    root.innerHTML = `${backdrop}<section class="ts-style-library-modal ts-preset-library ts-library-browser" ${modalA11y} aria-labelledby="ts-style-library-title" style="--ts-quick-accent:${escapeHtml(this.quickAccent)};--ts-quick-text:${escapeHtml(this.quickText)};--ts-quick-intensity:${this.quickIntensity / 100}"><header class="ts-style-library-head"><div><p class="ts-kicker">Style library</p><h2 id="ts-style-library-title">${this.styleLibraryView === 'my-styles' ? 'My Styles' : 'Browse looks'}</h2><span>${this.styleLibraryView === 'my-styles' ? 'Reusable semantic looks you saved yourself. Apply them across theme projects without copying CSS.' : 'Packs are collections. Styles are the pieces. Search the warehouse without wearing the inventory terminal as a hat.'}</span></div><div class="ts-style-library-head-actions">${this.renderStyleLibraryPresentationButton()}<button class="ts-btn ts-btn-icon" type="button" data-library-action="close" aria-label="Close style library">×</button></div></header><div class="ts-library-workspace"><aside class="ts-library-sidebar"><nav class="ts-library-view-nav" aria-label="Library view">${viewTabs}</nav><section class="ts-library-side-status"><span class="ts-kicker">${escapeHtml(viewLabels[this.styleLibraryView])}</span><strong data-library-result-count>${escapeHtml(totalCopy)}</strong><p>${this.styleLibraryView === 'browse' ? 'Explore packs and individual styles.' : this.styleLibraryView === 'recent' ? 'Things you touched lately.' : this.styleLibraryView === 'applied' ? 'Layers currently contributing.' : this.styleLibraryView === 'my-styles' ? 'Reusable looks you authored yourself.' : 'Your saved fashion crimes.'}</p></section><details class="ts-library-tune"><summary><div><strong>Tune previews</strong><span><i style="--swatch:${escapeHtml(this.quickAccent)}"></i><i style="--swatch:${escapeHtml(this.quickText)}"></i>${this.quickIntensity}%</span></div><b>⌄</b></summary><div class="ts-library-tune-body">${this.renderQuickPalette()}</div></details></aside><section class="ts-library-results${this.styleLibraryMobileBrowseCollapsed ? ' is-mobile-browse-collapsed' : ''}"><button class="ts-library-mobile-browse-toggle" type="button" data-library-action="mobile-browse-toggle" aria-expanded="${!this.styleLibraryMobileBrowseCollapsed}"><span><small>Browse controls</small><strong>${this.styleLibraryView === 'my-styles' ? 'My Styles' : this.styleLibraryArea === 'all' ? 'All styles' : escapeHtml(STYLE_LIBRARY_AREAS.find((entry) => entry.id === this.styleLibraryArea)?.label ?? 'Styles')}</strong></span><b aria-hidden="true">⌄</b></button><div class="ts-library-results-toolbar"><div class="ts-library-results-title"><div class="ts-library-results-heading"><span class="ts-kicker">${escapeHtml(viewLabels[this.styleLibraryView])}</span><strong>${this.styleLibraryView === 'my-styles' ? 'Saved by you' : this.styleLibraryArea === 'all' ? 'All styles' : escapeHtml(STYLE_LIBRARY_AREAS.find((entry) => entry.id === this.styleLibraryArea)?.label ?? 'Styles')}</strong></div>${this.styleLibraryView === 'my-styles' ? '' : `<nav class="ts-library-surface-nav" aria-label="Library surface">${surfaceTabs}</nav>`}<span data-library-result-count>${escapeHtml(totalCopy)}</span></div><div class="ts-library-search-row"><label class="ts-library-search"><span>Search library</span><input class="ts-search" type="search" value="${escapeHtml(this.styleLibraryQuery)}" placeholder="${this.styleLibraryView === 'my-styles' ? 'Search your saved styles…' : 'minimal portrait, manga heading, glass composer…'}" data-library-search></label>${this.styleLibraryView === 'my-styles' ? '' : `<button class="ts-library-pack-owned-toggle" type="button" data-library-pack-owned aria-pressed="${this.styleLibraryShowPackOwned}" title="${this.styleLibraryShowPackOwned ? 'Hide' : 'Show'} individual styles that also belong to a pack"><span class="ts-library-toggle-track" aria-hidden="true"><i></i></span><span>Show pack-owned</span></button><button class="ts-btn ts-library-filter-trigger" type="button" data-library-filter-action="open" aria-expanded="${this.styleLibraryFiltersOpen}">More filters${activeFilters ? `<span>${activeFilters}</span>` : ''}</button>`}</div>${filterChips && this.styleLibraryView !== 'my-styles' ? `<div class="ts-library-active-filters"><span>Extra filters</span>${filterChips}<button type="button" data-library-filter-action="reset">Clear all</button></div>` : ''}</div><main class="ts-style-library-scroll">${this.styleLibraryView === 'my-styles' ? (savedStyles.length ? `<section class="ts-library-group ts-saved-style-group"><div class="ts-library-group-head"><div><strong>My Styles</strong><small>Cross-project semantic styles · apply without copying CSS</small></div><span>${savedStyles.length}</span></div><div class="ts-saved-style-grid">${savedStyles.map((style) => this.renderSavedStyleCard(style)).join('')}</div></section>` : `<div class="ts-library-empty"><strong>Nothing saved yet.</strong><span>${escapeHtml(emptyCopy)}</span></div>`) : `${layoutNote}${composerWorkshop}${packs.length ? `<section class="ts-library-group ts-pack-group"><div class="ts-library-group-head"><div><strong>Packs</strong><small>Coordinated collections · open before applying</small></div><span>${packs.length}</span></div><div class="ts-pack-grid">${packs.map((entry) => this.renderPackCard(entry)).join('')}</div></section>` : ''}${groups.length ? groups.map((group) => `<section class="ts-library-group"><div class="ts-library-group-head"><div><strong>${escapeHtml(group.label)}</strong><small>Individual styles · apply here or pencil into Design</small></div><span>${group.entries.length}</span></div>${this.renderPresetCards(group.entries.map((entry) => entry.preset), { library: true })}</section>`).join('') : !packs.length ? `<div class="ts-library-empty"><strong>Nothing here yet.</strong><span>${escapeHtml(emptyCopy)}</span></div>` : ''}`}</main></section></div>${this.renderStyleLibraryFilterDialog(families)}</section>`
     this.bindStyleLibrary()
     const composerSidecar = root.querySelector<HTMLElement>('.ts-composer-workshop-sidecar')
     if (composerSidecar) this.bindDesign(composerSidecar)
@@ -1126,7 +1250,15 @@ export class ThemeStudioUI {
   private bindStyleLibrary(): void {
     const root = this.styleLibraryRoot
     if (!root) return
-    root.querySelectorAll<HTMLElement>('[data-library-action="close"]').forEach((element) => element.addEventListener('click', () => { this.styleLibraryOpen = false; this.styleLibraryFiltersOpen = false; this.styleLibraryPackId = null; this.renderStyleLibrary() }))
+    root.querySelectorAll<HTMLElement>('[data-library-action="close"]').forEach((element) => element.addEventListener('click', () => {
+      this.styleLibraryOpen = false
+      this.styleLibraryFiltersOpen = false
+      this.styleLibraryPackId = null
+      if (this.styleLibraryPresentation === 'dock') this.setStyleLibraryPresentation('fullscreen')
+      else this.renderStyleLibrary()
+    }))
+    root.querySelectorAll<HTMLButtonElement>('[data-library-action="presentation"]').forEach((button) => button.addEventListener('click', () => this.setStyleLibraryPresentation(this.styleLibraryPresentation === 'dock' ? 'fullscreen' : 'dock')))
+    root.querySelector<HTMLButtonElement>('[data-library-action="mobile-browse-toggle"]')?.addEventListener('click', () => { this.styleLibraryMobileBrowseCollapsed = !this.styleLibraryMobileBrowseCollapsed; this.renderStyleLibrary() })
     root.querySelectorAll<HTMLButtonElement>('[data-library-filter-action]').forEach((button) => button.addEventListener('click', () => { const action = button.dataset.libraryFilterAction; if (action === 'open') this.styleLibraryFiltersOpen = true; else if (action === 'close') this.styleLibraryFiltersOpen = false; else if (action === 'reset') { this.styleLibraryFamily = 'all'; this.styleLibraryLayout = 'all' } this.renderStyleLibrary() }))
     root.querySelectorAll<HTMLButtonElement>('[data-library-clear-filter]').forEach((button) => button.addEventListener('click', () => { const filter = button.dataset.libraryClearFilter; if (filter === 'area') this.styleLibraryArea = 'all'; else if (filter === 'family') this.styleLibraryFamily = 'all'; else if (filter === 'layout') this.styleLibraryLayout = 'all'; this.renderStyleLibrary() }))
     root.querySelector<HTMLElement>('[data-library-action="back"]')?.addEventListener('click', () => { this.styleLibraryPackId = null; this.styleLibraryPackScrollTop = 0; this.styleLibraryPackSidebarScrollTop = 0; this.renderStyleLibrary() })
@@ -1141,7 +1273,7 @@ export class ThemeStudioUI {
       if (roleId && KNOWN_PART_ROLES[roleId]) this.openKnownRoleInComposerWorkshop(roleId)
     })
     root.querySelector<HTMLButtonElement>('[data-composer-workshop-back]')?.addEventListener('click', () => { this.composerWorkshopRole = null; this.composerWorkshopSidecarScrollTop = 0; this.packetMenuOpen = false; this.renderStyleLibrary() })
-    root.querySelector<HTMLButtonElement>('[data-composer-workshop-full-design]')?.addEventListener('click', () => { if (!this.composerWorkshopRole) return; if (this.composerWorkshopRole === 'input.actionbar' && this.selection && activeScope(this.selection).selector.includes('[data-composer-action=')) { this.composerWorkshopRole = null; this.styleLibraryOpen = false; this.styleLibraryFiltersOpen = false; this.styleLibraryPackId = null; this.workspace = 'design'; this.render(); return } this.openKnownRoleInDesign(this.composerWorkshopRole) })
+    root.querySelector<HTMLButtonElement>('[data-composer-workshop-full-design]')?.addEventListener('click', () => { if (!this.composerWorkshopRole) return; if (this.composerWorkshopRole === 'input.actionbar' && this.selection && activeScope(this.selection).selector.includes('[data-composer-action=')) { this.composerWorkshopRole = null; this.leaveStyleLibraryForDesign(); this.workspace = 'design'; this.render(); return } this.openKnownRoleInDesign(this.composerWorkshopRole) })
     root.querySelector<HTMLButtonElement>('[data-composer-workshop-add-icons]')?.addEventListener('click', () => {
       if (this.composerWorkshopRole !== 'input.actionbar' || !this.selection || activeScope(this.selection).persistence !== 'persistent') return
       const packet = createStylePacket('composer-icons')
@@ -1154,7 +1286,7 @@ export class ThemeStudioUI {
     root.querySelectorAll<HTMLButtonElement>('[data-library-family]').forEach((button) => button.addEventListener('click', () => { this.styleLibraryFamily = button.dataset.libraryFamily ?? 'all'; this.renderStyleLibrary() }))
     root.querySelectorAll<HTMLButtonElement>('[data-library-family-jump]').forEach((button) => button.addEventListener('click', () => { this.styleLibraryFamily = button.dataset.libraryFamilyJump ?? 'all'; this.styleLibraryFiltersOpen = false; this.renderStyleLibrary() }))
     root.querySelectorAll<HTMLButtonElement>('[data-library-layout]').forEach((button) => button.addEventListener('click', () => { this.styleLibraryLayout = button.dataset.libraryLayout as 'all' | MessageLayoutSupport; this.renderStyleLibrary() }))
-    root.querySelectorAll<HTMLButtonElement>('[data-library-pack]').forEach((button) => button.addEventListener('click', () => { const scroller = root.querySelector<HTMLElement>('.ts-style-library-scroll'); this.styleLibraryScrollTop = scroller?.scrollTop ?? 0; this.styleLibraryFiltersOpen = false; this.styleLibraryPackId = button.dataset.libraryPack ?? null; if (this.styleLibraryPackId) this.adoptPackPalette(this.styleLibraryPackId); this.styleLibraryPackScrollTop = 0; this.styleLibraryPackSidebarScrollTop = 0; this.renderStyleLibrary() }))
+    root.querySelectorAll<HTMLElement>('[data-library-pack]').forEach((button) => button.addEventListener('click', () => { const scroller = root.querySelector<HTMLElement>('.ts-style-library-scroll'); this.styleLibraryScrollTop = scroller?.scrollTop ?? 0; this.styleLibraryFiltersOpen = false; this.styleLibraryPackId = button.dataset.libraryPack ?? null; if (this.styleLibraryPackId) this.adoptPackPalette(this.styleLibraryPackId); this.styleLibraryPackScrollTop = 0; this.styleLibraryPackSidebarScrollTop = 0; this.renderStyleLibrary() }))
     root.querySelectorAll<HTMLButtonElement>('[data-library-favorite]').forEach((button) => button.addEventListener('click', (event) => { event.stopPropagation(); const key = button.dataset.libraryFavorite as StyleLibraryItemKey | undefined; if (key) this.toggleStyleLibraryFavorite(key) }))
     root.querySelectorAll<HTMLButtonElement>('[data-library-pack-apply]').forEach((button) => button.addEventListener('click', () => this.applyStylePack(button.dataset.libraryPackApply ?? '')))
     root.querySelectorAll<HTMLButtonElement>('[data-library-pack-reset]').forEach((button) => button.addEventListener('click', () => this.resetStylePack(button.dataset.libraryPackReset ?? '')))
@@ -1222,7 +1354,7 @@ export class ThemeStudioUI {
     packMain?.addEventListener('scroll', syncPackSectionNav, { passive: true })
     syncPackSectionNav()
     root.querySelectorAll<HTMLButtonElement>('[data-apply-common-preset]').forEach((button) => button.addEventListener('click', () => this.applyCommonPreset(button.dataset.applyCommonPreset ?? '', false)))
-    root.querySelectorAll<HTMLButtonElement>('[data-edit-common-preset]').forEach((button) => button.addEventListener('click', () => { this.styleLibraryOpen = false; this.styleLibraryPackId = null; this.applyCommonPreset(button.dataset.editCommonPreset ?? '', true) }))
+    root.querySelectorAll<HTMLButtonElement>('[data-edit-common-preset]').forEach((button) => button.addEventListener('click', () => { this.leaveStyleLibraryForDesign(); this.applyCommonPreset(button.dataset.editCommonPreset ?? '', true) }))
     root.querySelectorAll<HTMLButtonElement>('[data-reset-common-preset]').forEach((button) => button.addEventListener('click', () => this.resetCommonPreset(button.dataset.resetCommonPreset ?? '')))
     const search = root.querySelector<HTMLInputElement>('[data-library-search]')
     search?.addEventListener('input', () => { this.styleLibraryQuery = search.value; this.applyLibrarySearch() })
@@ -1506,8 +1638,7 @@ export class ThemeStudioUI {
     this.savedStyleSelection.clear()
     this.styleLibraryView = 'my-styles'
     this.styleLibraryPackId = null
-    this.styleLibraryOpen = true
-    this.renderStyleLibrary()
+    this.openStyleLibrary()
   }
 
   private renderSavedStyleChooser(): string {
@@ -2444,12 +2575,25 @@ export class ThemeStudioUI {
     return true
   }
 
-  private openKnownRoleInDesign(roleId: KnownPartRoleId): void {
-    if (!this.selectKnownRole(roleId)) return
-    this.composerWorkshopRole = null
+  private leaveStyleLibraryForDesign(): void {
+    this.captureStyleLibraryScrollState()
+    if (this.styleLibraryPresentation === 'dock') {
+      // Apply/Edit is a workspace handoff, not a request to forget that the user
+      // chose docked browsing. Tuck the native panel away but keep its live root,
+      // filters, pack workbench, and presentation ownership intact. The user can
+      // expand the edge tab directly, or Browse styles will expand this same dock.
+      this.styleLibraryDock?.collapse?.()
+      return
+    }
     this.styleLibraryOpen = false
     this.styleLibraryFiltersOpen = false
     this.styleLibraryPackId = null
+  }
+
+  private openKnownRoleInDesign(roleId: KnownPartRoleId): void {
+    if (!this.selectKnownRole(roleId)) return
+    this.composerWorkshopRole = null
+    this.leaveStyleLibraryForDesign()
     this.workspace = 'design'
     this.render()
   }
@@ -2708,7 +2852,7 @@ export class ThemeStudioUI {
       const packCompatible = !options.packId || !options.packLayout || options.packLayout === 'all' || support.includes(options.packLayout)
       const packChosen = Boolean(options.packId && packCompatible && options.selectedPresetIds?.has(preset.id))
       const workbenchToggle = options.packId ? `<button class="ts-pack-card-select" type="button" data-pack-select-preset="${escapeHtml(preset.id)}" data-pack-id="${escapeHtml(options.packId)}" aria-pressed="${packChosen}" ${packCompatible ? '' : 'disabled'}><span aria-hidden="true">${packChosen ? '✓' : '+'}</span>${packCompatible ? (packChosen ? 'Chosen' : 'Choose') : 'Other layout'}</button>` : ''
-      return `<article class="ts-preset-card${options.compact ? ' ts-preset-card-compact' : ''}${options.packId ? ' ts-pack-recipe-card' : ''}${packChosen ? ' is-pack-chosen' : ''}${!packCompatible ? ' is-pack-incompatible' : ''}" data-library-card="${escapeHtml(preset.id)}" data-library-kind="recipe" data-library-search="${escapeHtml(meta ? styleLibrarySearchText(meta) : `${preset.name} ${preset.description}`.toLowerCase())}" data-preset-applied="${applied}">${this.renderPresetPreview(preset.preview)}${workbenchToggle}<div class="ts-preset-card-copy"><div class="ts-preset-card-title"><strong>${escapeHtml(preset.name)}</strong>${applied ? '<span class="ts-chip">Applied</span>' : ''}</div>${options.library ? `<div class="ts-library-targets" title="${escapeHtml(labels.join(' + '))}"><span><b>Component</b> · ${escapeHtml(componentSummary || 'DOM')}</span><span><b>Affects</b> · ${escapeHtml(affectsSummary)}</span></div><div class="ts-library-badges">${familyBadge}${layoutBadges}${scaleBadge}</div>` : `<span title="${escapeHtml(labels.join(' + '))}">Affects · ${escapeHtml(affectsSummary)}</span>`}</div><div class="ts-preset-card-actions${options.library ? ' ts-library-card-actions' : ''}"><button class="ts-btn ts-btn-primary" type="button" data-apply-common-preset="${escapeHtml(preset.id)}" ${packCompatible ? '' : 'disabled'}>Apply</button><button class="ts-btn ts-btn-icon" type="button" data-edit-common-preset="${escapeHtml(preset.id)}" title="Apply and edit in Design" aria-label="Apply ${escapeHtml(preset.name)} and edit" ${packCompatible ? '' : 'disabled'}>${pencil}</button>${options.library ? `<button class="ts-btn ts-btn-icon" type="button" data-library-favorite="${favoriteKey}" aria-label="${favorite ? 'Remove' : 'Add'} ${escapeHtml(preset.name)} ${favorite ? 'from' : 'to'} favorites" aria-pressed="${favorite}">${favorite ? '★' : '☆'}</button>` : ''}${options.library || applied ? `<button class="ts-btn ts-btn-icon ts-preset-reset" type="button" data-reset-common-preset="${escapeHtml(preset.id)}" title="Reset this recipe footprint" aria-label="Reset ${escapeHtml(preset.name)}" ${applied ? '' : 'disabled'}>↺</button>` : ''}</div></article>`
+      return `<article class="ts-preset-card${options.compact ? ' ts-preset-card-compact' : ''}${options.packId ? ' ts-pack-recipe-card' : ''}${packChosen ? ' is-pack-chosen' : ''}${!packCompatible ? ' is-pack-incompatible' : ''}" data-library-card="${escapeHtml(preset.id)}" data-library-kind="recipe" data-library-search="${escapeHtml(meta ? styleLibrarySearchText(meta) : `${preset.name} ${preset.description}`.toLowerCase())}" data-preset-applied="${applied}">${this.renderPresetPreview(preset.preview)}${workbenchToggle}<div class="ts-preset-card-copy"><div class="ts-preset-card-title"><strong>${escapeHtml(preset.name)}</strong>${applied ? '<span class="ts-chip">Applied</span>' : ''}</div>${options.library ? `<div class="ts-library-targets" title="${escapeHtml(labels.join(' + '))}"><span><b>Component</b> · ${escapeHtml(componentSummary || 'DOM')}</span><span><b>Affects</b> · ${escapeHtml(affectsSummary)}</span></div><div class="ts-library-badges">${familyBadge}${layoutBadges}${scaleBadge}</div>` : `<span title="${escapeHtml(labels.join(' + '))}">Affects · ${escapeHtml(affectsSummary)}</span>`}</div><div class="ts-preset-card-actions${options.library ? ' ts-library-card-actions' : ''}">${options.compact && applied ? `<button class="ts-btn ts-quick-revert" type="button" data-reset-common-preset="${escapeHtml(preset.id)}">Revert</button>` : `<button class="ts-btn ts-btn-primary" type="button" data-apply-common-preset="${escapeHtml(preset.id)}" ${packCompatible ? '' : 'disabled'}>Apply</button>`}<button class="ts-btn ts-btn-icon" type="button" data-edit-common-preset="${escapeHtml(preset.id)}" title="Apply and edit in Design" aria-label="Apply ${escapeHtml(preset.name)} and edit" ${packCompatible ? '' : 'disabled'}>${pencil}</button>${options.library ? `<button class="ts-btn ts-btn-icon" type="button" data-library-favorite="${favoriteKey}" aria-label="${favorite ? 'Remove' : 'Add'} ${escapeHtml(preset.name)} ${favorite ? 'from' : 'to'} favorites" aria-pressed="${favorite}">${favorite ? '★' : '☆'}</button>` : ''}${options.library ? `<button class="ts-btn ts-btn-icon ts-preset-reset" type="button" data-reset-common-preset="${escapeHtml(preset.id)}" title="Reset this recipe footprint" aria-label="Reset ${escapeHtml(preset.name)}" ${applied ? '' : 'disabled'}>↺</button>` : ''}</div></article>`
     }).join('')}</div>`
   }
 
@@ -2724,10 +2868,83 @@ export class ThemeStudioUI {
     return ids.map((id) => COMMON_PART_PRESETS.find((preset) => preset.id === id)).filter((preset): preset is CommonPartPreset => Boolean(preset))
   }
 
+  private quickLookLayout(): PackWorkbenchLayout {
+    const component = this.selection?.nativeContext?.component.label
+    return component === 'MinimalMessage' ? 'minimal' : component === 'BubbleMessage' || component === 'MessageContent' ? 'bubble' : 'all'
+  }
+
+  private quickLookTargetRoleIds(): Set<KnownPartRoleId> {
+    const selection = this.selection
+    if (!selection) return new Set()
+    const scope = activeScope(selection)
+    const picked = selection.targetLevels.find((level) => level.relation === 'picked')?.element ?? selection.target.element ?? scope.element ?? null
+    const selector = scope.selector.replace(/::(?:before|after|placeholder)\s*$/i, '')
+    const matches = new Set<KnownPartRoleId>()
+    for (const role of Object.values(KNOWN_PART_ROLES)) {
+      const target = this.presetTargetForRole(role.id)
+      const targetSelector = target.selector.replace(/::(?:before|after|placeholder)\s*$/i, '')
+      if (selector && selector === targetSelector) { matches.add(role.id); continue }
+      const mounted = this.mountedElementForKnownRole(role.id, target.selector)
+      if (picked && mounted === picked) matches.add(role.id)
+    }
+    return matches
+  }
+
+  private orderQuickLookPresets(candidates: CommonPartPreset[], targetRoles: Set<KnownPartRoleId>): CommonPartPreset[] {
+    if (!targetRoles.size) return candidates
+    const scaleRank = { small: 0, component: 1, layout: 2, pack: 3 } as const
+    return [...candidates].sort((a, b) => {
+      const aRoles = presetRoles(a)
+      const bRoles = presetRoles(b)
+      const aPrimary = a.steps.some((step) => step.primary && targetRoles.has(step.role)) ? 0 : 1
+      const bPrimary = b.steps.some((step) => step.primary && targetRoles.has(step.role)) ? 0 : 1
+      if (aPrimary !== bPrimary) return aPrimary - bPrimary
+      const aScale = scaleRank[recipeMetaForId(a.id)?.scale ?? 'component']
+      const bScale = scaleRank[recipeMetaForId(b.id)?.scale ?? 'component']
+      if (aScale !== bScale) return aScale - bScale
+      return aRoles.length - bRoles.length
+    })
+  }
+
+  private quickLookPresets(): { presets: CommonPartPreset[]; label: string } {
+    const targetRoles = this.quickLookTargetRoleIds()
+    const targetLabel = this.selection ? activeScope(this.selection).label : ''
+    if (this.quickLookSource === 'current') {
+      const exact = targetRoles.size
+        ? COMMON_PART_PRESETS.filter((preset) => presetRoles(preset).some((role) => targetRoles.has(role.id)))
+        : []
+      const presets = exact.length ? this.orderQuickLookPresets(exact, targetRoles).slice(0, 6) : this.recommendedStylePresets()
+      const component = this.selection?.nativeContext?.component.label
+      return { presets, label: targetLabel ? `Current target · ${targetLabel}` : component ? `Current target · ${component}` : 'Current target' }
+    }
+    const pack = packForId(this.quickLookSource)
+    if (!pack) return { presets: this.recommendedStylePresets(), label: 'Current target' }
+
+    const candidates = packDefaultPresetIdsForLayout(pack, this.quickLookLayout())
+      .map((id) => COMMON_PART_PRESETS.find((preset) => preset.id === id))
+      .filter((preset): preset is CommonPartPreset => Boolean(preset))
+    const exact = targetRoles.size ? candidates.filter((preset) => presetRoles(preset).some((role) => targetRoles.has(role.id))) : []
+    const exactIds = new Set(exact.map((preset) => preset.id))
+    const component = this.selection?.nativeContext?.component.label
+    const componentAliases = new Set<string>(component === 'MessageContent' ? ['MessageContent', 'BubbleMessage'] : component ? [component] : [])
+    const componentMatches = componentAliases.size
+      ? candidates.filter((preset) => !exactIds.has(preset.id) && presetRoles(preset).some((role) => componentAliases.has(role.component)))
+      : []
+    const directIds = new Set([...exactIds, ...componentMatches.map((preset) => preset.id)])
+    const ordered = [...this.orderQuickLookPresets(exact, targetRoles), ...componentMatches, ...candidates.filter((preset) => !directIds.has(preset.id))]
+    return { presets: ordered.slice(0, 6), label: `${pack.name} pack${targetLabel && exact.length ? ` · ${targetLabel}` : ''}` }
+  }
+
   private renderCommonParts(): string {
-    const recommended = this.recommendedStylePresets()
-    const context = this.selection?.nativeContext?.component.label
-    return `<section class="ts-section ts-preset-library ts-quick-front" style="--ts-quick-accent:${escapeHtml(this.quickAccent)};--ts-quick-text:${escapeHtml(this.quickText)};--ts-quick-intensity:${this.quickIntensity / 100}"><div class="ts-section-heading ts-quick-front-head"><div><p class="ts-kicker">Quick styles</p><p class="ts-note">A few useful looks up front. The full library lives in its own workspace now.</p></div><button class="ts-btn ts-btn-primary ts-browse-styles" type="button" data-action="open-style-library">Browse styles</button></div><details class="ts-quick-palette-fold"><summary><div><strong>Recipe palette</strong><span><i style="--swatch:${escapeHtml(this.quickAccent)}"></i><i style="--swatch:${escapeHtml(this.quickText)}"></i>${this.quickIntensity}%</span></div><b aria-hidden="true">⌄</b></summary><div class="ts-quick-palette-fold-body">${this.renderQuickPalette()}</div></details><div class="ts-preset-category-copy"><strong>${context ? `For ${escapeHtml(context)}` : 'Quick looks'}</strong><span>${recommended.length ? 'Apply stays here; the pencil opens the result in Design.' : 'No layout-safe presets are being guessed for this component yet.'}</span></div>${recommended.length ? this.renderPresetCards(recommended, { compact: true }) : `<button class="ts-library-empty-cta" type="button" data-action="open-style-library">Open the library to browse all existing looks</button>`}</section>`
+    const quickLooks = this.quickLookPresets()
+    const pages: CommonPartPreset[][] = []
+    for (let index = 0; index < quickLooks.presets.length; index += 2) pages.push(quickLooks.presets.slice(index, index + 2))
+    const activePage = Math.min(this.quickLookPage, Math.max(0, pages.length - 1))
+    this.quickLookPage = activePage
+    const sourceOptions = [`<option value="current"${this.quickLookSource === 'current' ? ' selected' : ''}>Current target</option>`, ...STYLE_LIBRARY_PACKS.map((pack) => `<option value="${escapeHtml(pack.id)}"${this.quickLookSource === pack.id ? ' selected' : ''}>${escapeHtml(pack.name)}</option>`)].join('')
+    const pageMarkup = pages.map((page, index) => `<section class="ts-quick-look-page" data-quick-look-page-index="${index}" aria-label="Quick looks page ${index + 1} of ${pages.length}">${this.renderPresetCards(page, { compact: true })}</section>`).join('')
+    const pagination = pages.length > 1 ? `<nav class="ts-quick-look-pagination" aria-label="Quick looks pages">${pages.map((_, index) => `<button type="button" data-quick-look-page="${index}" aria-label="Show quick looks page ${index + 1}" aria-pressed="${index === activePage}"></button>`).join('')}</nav>` : ''
+    return `<section class="ts-section ts-preset-library ts-quick-front" style="--ts-quick-accent:${escapeHtml(this.quickAccent)};--ts-quick-text:${escapeHtml(this.quickText)};--ts-quick-intensity:${this.quickIntensity / 100}"><div class="ts-section-heading ts-quick-front-head"><div><p class="ts-kicker">Quick styles</p><p class="ts-note">Preview the current target or raid a pack without opening the full library.</p></div><button class="ts-btn ts-btn-primary ts-browse-styles" type="button" data-action="open-style-library">Browse styles</button></div><details class="ts-quick-palette-fold"><summary><div><strong>Recipe palette</strong><span><i style="--swatch:${escapeHtml(this.quickAccent)}"></i><i style="--swatch:${escapeHtml(this.quickText)}"></i>${this.quickIntensity}%</span></div><b aria-hidden="true">⌄</b></summary><div class="ts-quick-palette-fold-body">${this.renderQuickPalette()}</div></details><div class="ts-quick-look-switch"><label><span>Quick looks</span><select class="ts-select" data-quick-look-source aria-label="Quick looks source">${sourceOptions}</select></label><small>${escapeHtml(quickLooks.label)} · ${quickLooks.presets.length} look${quickLooks.presets.length === 1 ? '' : 's'}</small></div>${pages.length ? `<div class="ts-quick-look-carousel" data-quick-look-carousel><div class="ts-quick-look-track">${pageMarkup}</div></div>${pagination}` : `<button class="ts-library-empty-cta" type="button" data-action="open-style-library">Open the library to browse all existing looks</button>`}</section>`
   }
 
   private applyCommonPreset(presetId: string, openEditor = false, renderAfter = true, recordRecent = true): void {
@@ -3577,7 +3794,39 @@ ${compileComponentOverride(draft, previewOptions)}`)
   private bindThemes(): void {
     this.root.querySelectorAll<HTMLButtonElement>('[data-action="save-style-target"]').forEach((button) => button.addEventListener('click', () => this.saveCurrentStyle('target')))
     this.root.querySelectorAll<HTMLButtonElement>('[data-action="save-style-component"]').forEach((button) => button.addEventListener('click', () => this.saveCurrentStyle('component')))
-    this.root.querySelectorAll<HTMLButtonElement>('[data-action="open-style-library"]').forEach((button) => button.addEventListener('click', () => { const component = this.selection?.nativeContext?.component.label; this.styleLibraryLayout = component === 'MinimalMessage' ? 'minimal' : component === 'BubbleMessage' || component === 'MessageContent' ? 'bubble' : 'all'; this.styleLibraryOpen = true; this.renderStyleLibrary() }))
+    this.root.querySelectorAll<HTMLButtonElement>('[data-action="open-style-library"]').forEach((button) => button.addEventListener('click', () => { const component = this.selection?.nativeContext?.component.label; this.styleLibraryLayout = component === 'MinimalMessage' ? 'minimal' : component === 'BubbleMessage' || component === 'MessageContent' ? 'bubble' : 'all'; this.openStyleLibrary() }))
+    this.root.querySelector<HTMLSelectElement>('[data-quick-look-source]')?.addEventListener('change', (event) => {
+      const value = (event.currentTarget as HTMLSelectElement).value
+      this.quickLookSource = value === 'current' || packForId(value) ? value : 'current'
+      this.quickLookPage = 0
+      if (this.quickLookSource !== 'current') this.adoptPackPalette(this.quickLookSource)
+      this.render()
+    })
+    const quickLookCarousel = this.root.querySelector<HTMLElement>('[data-quick-look-carousel]')
+    const quickLookPages = quickLookCarousel ? [...quickLookCarousel.querySelectorAll<HTMLElement>('[data-quick-look-page-index]')] : []
+    const updateQuickLookPage = (index: number) => {
+      this.quickLookPage = Math.max(0, Math.min(quickLookPages.length - 1, index))
+      this.root.querySelectorAll<HTMLButtonElement>('[data-quick-look-page]').forEach((button) => button.setAttribute('aria-pressed', String(Number(button.dataset.quickLookPage) === this.quickLookPage)))
+    }
+    if (quickLookCarousel) {
+      let quickLookScrollFrame = 0
+      quickLookCarousel.addEventListener('scroll', () => {
+        if (quickLookScrollFrame || typeof requestAnimationFrame === 'undefined') return
+        quickLookScrollFrame = requestAnimationFrame(() => {
+          quickLookScrollFrame = 0
+          const pageWidth = Math.max(1, quickLookCarousel.clientWidth)
+          updateQuickLookPage(Math.round(quickLookCarousel.scrollLeft / pageWidth))
+        })
+      }, { passive: true })
+      if (this.quickLookPage > 0 && typeof requestAnimationFrame !== 'undefined') requestAnimationFrame(() => { quickLookCarousel.scrollLeft = quickLookPages[this.quickLookPage]?.offsetLeft ?? 0 })
+    }
+    this.root.querySelectorAll<HTMLButtonElement>('[data-quick-look-page]').forEach((button) => button.addEventListener('click', () => {
+      const index = Number(button.dataset.quickLookPage)
+      const page = quickLookPages[index]
+      if (!page || !quickLookCarousel) return
+      updateQuickLookPage(index)
+      quickLookCarousel.scrollTo({ left: page.offsetLeft, behavior: 'smooth' })
+    }))
     this.root.querySelectorAll<HTMLButtonElement>('[data-apply-common-preset]').forEach((button) => button.addEventListener('click', () => this.applyCommonPreset(button.dataset.applyCommonPreset ?? '', false)))
     this.root.querySelectorAll<HTMLButtonElement>('[data-edit-common-preset]').forEach((button) => button.addEventListener('click', () => this.applyCommonPreset(button.dataset.editCommonPreset ?? '', true)))
     this.root.querySelectorAll<HTMLButtonElement>('[data-reset-common-preset]').forEach((button) => button.addEventListener('click', () => this.resetCommonPreset(button.dataset.resetCommonPreset ?? '')))
