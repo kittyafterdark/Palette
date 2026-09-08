@@ -640,6 +640,26 @@ function generatedContentSelector(selector: string): string {
     return pseudo ? trimmed : `${trimmed}::after`
   }).join(',\n')
 }
+const INLINE_COLOR_TARGET = ':where([style^="color:" i], [style^=" color:" i], [style*=";color:" i], [style*="; color:" i], [color])'
+function inlineColorTargetSelector(selector: string): string {
+  return splitSelectorList(selector).flatMap((branch) => {
+    const { base, pseudo } = splitPseudoElement(branch)
+    return pseudo ? [] : [`${base}${INLINE_COLOR_TARGET}`]
+  }).join(',\n')
+}
+function compileInlineInkCompatibilityRule(selector: string, packets: StylePacket[], strength: 'normal' | 'strong'): string {
+  if (strength === 'strong') return ''
+  const packet = packets.find((entry): entry is TextPacket => entry.type === 'text')
+  if (!packet || packet.colorMode !== 'solid' || packet.inkMode === 'force' || !ownsField(packet, 'colorMode', 'solid')) return ''
+  const target = inlineColorTargetSelector(selector)
+  if (!target) return ''
+  return [
+    '/* Inline ink compatibility · exact-target legacy/author color */',
+    `${target} {`,
+    `  color: ${colorWithAlpha(packet.solid.color, packet.solid.alpha)} !important;`,
+    '}',
+  ].join('\n')
+}
 function compileCanonicalSlot(selector: string, slot: { key: string; label: string; packets: StylePacket[] }, strength: 'normal' | 'strong'): string {
   if (slot.key === 'paint' && slot.packets.length === 2) {
     const background = slot.packets.find((packet): packet is BackgroundPacket => packet.type === 'background')
@@ -652,7 +672,9 @@ function compileCanonicalSlot(selector: string, slot: { key: string; label: stri
   }
   const slotSelector = slot.key === 'content' ? generatedContentSelector(selector) : selector
   const rule = compileRule(slotSelector, slot.packets, strength)
-  return rule ? `/* Slot · ${slot.label} */\n${rule}` : ''
+  if (!rule) return ''
+  const inlineInkCompatibility = slot.key === 'text' ? compileInlineInkCompatibilityRule(slotSelector, slot.packets, strength) : ''
+  return [`/* Slot · ${slot.label} */`, rule, inlineInkCompatibility].filter(Boolean).join('\n')
 }
 function compileCanonicalSlots(selector: string, packets: StylePacket[], strength: 'normal' | 'strong' = 'normal'): string[] {
   return canonicalPacketSlots(packets).map((slot) => compileCanonicalSlot(selector, slot, strength)).filter(Boolean)

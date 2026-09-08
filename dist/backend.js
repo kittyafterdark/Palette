@@ -1,65 +1,50 @@
-// Palette 1.0.4 backend fallback bundle
-// Deterministic TypeScript CommonJS module graph wrapped as ESM; normal project builds still use esbuild.
-const __modules = Object.create(null);
-__modules["backend.js"] = function(module,exports,require){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const STATE_PATH = 'theme-studio/projects.json';
+// src/backend.ts
+var STATE_PATH = "theme-studio/projects.json";
 function isRecord(value) {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-function cssValueTrace(value) { return typeof value === 'string' ? { json: JSON.stringify(value), codePoints: [...value].map((character) => character.codePointAt(0) ?? 0) } : { json: JSON.stringify(value), type: typeof value }; }
+function cssValueTrace(value) {
+  return typeof value === "string" ? { json: JSON.stringify(value), codePoints: [...value].map((character) => character.codePointAt(0) ?? 0) } : { json: JSON.stringify(value), type: typeof value };
+}
 spindle.onFrontendMessage(async (payload, userId) => {
-    if (!isRecord(payload) || typeof payload.type !== 'string' || typeof payload.requestId !== 'string')
-        return;
-    const requestId = payload.requestId;
-    try {
-        if (payload.type === 'theme_studio:load_state') {
-            const state = await spindle.userStorage.getJson(STATE_PATH, { fallback: null, userId });
-            spindle.sendToFrontend({ type: 'theme_studio:state_loaded', requestId, state }, userId);
-            return;
-        }
-        if (payload.type === 'theme_studio:save_state') {
-            if (!isRecord(payload.state))
-                throw new Error('Invalid Theme Studio state');
-            await spindle.userStorage.setJson(STATE_PATH, payload.state, { indent: 2, userId });
-            spindle.sendToFrontend({ type: 'theme_studio:state_saved', requestId }, userId);
-            return;
-        }
-        if (payload.type === 'theme_studio:get_theme_baseline') {
-            const info = await spindle.theme.getCurrent(userId);
-            const variables = await spindle.theme.generateVariables({ accent: info.accent, mode: info.mode, enableGlass: info.enableGlass, radiusScale: info.radiusScale, fontScale: info.fontScale, uiScale: info.uiScale });
-            spindle.sendToFrontend({ type: 'theme_studio:theme_baseline', requestId, info, variables }, userId);
-            return;
-        }
-        if (payload.type === 'theme_studio:apply_theme_override') {
-            if (!isRecord(payload.variables) || Object.entries(payload.variables).some(([name, value]) => !/^--(?:lumiverse|lcs)-[a-zA-Z0-9-]+$/.test(name) || typeof value !== 'string'))
-                throw new Error('Invalid Theme Studio variable override');
-            // apply() merges for this extension, so clear first to make project switches
-            // and removed semantic roles a true replacement rather than leaving stale keys.
-            await spindle.theme.clear(userId);
-            console.debug('[Theme Studio backend] outgoing Boost CSS value', { variable: '--lumiverse-primary', ...cssValueTrace(payload.variables['--lumiverse-primary']) });
-            await spindle.theme.apply({ variables: payload.variables }, userId);
-            const entries = Object.entries(payload.variables);
-            spindle.sendToFrontend({ type: 'theme_studio:theme_applied', requestId, appliedCount: entries.length, sample: entries.slice(0, 3) }, userId);
-            return;
-        }
-        if (payload.type === 'theme_studio:clear_theme_override') {
-            await spindle.theme.clear(userId);
-            spindle.sendToFrontend({ type: 'theme_studio:theme_cleared', requestId }, userId);
-        }
+  if (!isRecord(payload) || typeof payload.type !== "string" || typeof payload.requestId !== "string") return;
+  const requestId = payload.requestId;
+  try {
+    if (payload.type === "theme_studio:load_state") {
+      const state = await spindle.userStorage.getJson(STATE_PATH, { fallback: null, userId });
+      spindle.sendToFrontend({ type: "theme_studio:state_loaded", requestId, state }, userId);
+      return;
     }
-    catch (error) {
-        spindle.sendToFrontend({
-            type: payload.type.includes('theme_') && !payload.type.includes('state') ? 'theme_studio:theme_error' : 'theme_studio:state_error',
-            requestId,
-            error: error instanceof Error ? error.message : 'Storage operation failed',
-        }, userId);
+    if (payload.type === "theme_studio:save_state") {
+      if (!isRecord(payload.state)) throw new Error("Invalid Theme Studio state");
+      await spindle.userStorage.setJson(STATE_PATH, payload.state, { indent: 2, userId });
+      spindle.sendToFrontend({ type: "theme_studio:state_saved", requestId }, userId);
+      return;
     }
+    if (payload.type === "theme_studio:get_theme_baseline") {
+      const info = await spindle.theme.getCurrent(userId);
+      const variables = await spindle.theme.generateVariables({ accent: info.accent, mode: info.mode, enableGlass: info.enableGlass, radiusScale: info.radiusScale, fontScale: info.fontScale, uiScale: info.uiScale });
+      spindle.sendToFrontend({ type: "theme_studio:theme_baseline", requestId, info, variables }, userId);
+      return;
+    }
+    if (payload.type === "theme_studio:apply_theme_override") {
+      if (!isRecord(payload.variables) || Object.entries(payload.variables).some(([name, value]) => !/^--(?:lumiverse|lcs)-[a-zA-Z0-9-]+$/.test(name) || typeof value !== "string")) throw new Error("Invalid Theme Studio variable override");
+      await spindle.theme.clear(userId);
+      console.debug("[Theme Studio backend] outgoing Boost CSS value", { variable: "--lumiverse-primary", ...cssValueTrace(payload.variables["--lumiverse-primary"]) });
+      await spindle.theme.apply({ variables: payload.variables }, userId);
+      const entries = Object.entries(payload.variables);
+      spindle.sendToFrontend({ type: "theme_studio:theme_applied", requestId, appliedCount: entries.length, sample: entries.slice(0, 3) }, userId);
+      return;
+    }
+    if (payload.type === "theme_studio:clear_theme_override") {
+      await spindle.theme.clear(userId);
+      spindle.sendToFrontend({ type: "theme_studio:theme_cleared", requestId }, userId);
+    }
+  } catch (error) {
+    spindle.sendToFrontend({
+      type: payload.type.includes("theme_") && !payload.type.includes("state") ? "theme_studio:theme_error" : "theme_studio:state_error",
+      requestId,
+      error: error instanceof Error ? error.message : "Storage operation failed"
+    }, userId);
+  }
 });
-};
-const __cache = Object.create(null);
-function __normalize(parts){const out=[];for(const p of parts){if(!p||p==='.')continue;if(p==='..')out.pop();else out.push(p)}return out.join('/')}
-function __resolve(from,spec){if(!spec.startsWith('.'))throw new Error('Unexpected external runtime import: '+spec+' from '+from);const base=__normalize(from.split('/').slice(0,-1).concat(spec.split('/')));for(const c of [base,base+'.js',base+'/index.js'])if(Object.prototype.hasOwnProperty.call(__modules,c))return c;throw new Error('Cannot resolve '+spec+' from '+from)}
-function __require(id){if(__cache[id])return __cache[id].exports;const fn=__modules[id];if(!fn)throw new Error('Missing bundled module: '+id);const module={exports:{}};__cache[id]=module;const localRequire=(spec)=>__require(__resolve(id,spec));fn(module,module.exports,localRequire);return module.exports}
-__require("backend.js");

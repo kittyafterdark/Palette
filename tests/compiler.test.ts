@@ -63,6 +63,45 @@ describe('Phase Three semantic CSS compiler', () => {
     expect(outside).toContain('0px 2px 8px rgba(0, 0, 0, 0.35)')
   })
 
+  test('Respect Ink repairs exact-target inline colors without flattening descendant colors', () => {
+    const packet = createStylePacket('text'); if (packet.type !== 'text') throw new Error()
+    packet.solid.color = '#7f4fcf'; packet.solid.alpha = 0.8
+    const project = createProject('Inline legacy ink')
+    project.componentOverrides.push(override('[data-component="MessageContent"] span', { normal: [packet] }))
+    const css = compileThemeProject(project)
+
+    expect(css).toContain('[data-component="MessageContent"] span {\n  color: rgba(127, 79, 207, 0.8);\n}')
+    expect(css).toContain('Inline ink compatibility · exact-target legacy/author color')
+    expect(css).toContain('[data-component="MessageContent"] span:where([style^="color:" i], [style^=" color:" i], [style*=";color:" i], [style*="; color:" i], [color])')
+    expect(css).toContain('color: rgba(127, 79, 207, 0.8) !important;')
+    expect(css).not.toContain('[data-component="MessageContent"] span [style')
+    expect(css).not.toContain('-webkit-text-fill-color')
+  })
+
+  test('Force Ink and pseudo-element Ink do not emit the inline-color compatibility shim', () => {
+    const forced = createStylePacket('text'); if (forced.type !== 'text') throw new Error()
+    forced.inkMode = 'force'
+    const forcedProject = createProject('Forced ink')
+    forcedProject.componentOverrides.push(override('.label', { normal: [forced] }))
+    expect(compileThemeProject(forcedProject)).not.toContain('Inline ink compatibility')
+
+    const pseudo = createStylePacket('text'); if (pseudo.type !== 'text') throw new Error()
+    const pseudoProject = createProject('Pseudo ink')
+    pseudoProject.componentOverrides.push(override('.label::after', { normal: [pseudo] }))
+    expect(compileThemeProject(pseudoProject)).not.toContain('Inline ink compatibility')
+  })
+
+  test('sparse Ink that does not own fill does not emit the inline-color compatibility shim', () => {
+    const packet = createStylePacket('text'); if (packet.type !== 'text') throw new Error()
+    packet.editedFields = ['strokeWidth']
+    packet.strokeWidth = 2
+    const project = createProject('Sparse stroke')
+    project.componentOverrides.push(override('.label', { normal: [packet] }))
+    const css = compileThemeProject(project)
+    expect(css).toContain('-webkit-text-stroke:')
+    expect(css).not.toContain('Inline ink compatibility')
+  })
+
   test('Generated Content safely quotes literal pseudo labels', () => {
     const packet = createStylePacket('content'); if (packet.type !== 'content') throw new Error()
     packet.value = 'PRIVATE "NOTE"\nFILED'

@@ -1,40 +1,37 @@
 # Palette
 
-<img width="1790" height="1017" alt="image" src="https://github.com/user-attachments/assets/61c653f3-5f4d-454d-b80d-f0f667b2bfd6" />
-
-
-**Visual theme authoring for Lumiverse.** Pick, slide and adjust, and Palette turns it into scoped, reusable CSS.
+**Visual theme authoring for Lumiverse.** Pick the thing you mean, describe the visual intent, and Palette turns it into scoped, reusable CSS.
 
 > Palette is an independent, unofficial community extension for Lumiverse. It is not affiliated with, endorsed by, or supported by the Lumiverse project or its maintainers.
 
-Palette is built around one idea: **Palette knows the CSS; you design your space.** A normal user can resize, recolor, rearrange, crop, fade, group, and reuse real Lumiverse UI without learning selector syntax. Advanced users can still inspect the generated CSS or add a separate Custom CSS layer.
+Palette is built around one idea: **Palette knows the CSS; you express the visual intent.** A normal user can resize, recolor, rearrange, crop, fade, group, and reuse real Lumiverse UI without learning selector syntax. Advanced users can still inspect the generated CSS or add a separate Custom CSS layer.
 
-> **Public release:** 1.0.3  
-> **Project schema:** v42  
-> **Minimum Lumiverse version:** 1.1.6
+**Public release:** 1.0.3  
+**Project schema:** v42  
+**Minimum Lumiverse version:** 1.1.6
 
 ## Highlights
 
-- **Pick real UI:** persistent element picker, semantic target ladder, Edit Part, Browse Inside, Assistant/User/Both message facets, and stable scoped selectors.
-- **Visual style packets:** Background, Text Style, Typography, Border, Corners, Spacing, Shadow, Glass, Size, Layout, Quick Align, Image, Media Flow, Position, Transform, Visibility, SVG assets, pseudo surfaces, and more.
-- **Base + Mobile:** author responsive deltas without hand-writing media queries.
-- **States:** Normal, Hover, Active, Focus, and Disabled styling.
-- **Smart Guides:** box model, dimensions, layout geometry, positioning, crop/focal guides, and group member overlays.
-- **Layout Groups:** arrange real siblings as Row / Column / Grid without reparenting React-owned DOM.
-- **Read Style / Read Page:** inspect existing presentation without capturing it; only edited values become Palette-owned CSS.
-- **Quick Looks + Style Library:** reusable authored treatments and curated pack recipes.
-- **My Styles:** save Targets, Components, or multi-component Bundles and reuse them across Palette projects.
-- **Full App Boost:** transform the native theme palette and backdrop while keeping global Typography independently toggleable.
-- **Theme projects:** persistent swatch-based Theme Stash with duplicate/rename/delete workflows.
-- **Native handoff:** inspect generated CSS, keep Custom CSS separate, work with native assets, and hand compatible themes back through Lumiverse's public theme bridge.
-- **Float / Dock / mobile:** keep Palette reachable while editing modals, drawers, and temporary surfaces.
+- **Pick real UI** — persistent element picker, semantic target ladder, Edit Part, Browse Inside, Assistant/User/Both message facets, and stable scoped selectors.
+- **Visual style packets** — Background, Image, Mask, Ink, SVG assets, Typography, Border, Corners, Spacing, Shadow, Glass, Size, Layout, Quick Align, Media Flow, Position, Transform, Visibility, pseudo surfaces, and more.
+- **Base + Mobile** — author responsive deltas without hand-writing media queries.
+- **States** — Normal, Hover, Active, Focus, and Disabled styling.
+- **Smart Guides** — box model, dimensions, layout geometry, positioning, crop/focal guides, and group member overlays.
+- **Layout Groups** — arrange real siblings as Row / Column / Grid without reparenting React-owned DOM.
+- **Read Style / Read Page** — inspect existing presentation without capturing it; only edited values become Palette-owned CSS.
+- **Quick Looks + Style Library** — browse the current target or individual packs inline, then move the full library between fullscreen and Lumiverse’s native left dock.
+- **My Styles** — save Targets, Components, or multi-component Bundles and reuse them across Palette projects.
+- **Full App Boost** — transform the native theme palette and backdrop while keeping global Typography independently toggleable.
+- **Theme projects** — persistent swatch-based Theme Stash with duplicate/rename/delete workflows.
+- **Native handoff** — inspect generated CSS, keep Custom CSS separate, work with native assets, and hand compatible themes back through Lumiverse's public theme bridge.
+- **Float / Dock / mobile** — keep Palette reachable while editing modals, drawers, and temporary surfaces.
 
 ## Installation
 
 1. Open **Lumiverse → Extensions**.
 2. Choose **Install Extension**.
 3. Paste the GitHub repository URL for Palette.
-4. Review and grant the requested `app_manipulation` permission.
+4. Review and grant the requested `app_manipulation` and `ui_panels` permissions.
 5. Open **Palette** from the Lumiverse sidebar/drawer.
 
 The repository intentionally commits `dist/`; Lumiverse installs the built Spindle runtime directly from the repository.
@@ -53,7 +50,7 @@ To update, use Lumiverse's extension update flow after a new Palette release is 
 
 ## How Palette thinks
 
-The project model is canonical; CSS is deterministic compiler output.
+Palette stores semantic styling intent, not a blob of generated CSS. The project model is canonical; CSS is deterministic compiler output.
 
 That enables a few important behaviors:
 
@@ -72,15 +69,9 @@ That enables a few important behaviors:
 | **Style Library** | Browse reusable looks and cross-project My Styles. |
 | **Code** | Inspect generated CSS, add Custom CSS, and use native theme handoff. |
 
-<img width="541" height="1019" alt="image" src="https://github.com/user-attachments/assets/47f9af7e-2a00-44ed-9a2b-ec964a561306" />
-
-
 ## Built-in packs
 
-Palette currently ships curated message/composer directions including **Manga**, **Editorial**, **Journal**, and **Visual Novel**. Pack recipes use the same semantic targets, packets, responsive states, groups, and provenance system as normal Design work; there is no separate hidden pack-CSS engine.
-
-<img width="1683" height="437" alt="image" src="https://github.com/user-attachments/assets/2802934c-cd52-4069-97e9-029199402385" />
-
+Palette currently ships curated message/composer directions including **Manga**, **Editorial**, **Journal**, and **Visual Novel**. Pack recipes use the same semantic targets, packets, responsive states, groups, and provenance system as normal Design work—there is no separate hidden pack-CSS engine.
 
 ## Compatibility notes
 
@@ -113,7 +104,7 @@ Useful scripts:
 | `bun test` | Run the test suite. |
 | `bun run verify` | Typecheck + tests + build. |
 
-Development receipts and pre-public-release notes live under [`docs/development/`](docs/development/).
+Development receipts and pre-public-release archaeology live under [`docs/development/`](docs/development/) instead of the public README.
 
 ## Repository layout
 
@@ -136,7 +127,6 @@ Palette currently requests:
 | --- | --- |
 | `app_manipulation` | Apply scoped visual presentation and interact with the public native theme authoring surface. |
 | `ui_panels` | Move the Style Library into Lumiverse’s native resizable left dock without covering the live chat. |
-
 
 ## Privacy and data
 
