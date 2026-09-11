@@ -1,6 +1,6 @@
 ## 1.0.5 — Semantic Boost
 
-- Rebuilt Full App Boost around semantic color roles instead of the old binary name heuristic. **Primary accent** now owns primary emphasis, **Secondary accent** owns the actual secondary family, surfaces/borders/text/neutral chrome route independently, semantic status colors keep their identity, and unknown variables pass through instead of becoming accidental accent paint.
+- Rebuilt Full App Boost around semantic color roles instead of the old binary name heuristic. **Primary accent** owns primary emphasis, **Secondary accent** owns the actual secondary family and now softly influences derived surfaces/borders, surfaces/borders/text/neutral chrome still route independently, semantic status colors keep their identity, and unknown variables pass through instead of becoming accidental accent paint.
 - Added **Text treatment** with Auto contrast and Custom foreground modes. Auto uses proper sRGB relative luminance/contrast math against transformed surfaces; Custom recolors the native text/icon hierarchy without flattening its alpha structure.
 - Kept **Protect controls** surgical: it repairs paired interactive foregrounds rather than rewriting shared prose variables. Transform diagnostics now expose per-role routing counts and role-tagged samples.
 - Retired the unused legacy palette bootstrap path now that current Lumiverse exposes the native theme contract directly. Boost continues to transform only the canonical worker-generated variable map so live output cannot feed back into its own source.

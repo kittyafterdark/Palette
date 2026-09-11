@@ -3015,13 +3015,18 @@ function classifyBoostVariable(name) {
   if (/^--lumiverse-(?:bg(?:-|$)|card(?:-|$)|gradient-modal$)/i.test(name)) return "surface";
   return "preserve";
 }
+function supportingAccentAnchor(boost, secondaryWeight, chromaScale, maxChroma) {
+  const primary = anchor(boost.primary, boost.primary), secondary = anchor(boost.secondary, boost.primary), weight = clamp2(secondaryWeight);
+  const primaryAngle = primary.h * Math.PI / 180, secondaryAngle = secondary.h * Math.PI / 180;
+  const a = primary.c * Math.cos(primaryAngle) * (1 - weight) + secondary.c * Math.cos(secondaryAngle) * weight;
+  const b = primary.c * Math.sin(primaryAngle) * (1 - weight) + secondary.c * Math.sin(secondaryAngle) * weight;
+  return { l: 0.5, c: Math.min(maxChroma, Math.hypot(a, b) * chromaScale), h: (Math.atan2(b, a) * 180 / Math.PI + 360) % 360, alpha: 1 };
+}
 function surfaceAnchor(boost) {
-  const primary = anchor(boost.primary, boost.primary);
-  return { l: 0.5, c: Math.min(0.075, primary.c * 0.48), h: primary.h, alpha: 1 };
+  return supportingAccentAnchor(boost, 0.25, 0.48, 0.075);
 }
 function borderAnchor(boost) {
-  const primary = anchor(boost.primary, boost.primary);
-  return { l: 0.5, c: Math.min(0.11, primary.c * 0.72), h: primary.h, alpha: 1 };
+  return supportingAccentAnchor(boost, 0.4, 0.72, 0.11);
 }
 function roleAnchor(role, boost) {
   if (role === "primary") return anchor(boost.primary, boost.primary);
@@ -22040,7 +22045,7 @@ var ThemeStudioUI = class {
     const colorsBody = boost.colorsEnabled ? `<div class="ts-segment"><button type="button" data-boost-mode="recolor" aria-pressed="${boost.mode === "recolor"}">Recolor</button><button type="button" data-boost-mode="smart-invert" aria-pressed="${boost.mode === "smart-invert"}">Smart Invert</button></div>
       ${boostColorField("primary", "Primary accent", boost.primary.color, "#9370db")}
       ${boostColorField("secondary", "Secondary accent", boost.secondary?.color ?? boost.primary.color, "#786bf0")}
-      <p class="ts-note">Primary also seeds the automatic surface and border tint. Secondary stays within supporting accent roles.</p>
+      <p class="ts-note">Primary leads the theme. Secondary colors supporting accents and softly influences derived surfaces and borders.</p>
       ${textTreatment}
       ${slider("Contrast", "contrast", boost.contrast, -100, 100)}${slider("Brightness", "brightness", boost.brightness, -100, 100)}${slider("Original saturation", "originalSaturation", boost.originalSaturation, 0, 100)}
       <label class="ts-check ts-boost-protect"><input type="checkbox" data-boost-protect-controls ${boost.protectControls ? "checked" : ""}> <span><strong>Protect controls</strong><small>Repair control foregrounds that lose contrast after recoloring.</small></span></label>

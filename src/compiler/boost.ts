@@ -69,13 +69,18 @@ export function classifyBoostVariable(name: string): BoostTransformRole {
   return 'preserve'
 }
 
+function supportingAccentAnchor(boost: ProjectBoost, secondaryWeight: number, chromaScale: number, maxChroma: number): Oklch {
+  const primary = anchor(boost.primary, boost.primary), secondary = anchor(boost.secondary, boost.primary), weight = clamp(secondaryWeight)
+  const primaryAngle = primary.h * Math.PI / 180, secondaryAngle = secondary.h * Math.PI / 180
+  const a = primary.c * Math.cos(primaryAngle) * (1 - weight) + secondary.c * Math.cos(secondaryAngle) * weight
+  const b = primary.c * Math.sin(primaryAngle) * (1 - weight) + secondary.c * Math.sin(secondaryAngle) * weight
+  return { l: .5, c: Math.min(maxChroma, Math.hypot(a, b) * chromaScale), h: ((Math.atan2(b, a) * 180 / Math.PI) + 360) % 360, alpha: 1 }
+}
 function surfaceAnchor(boost: ProjectBoost): Oklch {
-  const primary = anchor(boost.primary, boost.primary)
-  return { l: .5, c: Math.min(.075, primary.c * .48), h: primary.h, alpha: 1 }
+  return supportingAccentAnchor(boost, .25, .48, .075)
 }
 function borderAnchor(boost: ProjectBoost): Oklch {
-  const primary = anchor(boost.primary, boost.primary)
-  return { l: .5, c: Math.min(.11, primary.c * .72), h: primary.h, alpha: 1 }
+  return supportingAccentAnchor(boost, .4, .72, .11)
 }
 function roleAnchor(role: BoostTransformRole, boost: ProjectBoost): Oklch | undefined {
   if (role === 'primary') return anchor(boost.primary, boost.primary)

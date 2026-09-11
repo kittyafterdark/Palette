@@ -368,18 +368,19 @@ describe('Phase Four Boost semantics', () => {
     const first = transformThemeVariables(baseline, project.boost), second = transformThemeVariables(baseline, project.boost)
     expect(first.variables).toEqual(second.variables); expect(Object.keys(first.variables)).toEqual(Object.keys(baseline)); expect(first.variables['--lumiverse-primary']).toContain('0.35'); expect(first.variables['--lumiverse-font-scale']).toBe('1')
   })
-  test('semantic routing keeps Secondary in its own lane and preserves status colors', () => {
-    const baseline = { '--lumiverse-primary': '#4060d0', '--lumiverse-secondary': '#687080', '--lumiverse-bg': '#203050', '--lumiverse-border': '#526070', '--lumiverse-text': '#f2f2f2', '--lumiverse-danger': '#ef4444', '--lumiverse-success': '#22c55e', '--lumiverse-custom-color': '#336699' }
+  test('semantic routing keeps Secondary supporting instead of dominant and preserves status colors', () => {
+    const baseline = { '--lumiverse-primary': '#4060d0', '--lumiverse-secondary': '#687080', '--lumiverse-bg': '#203050', '--lumiverse-border': '#526070', '--lumiverse-fill': '#304050', '--lumiverse-text': '#f2f2f2', '--lumiverse-danger': '#ef4444', '--lumiverse-success': '#22c55e', '--lumiverse-custom-color': '#336699' }
     const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.originalSaturation = 0; project.boost.primary = { color: '#ff7043', alpha: 1 }; project.boost.secondary = { color: '#22aa66', alpha: 1 }
     const greenSecondary = transformThemeVariables(baseline, project.boost)
     project.boost.secondary = { color: '#6655ff', alpha: 1 }
     const violetSecondary = transformThemeVariables(baseline, project.boost)
     expect(greenSecondary.variables['--lumiverse-secondary']).not.toBe(violetSecondary.variables['--lumiverse-secondary'])
     expect(greenSecondary.variables['--lumiverse-primary']).toBe(violetSecondary.variables['--lumiverse-primary'])
-    expect(greenSecondary.variables['--lumiverse-bg']).toBe(violetSecondary.variables['--lumiverse-bg'])
-    expect(greenSecondary.variables['--lumiverse-border']).toBe(violetSecondary.variables['--lumiverse-border'])
+    expect(greenSecondary.variables['--lumiverse-bg']).not.toBe(violetSecondary.variables['--lumiverse-bg'])
+    expect(greenSecondary.variables['--lumiverse-border']).not.toBe(violetSecondary.variables['--lumiverse-border'])
+    expect(greenSecondary.variables['--lumiverse-fill']).toBe(violetSecondary.variables['--lumiverse-fill'])
     expect(greenSecondary.variables['--lumiverse-danger']).toBe(baseline['--lumiverse-danger']); expect(greenSecondary.variables['--lumiverse-success']).toBe(baseline['--lumiverse-success']); expect(greenSecondary.variables['--lumiverse-custom-color']).toBe(baseline['--lumiverse-custom-color'])
-    expect(greenSecondary.diagnostics.roleCounts).toMatchObject({ primary: 1, secondary: 1, surface: 1, text: 1, border: 1, semantic: 2, preserve: 1 })
+    expect(greenSecondary.diagnostics.roleCounts).toMatchObject({ primary: 1, secondary: 1, surface: 1, text: 1, border: 1, neutral: 1, semantic: 2, preserve: 1 })
   })
   test('neutral overlays and borders stay out of accent routing', () => {
     expect(classifyBoostVariable('--lumiverse-fill')).toBe('neutral'); expect(classifyBoostVariable('--lumiverse-fill-heavy')).toBe('neutral')

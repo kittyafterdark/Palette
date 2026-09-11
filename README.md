@@ -21,7 +21,7 @@ Palette is built around one idea: **Palette knows the CSS; you express the visua
 - **Read Style / Read Page** — inspect existing presentation without capturing it; only edited values become Palette-owned CSS.
 - **Quick Looks + Style Library** — browse the current target or individual packs inline, then move the full library between fullscreen and Lumiverse’s native left dock.
 - **My Styles** — save Targets, Components, or multi-component Bundles and reuse them across Palette projects.
-- **Full App Boost** — semantic Primary/Secondary accents, independent surface/text routing, automatic foreground contrast, backdrop treatment, and global Typography that remains independently toggleable.
+- **Full App Boost** — semantic Primary/Secondary accents with Secondary as a supporting influence on derived surfaces/borders, independent surface/text routing, automatic foreground contrast, backdrop treatment, and global Typography that remains independently toggleable.
 - **Theme projects** — persistent swatch-based Theme Stash with duplicate/rename/delete workflows.
 - **Native handoff** — inspect generated CSS, keep Custom CSS separate, work with native assets, and hand compatible themes back through Lumiverse's public theme bridge.
 - **Float / Dock / mobile** — keep Palette reachable while editing modals, drawers, and temporary surfaces.
