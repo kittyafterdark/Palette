@@ -3008,6 +3008,7 @@ function classifyBoostVariable(name) {
   if (/^--lumiverse-(?:danger|success|warning|error)(?:-|$)/i.test(name)) return "semantic";
   if (/^--lumiverse-(?:primary(?:-|$)|accent(?:-|$))/i.test(name)) return "primary";
   if (/^--lumiverse-secondary(?:-|$)/i.test(name)) return "secondary";
+  if (/^--lumiverse-(?:bg-elevated(?:-040)?|bg-hover|border-hover|gradient-modal|card-bg(?:-(?:solid|top|bottom))?|card-image-bg)$/i.test(name)) return "secondary";
   if (/^--lumiverse-(?:text-muted|text-dim|text-hint|icon-muted|icon-dim|muted)(?:-|$)?/i.test(name)) return "muted";
   if (/^--lumiverse-(?:text|icon)$/i.test(name)) return "text";
   if (/^--lumiverse-(?:bg-dark(?:er)?$|fill(?:-|$)|border-(?:light|neutral(?:-hover)?)$|swatch-border$|shadow(?:-|$)|highlight-inset(?:-|$)|modal-backdrop$|scene-text-scrim$)/i.test(name)) return "neutral";
@@ -22045,7 +22046,7 @@ var ThemeStudioUI = class {
     const colorsBody = boost.colorsEnabled ? `<div class="ts-segment"><button type="button" data-boost-mode="recolor" aria-pressed="${boost.mode === "recolor"}">Recolor</button><button type="button" data-boost-mode="smart-invert" aria-pressed="${boost.mode === "smart-invert"}">Smart Invert</button></div>
       ${boostColorField("primary", "Primary accent", boost.primary.color, "#9370db")}
       ${boostColorField("secondary", "Secondary accent", boost.secondary?.color ?? boost.primary.color, "#786bf0")}
-      <p class="ts-note">Primary leads the theme. Secondary colors supporting accents and softly influences derived surfaces and borders.</p>
+      <p class="ts-note">Primary leads the canvas and main emphasis. Secondary owns supporting accents plus elevated/card surfaces, gradients, hover states, and a share of derived borders.</p>
       ${textTreatment}
       ${slider("Contrast", "contrast", boost.contrast, -100, 100)}${slider("Brightness", "brightness", boost.brightness, -100, 100)}${slider("Original saturation", "originalSaturation", boost.originalSaturation, 0, 100)}
       <label class="ts-check ts-boost-protect"><input type="checkbox" data-boost-protect-controls ${boost.protectControls ? "checked" : ""}> <span><strong>Protect controls</strong><small>Repair control foregrounds that lose contrast after recoloring.</small></span></label>
