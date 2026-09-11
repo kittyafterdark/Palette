@@ -339,12 +339,16 @@ describe('Phase Four Boost semantics', () => {
     document.documentElement.setAttribute('data-theme-studio-boost-live', '')
     const bridge = new ThemeRuntimeBridge(context), project = createProject()
     project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.primary = { color: '#9370db', alpha: 1 }; project.boost.originalSaturation = 0
-    const expected = transformThemeVariables(workerNative, project.boost).variables['--lumiverse-primary']
+    const expected = transformThemeVariables(workerNative, project.boost).variables
+    const stale = transformThemeVariables(staleCatalog, project.boost).variables
 
     await bridge.refreshBaseline()
     await bridge.sync(project.boost)
-    expect(document.documentElement.style.getPropertyValue('--lumiverse-primary').trim()).toBe(expected)
-    expect(document.documentElement.style.getPropertyValue('--lumiverse-primary').trim()).not.toBe(transformThemeVariables(staleCatalog, project.boost).variables['--lumiverse-primary'])
+    expect(document.documentElement.style.getPropertyValue('--lumiverse-primary').trim()).toBe(expected['--lumiverse-primary'])
+    expect(document.documentElement.style.getPropertyValue('--lumiverse-bg').trim()).toBe(expected['--lumiverse-bg'])
+    // Direct accent tokens intentionally resolve to the explicit pick, so use a
+    // source-dependent material token to prove Refresh source ignored the stale catalog.
+    expect(document.documentElement.style.getPropertyValue('--lumiverse-bg').trim()).not.toBe(stale['--lumiverse-bg'])
     await bridge.destroy()
   })
 
@@ -376,7 +380,9 @@ describe('Phase Four Boost semantics', () => {
     const violetSecondary = transformThemeVariables(baseline, project.boost)
     expect(greenSecondary.variables['--lumiverse-secondary']).not.toBe(violetSecondary.variables['--lumiverse-secondary'])
     expect(greenSecondary.variables['--lumiverse-primary']).toBe(violetSecondary.variables['--lumiverse-primary'])
-    expect(greenSecondary.variables['--lumiverse-bg']).not.toBe(violetSecondary.variables['--lumiverse-bg'])
+    // Canvas is Primary-led in the material graph; Secondary owns supporting
+    // accents and border/elevated territories instead of tinting the whole world.
+    expect(greenSecondary.variables['--lumiverse-bg']).toBe(violetSecondary.variables['--lumiverse-bg'])
     expect(greenSecondary.variables['--lumiverse-border']).not.toBe(violetSecondary.variables['--lumiverse-border'])
     expect(greenSecondary.variables['--lumiverse-fill']).toBe(violetSecondary.variables['--lumiverse-fill'])
     expect(greenSecondary.variables['--lumiverse-danger']).toBe(baseline['--lumiverse-danger']); expect(greenSecondary.variables['--lumiverse-success']).toBe(baseline['--lumiverse-success']); expect(greenSecondary.variables['--lumiverse-custom-color']).toBe(baseline['--lumiverse-custom-color'])
