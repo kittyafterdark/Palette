@@ -1,7 +1,7 @@
 import type { BoostColor, ProjectBoost } from '../project/model'
 import { contrastRatio, mixRgba, parseHexColor, type RgbaColor } from './color'
 
-export type BoostTransformRole = 'primary' | 'secondary' | 'surface' | 'text' | 'muted' | 'border' | 'neutral' | 'semantic' | 'preserve'
+export type BoostTransformRole = 'primary' | 'secondary' | 'canvas' | 'surface' | 'raised' | 'hover' | 'card' | 'glass' | 'control' | 'text' | 'muted' | 'border' | 'neutral' | 'semantic' | 'preserve'
 export interface BoostTransformSample { variable: string; role: BoostTransformRole; before: string; after: string }
 export interface BoostTransformDiagnostics {
   sourceCount: number
@@ -24,8 +24,8 @@ const channel = (value: number) => byte(value).toString(16).padStart(2, '0')
 const hueDelta = (from: number, to: number) => ((to - from + 540) % 360) - 180
 const normalizeCssValueBoundary = (value: string) => value.replace(/^[ \t\r\n]+|[ \t\r\n]+$/g, '')
 const prohibitedControlCharacters = (value: string) => [...value].map((character, index) => ({ index, codePoint: character.codePointAt(0) ?? 0 })).filter(({ codePoint }) => codePoint <= 8 || codePoint === 11 || codePoint === 12 || (codePoint >= 14 && codePoint <= 31))
-const TEXT_FAMILY = ['--lumiverse-text', '--lumiverse-text-muted', '--lumiverse-text-dim', '--lumiverse-text-hint', '--lumiverse-icon', '--lumiverse-icon-muted', '--lumiverse-icon-dim'] as const
-const BOOST_ROLES: BoostTransformRole[] = ['primary', 'secondary', 'surface', 'text', 'muted', 'border', 'neutral', 'semantic', 'preserve']
+const TEXT_FAMILY = ['--lumiverse-text', '--lumiverse-text-primary', '--lumiverse-text-muted', '--lumiverse-text-secondary', '--lumiverse-text-dim', '--lumiverse-text-hint', '--lumiverse-icon', '--lumiverse-icon-muted', '--lumiverse-icon-dim'] as const
+const BOOST_ROLES: BoostTransformRole[] = ['primary', 'secondary', 'canvas', 'surface', 'raised', 'hover', 'card', 'glass', 'control', 'text', 'muted', 'border', 'neutral', 'semantic', 'preserve']
 
 function parseCssColor(value: string): RgbaColor | null {
   const normalized = normalizeCssValueBoundary(value)
@@ -59,49 +59,106 @@ function anchor(value: BoostColor | undefined, fallback: BoostColor): Oklch { re
 
 export function classifyBoostVariable(name: string): BoostTransformRole {
   if (/^--lumiverse-(?:danger|success|warning|error)(?:-|$)/i.test(name)) return 'semantic'
-  if (/^--lumiverse-(?:primary(?:-|$)|accent(?:-|$))/i.test(name)) return 'primary'
-  if (/^--lumiverse-secondary(?:-|$)/i.test(name)) return 'secondary'
-  // Supporting surfaces are intentionally Secondary territory. These are the
-  // elevated/hover/card/gradient layers where a second accent should read as
-  // part of the theme instead of surviving only as a decorative token. Keep
-  // the root canvas/background family out of this lane so Primary still leads.
-  if (/^--lumiverse-(?:bg-elevated(?:-040)?|bg-hover|border-hover|gradient-modal|card-bg(?:-(?:solid|top|bottom))?|card-image-bg)$/i.test(name)) return 'secondary'
+  if (/^--lumiverse-primary-deep-contrast$/i.test(name)) return 'text'
+  if (/^--lumiverse-text-secondary$/i.test(name)) return 'muted'
+  if (/^--lumiverse-(?:text-primary|text|icon)$/i.test(name)) return 'text'
   if (/^--lumiverse-(?:text-muted|text-dim|text-hint|icon-muted|icon-dim|muted)(?:-|$)?/i.test(name)) return 'muted'
-  if (/^--lumiverse-(?:text|icon)$/i.test(name)) return 'text'
+  if (/^--lumiverse-(?:primary(?:-|$)|primary-soft$|accent(?:-|$))/i.test(name)) return 'primary'
+  if (/^--lumiverse-secondary(?:-|$)/i.test(name)) return 'secondary'
+
+  // Lumiverse now publishes semantic material aliases. Prefer those explicit
+  // contracts before falling back to the older primitive variable names.
+  if (/^--lumiverse-surface-raised$/i.test(name)) return 'raised'
+  if (/^--lumiverse-surface-hover$/i.test(name)) return 'hover'
+  if (/^--lumiverse-(?:surface-muted|input-bg)$/i.test(name)) return 'control'
+  if (/^--lumiverse-surface$/i.test(name)) return 'surface'
+  if (/^--lumiverse-border-subtle$/i.test(name)) return 'border'
+
+  // Chat Shell glass is a material in its own right. Blur/radius/transition
+  // tokens remain pass-through because they are not colors.
+  if (/^--lcs-glass-bg(?:-hover)?$/i.test(name)) return 'glass'
+  if (/^--lcs-glass-border(?:-hover)?$/i.test(name)) return 'border'
+  if (/^--lcs-/i.test(name)) return 'preserve'
+
+  // Compatibility for components that still consume the older primitives.
+  if (/^--lumiverse-bg-elevated(?:-040)?$/i.test(name)) return 'raised'
+  if (/^--lumiverse-bg-hover$/i.test(name)) return 'hover'
+  if (/^--lumiverse-(?:card-bg(?:-(?:solid|top|bottom))?|card-image-bg|gradient-modal)$/i.test(name)) return 'card'
   if (/^--lumiverse-(?:bg-dark(?:er)?$|fill(?:-|$)|border-(?:light|neutral(?:-hover)?)$|swatch-border$|shadow(?:-|$)|highlight-inset(?:-|$)|modal-backdrop$|scene-text-scrim$)/i.test(name)) return 'neutral'
   if (/^--lumiverse-border(?:-|$)/i.test(name)) return 'border'
-  if (/^--lumiverse-(?:bg(?:-|$)|card(?:-|$)|gradient-modal$)/i.test(name)) return 'surface'
+  if (/^--lumiverse-bg(?:$|-opaque$|-0(?:40|50|70)$|-deep(?:-080)?$)/i.test(name)) return 'canvas'
+  if (/^--lumiverse-bg(?:-|$)/i.test(name)) return 'surface'
   return 'preserve'
 }
 
-function supportingAccentAnchor(boost: ProjectBoost, secondaryWeight: number, chromaScale: number, maxChroma: number): Oklch {
-  const primary = anchor(boost.primary, boost.primary), secondary = anchor(boost.secondary, boost.primary), weight = clamp(secondaryWeight)
-  const primaryAngle = primary.h * Math.PI / 180, secondaryAngle = secondary.h * Math.PI / 180
-  const a = primary.c * Math.cos(primaryAngle) * (1 - weight) + secondary.c * Math.cos(secondaryAngle) * weight
-  const b = primary.c * Math.sin(primaryAngle) * (1 - weight) + secondary.c * Math.sin(secondaryAngle) * weight
-  return { l: .5, c: Math.min(maxChroma, Math.hypot(a, b) * chromaScale), h: ((Math.atan2(b, a) * 180 / Math.PI) + 360) % 360, alpha: 1 }
+interface BoostTransformContext {
+  primaryReference?: Oklch
+  secondaryReference?: Oklch
 }
-function surfaceAnchor(boost: ProjectBoost): Oklch {
-  return supportingAccentAnchor(boost, .25, .48, .075)
+interface MaterialProfile { secondaryWeight: number; chromaScale: number; maxChroma: number }
+const MATERIAL_PROFILES: Partial<Record<BoostTransformRole, MaterialProfile>> = {
+  canvas: { secondaryWeight: .12, chromaScale: .34, maxChroma: .055 },
+  surface: { secondaryWeight: .28, chromaScale: .42, maxChroma: .065 },
+  raised: { secondaryWeight: .52, chromaScale: .48, maxChroma: .075 },
+  hover: { secondaryWeight: .72, chromaScale: .58, maxChroma: .09 },
+  card: { secondaryWeight: .62, chromaScale: .50, maxChroma: .08 },
+  glass: { secondaryWeight: .22, chromaScale: .24, maxChroma: .035 },
+  control: { secondaryWeight: .16, chromaScale: .18, maxChroma: .026 },
+  border: { secondaryWeight: .55, chromaScale: .70, maxChroma: .11 },
 }
-function borderAnchor(boost: ProjectBoost): Oklch {
-  return supportingAccentAnchor(boost, .4, .72, .11)
+
+function supportingAccentAnchor(boost: ProjectBoost, profile: MaterialProfile): Oklch {
+  const primary = anchor(boost.primary, boost.primary), secondary = anchor(boost.secondary, boost.primary), weight = clamp(profile.secondaryWeight)
+  // Do not literally average opposing hues: green + magenta should not turn a
+  // supporting card into accidental beige. Accent affinity gives supporting materials a real owner instead of averaging
+  // opposing hues into beige. A genuinely gray Secondary falls back to Primary,
+  // so neutral support colors soften a material without injecting arbitrary hue.
+  const secondaryLed = weight >= .5 && secondary.c > .012
+  const owner = secondaryLed ? secondary : primary
+  const mixedChroma = primary.c * (1 - weight) + secondary.c * weight
+  return { l: .5, c: Math.min(profile.maxChroma, mixedChroma * profile.chromaScale), h: owner.h, alpha: 1 }
 }
 function roleAnchor(role: BoostTransformRole, boost: ProjectBoost): Oklch | undefined {
-  if (role === 'primary') return anchor(boost.primary, boost.primary)
-  if (role === 'secondary') return anchor(boost.secondary, boost.primary)
-  if (role === 'surface') return surfaceAnchor(boost)
-  if (role === 'border') return borderAnchor(boost)
+  const profile = MATERIAL_PROFILES[role]
+  if (profile) return supportingAccentAnchor(boost, profile)
   if ((role === 'text' || role === 'muted') && boost.textMode === 'custom' && boost.text) return anchor(boost.text, boost.text)
   return undefined
 }
-function transformLightness(value: number, boost: ProjectBoost): number {
+function transformLightness(value: number, boost: ProjectBoost, strength = 1): number {
   let l = boost.mode === 'smart-invert' ? 1 - value : value
-  return clamp(.5 + (l - .5) * (1 + clamp(boost.contrast, -1, 1) * .9) + clamp(boost.brightness, -1, 1) * .28)
+  l = clamp(l, .001, .999)
+  const contrast = clamp(boost.contrast, -1, 1), brightness = clamp(boost.brightness, -1, 1)
+  // Work in log-odds instead of additive lightness. This keeps the native
+  // material ordering intact even at the deliberately deranged +100/-100
+  // smoke-test combination: every rung moves, but the ladder does not collapse.
+  const logit = Math.log(l / (1 - l))
+  const contrastScale = 1 + contrast * .45 * strength
+  const exposureShift = brightness * 2 * strength
+  return clamp(1 / (1 + Math.exp(-(logit * contrastScale + exposureShift))))
 }
-function transformColor(role: BoostTransformRole, source: RgbaColor, boost: ProjectBoost): string {
+function accentVariant(role: 'primary' | 'secondary', original: Oklch, boost: ProjectBoost, context: BoostTransformContext): Oklch {
+  const selected = role === 'primary' ? anchor(boost.primary, boost.primary) : anchor(boost.secondary, boost.primary)
+  const reference = role === 'primary' ? context.primaryReference : context.secondaryReference
+  if (!reference) return { ...selected, l: transformLightness(selected.l, boost, .85), alpha: original.alpha }
+  const chromaticReference = reference.c > .008 && original.c > .008
+  const hueOffset = chromaticReference ? hueDelta(reference.h, original.h) * .18 : 0
+  const lightnessDelta = original.l - reference.l, variantScale = Math.abs(lightnessDelta) > .18 ? .82 : .42
+  return {
+    l: transformLightness(clamp(selected.l + lightnessDelta * variantScale), boost, .85),
+    c: clamp(selected.c + (original.c - reference.c) * .28, 0, .4),
+    h: selected.h + hueOffset,
+    alpha: original.alpha,
+  }
+}
+function transformColor(role: BoostTransformRole, source: RgbaColor, boost: ProjectBoost, context: BoostTransformContext): string {
   if (role === 'semantic' || role === 'preserve') return render(toOklch(source))
-  const original = toOklch(source), selected = roleAnchor(role, boost), retention = clamp(boost.originalSaturation), recolor = 1 - retention
+  const original = toOklch(source)
+  if (role === 'primary' || role === 'secondary') return render(accentVariant(role, original, boost, context))
+  // Neutral overlays, shadows and scrims are structural. In Recolor mode they
+  // keep their native black/white character so brightness cannot turn every
+  // translucent control layer into the same pastel slab.
+  if (role === 'neutral' && boost.mode === 'recolor') return render(original)
+  const selected = roleAnchor(role, boost), retention = clamp(boost.originalSaturation), recolor = 1 - retention
   const l = transformLightness(original.l, boost)
   if (!selected) return render({ ...original, l, alpha: source.alpha })
   return render({ l, c: clamp(original.c * retention + selected.c * recolor, 0, .4), h: original.h + hueDelta(original.h, selected.h) * recolor, alpha: source.alpha })
@@ -142,22 +199,22 @@ function functionEnd(value: string, open: number): number {
 interface TokenTransform { value: string; count: number }
 const COLOR_FUNCTIONS = new Set(['rgb', 'rgba', 'hsl', 'hsla'])
 const COLOR_CONTAINERS = new Set(['linear-gradient', 'radial-gradient', 'color-mix'])
-function transformColorTokens(role: BoostTransformRole, value: string, boost: ProjectBoost): TokenTransform {
+function transformColorTokens(role: BoostTransformRole, value: string, boost: ProjectBoost, context: BoostTransformContext): TokenTransform {
   let output = '', count = 0, index = 0
   while (index < value.length) {
     if (value[index] === '"' || value[index] === "'") { const end = quotedEnd(value, index); output += value.slice(index, end); index = end; continue }
     if (value.startsWith('/*', index)) { const end = commentEnd(value, index); output += value.slice(index, end); index = end; continue }
     if (value[index] === '#') {
       const match = value.slice(index).match(/^#([0-9a-fA-F]+)/), length = match?.[1].length ?? 0, end = index + 1 + length, boundary = value[end]
-      if ([3, 4, 6, 8].includes(length) && (!boundary || !/[A-Za-z0-9_-]/.test(boundary))) { const token = value.slice(index, end), parsed = parseCssColor(token); if (parsed) { output += serializeColorLike(token, transformColor(role, parsed, boost)); count += 1; index = end; continue } }
+      if ([3, 4, 6, 8].includes(length) && (!boundary || !/[A-Za-z0-9_-]/.test(boundary))) { const token = value.slice(index, end), parsed = parseCssColor(token); if (parsed) { output += serializeColorLike(token, transformColor(role, parsed, boost, context)); count += 1; index = end; continue } }
     }
     const functionMatch = value.slice(index).match(/^(-?[A-Za-z][A-Za-z0-9-]*)([ \t\r\n]*)\(/)
     if (functionMatch) {
       const functionName = functionMatch[1].toLowerCase(), open = index + functionMatch[0].length - 1, close = functionEnd(value, open)
       if (close >= 0) {
         const whole = value.slice(index, close + 1)
-        if (COLOR_FUNCTIONS.has(functionName)) { const parsed = parseCssColor(whole); if (parsed) { output += serializeColorLike(whole, transformColor(role, parsed, boost)); count += 1; index = close + 1; continue } }
-        if (COLOR_CONTAINERS.has(functionName)) { const inner = transformColorTokens(role, value.slice(open + 1, close), boost); output += value.slice(index, open + 1) + inner.value + ')'; count += inner.count; index = close + 1; continue }
+        if (COLOR_FUNCTIONS.has(functionName)) { const parsed = parseCssColor(whole); if (parsed) { output += serializeColorLike(whole, transformColor(role, parsed, boost, context)); count += 1; index = close + 1; continue } }
+        if (COLOR_CONTAINERS.has(functionName)) { const inner = transformColorTokens(role, value.slice(open + 1, close), boost, context); output += value.slice(index, open + 1) + inner.value + ')'; count += inner.count; index = close + 1; continue }
         // var(), url(), data payloads, and unrelated functions are deliberately opaque.
         output += whole; index = close + 1; continue
       }
@@ -216,13 +273,17 @@ function emptyRoleCounts(): Record<BoostTransformRole, number> { return Object.f
 export function transformThemeVariables(baseline: Record<string, string>, boost: ProjectBoost): BoostTransformResult {
   if (boost.enabled) for (const [name, value] of Object.entries(baseline)) { const prohibited = prohibitedControlCharacters(value); if (prohibited.length) throw new Error(`Boost baseline CSS value ${name} contains prohibited control characters: ${JSON.stringify(value)} (${prohibited.map((entry) => `index ${entry.index}=U+${entry.codePoint.toString(16).toUpperCase().padStart(4, '0')}`).join(', ')})`) }
   const variables: Record<string, string> = {}, roleCounts = emptyRoleCounts(); let standaloneColorCount = 0, complexColorCount = 0, transformedColorTokenCount = 0
+  const context: BoostTransformContext = {
+    primaryReference: parseCssColor(normalizeCssValueBoundary(baseline['--lumiverse-primary'] ?? '')) ? toOklch(parseCssColor(normalizeCssValueBoundary(baseline['--lumiverse-primary']))!) : undefined,
+    secondaryReference: parseCssColor(normalizeCssValueBoundary(baseline['--lumiverse-secondary'] ?? '')) ? toOklch(parseCssColor(normalizeCssValueBoundary(baseline['--lumiverse-secondary']))!) : undefined,
+  }
   if (boost.enabled && boost.colorsEnabled) for (const [name, raw] of Object.entries(baseline)) {
     const before = normalizeCssValueBoundary(raw), role = classifyBoostVariable(name); roleCounts[role] += 1
     const parsed = parseCssColor(before); if (parsed) standaloneColorCount += 1
     if (role === 'semantic' || role === 'preserve') { variables[name] = before; continue }
     let after = before, tokenCount = 0
-    if (parsed) { after = serializeColorLike(before, transformColor(role, parsed, boost)); tokenCount = 1 }
-    else { const transformed = transformColorTokens(role, before, boost); after = transformed.value; tokenCount = transformed.count; if (tokenCount) complexColorCount += 1 }
+    if (parsed) { after = serializeColorLike(before, transformColor(role, parsed, boost, context)); tokenCount = 1 }
+    else { const transformed = transformColorTokens(role, before, boost, context); after = transformed.value; tokenCount = transformed.count; if (tokenCount) complexColorCount += 1 }
     transformedColorTokenCount += tokenCount
     variables[name] = after
   }

@@ -374,13 +374,14 @@ Palette should never recursively recolor its already transformed root output.
 
 Color routing is semantic rather than a two-bucket hue swap:
 
-- **Primary accent** owns primary actions, active emphasis, focus/link families, and leads the low-chroma surface treatment.
-- **Secondary accent** owns the native secondary family plus supporting elevated/card surfaces, modal/card gradients, hover surfaces, and hover borders. It also contributes to derived border tint, while Primary still leads the base canvas/background family. Neutral chrome, semantic status colors, and unknown variables remain outside accent ownership.
-- **Surface**, **Border**, and neutral chrome are transformed as their own roles. Danger/success/warning/error families preserve their semantic identity, and unclassified variables pass through unchanged.
+- **Primary accent** stays faithful to the picked color for direct primary-family tokens and leads canvas, ordinary surface, control, and glass tinting. Native primary variants keep their relative depth rather than borrowing the old theme's absolute lightness.
+- **Secondary accent** stays faithful to the picked color for direct secondary-family tokens and owns the supporting **Raised / Card / Hover / Border** material families. Opposing accents are not averaged into mud: supporting materials choose a chromatic owner, while a genuinely neutral Secondary can still soften the result without injecting a fake hue.
+- Lumiverse's semantic material aliases (`surface`, `surface-raised`, `surface-hover`, `surface-muted`, `input-bg`, `border-subtle`) and Chat Shell `--lcs-glass-*` colors are first-class Boost inputs. Older `bg-*`, `card-*`, and border primitives remain mapped as compatibility fallbacks.
+- **Brightness / Contrast** use a bounded lightness transform that preserves the native material ladder. The deliberate smoke test is `Brightness +100 / Contrast -100`: it should become washed-out, but deep/canvas/glass/control/raised/hover must remain visibly distinct. Neutral overlays and shadows keep their structural black/white character in Recolor mode instead of turning into pastel paint.
 - **Text treatment → Auto contrast** keeps the native foreground character but repairs the main text anchor against the transformed surface using real sRGB contrast math. **Custom** lets you supply a foreground anchor while preserving the native text/muted hierarchy.
 - **Protect controls** is a final local safety pass for paired control foregrounds; it does not own ordinary prose.
 
-Transform diagnostics include per-role counts. If Secondary suddenly owns dozens of variables or Surface owns none, the routing itself is telling you where to look.
+Transform diagnostics include per-role counts for Primary, Secondary, Canvas, Surface, Raised, Hover, Card, Glass, Control, Text, Muted, Border, Neutral, Semantic, and Pass-through. If a material suddenly lands in the wrong family, the routing itself is telling you where to look.
 
 ### Typography
 
