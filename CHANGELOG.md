@@ -1,3 +1,12 @@
+## 1.0.5 — Semantic Boost
+
+- Rebuilt Full App Boost around semantic color roles instead of the old binary name heuristic. **Primary accent** now owns primary emphasis, **Secondary accent** owns the actual secondary family, surfaces/borders/text/neutral chrome route independently, semantic status colors keep their identity, and unknown variables pass through instead of becoming accidental accent paint.
+- Added **Text treatment** with Auto contrast and Custom foreground modes. Auto uses proper sRGB relative luminance/contrast math against transformed surfaces; Custom recolors the native text/icon hierarchy without flattening its alpha structure.
+- Kept **Protect controls** surgical: it repairs paired interactive foregrounds rather than rewriting shared prose variables. Transform diagnostics now expose per-role routing counts and role-tagged samples.
+- Retired the unused legacy palette bootstrap path now that current Lumiverse exposes the native theme contract directly. Boost continues to transform only the canonical worker-generated variable map so live output cannot feed back into its own source.
+- Hardened Palette's browser test harness for Bun 1.4 canary + Happy DOM realm gaps (`SyntaxError`, `CSS.escape`, storage/computed-style shims), refreshed stale current-source expectations, and tightened semantic picker ownership so mounted `data-component` / Spindle surfaces cannot be renamed by noisy shared CSS-module guesses.
+- Added repository `.gitignore`. Persisted project schema remains **v43** and minimum Lumiverse remains **1.1.6**.
+
 ## 1.0.4 — SVG / Icon Primitive
 
 - Added capability-driven SVG discovery in Design: if the resolved element is or contains inline `<svg>` nodes, **SVG / Icon** is highlighted and can target the SVG itself, one nested SVG, or all nested SVGs without a component-specific selector recipe.
@@ -310,6 +319,12 @@
 - Manga action docks keep their mobile flow reset and mirrored desktop geometry. Schema remains v39.
 
 # Changelog
+
+## Semantic Boost follow-up
+
+- Restored Preview compilation's default Boost inclusion while keeping Design scrubs explicitly Boost-free.
+- Prefer stable ComposerActionBarLive semantic wrappers over localized title/ARIA selector fallbacks.
+- Hardened Bun-canary Happy DOM compatibility tests and aligned Manga mobile portrait-rail expectations with the authored compact layout.
 
 Public release history for Palette. The long internal v27/v28 development log is preserved in [`docs/development/INTERNAL_CHANGELOG-v27-v28.md`](docs/development/INTERNAL_CHANGELOG-v27-v28.md).
 

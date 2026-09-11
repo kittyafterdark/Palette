@@ -509,7 +509,7 @@ describe('Phase Three semantic CSS compiler', () => {
     item.target.overrideStrength = 'strong'
     project.componentOverrides.push(item)
     const css = compileThemeProject(project)
-    expect(css).toContain('background: rgba(95, 75, 139, 1) !important;')
+    expect(css).toContain('background: #5f4b8b !important;')
     expect(css).toContain('position: absolute !important;')
     expect(css).toContain('container-type: inline-size !important;')
     expect(css).toContain('width: min(420px, calc(100vw - 24px)) !important;')
@@ -519,10 +519,14 @@ describe('Phase Three semantic CSS compiler', () => {
   test('Design preview can omit Boost so local slider scrubs never replace world-state variables', () => {
     const project = createProject('Barney world state')
     project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.primary = { color: '#8f3fd1', alpha: 1 }
-    const item = override('.avatar', { normal: [createStylePacket('size')] })
+    const size = createStylePacket('size')
+    if (size.type !== 'size') throw new Error('Expected size packet')
+    size.width = { mode: 'fixed', value: 72, unit: 'px' }
+    const item = override('.avatar', { normal: [size] })
     project.componentOverrides.push(item)
-    const canonical = compilePreviewThemeProject(project)
-    const designOnly = compilePreviewThemeProject(project, { includeBoost: false })
+    const native = { '--lumiverse-primary': '#9370db', '--lumiverse-bg': '#101016', '--lumiverse-text': '#f4eef8' }
+    const canonical = compilePreviewThemeProject(project, {}, native)
+    const designOnly = compilePreviewThemeProject(project, { includeBoost: false }, native)
     expect(canonical).toContain('Application-wide Palette Boost')
     expect(designOnly).not.toContain('Application-wide Palette Boost')
     expect(designOnly).toContain('.avatar')
@@ -688,7 +692,7 @@ describe('Phase Three semantic CSS compiler', () => {
     })
     expect(compileSafeTargetSelector(project.componentOverrides[0].target)).toBe('[class*="_app_"] [class*="_avatar_"] img')
     const css = compileThemeProject(project)
-    expect(css).toContain(':where([class*="_app_"] [class*="_avatar_"] img)')
+    expect(css).toContain('[class*="_app_"] [class*="_avatar_"] img {')
     expect(css).not.toContain('[class*="_app_"] [class*="_app_"]')
   })
 

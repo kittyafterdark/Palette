@@ -6,8 +6,8 @@
 
 Palette is built around one idea: **Palette knows the CSS; you express the visual intent.** A normal user can resize, recolor, rearrange, crop, fade, group, and reuse real Lumiverse UI without learning selector syntax. Advanced users can still inspect the generated CSS or add a separate Custom CSS layer.
 
-**Public release:** 1.0.3  
-**Project schema:** v42  
+**Public release:** 1.0.5  
+**Project schema:** v43  
 **Minimum Lumiverse version:** 1.1.6
 
 ## Highlights
@@ -21,7 +21,7 @@ Palette is built around one idea: **Palette knows the CSS; you express the visua
 - **Read Style / Read Page** — inspect existing presentation without capturing it; only edited values become Palette-owned CSS.
 - **Quick Looks + Style Library** — browse the current target or individual packs inline, then move the full library between fullscreen and Lumiverse’s native left dock.
 - **My Styles** — save Targets, Components, or multi-component Bundles and reuse them across Palette projects.
-- **Full App Boost** — transform the native theme palette and backdrop while keeping global Typography independently toggleable.
+- **Full App Boost** — semantic Primary/Secondary accents, independent surface/text routing, automatic foreground contrast, backdrop treatment, and global Typography that remains independently toggleable.
 - **Theme projects** — persistent swatch-based Theme Stash with duplicate/rename/delete workflows.
 - **Native handoff** — inspect generated CSS, keep Custom CSS separate, work with native assets, and hand compatible themes back through Lumiverse's public theme bridge.
 - **Float / Dock / mobile** — keep Palette reachable while editing modals, drawers, and temporary surfaces.

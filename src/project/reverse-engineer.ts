@@ -127,20 +127,20 @@ function hasAny(properties: Set<string>, names: string[]): boolean {
   return false
 }
 
-function px(value: string): number | null {
-  const match = value.trim().match(/^(-?(?:\d+\.?\d*|\.\d+))px$/i)
+function px(value: string | null | undefined): number | null {
+  const match = (value ?? '').trim().match(/^(-?(?:\d+\.?\d*|\.\d+))px$/i)
   return match ? Number(match[1]) : null
 }
-function numeric(value: string): number | null { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : null }
-function percentPosition(value: string): [number, number] | null {
-  const bits = value.trim().split(/\s+/)
+function numeric(value: string | null | undefined): number | null { if (value === null || value === undefined || String(value).trim() === '') return null; const parsed = Number(value); return Number.isFinite(parsed) ? parsed : null }
+function percentPosition(value: string | null | undefined): [number, number] | null {
+  const bits = (value ?? '').trim().split(/\s+/)
   if (bits.length < 2) return null
   const parse = (input: string) => input.endsWith('%') ? Number(input.slice(0, -1)) : null
   const x = parse(bits[0]), y = parse(bits[1]); return x !== null && y !== null && Number.isFinite(x) && Number.isFinite(y) ? [x, y] : null
 }
 
-function rgba(value: string): { color: string; alpha: number } | null {
-  const trimmed = value.trim().toLowerCase()
+function rgba(value: string | null | undefined): { color: string; alpha: number } | null {
+  const trimmed = (value ?? '').trim().toLowerCase()
   if (!trimmed || trimmed === 'transparent') return null
   const hex = trimmed.match(/^#([0-9a-f]{6})([0-9a-f]{2})?$/i)
   if (hex) return { color: `#${hex[1]}`, alpha: hex[2] ? parseInt(hex[2], 16) / 255 : 1 }
@@ -156,7 +156,7 @@ function rgba(value: string): { color: string; alpha: number } | null {
   return { color, alpha: Number.isFinite(alphaRaw) ? Math.max(0, Math.min(1, alphaRaw)) : 1 }
 }
 
-function parseFirstShadow(value: string): { x: number; y: number; blur: number; spread: number; color: string; alpha: number; inset: boolean } | null {
+function parseFirstShadow(value: string | null | undefined): { x: number; y: number; blur: number; spread: number; color: string; alpha: number; inset: boolean } | null {
   if (!value || value === 'none') return null
   const first = splitTopLevel(value)[0] ?? ''
   const colorMatch = first.match(/rgba?\([^)]*\)|#[0-9a-f]{6,8}/i)
@@ -167,8 +167,8 @@ function parseFirstShadow(value: string): { x: number; y: number; blur: number; 
   return { x: numbers[0], y: numbers[1], blur: Math.max(0, numbers[2] ?? 0), spread: numbers[3] ?? 0, color: color?.color ?? '#000000', alpha: color?.alpha ?? 1, inset: /\binset\b/i.test(first) }
 }
 
-function parseFilterNumber(value: string, name: string, fallback: number): number {
-  const match = value.match(new RegExp(`${name}\\(([-+.\\d]+)(%|deg|px)?\\)`, 'i'))
+function parseFilterNumber(value: string | null | undefined, name: string, fallback: number): number {
+  const match = (value ?? '').match(new RegExp(`${name}\\(([-+.\\d]+)(%|deg|px)?\\)`, 'i'))
   if (!match) return fallback
   const number = Number(match[1]); if (!Number.isFinite(number)) return fallback
   return match[2] === '%' ? number / 100 : number
@@ -182,7 +182,7 @@ function parseMaskEdgeLayer(value: string): { direction: 'left' | 'right' | 'top
 }
 function readMaskIntoPacket(style: CSSStyleDeclaration, packet: Extract<StylePacket, { type: 'mask' }>): void {
   const webkitMask = style.getPropertyValue('-webkit-mask-image').trim()
-  const standardMask = style.maskImage.trim()
+  const standardMask = (style.maskImage ?? style.getPropertyValue('mask-image') ?? '').trim()
   const raw = webkitMask && webkitMask !== 'none'
     ? webkitMask
     : standardMask && standardMask !== 'none'
@@ -224,8 +224,8 @@ function readMaskIntoPacket(style: CSSStyleDeclaration, packet: Extract<StylePac
 }
 
 
-function parseGradient(value: string): { angle: number; stops: Array<{ color: string; alpha: number; position: number }> } | null {
-  const match = value.match(/linear-gradient\((.*)\)/i)
+function parseGradient(value: string | null | undefined): { angle: number; stops: Array<{ color: string; alpha: number; position: number }> } | null {
+  const match = (value ?? '').match(/linear-gradient\((.*)\)/i)
   if (!match) return null
   const bits = splitTopLevel(match[1]); if (bits.length < 2) return null
   let angle = 180
@@ -246,16 +246,16 @@ function parseGradient(value: string): { angle: number; stops: Array<{ color: st
 
 function computedFallbackHas(style: CSSStyleDeclaration, group: string): boolean {
   switch (group) {
-    case 'background': return style.backgroundColor !== 'rgba(0, 0, 0, 0)' || style.backgroundImage !== 'none'
+    case 'background': return !['', 'transparent', 'rgba(0, 0, 0, 0)'].includes(style.backgroundColor ?? '') || (style.backgroundImage ?? 'none') !== 'none'
     case 'text': return Boolean(style.color)
     case 'border': return parseFloat(style.borderTopWidth) > 0 && style.borderTopStyle !== 'none'
     case 'corners': return [style.borderTopLeftRadius, style.borderTopRightRadius, style.borderBottomRightRadius, style.borderBottomLeftRadius].some((value) => (px(value) ?? 0) > 0)
     case 'spacing': return [...['paddingTop','paddingRight','paddingBottom','paddingLeft','marginTop','marginRight','marginBottom','marginLeft'] as const].some((key) => Math.abs(px(style[key]) ?? 0) > .01) || Math.abs(px(style.gap) ?? 0) > .01
-    case 'shadow': return style.boxShadow !== 'none'
+    case 'shadow': return (style.boxShadow ?? 'none') !== 'none'
     case 'glass': return (style.backdropFilter || style.getPropertyValue('-webkit-backdrop-filter') || 'none') !== 'none'
     case 'opacity': return Math.abs(Number(style.opacity) - 1) > .001
     case 'layout': return ['flex','inline-flex','grid','inline-grid'].includes(style.display)
-    case 'position': return style.position !== 'static' || style.zIndex !== 'auto'
+    case 'position': return (style.position ?? 'static') !== 'static' || (style.zIndex ?? 'auto') !== 'auto'
     case 'visibility': return style.display === 'none' || style.visibility === 'hidden'
     default: return false
   }
@@ -303,7 +303,7 @@ export function reverseEngineerElement(element: Element, pseudo: SurfacePseudo =
     if (packet.type === 'typography') {
       const size = px(style.fontSize) ?? 15
       packet.fontSize = size; packet.fontSizeUnit = 'px'
-      packet.fontFamily = style.fontFamily.split(',')[0]?.trim().replace(/^['"]|['"]$/g, '') || undefined
+      packet.fontFamily = (style.fontFamily ?? '').split(',')[0]?.trim().replace(/^['"]|['"]$/g, '') || undefined
       packet.fontWeight = numeric(style.fontWeight) ?? style.fontWeight
       packet.fontStyle = style.fontStyle === 'italic' ? 'italic' : 'normal'
       packet.textAlign = style.textAlign === 'center' || style.textAlign === 'right' || style.textAlign === 'justify' ? style.textAlign : 'left'
@@ -386,9 +386,9 @@ export function reverseEngineerElement(element: Element, pseudo: SurfacePseudo =
     const packet = createStylePacket('position')
     if (packet.type === 'position') {
       packet.mode = style.position === 'relative' ? 'nudge' : style.position === 'absolute' ? 'anchored' : style.position === 'sticky' ? 'sticky' : style.position === 'fixed' ? 'screen' : 'flow'
-      const readOffset = (value: string) => value === 'auto' ? undefined : px(value) ?? undefined
+      const readOffset = (value: string | null | undefined) => !value || value === 'auto' ? undefined : px(value) ?? undefined
       if (packet.mode === 'nudge') {
-        const translate = style.translate.trim().split(/\s+/); packet.nudgeX = px(translate[0] ?? '') ?? 0; packet.nudgeY = px(translate[1] ?? '') ?? 0
+        const translate = (style.translate ?? style.getPropertyValue('translate') ?? '').trim().split(/\s+/); packet.nudgeX = px(translate[0] ?? '') ?? 0; packet.nudgeY = px(translate[1] ?? '') ?? 0
       } else { packet.top = readOffset(style.top); packet.right = readOffset(style.right); packet.bottom = readOffset(style.bottom); packet.left = readOffset(style.left) }
       const z = numeric(style.zIndex); if (z !== null && z !== 0) { packet.layer = 'custom'; packet.zIndex = z }
       packets.push(packet)
@@ -400,8 +400,8 @@ export function reverseEngineerElement(element: Element, pseudo: SurfacePseudo =
       const packet = createStylePacket('layout')
       if (packet.type === 'layout') {
         packet.display = style.display as typeof packet.display
-        if (style.display.includes('flex')) { packet.direction = style.flexDirection as typeof packet.direction; packet.wrap = style.flexWrap as typeof packet.wrap }
-        const map = (value: string) => value === 'flex-start' ? 'start' : value === 'flex-end' ? 'end' : value
+        if ((style.display ?? '').includes('flex')) { packet.direction = style.flexDirection as typeof packet.direction; packet.wrap = style.flexWrap as typeof packet.wrap }
+        const map = (value: string | null | undefined) => value === 'flex-start' ? 'start' : value === 'flex-end' ? 'end' : (value ?? '')
         packet.justify = map(style.justifyContent) as typeof packet.justify; packet.align = map(style.alignItems) as typeof packet.align
         const gap = px(style.gap); if (gap !== null) packet.gap = { mode: 'fixed', value: gap, unit: 'px' }
         packets.push(packet)
@@ -423,14 +423,14 @@ export function reverseEngineerElement(element: Element, pseudo: SurfacePseudo =
   if (!pseudo && hasAny(authored, ['width','height','min-width','max-width','min-height','max-height','aspect-ratio'])) {
     const packet = createStylePacket('size')
     if (packet.type === 'size') {
-      const dimension = (value: string) => { const parsed = px(value); return parsed === null ? undefined : { mode: 'fixed' as const, value: parsed, unit: 'px' as const } }
+      const dimension = (value: string | null | undefined) => { const parsed = px(value); return parsed === null ? undefined : { mode: 'fixed' as const, value: parsed, unit: 'px' as const } }
       if (hasAny(authored, ['width'])) packet.width = dimension(style.width)
       if (hasAny(authored, ['height'])) packet.height = dimension(style.height)
       if (hasAny(authored, ['min-width'])) packet.minWidth = dimension(style.minWidth)
       if (hasAny(authored, ['max-width'])) packet.maxWidth = dimension(style.maxWidth)
       if (hasAny(authored, ['min-height'])) packet.minHeight = dimension(style.minHeight)
       if (hasAny(authored, ['max-height'])) packet.maxHeight = dimension(style.maxHeight)
-      const ratio = style.aspectRatio.match(/^([\d.]+)\s*\/\s*([\d.]+)$/); if (ratio) packet.aspectRatio = { width: Number(ratio[1]), height: Number(ratio[2]) }
+      const ratio = (style.aspectRatio ?? '').match(/^([\d.]+)\s*\/\s*([\d.]+)$/); if (ratio) packet.aspectRatio = { width: Number(ratio[1]), height: Number(ratio[2]) }
       packets.push(packet)
     }
   }

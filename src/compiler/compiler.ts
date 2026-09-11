@@ -1109,6 +1109,6 @@ function compileProject(project: ThemeStudioProject, preview: PreviewCompileOpti
 }
 /** Canonical exportable CSS never contains preview-state debug markers. */
 export function compileThemeProject(project: ThemeStudioProject, nativeVariables: Record<string, string> = {}): string { return compileProject(project, {}, nativeVariables) }
-export function compilePreviewThemeProject(project: ThemeStudioProject, options: PreviewCompileOptions = {}, nativeVariables: Record<string, string> = {}): string { return compileProject(project, options, nativeVariables) }
+export function compilePreviewThemeProject(project: ThemeStudioProject, options: PreviewCompileOptions = {}, nativeVariables: Record<string, string> = {}): string { return compileProject(project, { includeBoost: true, ...options }, nativeVariables) }
 export interface CompiledTheme { css: string; customCss: string; assets: ThemeStudioProject['assets']; tokenOverrides: ThemeStudioProject['tokens']; metadata: { name: string } }
 export function compileTheme(project: ThemeStudioProject, nativeVariables: Record<string, string> = {}): CompiledTheme { return { css: compileThemeProject(project, nativeVariables), customCss: project.customCss, assets: structuredClone(project.assets), tokenOverrides: structuredClone(project.tokens), metadata: { name: project.name } } }

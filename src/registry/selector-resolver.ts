@@ -55,8 +55,15 @@ function candidate(root: ParentNode, selector: string, strategy: SelectorCandida
 }
 
 function composerActionSemantic(element: Element): { owner: Element; selector: string; label: string } | undefined {
-  const owner = element.closest('[data-composer-action], [data-toolbar-action]')
-  if (!owner || !owner.closest('[data-component="InputArea"]')) return undefined
+  // Walk the ancestry explicitly instead of relying on closest() for the compound
+  // selector. Happy DOM on Bun canary has had selector-realm gaps, and the
+  // semantic wrapper itself is the contract we care about in browsers.
+  let owner: Element | null = element
+  while (owner && !owner.hasAttribute('data-composer-action') && !owner.hasAttribute('data-toolbar-action')) owner = owner.parentElement
+  if (!owner) return undefined
+  let inputArea: Element | null = owner
+  while (inputArea && inputArea.getAttribute('data-component') !== 'InputArea') inputArea = inputArea.parentElement
+  if (!inputArea) return undefined
   const composerAction = owner.getAttribute('data-composer-action')
   const toolbarAction = owner.getAttribute('data-toolbar-action')
   const attributes = composerAction && toolbarAction
@@ -607,7 +614,9 @@ function nearestStableAnchor(element: Element): { element: Element; selector: st
 function anchoredLeafCandidate(element: Element, root: ParentNode): SelectorCandidate | undefined {
   const anchor = nearestStableAnchor(element); if (!anchor) return undefined
   const tag = element.tagName.toLowerCase(); const descendant = element === anchor.element ? '' : ` ${tag}`
-  return candidate(root, `${anchor.selector}${descendant}`, 'css-module', 'medium', undefined, `Anchored to the stable ${levelLabel(anchor.element, false)} wrapper.`)
+  // This is a persistent fallback for classless leaves, not stronger evidence
+  // than a concrete CSS-module class on the leaf itself.
+  return candidate(root, `${anchor.selector}${descendant}`, 'structural', 'medium', undefined, `Anchored to the stable ${levelLabel(anchor.element, false)} wrapper.`)
 }
 
 /**
@@ -662,7 +671,11 @@ export function resolveElement(rawElement: Element, components: NativeThemeCompo
   ]))
   const modulePath = anchoredModulePathCandidate(element, root); if (modulePath) targetCandidates = rankSelectorCandidates(dedupe([...targetCandidates, modulePath]))
   const anchored = anchoredLeafCandidate(element, root); if (anchored) targetCandidates = rankSelectorCandidates(dedupe([...targetCandidates, anchored]))
-  const localRecommended = targetCandidates.find((entry) => entry.strategy !== 'volatile') ?? targetCandidates[0]
+  const composerSemantic = composerActionSemantic(element)
+  const composerRecommended = composerSemantic
+    ? targetCandidates.find((entry) => entry.selector === composerSemantic.selector || entry.selector.startsWith(`${composerSemantic.selector} `))
+    : undefined
+  const localRecommended = composerRecommended ?? targetCandidates.find((entry) => entry.strategy !== 'volatile') ?? targetCandidates[0]
 
   type ContextEntry = { component: NativeThemeComponent; element: Element; direct: boolean; depth: number; score: number; evidence: NativeContextResolution['evidence'] }
   const discoveredContexts: ContextEntry[] = []
@@ -676,12 +689,14 @@ export function resolveElement(rawElement: Element, components: NativeThemeCompo
       else if (next.score - next.depth * 28 > existing.score - existing.depth * 28) Object.assign(existing, next)
     }
   }
-  // Module-family inference is a fallback, not authority. If a real non-generic
-  // data-component/public-registry owner exists around the same pick, suppress
-  // conflicting module-only guesses instead of letting a shared local such as
-  // `manager` rename Persona UI to QwenCustomVoiceManager.
+  // Semantic mounted surfaces are authority. Once a real data-component or
+  // Spindle drawer boundary owns the pick, descendant registry/module guesses
+  // built from shared locals (manager/row/avatar/etc.) must not invent another
+  // component identity inside that surface. Nested semantic boundaries still win.
+  const semanticOwners = discoveredContexts.filter((entry) => entry.evidence === 'data-component' && entry.component.id.startsWith('mounted:') && !isGenericComponent(entry.component))
   const trustedSpecific = discoveredContexts.filter((entry) => entry.evidence !== 'module' && !isGenericComponent(entry.component))
   const usableContexts = discoveredContexts.filter((entry) => {
+    if (entry.evidence !== 'data-component' && semanticOwners.some((owner) => owner.component.id !== entry.component.id && (owner.element === entry.element || owner.element.contains(entry.element)))) return false
     if (entry.evidence !== 'module' || !trustedSpecific.length) return true
     return !trustedSpecific.some((trusted) => trusted.element === entry.element || trusted.element.contains(entry.element))
   })
@@ -790,7 +805,14 @@ export function resolveElement(rawElement: Element, components: NativeThemeCompo
     ? (directLocal ? nearestPartScopes.find((part) => part.id === `part:${direct.component.id}:${directLocal.localName}`) : undefined)
       ?? nearestPartScopes.find((part) => part.element === direct.element)
     : undefined
-  let activeScopeId = direct ? directPart?.id ?? `native:${direct.component.id}` : contextualScopes[0]?.id ?? (localRecommended.strategy !== 'volatile' ? 'similar' : 'mounted')
+  // A picked concrete CSS-module part inside the nearest semantic component is a
+  // better editing scope than a one-off DOM id/title on that same node. Besides
+  // being rebuild-tolerant, this keeps assistant/user message facets paired by
+  // their shared native part instead of creating an impossible "Both" selector
+  // from an assistant-only id.
+  const pickedLocal = nearest ? [...element.classList].map(normalizeCssModuleClass).find((entry) => entry && nearest.component.cssClasses.includes(entry.localName)) : undefined
+  const pickedPart = pickedLocal && localRecommended.strategy === 'semantic' ? nearestPartScopes.find((part) => part.id === `part:${nearest!.component.id}:${pickedLocal.localName}`) : undefined
+  let activeScopeId = direct ? directPart?.id ?? `native:${direct.component.id}` : pickedPart?.id ?? contextualScopes[0]?.id ?? (localRecommended.strategy !== 'volatile' ? 'similar' : 'mounted')
   let scopeCandidates = dedupeScopes(scopes)
   const messageContextEntry = contexts.find((entry) => isMessageComponentLabel(entry.component.label))
   const messageSideContext = messageContextEntry ? resolveMessageSideContext(messageContextEntry.element, root, messageContextEntry.component) : undefined

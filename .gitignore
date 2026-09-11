@@ -1,0 +1,11 @@
+node_modules/
+coverage/
+*.tsbuildinfo
+*.log
+*.tmp
+.env
+.env.*
+!.env.example
+.wrench-backups/
+.DS_Store
+Thumbs.db

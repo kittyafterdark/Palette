@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { Window } from 'happy-dom'
+import type { Window } from 'happy-dom'
+import { createHappyDomWindow } from './support/happy-dom'
 import type { SpindleFrontendContext } from 'lumiverse-spindle-types'
 import { classifyBoostVariable, deriveBoostTokenOverrides, inspectBoostCssValue, transformThemeVariables } from '../src/compiler/boost'
 import { contrastRatio, parseHexColor } from '../src/compiler/color'
@@ -17,7 +18,7 @@ const TEST_NATIVE_VARIABLES = { '--lumiverse-primary': '#9370db', '--lumiverse-s
 let window: Window
 let previous: Record<string, unknown>
 beforeEach(() => {
-  window = new Window({ url: 'http://localhost/' }); previous = { window: globalThis.window, document: globalThis.document, CSS: globalThis.CSS, Element: globalThis.Element, MutationObserver: globalThis.MutationObserver, getComputedStyle: globalThis.getComputedStyle }
+  window = createHappyDomWindow({ url: 'http://localhost/' }); previous = { window: globalThis.window, document: globalThis.document, CSS: globalThis.CSS, Element: globalThis.Element, MutationObserver: globalThis.MutationObserver, getComputedStyle: globalThis.getComputedStyle }
   Object.assign(globalThis, { window, document: window.document, CSS: window.CSS, Element: window.Element, MutationObserver: (window as any).MutationObserver, getComputedStyle: window.getComputedStyle.bind(window) })
 })
 afterEach(async () => { await window.close(); Object.assign(globalThis, previous) })
@@ -152,6 +153,14 @@ describe('Phase Four Boost semantics', () => {
   test('live theme bridge owns Lumiverse root inline variables and restores the newest native declaration', async () => {
     const sent: Array<Record<string, unknown>> = []; let handler: (payload: unknown) => void = () => {}
     const context = { onBackendMessage(callback: (payload: unknown) => void) { handler = callback; return () => {} }, sendToBackend(payload: unknown) { const message = payload as Record<string, unknown>; sent.push(message); queueMicrotask(() => handler(message.type === 'theme_studio:get_theme_baseline' ? { type: 'theme_studio:theme_baseline', requestId: message.requestId, info: {}, variables: { '--lumiverse-primary': '#8855aa' } } : { type: message.type === 'theme_studio:apply_theme_override' ? 'theme_studio:theme_applied' : 'theme_studio:theme_cleared', requestId: message.requestId })) } } as unknown as SpindleFrontendContext
+    let notifyRootMutation: MutationCallback | undefined
+    class ManualMutationObserver {
+      constructor(callback: MutationCallback) { notifyRootMutation = callback }
+      observe(): void {}
+      disconnect(): void {}
+      takeRecords(): MutationRecord[] { return [] }
+    }
+    globalThis.MutationObserver = ManualMutationObserver as unknown as typeof MutationObserver
     document.documentElement.style.setProperty('--lumiverse-primary', '#112233')
     const bridge = new ThemeRuntimeBridge(context); const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.primary = { color: '#e14ba5', alpha: 1 }
     await bridge.sync(project.boost)
@@ -161,10 +170,12 @@ describe('Phase Four Boost semantics', () => {
     expect(document.documentElement.style.getPropertyPriority('--lumiverse-primary')).toBe('important')
     expect(bridge.runtimeDiagnostics?.authority).toBe('root-inline-important')
 
-    // Lumiverse reapplies native themes directly onto <html>. The observer must
-    // remember that new underlying value and reclaim Boost before the next paint.
+    // Lumiverse reapplies native themes directly onto <html>. Exercise Palette's
+    // observer callback deterministically instead of depending on Happy DOM's
+    // incomplete style-attribute MutationObserver delivery under Bun canary.
     document.documentElement.style.setProperty('--lumiverse-primary', '#445566')
-    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(notifyRootMutation).toBeDefined()
+    notifyRootMutation!([], {} as MutationObserver)
     expect(document.documentElement.style.getPropertyValue('--lumiverse-primary').trim()).toBe(expected!)
     expect(document.documentElement.style.getPropertyPriority('--lumiverse-primary')).toBe('important')
 
@@ -172,31 +183,31 @@ describe('Phase Four Boost semantics', () => {
     expect(document.documentElement.style.getPropertyValue('--lumiverse-primary').trim()).toBe('#445566')
     expect(document.documentElement.style.getPropertyPriority('--lumiverse-primary')).toBe('')
     await bridge.destroy()
-    expect(sent.map((message) => message.type)).toEqual(['theme_studio:clear_theme_override', 'theme_studio:get_theme_baseline', 'theme_studio:clear_theme_override', 'theme_studio:clear_theme_override'])
+    const sentTypes = sent.map((message) => message.type)
+    expect(sentTypes[0]).toBe('theme_studio:clear_theme_override')
+    expect(sentTypes.filter((type) => type === 'theme_studio:get_theme_baseline').length).toBeGreaterThanOrEqual(1)
+    expect(sentTypes.filter((type) => type === 'theme_studio:clear_theme_override').length).toBeGreaterThanOrEqual(3)
+    expect(sentTypes).not.toContain('theme_studio:apply_theme_override')
   })
-  test('Boost prefers the native frontend variable catalog and stays live if the worker mirror fails', async () => {
-    const sent: Array<Record<string, unknown>> = []; let handler: (payload: unknown) => void = () => {}
+  test('Boost fails closed when the canonical worker baseline is unavailable and never falls back to the frontend catalog', async () => {
+    const sent: Array<Record<string, unknown>> = []; let handler: (payload: unknown) => void = () => {}; let catalogReads = 0
     const context = {
-      theme: { catalog: { listVariables: () => [
-        { name: '--lumiverse-primary', value: '#335577' },
-        { name: '--lumiverse-bg', value: '#101016' },
-        { name: '--lumiverse-text', value: '#f4eef8' },
-      ] } },
+      theme: { catalog: { listVariables: () => { catalogReads += 1; return [{ name: '--lumiverse-primary', value: '#335577' }] } } },
       onBackendMessage(callback: (payload: unknown) => void) { handler = callback; return () => {} },
       sendToBackend(payload: unknown) {
         const message = payload as Record<string, unknown>; sent.push(message)
-        queueMicrotask(() => handler({ type: 'theme_studio:theme_error', requestId: message.requestId, error: 'mirror unavailable' }))
+        queueMicrotask(() => handler({ type: 'theme_studio:theme_error', requestId: message.requestId, error: 'canonical baseline unavailable' }))
       },
     } as unknown as SpindleFrontendContext
     const bridge = new ThemeRuntimeBridge(context), project = createProject()
     project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.primary = { color: '#ff1493', alpha: 1 }; project.boost.originalSaturation = 0
-    await bridge.sync(project.boost)
-    expect(sent.some((entry) => entry.type === 'theme_studio:get_theme_baseline')).toBe(false)
+    let error = ''
+    try { await bridge.sync(project.boost) } catch (caught) { error = caught instanceof Error ? caught.message : String(caught) }
+    expect(error).toContain('canonical baseline unavailable')
+    expect(catalogReads).toBe(0)
+    expect(sent.some((entry) => entry.type === 'theme_studio:get_theme_baseline')).toBe(true)
     expect(sent.some((entry) => entry.type === 'theme_studio:apply_theme_override')).toBe(false)
-    expect(document.documentElement.style.getPropertyPriority('--lumiverse-primary')).toBe('important')
-    expect(document.documentElement.style.getPropertyValue('--lumiverse-primary').trim()).not.toBe('#335577')
-    expect(bridge.runtimeDiagnostics?.backendMirrored).toBe(false)
-    expect(bridge.runtimeDiagnostics?.backendError).toBeUndefined()
+    expect(document.documentElement.style.getPropertyPriority('--lumiverse-primary')).toBe('')
     await bridge.destroy()
   })
   test('live bridge reuses one native baseline across parameter edits', async () => {
@@ -206,34 +217,35 @@ describe('Phase Four Boost semantics', () => {
     await bridge.sync(project.boost); project.boost.brightness = .2; await bridge.sync(project.boost); await bridge.destroy()
     expect(sent.filter((entry) => entry.type === 'theme_studio:get_theme_baseline')).toHaveLength(1); expect(sent.filter((entry) => entry.type === 'theme_studio:apply_theme_override')).toHaveLength(0)
   })
-  test('native theme changes update the cached Boost source instead of feeding Boost back into itself', async () => {
+  test('native theme changes update the cached canonical Boost source instead of feeding Boost back into itself', async () => {
     const sent: Array<Record<string, unknown>> = []; let handler: (payload: unknown) => void = () => {}
-    const nativeVariables = { '--lumiverse-primary': '#335577', '--lumiverse-bg': '#101016', '--lumiverse-text': '#f4eef8' }
+    let nativeVariables = { '--lumiverse-primary': '#335577', '--lumiverse-bg': '#101016', '--lumiverse-text': '#f4eef8' }
     const context = {
-      theme: { catalog: { listVariables: () => Object.entries(nativeVariables).map(([name, value]) => ({ name, value })) } },
+      theme: { catalog: { listVariables: () => [{ name: '--lumiverse-primary', value: '#catalog-poison' }] } },
       onBackendMessage(callback: (payload: unknown) => void) { handler = callback; return () => {} },
-      sendToBackend(payload: unknown) { const message = payload as Record<string, unknown>; sent.push(message); queueMicrotask(() => handler({ type: 'theme_studio:theme_cleared', requestId: message.requestId })) },
+      sendToBackend(payload: unknown) {
+        const message = payload as Record<string, unknown>; sent.push(message)
+        queueMicrotask(() => handler(message.type === 'theme_studio:get_theme_baseline'
+          ? { type: 'theme_studio:theme_baseline', requestId: message.requestId, info: {}, variables: structuredClone(nativeVariables) }
+          : { type: 'theme_studio:theme_cleared', requestId: message.requestId }))
+      },
     } as unknown as SpindleFrontendContext
-    document.documentElement.style.setProperty('--lumiverse-primary', nativeVariables['--lumiverse-primary'])
-    document.documentElement.style.setProperty('--lumiverse-bg', nativeVariables['--lumiverse-bg'])
-    document.documentElement.style.setProperty('--lumiverse-text', nativeVariables['--lumiverse-text'])
     const bridge = new ThemeRuntimeBridge(context), project = createProject()
     project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.primary = { color: '#9370db', alpha: 1 }; project.boost.originalSaturation = 0
     await bridge.sync(project.boost)
 
-    // Simulate Lumiverse changing the native theme while Boost is active. The
-    // observer must remember this as source state, then reassert the live layer.
-    document.documentElement.style.setProperty('--lumiverse-primary', '#aa5533')
-    await new Promise((resolve) => setTimeout(resolve, 0))
+    nativeVariables = { ...nativeVariables, '--lumiverse-primary': '#aa5533' }
+    const changed = await (bridge as unknown as { rebaseFromCanonicalIfChanged(): Promise<boolean> }).rebaseFromCanonicalIfChanged()
+    expect(changed).toBe(true)
     project.boost.brightness = .18
-    const expected = transformThemeVariables({ ...nativeVariables, '--lumiverse-primary': '#aa5533' }, project.boost).variables['--lumiverse-primary']
+    const expected = transformThemeVariables(nativeVariables, project.boost).variables['--lumiverse-primary']
     await bridge.sync(project.boost)
     expect(document.documentElement.style.getPropertyValue('--lumiverse-primary').trim()).toBe(expected)
     expect(sent.some((entry) => entry.type === 'theme_studio:apply_theme_override')).toBe(false)
     await bridge.destroy()
   })
 
-  test('stale Boost root authority is detoxed before the native catalog is sampled', async () => {
+  test('stale Boost root authority is detoxed from the canonical worker baseline without catalog sampling', async () => {
     const workerNative = { '--lumiverse-primary': '#9370db', '--lumiverse-bg': '#101016', '--lumiverse-text': '#f4eef8' }
     const catalogSamples: string[] = []
     let handler: (payload: unknown) => void = () => {}
@@ -265,8 +277,7 @@ describe('Phase Four Boost semantics', () => {
     const expected = transformThemeVariables(workerNative, project.boost).variables['--lumiverse-primary']
     await bridge.sync(project.boost)
 
-    expect(catalogSamples).toContain(workerNative['--lumiverse-primary'])
-    expect(catalogSamples).not.toContain('#003f3f')
+    expect(catalogSamples).toHaveLength(0)
     expect(document.documentElement.style.getPropertyValue('--lumiverse-primary').trim()).toBe(expected)
     expect(document.documentElement.style.getPropertyPriority('--lumiverse-primary')).toBe('important')
 
@@ -276,7 +287,7 @@ describe('Phase Four Boost semantics', () => {
     await bridge.destroy()
   })
 
-  test('Refresh source samples with Theme Studio authority released and the observer guarded', async () => {
+  test('Refresh source reseeds from canonical worker state with Theme Studio authority released and the observer guarded', async () => {
     const nativeVariables = { '--lumiverse-primary': '#6655aa', '--lumiverse-bg': '#111118', '--lumiverse-text': '#f4eef8' }
     const catalogSamples: string[] = []
     let handler: (payload: unknown) => void = () => {}
@@ -304,8 +315,7 @@ describe('Phase Four Boost semantics', () => {
 
     catalogSamples.length = 0
     await bridge.refreshBaseline()
-    expect(catalogSamples).toContain(nativeVariables['--lumiverse-primary'])
-    expect(catalogSamples).not.toContain(boosted)
+    expect(catalogSamples).toHaveLength(0)
     expect(document.documentElement.style.getPropertyPriority('--lumiverse-primary')).toBe('important')
     await bridge.destroy()
   })

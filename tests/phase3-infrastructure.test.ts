@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { Window } from 'happy-dom'
+import type { Window } from 'happy-dom'
+import { createHappyDomWindow } from './support/happy-dom'
 import { createStylePacket, type StudioTarget } from '../src/project/model'
 import { isMediaElement, smartInvertColor, synthesizeSmartInvertPackets } from '../src/project/smart-invert'
 import { ProjectStore } from '../src/project/store'
@@ -49,8 +50,9 @@ describe('Phase Three store infrastructure', () => {
 
 describe('media preservation', () => {
   let window: Window
-  beforeEach(() => { window = new Window(); Object.assign(globalThis, { document: window.document }) })
-  afterEach(async () => { await window.close() })
+  let previous: Record<string, unknown>
+  beforeEach(() => { previous = { document: globalThis.document }; window = createHappyDomWindow(); Object.assign(globalThis, { document: window.document }) })
+  afterEach(async () => { await window.close(); Object.assign(globalThis, previous) })
   test('images, video, canvas and picture descendants are excluded', () => {
     document.body.innerHTML = '<picture><img></picture><video></video><canvas></canvas><div></div>'
     expect(isMediaElement(document.querySelector('img')!)).toBe(true); expect(isMediaElement(document.querySelector('video')!)).toBe(true); expect(isMediaElement(document.querySelector('canvas')!)).toBe(true); expect(isMediaElement(document.querySelector('div')!)).toBe(false)

@@ -112,7 +112,13 @@ export class ThemeRuntimeBridge {
     }
   }
   private async fetchCanonicalBaseline(): Promise<ThemeBaseline> {
-    return await this.request({ type: 'theme_studio:get_theme_baseline' }) as ThemeBaseline
+    const response = await this.request<unknown>({ type: 'theme_studio:get_theme_baseline' })
+    if (!isRecord(response) || !isRecord(response.variables)) throw new Error('Canonical theme baseline is unavailable or malformed.')
+    const variables: Record<string, string> = {}
+    for (const [name, value] of Object.entries(response.variables)) if (typeof value === 'string') variables[name] = value
+    if (!Object.keys(variables).length) throw new Error('Canonical theme baseline contains no variables.')
+    const info = isRecord(response.info) ? response.info as unknown as ThemeInfoDTO : {} as ThemeInfoDTO
+    return { info, variables }
   }
   private rootHasStaleBoostMarker(): boolean {
     if (typeof document === 'undefined') return false

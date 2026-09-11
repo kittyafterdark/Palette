@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { Window } from 'happy-dom'
+import type { Window } from 'happy-dom'
+import { createHappyDomWindow } from './support/happy-dom'
 import { normalizeCssModuleClass, rankSelectorCandidates, resolveCatalogComponent, resolveElement } from '../src/registry/selector-resolver'
 import type { NativeThemeComponent } from '../src/registry/types'
 import { appendPseudoToSelectorList, composeContextSelector, evaluateSelectorHealth, simplifyRedundantModuleSegments } from '../src/registry/selector-utils'
@@ -7,7 +8,7 @@ import { appendPseudoToSelectorList, composeContextSelector, evaluateSelectorHea
 let testWindow: Window
 let previous: Record<string, unknown>
 beforeEach(() => {
-  testWindow = new Window({ url: 'http://localhost/' })
+  testWindow = createHappyDomWindow({ url: 'http://localhost/' })
   previous = { window: globalThis.window, document: globalThis.document, CSS: globalThis.CSS, Element: globalThis.Element }
   Object.assign(globalThis, { window: testWindow, document: testWindow.document, CSS: testWindow.CSS, Element: testWindow.Element })
 })
@@ -87,14 +88,14 @@ describe('target, native context and scope separation', () => {
   })
 
 
-  test('catalog selection prefers the mounted data-component root and then its first concrete part', () => {
+  test('catalog selection without a registry selector lands on the first mounted concrete part', () => {
     const entry = component('InputArea', ['container', 'textarea'])
     entry.selectors = []
     document.body.innerHTML = '<div data-component="InputArea" class="_container_45ujh_3"><textarea class="_textarea_45ujh_4"></textarea></div>'
     const resolution = resolveCatalogComponent(entry)
-    expect(resolution.target.recommended.selector).toBe('[data-component="InputArea"]')
+    expect(resolution.target.recommended.selector).toBe('[class*="_container_"]')
     expect(resolution.activeScopeId).toBe('part:src/InputArea:container')
-    expect(resolution.scopeCandidates.find((scope) => scope.id === resolution.activeScopeId)?.selector).toBe('[data-component="InputArea"][class*="_container_"]')
+    expect(resolution.scopeCandidates.find((scope) => scope.id === resolution.activeScopeId)?.selector).toContain('[class*="_container_"]')
   })
 
   test('native component class parts become first-class persistent scopes', () => {

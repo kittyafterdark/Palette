@@ -219,8 +219,12 @@ function candidate(root, selector2, strategy, stability, nativeComponentId, warn
   return { selector: selector2, strategy, stability, matchCount, nativeComponentId, warning: warning ?? (matchCount > 50 ? `Broad selector: currently matches ${matchCount} elements.` : void 0) };
 }
 function composerActionSemantic(element) {
-  const owner = element.closest("[data-composer-action], [data-toolbar-action]");
-  if (!owner || !owner.closest('[data-component="InputArea"]')) return void 0;
+  let owner = element;
+  while (owner && !owner.hasAttribute("data-composer-action") && !owner.hasAttribute("data-toolbar-action")) owner = owner.parentElement;
+  if (!owner) return void 0;
+  let inputArea = owner;
+  while (inputArea && inputArea.getAttribute("data-component") !== "InputArea") inputArea = inputArea.parentElement;
+  if (!inputArea) return void 0;
   const composerAction = owner.getAttribute("data-composer-action");
   const toolbarAction = owner.getAttribute("data-toolbar-action");
   const attributes = composerAction && toolbarAction ? `[data-composer-action="${escapeAttribute(composerAction)}"][data-toolbar-action="${escapeAttribute(toolbarAction)}"]` : composerAction ? `[data-composer-action="${escapeAttribute(composerAction)}"]` : toolbarAction ? `[data-toolbar-action="${escapeAttribute(toolbarAction)}"]` : "";
@@ -777,7 +781,7 @@ function anchoredLeafCandidate(element, root) {
   if (!anchor2) return void 0;
   const tag = element.tagName.toLowerCase();
   const descendant = element === anchor2.element ? "" : ` ${tag}`;
-  return candidate(root, `${anchor2.selector}${descendant}`, "css-module", "medium", void 0, `Anchored to the stable ${levelLabel(anchor2.element, false)} wrapper.`);
+  return candidate(root, `${anchor2.selector}${descendant}`, "structural", "medium", void 0, `Anchored to the stable ${levelLabel(anchor2.element, false)} wrapper.`);
 }
 function anchoredModulePathCandidate(element, root) {
   if (element.closest("[data-component]")) return void 0;
@@ -818,7 +822,9 @@ function resolveElement(rawElement, components, root = document) {
   if (modulePath) targetCandidates = rankSelectorCandidates(dedupe([...targetCandidates, modulePath]));
   const anchored = anchoredLeafCandidate(element, root);
   if (anchored) targetCandidates = rankSelectorCandidates(dedupe([...targetCandidates, anchored]));
-  const localRecommended = targetCandidates.find((entry) => entry.strategy !== "volatile") ?? targetCandidates[0];
+  const composerSemantic = composerActionSemantic(element);
+  const composerRecommended = composerSemantic ? targetCandidates.find((entry) => entry.selector === composerSemantic.selector || entry.selector.startsWith(`${composerSemantic.selector} `)) : void 0;
+  const localRecommended = composerRecommended ?? targetCandidates.find((entry) => entry.strategy !== "volatile") ?? targetCandidates[0];
   const discoveredContexts = [];
   let contextDepth = 0;
   for (let current = element; current && current !== document.documentElement; current = current.parentElement, contextDepth += 1) {
@@ -830,8 +836,10 @@ function resolveElement(rawElement, components, root = document) {
       else if (next.score - next.depth * 28 > existing.score - existing.depth * 28) Object.assign(existing, next);
     }
   }
+  const semanticOwners = discoveredContexts.filter((entry) => entry.evidence === "data-component" && entry.component.id.startsWith("mounted:") && !isGenericComponent(entry.component));
   const trustedSpecific = discoveredContexts.filter((entry) => entry.evidence !== "module" && !isGenericComponent(entry.component));
   const usableContexts = discoveredContexts.filter((entry) => {
+    if (entry.evidence !== "data-component" && semanticOwners.some((owner) => owner.component.id !== entry.component.id && (owner.element === entry.element || owner.element.contains(entry.element)))) return false;
     if (entry.evidence !== "module" || !trustedSpecific.length) return true;
     return !trustedSpecific.some((trusted) => trusted.element === entry.element || trusted.element.contains(entry.element));
   });
@@ -932,7 +940,9 @@ function resolveElement(rawElement, components, root = document) {
   const direct = contexts.find((entry) => entry.direct);
   const directLocal = direct ? [...direct.element.classList].map(normalizeCssModuleClass).find((entry) => entry && direct.component.cssClasses.includes(entry.localName)) : void 0;
   const directPart = direct ? (directLocal ? nearestPartScopes.find((part) => part.id === `part:${direct.component.id}:${directLocal.localName}`) : void 0) ?? nearestPartScopes.find((part) => part.element === direct.element) : void 0;
-  let activeScopeId = direct ? directPart?.id ?? `native:${direct.component.id}` : contextualScopes[0]?.id ?? (localRecommended.strategy !== "volatile" ? "similar" : "mounted");
+  const pickedLocal = nearest ? [...element.classList].map(normalizeCssModuleClass).find((entry) => entry && nearest.component.cssClasses.includes(entry.localName)) : void 0;
+  const pickedPart = pickedLocal && localRecommended.strategy === "semantic" ? nearestPartScopes.find((part) => part.id === `part:${nearest.component.id}:${pickedLocal.localName}`) : void 0;
+  let activeScopeId = direct ? directPart?.id ?? `native:${direct.component.id}` : pickedPart?.id ?? contextualScopes[0]?.id ?? (localRecommended.strategy !== "volatile" ? "similar" : "mounted");
   let scopeCandidates = dedupeScopes(scopes);
   const messageContextEntry = contexts.find((entry) => isMessageComponentLabel(entry.component.label));
   const messageSideContext = messageContextEntry ? resolveMessageSideContext(messageContextEntry.element, root, messageContextEntry.component) : void 0;
@@ -1627,7 +1637,7 @@ function createStylePacket(type) {
   }
 }
 function createBoost() {
-  return { enabled: false, colorsEnabled: false, typographyEnabled: false, canvasEnabled: false, mode: "recolor", primary: { color: "#9370db", alpha: 1 }, secondary: { color: "#786bf0", alpha: 1 }, contrast: 0, brightness: 0, originalSaturation: 0.2, canvasOpacity: 1, wallpaperTreatmentEnabled: false, wallpaperOpacity: 1, wallpaperBlur: 0, wallpaperSaturation: 1, wallpaperContrast: 1, wallpaperBrightness: 1, protectControls: true, typography: {}, shuffleSeed: 1 };
+  return { enabled: false, colorsEnabled: false, typographyEnabled: false, canvasEnabled: false, mode: "recolor", primary: { color: "#9370db", alpha: 1 }, secondary: { color: "#786bf0", alpha: 1 }, textMode: "auto", text: { color: "#f4eef8", alpha: 1 }, contrast: 0, brightness: 0, originalSaturation: 0.2, canvasOpacity: 1, wallpaperTreatmentEnabled: false, wallpaperOpacity: 1, wallpaperBlur: 0, wallpaperSaturation: 1, wallpaperContrast: 1, wallpaperBrightness: 1, protectControls: true, typography: {}, shuffleSeed: 1 };
 }
 function createProject(name = "Untitled Theme") {
   const now = Date.now();
@@ -2165,35 +2175,28 @@ function project(value) {
   const sourceVersion = bounded(value.version, 0, 0, Number.MAX_SAFE_INTEGER);
   const now = Date.now();
   const boostValue = record(value.boost) ? value.boost : {};
-  const paletteValue = record(boostValue.palette) ? boostValue.palette : {};
-  const legacyValue = record(boostValue.legacyPalette) ? boostValue.legacyPalette : {};
-  const legacyPalette = {};
-  for (const role of ["primary", "secondary", "accent", "surface", "text", "muted", "border"]) {
-    const entry = paletteValue[role];
-    if (record(entry) && string(entry.color)) legacyPalette[role] = { color: string(entry.color), alpha: alpha(entry.alpha) };
-  }
-  for (const role of ["primary", "secondary", "accent", "surface", "text", "muted", "border"]) {
-    const entry = legacyValue[role];
-    if (record(entry) && string(entry.color)) legacyPalette[role] = { color: string(entry.color), alpha: alpha(entry.alpha) };
-  }
   const typography = record(boostValue.typography) ? boostValue.typography : {};
   const invert = record(boostValue.smartInvert) ? boostValue.smartInvert : {};
   const defaultBoost = createBoost();
-  const primaryValue = record(boostValue.primary) ? boostValue.primary : legacyPalette.primary;
-  const secondaryValue = record(boostValue.secondary) ? boostValue.secondary : legacyPalette.secondary;
-  const hasLegacyIntent = Object.keys(legacyPalette).length > 0 || typeof typography.fontFamily === "string" || typography.scale !== void 0 || invert.enabled === true;
-  const legacyEnabled = boostValue.enabled === true || boostValue.enabled === void 0 && hasLegacyIntent;
-  const typographyEnabled = boostValue.typographyEnabled === true || boostValue.typographyEnabled === void 0 && legacyEnabled && (typeof typography.fontFamily === "string" || typography.scale !== void 0);
-  const colorsEnabled = boostValue.colorsEnabled === true || boostValue.colorsEnabled === void 0 && legacyEnabled;
+  const primaryValue = record(boostValue.primary) ? boostValue.primary : void 0;
+  const secondaryValue = record(boostValue.secondary) ? boostValue.secondary : void 0;
+  const textValue = record(boostValue.text) ? boostValue.text : void 0;
+  const hasColorIntent = Boolean(primaryValue || secondaryValue || textValue || boostValue.mode === "recolor" || boostValue.mode === "smart-invert");
+  const hasBoostIntent = hasColorIntent || typeof typography.fontFamily === "string" || typography.scale !== void 0 || invert.enabled === true;
+  const boostEnabled = boostValue.enabled === true || boostValue.enabled === void 0 && hasBoostIntent;
+  const typographyEnabled = boostValue.typographyEnabled === true || boostValue.typographyEnabled === void 0 && boostEnabled && (typeof typography.fontFamily === "string" || typography.scale !== void 0);
+  const colorsEnabled = boostValue.colorsEnabled === true || boostValue.colorsEnabled === void 0 && boostEnabled && hasColorIntent;
   const canvasEnabled = boostValue.canvasEnabled === true;
   const boost = {
-    enabled: legacyEnabled || colorsEnabled || typographyEnabled || canvasEnabled,
+    enabled: boostEnabled || colorsEnabled || typographyEnabled || canvasEnabled,
     colorsEnabled,
     typographyEnabled,
     canvasEnabled,
     mode: boostValue.mode === "smart-invert" || boostValue.mode === void 0 && invert.enabled === true ? "smart-invert" : "recolor",
     primary: record(primaryValue) && string(primaryValue.color) ? { color: string(primaryValue.color), alpha: alpha(primaryValue.alpha) } : defaultBoost.primary,
     secondary: record(secondaryValue) && string(secondaryValue.color) ? { color: string(secondaryValue.color), alpha: alpha(secondaryValue.alpha) } : structuredClone(defaultBoost.secondary),
+    textMode: boostValue.textMode === "custom" ? "custom" : "auto",
+    text: record(textValue) && string(textValue.color) ? { color: string(textValue.color), alpha: alpha(textValue.alpha) } : structuredClone(defaultBoost.text),
     contrast: bounded(boostValue.contrast, defaultBoost.contrast, -1, 1),
     brightness: bounded(boostValue.brightness, defaultBoost.brightness, -1, 1),
     originalSaturation: bounded(boostValue.originalSaturation, defaultBoost.originalSaturation, 0, 1),
@@ -2206,7 +2209,6 @@ function project(value) {
     wallpaperBrightness: bounded(boostValue.wallpaperBrightness, defaultBoost.wallpaperBrightness, 0.1, 3),
     protectControls: boostValue.protectControls !== false,
     typography: { fontFamily: typeof typography.fontFamily === "string" ? typography.fontFamily : void 0, scale: typography.scale === void 0 ? void 0 : bounded(typography.scale, 1, 0.25, 4) },
-    legacyPalette: Object.keys(legacyPalette).length ? legacyPalette : void 0,
     shuffleSeed: bounded(boostValue.shuffleSeed, defaultBoost.shuffleSeed, 1, 2147483647)
   };
   const componentOverrides = repairRedundantContextComposition(repairV275TransparentSparseBorders(
@@ -2257,12 +2259,27 @@ function parseHexColor(value) {
 function formatAlpha(value) {
   return String(Math.round(clamp(Number.isFinite(value) ? value : 1, 0, 1) * 1e3) / 1e3);
 }
-function colorWithAlpha(value, alpha3 = 1) {
+function colorWithAlpha(value, alpha2 = 1) {
   const parsed = parseHexColor(value);
-  if (!parsed) return alpha3 >= 1 && value.trim() && !/[;{}]/.test(value) ? value.trim() : "transparent";
-  const combined = parsed.alpha * clamp(Number.isFinite(alpha3) ? alpha3 : 1, 0, 1);
+  if (!parsed) return alpha2 >= 1 && value.trim() && !/[;{}]/.test(value) ? value.trim() : "transparent";
+  const combined = parsed.alpha * clamp(Number.isFinite(alpha2) ? alpha2 : 1, 0, 1);
   if (combined >= 0.9995 && parsed.alpha >= 0.9995) return value.trim();
   return `rgba(${parsed.r}, ${parsed.g}, ${parsed.b}, ${formatAlpha(combined)})`;
+}
+function linearChannel(value) {
+  const channel2 = clamp(value, 0, 255) / 255;
+  return channel2 <= 0.04045 ? channel2 / 12.92 : ((channel2 + 0.055) / 1.055) ** 2.4;
+}
+function relativeLuminance(value) {
+  return 0.2126 * linearChannel(value.r) + 0.7152 * linearChannel(value.g) + 0.0722 * linearChannel(value.b);
+}
+function contrastRatio(a, b) {
+  const first = relativeLuminance(a), second = relativeLuminance(b), light = Math.max(first, second), dark = Math.min(first, second);
+  return (light + 0.05) / (dark + 0.05);
+}
+function mixRgba(a, b, amount) {
+  const t = clamp(Number.isFinite(amount) ? amount : 0, 0, 1);
+  return { r: a.r + (b.r - a.r) * t, g: a.g + (b.g - a.g) * t, b: a.b + (b.b - a.b) * t, alpha: a.alpha + (b.alpha - a.alpha) * t };
 }
 
 // src/project/smart-invert.ts
@@ -2709,10 +2726,6 @@ var ProjectStore = class {
   removeComposerSvg(svgId) {
     this.removeSvgAsset(svgId);
   }
-  /** Phase Four compatibility editor; legacy roles are explicit post-transform overrides. */
-  setBoostPaletteRole(role, value) {
-    this.updateActive((project2) => ({ ...project2, boost: { ...project2.boost, enabled: true, legacyPalette: { ...project2.boost.legacyPalette, [role]: value ? structuredClone(value) : void 0 } } }));
-  }
   setBoostEnabled(enabled) {
     this.updateActive((project2) => ({ ...project2, boost: { ...project2.boost, enabled } }));
   }
@@ -2748,6 +2761,9 @@ var ProjectStore = class {
   }
   setBoostMode(mode) {
     this.updateActive((project2) => ({ ...project2, boost: { ...project2.boost, enabled: true, colorsEnabled: true, mode } }));
+  }
+  setBoostTextMode(textMode) {
+    this.updateActive((project2) => ({ ...project2, boost: { ...project2.boost, enabled: true, colorsEnabled: true, textMode } }));
   }
   updateBoostParameters(value) {
     this.updateActive((project2) => ({ ...project2, boost: { ...project2.boost, ...structuredClone(value), enabled: true, colorsEnabled: true } }));
@@ -2931,6 +2947,8 @@ var channel = (value) => byte(value).toString(16).padStart(2, "0");
 var hueDelta = (from, to) => (to - from + 540) % 360 - 180;
 var normalizeCssValueBoundary = (value) => value.replace(/^[ \t\r\n]+|[ \t\r\n]+$/g, "");
 var prohibitedControlCharacters = (value) => [...value].map((character, index) => ({ index, codePoint: character.codePointAt(0) ?? 0 })).filter(({ codePoint }) => codePoint <= 8 || codePoint === 11 || codePoint === 12 || codePoint >= 14 && codePoint <= 31);
+var TEXT_FAMILY = ["--lumiverse-text", "--lumiverse-text-muted", "--lumiverse-text-dim", "--lumiverse-text-hint", "--lumiverse-icon", "--lumiverse-icon-muted", "--lumiverse-icon-dim"];
+var BOOST_ROLES = ["primary", "secondary", "surface", "text", "muted", "border", "neutral", "semantic", "preserve"];
 function parseCssColor(value) {
   const normalized = normalizeCssValueBoundary(value);
   const hex2 = parseHexColor(normalized);
@@ -2986,13 +3004,42 @@ function render(value) {
 function anchor(value, fallback) {
   return toOklch(parseCssColor(value?.color ?? fallback.color) ?? { r: 147, g: 112, b: 219, alpha: 1 });
 }
-function useSecondary(name) {
-  return /(?:bg|surface|card|fill|border|shadow|overlay|modal|sidebar|panel)/i.test(name);
+function classifyBoostVariable(name) {
+  if (/^--lumiverse-(?:danger|success|warning|error)(?:-|$)/i.test(name)) return "semantic";
+  if (/^--lumiverse-(?:primary(?:-|$)|accent(?:-|$))/i.test(name)) return "primary";
+  if (/^--lumiverse-secondary(?:-|$)/i.test(name)) return "secondary";
+  if (/^--lumiverse-(?:text-muted|text-dim|text-hint|icon-muted|icon-dim|muted)(?:-|$)?/i.test(name)) return "muted";
+  if (/^--lumiverse-(?:text|icon)$/i.test(name)) return "text";
+  if (/^--lumiverse-(?:bg-dark(?:er)?$|fill(?:-|$)|border-(?:light|neutral(?:-hover)?)$|swatch-border$|shadow(?:-|$)|highlight-inset(?:-|$)|modal-backdrop$|scene-text-scrim$)/i.test(name)) return "neutral";
+  if (/^--lumiverse-border(?:-|$)/i.test(name)) return "border";
+  if (/^--lumiverse-(?:bg(?:-|$)|card(?:-|$)|gradient-modal$)/i.test(name)) return "surface";
+  return "preserve";
 }
-function transformColor(name, source, boost) {
-  const original = toOklch(source), primary = anchor(boost.primary, boost.primary), secondary = anchor(boost.secondary, boost.primary), selected = useSecondary(name) ? secondary : primary, retention = clamp2(boost.originalSaturation), recolor = 1 - retention;
-  let l = boost.mode === "smart-invert" ? 1 - original.l : original.l;
-  l = clamp2(0.5 + (l - 0.5) * (1 + clamp2(boost.contrast, -1, 1) * 0.9) + clamp2(boost.brightness, -1, 1) * 0.28);
+function surfaceAnchor(boost) {
+  const primary = anchor(boost.primary, boost.primary);
+  return { l: 0.5, c: Math.min(0.075, primary.c * 0.48), h: primary.h, alpha: 1 };
+}
+function borderAnchor(boost) {
+  const primary = anchor(boost.primary, boost.primary);
+  return { l: 0.5, c: Math.min(0.11, primary.c * 0.72), h: primary.h, alpha: 1 };
+}
+function roleAnchor(role, boost) {
+  if (role === "primary") return anchor(boost.primary, boost.primary);
+  if (role === "secondary") return anchor(boost.secondary, boost.primary);
+  if (role === "surface") return surfaceAnchor(boost);
+  if (role === "border") return borderAnchor(boost);
+  if ((role === "text" || role === "muted") && boost.textMode === "custom" && boost.text) return anchor(boost.text, boost.text);
+  return void 0;
+}
+function transformLightness(value, boost) {
+  let l = boost.mode === "smart-invert" ? 1 - value : value;
+  return clamp2(0.5 + (l - 0.5) * (1 + clamp2(boost.contrast, -1, 1) * 0.9) + clamp2(boost.brightness, -1, 1) * 0.28);
+}
+function transformColor(role, source, boost) {
+  if (role === "semantic" || role === "preserve") return render(toOklch(source));
+  const original = toOklch(source), selected = roleAnchor(role, boost), retention = clamp2(boost.originalSaturation), recolor = 1 - retention;
+  const l = transformLightness(original.l, boost);
+  if (!selected) return render({ ...original, l, alpha: source.alpha });
   return render({ l, c: clamp2(original.c * retention + selected.c * recolor, 0, 0.4), h: original.h + hueDelta(original.h, selected.h) * recolor, alpha: source.alpha });
 }
 function alphaText(value) {
@@ -3019,6 +3066,9 @@ function serializeColorLike(sourceToken, transformed) {
     return fn.toLowerCase() === "hsla" ? `${fn}(${body}, ${alphaText(color.alpha)})` : `${fn}(${body})`;
   }
   return transformed;
+}
+function rgbaCss(value) {
+  return `rgba(${byte(value.r)}, ${byte(value.g)}, ${byte(value.b)}, ${alphaText(value.alpha)})`;
 }
 function quotedEnd(value, start) {
   const quote = value[start];
@@ -3056,7 +3106,7 @@ function functionEnd(value, open) {
 }
 var COLOR_FUNCTIONS = /* @__PURE__ */ new Set(["rgb", "rgba", "hsl", "hsla"]);
 var COLOR_CONTAINERS = /* @__PURE__ */ new Set(["linear-gradient", "radial-gradient", "color-mix"]);
-function transformColorTokens(name, value, boost) {
+function transformColorTokens(role, value, boost) {
   let output = "", count = 0, index = 0;
   while (index < value.length) {
     if (value[index] === '"' || value[index] === "'") {
@@ -3076,7 +3126,7 @@ function transformColorTokens(name, value, boost) {
       if ([3, 4, 6, 8].includes(length) && (!boundary || !/[A-Za-z0-9_-]/.test(boundary))) {
         const token = value.slice(index, end), parsed = parseCssColor(token);
         if (parsed) {
-          output += serializeColorLike(token, transformColor(name, parsed, boost));
+          output += serializeColorLike(token, transformColor(role, parsed, boost));
           count += 1;
           index = end;
           continue;
@@ -3091,14 +3141,14 @@ function transformColorTokens(name, value, boost) {
         if (COLOR_FUNCTIONS.has(functionName)) {
           const parsed = parseCssColor(whole);
           if (parsed) {
-            output += serializeColorLike(whole, transformColor(name, parsed, boost));
+            output += serializeColorLike(whole, transformColor(role, parsed, boost));
             count += 1;
             index = close + 1;
             continue;
           }
         }
         if (COLOR_CONTAINERS.has(functionName)) {
-          const inner = transformColorTokens(name, value.slice(open + 1, close), boost);
+          const inner = transformColorTokens(role, value.slice(open + 1, close), boost);
           output += value.slice(index, open + 1) + inner.value + ")";
           count += inner.count;
           index = close + 1;
@@ -3119,58 +3169,95 @@ function transformColorTokens(name, value, boost) {
   }
   return { value: output, count };
 }
+function ensureContrast(candidate2, background, minimum = 4.5) {
+  const opaqueCandidate = { ...candidate2, alpha: 1 }, opaqueBackground = { ...background, alpha: 1 }, targetRatio = minimum + 0.05;
+  if (contrastRatio(opaqueCandidate, opaqueBackground) >= targetRatio) return candidate2;
+  const light = { r: 255, g: 255, b: 255, alpha: 1 }, dark = { r: 0, g: 0, b: 0, alpha: 1 };
+  const target = contrastRatio(light, opaqueBackground) >= contrastRatio(dark, opaqueBackground) ? light : dark;
+  if (contrastRatio(target, opaqueBackground) < minimum) return { ...target, alpha: candidate2.alpha };
+  let low = 0, high = 1;
+  for (let i = 0; i < 18; i++) {
+    const mid = (low + high) / 2, mixed = mixRgba(opaqueCandidate, target, mid);
+    if (contrastRatio(mixed, opaqueBackground) >= targetRatio) high = mid;
+    else low = mid;
+  }
+  return { ...mixRgba(opaqueCandidate, target, high), alpha: candidate2.alpha };
+}
+function applyTextTreatment(variables, baseline, boost) {
+  const referenceName = TEXT_FAMILY.find((name) => parseCssColor(variables[name] ?? baseline[name] ?? ""));
+  if (!referenceName) return;
+  const currentReference = parseCssColor(variables[referenceName] ?? baseline[referenceName]);
+  if (!currentReference) return;
+  let base;
+  if (boost.textMode === "custom" && boost.text) {
+    const custom = parseCssColor(boost.text.color);
+    if (!custom) return;
+    base = { ...custom, alpha: clamp2(boost.text.alpha) };
+  } else {
+    const surface = parseCssColor(variables["--lumiverse-bg"] ?? baseline["--lumiverse-bg"] ?? "");
+    base = surface ? ensureContrast(currentReference, surface, 4.5) : currentReference;
+  }
+  for (const name of TEXT_FAMILY) {
+    if (!(name in baseline) && !(name in variables)) continue;
+    const source = normalizeCssValueBoundary(baseline[name] ?? variables[name]), current = parseCssColor(variables[name] ?? source);
+    if (!current) continue;
+    const alpha2 = boost.textMode === "custom" && boost.text ? current.alpha * clamp2(boost.text.alpha) : current.alpha;
+    variables[name] = serializeColorLike(source, rgbaCss({ r: base.r, g: base.g, b: base.b, alpha: alpha2 }));
+  }
+}
 function readableCss(value) {
   const parsed = parseCssColor(value);
   if (!parsed) return "#ffffff";
-  const luminance = (0.2126 * parsed.r + 0.7152 * parsed.g + 0.0722 * parsed.b) / 255;
-  return luminance <= 0.58 ? "#ffffff" : "#17131f";
+  const light = { r: 255, g: 255, b: 255, alpha: 1 }, dark = { r: 23, g: 19, b: 31, alpha: 1 };
+  return contrastRatio(light, parsed) >= contrastRatio(dark, parsed) ? "#ffffff" : "#17131f";
 }
 function protectInteractiveVariables(variables, baseline) {
   const deep = variables["--lumiverse-primary-deep"] ?? baseline["--lumiverse-primary-deep"];
   if (deep && "--lumiverse-primary-deep-contrast" in baseline) variables["--lumiverse-primary-deep-contrast"] = readableCss(deep);
 }
+function emptyRoleCounts() {
+  return Object.fromEntries(BOOST_ROLES.map((role) => [role, 0]));
+}
 function transformThemeVariables(baseline, boost) {
-  const variables = {}, samples = [];
-  let standaloneColorCount = 0, complexColorCount = 0, transformedColorTokenCount = 0, changedCount = 0;
+  if (boost.enabled) for (const [name, value] of Object.entries(baseline)) {
+    const prohibited = prohibitedControlCharacters(value);
+    if (prohibited.length) throw new Error(`Boost baseline CSS value ${name} contains prohibited control characters: ${JSON.stringify(value)} (${prohibited.map((entry) => `index ${entry.index}=U+${entry.codePoint.toString(16).toUpperCase().padStart(4, "0")}`).join(", ")})`);
+  }
+  const variables = {}, roleCounts = emptyRoleCounts();
+  let standaloneColorCount = 0, complexColorCount = 0, transformedColorTokenCount = 0;
   if (boost.enabled && boost.colorsEnabled) for (const [name, raw] of Object.entries(baseline)) {
-    const before = normalizeCssValueBoundary(raw), parsed = parseCssColor(before);
+    const before = normalizeCssValueBoundary(raw), role = classifyBoostVariable(name);
+    roleCounts[role] += 1;
+    const parsed = parseCssColor(before);
+    if (parsed) standaloneColorCount += 1;
+    if (role === "semantic" || role === "preserve") {
+      variables[name] = before;
+      continue;
+    }
     let after = before, tokenCount = 0;
     if (parsed) {
-      after = serializeColorLike(before, transformColor(name, parsed, boost));
-      standaloneColorCount += 1;
+      after = serializeColorLike(before, transformColor(role, parsed, boost));
       tokenCount = 1;
     } else {
-      const transformed = transformColorTokens(name, before, boost);
+      const transformed = transformColorTokens(role, before, boost);
       after = transformed.value;
       tokenCount = transformed.count;
       if (tokenCount) complexColorCount += 1;
     }
     transformedColorTokenCount += tokenCount;
-    if (tokenCount) {
-      changedCount += 1;
-      if (samples.length < 8) samples.push({ variable: name, before, after });
-    }
     variables[name] = after;
   }
+  if (boost.enabled && boost.colorsEnabled) applyTextTreatment(variables, baseline, boost);
   if (boost.enabled && boost.canvasEnabled) {
     const canvasAlpha = clamp2(boost.canvasOpacity, 0, 1);
     const canvasVariables = ["--lumiverse-scene-text-scrim", "--lumiverse-bg-deep-080", "--lumiverse-bg-070"];
     for (const name of canvasVariables) {
       if (!(name in baseline)) continue;
-      const source = variables[name] ?? normalizeCssValueBoundary(baseline[name]);
-      const parsed = parseCssColor(source);
-      if (parsed) {
-        const adjusted = `rgba(${byte(parsed.r)}, ${byte(parsed.g)}, ${byte(parsed.b)}, ${alphaText(parsed.alpha * canvasAlpha)})`;
-        const after = serializeColorLike(source, adjusted);
-        variables[name] = after;
-        if (after !== source) {
-          changedCount += 1;
-          if (samples.length < 8) samples.push({ variable: name, before: source, after });
-        }
-      } else variables[name] = source;
+      const source = variables[name] ?? normalizeCssValueBoundary(baseline[name]), parsed = parseCssColor(source);
+      if (parsed) variables[name] = serializeColorLike(source, rgbaCss({ ...parsed, alpha: parsed.alpha * canvasAlpha }));
+      else variables[name] = source;
     }
   }
-  if (boost.enabled && boost.colorsEnabled) Object.assign(variables, deriveLegacyBoostOverrides(boost));
   if (boost.enabled && boost.colorsEnabled && boost.protectControls) protectInteractiveVariables(variables, baseline);
   if (boost.enabled && boost.typographyEnabled && boost.typography.fontFamily && "--lumiverse-font-family" in baseline) variables["--lumiverse-font-family"] = boost.typography.fontFamily;
   if (boost.enabled && boost.typographyEnabled && boost.typography.scale !== void 0 && "--lumiverse-font-scale" in baseline) variables["--lumiverse-font-scale"] = String(clamp2(boost.typography.scale, 0.25, 4));
@@ -3178,51 +3265,16 @@ function transformThemeVariables(baseline, boost) {
     const prohibited = prohibitedControlCharacters(value);
     if (prohibited.length) throw new Error(`Boost CSS value ${name} contains prohibited control characters: ${JSON.stringify(value)} (${prohibited.map((entry) => `index ${entry.index}=U+${entry.codePoint.toString(16).toUpperCase().padStart(4, "0")}`).join(", ")})`);
   }
-  const sourceCount = Object.keys(baseline).length, colorCount = standaloneColorCount + complexColorCount, preservedCount = boost.enabled && (boost.colorsEnabled || boost.canvasEnabled) ? Math.max(0, sourceCount - changedCount) : sourceCount;
-  return { variables, diagnostics: { sourceCount, standaloneColorCount, complexColorCount, transformedColorTokenCount, colorCount, changedCount, preservedCount, skippedCount: preservedCount, samples } };
-}
-function mix(color, target, amount) {
-  const source = parseHexColor(color), destination = parseHexColor(target);
-  if (!source || !destination) return color;
-  const value = clamp2(amount);
-  return `#${channel(source.r + (destination.r - source.r) * value)}${channel(source.g + (destination.g - source.g) * value)}${channel(source.b + (destination.b - source.b) * value)}`;
-}
-function readable(color) {
-  const value = parseHexColor(color);
-  return !value || (0.2126 * value.r + 0.7152 * value.g + 0.0722 * value.b) / 255 <= 0.58 ? "#ffffff" : "#17131f";
-}
-function alpha2(value, multiplier = 1) {
-  return colorWithAlpha(value.color, clamp2(value.alpha * multiplier));
-}
-function valid(entries) {
-  return entries;
-}
-function compilePrimaryFamily(value) {
-  return valid({ "--lumiverse-primary": alpha2(value), "--lumiverse-primary-hover": colorWithAlpha(mix(value.color, "#ffffff", 0.12), value.alpha), "--lumiverse-primary-light": alpha2(value, 0.1), "--lumiverse-primary-muted": alpha2(value, 0.6), "--lumiverse-primary-text": colorWithAlpha(mix(value.color, "#ffffff", 0.18), Math.max(value.alpha, 0.92)), "--lumiverse-primary-010": alpha2(value, 0.1), "--lumiverse-primary-015": alpha2(value, 0.15), "--lumiverse-primary-020": alpha2(value, 0.2), "--lumiverse-primary-050": alpha2(value, 0.5), "--lumiverse-primary-deep": mix(value.color, "#000000", 0.72), "--lumiverse-primary-deep-hover": mix(value.color, "#000000", 0.62), "--lumiverse-primary-deep-contrast": readable(mix(value.color, "#000000", 0.72)) });
-}
-function compileSecondaryFamily(value) {
-  return valid({ "--lumiverse-secondary": alpha2(value, 0.35), "--lumiverse-secondary-hover": alpha2(value, 0.5), "--lumiverse-secondary-border": alpha2(value, 0.45) });
-}
-function compileSurfaceFamily(value) {
-  const elevated = mix(value.color, "#ffffff", 0.07), hover = mix(value.color, "#ffffff", 0.12), deep = mix(value.color, "#000000", 0.22);
-  return valid({ "--lumiverse-bg": alpha2(value), "--lumiverse-bg-elevated": colorWithAlpha(elevated, value.alpha), "--lumiverse-bg-hover": colorWithAlpha(hover, value.alpha), "--lumiverse-bg-dark": mix(value.color, "#000000", 0.12), "--lumiverse-bg-darker": deep, "--lumiverse-bg-040": alpha2(value, 0.4), "--lumiverse-bg-050": alpha2(value, 0.5), "--lumiverse-bg-070": alpha2(value, 0.7), "--lumiverse-card-bg": colorWithAlpha(elevated, value.alpha * 0.92), "--lumiverse-card-bg-solid": elevated, "--lumiverse-fill": colorWithAlpha(hover, 0.1), "--lumiverse-fill-hover": colorWithAlpha(hover, 0.15), "--lumiverse-fill-strong": colorWithAlpha(hover, 0.35) });
-}
-function compileTextFamily(value) {
-  return valid({ "--lumiverse-text": alpha2(value), "--lumiverse-text-muted": alpha2(value, 0.68), "--lumiverse-text-dim": alpha2(value, 0.48), "--lumiverse-text-hint": alpha2(value, 0.36), "--lumiverse-icon": alpha2(value, 0.9), "--lumiverse-icon-muted": alpha2(value, 0.62), "--lumiverse-icon-dim": alpha2(value, 0.42) });
-}
-function compileMutedFamily(value) {
-  return valid({ "--lumiverse-text-muted": alpha2(value), "--lumiverse-text-dim": alpha2(value, 0.7), "--lumiverse-text-hint": alpha2(value, 0.5), "--lumiverse-icon-muted": alpha2(value, 0.9), "--lumiverse-icon-dim": alpha2(value, 0.65) });
-}
-function compileBorderFamily(value) {
-  return valid({ "--lumiverse-border": alpha2(value, 0.45), "--lumiverse-border-hover": alpha2(value, 0.68), "--lumiverse-border-light": alpha2(value, 0.25), "--lumiverse-border-neutral": alpha2(value, 0.34), "--lumiverse-border-neutral-hover": alpha2(value, 0.55) });
-}
-function deriveLegacyBoostOverrides(boost) {
-  const result = {}, compile = { primary: compilePrimaryFamily, secondary: compileSecondaryFamily, surface: compileSurfaceFamily, text: compileTextFamily, muted: compileMutedFamily, border: compileBorderFamily };
-  for (const role of Object.keys(boost.legacyPalette ?? {})) {
-    const value = boost.legacyPalette?.[role], family = compile[role];
-    if (value && family) Object.assign(result, family(value));
+  const samples = [], sourceCount = Object.keys(baseline).length;
+  let changedCount = 0;
+  for (const [name, raw] of Object.entries(baseline)) {
+    const before = normalizeCssValueBoundary(raw), after = variables[name];
+    if (after === void 0 || after === before) continue;
+    changedCount += 1;
+    if (samples.length < 8) samples.push({ variable: name, role: classifyBoostVariable(name), before, after });
   }
-  return result;
+  const colorCount = standaloneColorCount + complexColorCount, preservedCount = boost.enabled ? Math.max(0, sourceCount - changedCount) : sourceCount;
+  return { variables, diagnostics: { sourceCount, standaloneColorCount, complexColorCount, transformedColorTokenCount, colorCount, changedCount, preservedCount, skippedCount: preservedCount, roleCounts, samples } };
 }
 function deriveBoostTokenOverrides(boost, baseline = {}) {
   return boost.enabled ? transformThemeVariables(baseline, boost).variables : {};
@@ -4078,9 +4130,9 @@ function svgReplacementRules(selector2, packet2, strength) {
   const descendants = svgReplacementDescendants(target);
   const encoded = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
   const position = `${number(clamp3(packet2.positionX, 0, 100), 1)}% ${number(clamp3(packet2.positionY, 0, 100), 1)}%`;
-  const alpha3 = clamp3(packet2.alpha, 0, 1);
-  const inheritedColor = alpha3 >= 0.999 ? "currentColor" : `color-mix(in srgb, currentColor ${number(alpha3 * 100, 1)}%, transparent)`;
-  const stencilColor = packet2.colorMode === "inherit" ? inheritedColor : colorWithAlpha(packet2.color, alpha3);
+  const alpha2 = clamp3(packet2.alpha, 0, 1);
+  const inheritedColor = alpha2 >= 0.999 ? "currentColor" : `color-mix(in srgb, currentColor ${number(alpha2 * 100, 1)}%, transparent)`;
+  const stencilColor = packet2.colorMode === "inherit" ? inheritedColor : colorWithAlpha(packet2.color, alpha2);
   const size = packet2.size === void 0 ? "" : `${number(clamp3(packet2.size, 4, 512), 1)}px`;
   const rotate = number(packet2.rotate ?? 0, 1);
   const declarations = packet2.renderMode === "image" ? [
@@ -4379,8 +4431,8 @@ function compileFontFace(font2) {
   return ["@font-face {", `  font-family: "${escapeCssString(font2.family)}";`, `  src: url("${path}") format("${format}");`, `  font-weight: ${safe(String(font2.weight ?? 400), "400")};`, `  font-style: ${font2.style ?? "normal"};`, `  font-display: ${font2.display ?? "swap"};`, "}"].join("\n");
 }
 function compileTokenOverrides(tokens) {
-  const valid2 = tokens.filter((token) => /^--[a-zA-Z0-9_-]+$/.test(token.variable) && token.value.trim());
-  return valid2.length ? ["/* Global theme tokens */", ":root {", ...valid2.map((token) => `  ${token.variable}: ${safe(token.value, "initial")};`), "}"].join("\n") : "";
+  const valid = tokens.filter((token) => /^--[a-zA-Z0-9_-]+$/.test(token.variable) && token.value.trim());
+  return valid.length ? ["/* Global theme tokens */", ":root {", ...valid.map((token) => `  ${token.variable}: ${safe(token.value, "initial")};`), "}"].join("\n") : "";
 }
 function compileBoost(project2, nativeVariables = {}) {
   const declarations = Object.entries(deriveBoostTokenOverrides(project2.boost, nativeVariables)).sort(([a], [b]) => a.localeCompare(b)).map(([name, value]) => `  ${name}: ${safe(value, "initial")};`);
@@ -4402,7 +4454,7 @@ function compileThemeProject(project2, nativeVariables = {}) {
   return compileProject(project2, {}, nativeVariables);
 }
 function compilePreviewThemeProject(project2, options = {}, nativeVariables = {}) {
-  return compileProject(project2, options, nativeVariables);
+  return compileProject(project2, { includeBoost: true, ...options }, nativeVariables);
 }
 
 // src/compiler/validation.ts
@@ -4762,22 +4814,23 @@ function hasAny(properties, names) {
   return false;
 }
 function px2(value) {
-  const match = value.trim().match(/^(-?(?:\d+\.?\d*|\.\d+))px$/i);
+  const match = (value ?? "").trim().match(/^(-?(?:\d+\.?\d*|\.\d+))px$/i);
   return match ? Number(match[1]) : null;
 }
 function numeric(value) {
+  if (value === null || value === void 0 || String(value).trim() === "") return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
 function percentPosition(value) {
-  const bits = value.trim().split(/\s+/);
+  const bits = (value ?? "").trim().split(/\s+/);
   if (bits.length < 2) return null;
   const parse = (input) => input.endsWith("%") ? Number(input.slice(0, -1)) : null;
   const x = parse(bits[0]), y = parse(bits[1]);
   return x !== null && y !== null && Number.isFinite(x) && Number.isFinite(y) ? [x, y] : null;
 }
 function rgba(value) {
-  const trimmed = value.trim().toLowerCase();
+  const trimmed = (value ?? "").trim().toLowerCase();
   if (!trimmed || trimmed === "transparent") return null;
   const hex2 = trimmed.match(/^#([0-9a-f]{6})([0-9a-f]{2})?$/i);
   if (hex2) return { color: `#${hex2[1]}`, alpha: hex2[2] ? parseInt(hex2[2], 16) / 255 : 1 };
@@ -4803,7 +4856,7 @@ function parseFirstShadow(value) {
   return { x: numbers[0], y: numbers[1], blur: Math.max(0, numbers[2] ?? 0), spread: numbers[3] ?? 0, color: color?.color ?? "#000000", alpha: color?.alpha ?? 1, inset: /\binset\b/i.test(first) };
 }
 function parseFilterNumber(value, name, fallback) {
-  const match = value.match(new RegExp(`${name}\\(([-+.\\d]+)(%|deg|px)?\\)`, "i"));
+  const match = (value ?? "").match(new RegExp(`${name}\\(([-+.\\d]+)(%|deg|px)?\\)`, "i"));
   if (!match) return fallback;
   const number2 = Number(match[1]);
   if (!Number.isFinite(number2)) return fallback;
@@ -4818,7 +4871,7 @@ function parseMaskEdgeLayer(value) {
 }
 function readMaskIntoPacket(style, packet2) {
   const webkitMask = style.getPropertyValue("-webkit-mask-image").trim();
-  const standardMask = style.maskImage.trim();
+  const standardMask = (style.maskImage ?? style.getPropertyValue("mask-image") ?? "").trim();
   const raw = webkitMask && webkitMask !== "none" ? webkitMask : standardMask && standardMask !== "none" ? standardMask : webkitMask || standardMask;
   if (!raw) return;
   if (raw === "none") {
@@ -4859,7 +4912,7 @@ function readMaskIntoPacket(style, packet2) {
   packet2.maskMode = "native";
 }
 function parseGradient(value) {
-  const match = value.match(/linear-gradient\((.*)\)/i);
+  const match = (value ?? "").match(/linear-gradient\((.*)\)/i);
   if (!match) return null;
   const bits = splitTopLevel(match[1]);
   if (bits.length < 2) return null;
@@ -4884,7 +4937,7 @@ function parseGradient(value) {
 function computedFallbackHas(style, group) {
   switch (group) {
     case "background":
-      return style.backgroundColor !== "rgba(0, 0, 0, 0)" || style.backgroundImage !== "none";
+      return !["", "transparent", "rgba(0, 0, 0, 0)"].includes(style.backgroundColor ?? "") || (style.backgroundImage ?? "none") !== "none";
     case "text":
       return Boolean(style.color);
     case "border":
@@ -4894,7 +4947,7 @@ function computedFallbackHas(style, group) {
     case "spacing":
       return [...["paddingTop", "paddingRight", "paddingBottom", "paddingLeft", "marginTop", "marginRight", "marginBottom", "marginLeft"]].some((key) => Math.abs(px2(style[key]) ?? 0) > 0.01) || Math.abs(px2(style.gap) ?? 0) > 0.01;
     case "shadow":
-      return style.boxShadow !== "none";
+      return (style.boxShadow ?? "none") !== "none";
     case "glass":
       return (style.backdropFilter || style.getPropertyValue("-webkit-backdrop-filter") || "none") !== "none";
     case "opacity":
@@ -4902,7 +4955,7 @@ function computedFallbackHas(style, group) {
     case "layout":
       return ["flex", "inline-flex", "grid", "inline-grid"].includes(style.display);
     case "position":
-      return style.position !== "static" || style.zIndex !== "auto";
+      return (style.position ?? "static") !== "static" || (style.zIndex ?? "auto") !== "auto";
     case "visibility":
       return style.display === "none" || style.visibility === "hidden";
     default:
@@ -4961,7 +5014,7 @@ function reverseEngineerElement(element, pseudo = "") {
       const size = px2(style.fontSize) ?? 15;
       packet2.fontSize = size;
       packet2.fontSizeUnit = "px";
-      packet2.fontFamily = style.fontFamily.split(",")[0]?.trim().replace(/^['"]|['"]$/g, "") || void 0;
+      packet2.fontFamily = (style.fontFamily ?? "").split(",")[0]?.trim().replace(/^['"]|['"]$/g, "") || void 0;
       packet2.fontWeight = numeric(style.fontWeight) ?? style.fontWeight;
       packet2.fontStyle = style.fontStyle === "italic" ? "italic" : "normal";
       packet2.textAlign = style.textAlign === "center" || style.textAlign === "right" || style.textAlign === "justify" ? style.textAlign : "left";
@@ -5083,9 +5136,9 @@ function reverseEngineerElement(element, pseudo = "") {
     const packet2 = createStylePacket("position");
     if (packet2.type === "position") {
       packet2.mode = style.position === "relative" ? "nudge" : style.position === "absolute" ? "anchored" : style.position === "sticky" ? "sticky" : style.position === "fixed" ? "screen" : "flow";
-      const readOffset = (value) => value === "auto" ? void 0 : px2(value) ?? void 0;
+      const readOffset = (value) => !value || value === "auto" ? void 0 : px2(value) ?? void 0;
       if (packet2.mode === "nudge") {
-        const translate = style.translate.trim().split(/\s+/);
+        const translate = (style.translate ?? style.getPropertyValue("translate") ?? "").trim().split(/\s+/);
         packet2.nudgeX = px2(translate[0] ?? "") ?? 0;
         packet2.nudgeY = px2(translate[1] ?? "") ?? 0;
       } else {
@@ -5107,11 +5160,11 @@ function reverseEngineerElement(element, pseudo = "") {
       const packet2 = createStylePacket("layout");
       if (packet2.type === "layout") {
         packet2.display = style.display;
-        if (style.display.includes("flex")) {
+        if ((style.display ?? "").includes("flex")) {
           packet2.direction = style.flexDirection;
           packet2.wrap = style.flexWrap;
         }
-        const map = (value) => value === "flex-start" ? "start" : value === "flex-end" ? "end" : value;
+        const map = (value) => value === "flex-start" ? "start" : value === "flex-end" ? "end" : value ?? "";
         packet2.justify = map(style.justifyContent);
         packet2.align = map(style.alignItems);
         const gap = px2(style.gap);
@@ -5146,7 +5199,7 @@ function reverseEngineerElement(element, pseudo = "") {
       if (hasAny(authored, ["max-width"])) packet2.maxWidth = dimension(style.maxWidth);
       if (hasAny(authored, ["min-height"])) packet2.minHeight = dimension(style.minHeight);
       if (hasAny(authored, ["max-height"])) packet2.maxHeight = dimension(style.maxHeight);
-      const ratio = style.aspectRatio.match(/^([\d.]+)\s*\/\s*([\d.]+)$/);
+      const ratio = (style.aspectRatio ?? "").match(/^([\d.]+)\s*\/\s*([\d.]+)$/);
       if (ratio) packet2.aspectRatio = { width: Number(ratio[1]), height: Number(ratio[2]) };
       packets2.push(packet2);
     }
@@ -5218,7 +5271,7 @@ var EDITORIAL_THOUGHT_MARK = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%
 function ornamentPath(id) {
   return builtinOrnament(id)?.assetPath ?? "";
 }
-function ornamentPlanePackets(id, color, width, height, anchorRole, offsets = {}, alpha3 = 1) {
+function ornamentPlanePackets(id, color, width, height, anchorRole, offsets = {}, alpha2 = 1) {
   const background = packet("background");
   background.mode = "image";
   background.image.assetPath = ornamentPath(id);
@@ -5228,7 +5281,7 @@ function ornamentPlanePackets(id, color, width, height, anchorRole, offsets = {}
   background.image.repeat = "no-repeat";
   background.image.renderMode = "mask";
   background.image.maskColor = color;
-  background.image.maskAlpha = alpha3;
+  background.image.maskAlpha = alpha2;
   background.image.hideContents = false;
   const position = packet("position");
   position.mode = "anchored";
@@ -5256,13 +5309,13 @@ function ornamentSvgSource(id) {
     return "";
   }
 }
-function ornamentSvgPlanePackets(id, color, width, height, anchorRole, offsets = {}, alpha3 = 1) {
+function ornamentSvgPlanePackets(id, color, width, height, anchorRole, offsets = {}, alpha2 = 1) {
   const svg = packet("svg-asset");
   svg.svg = ornamentSvgSource(id);
   svg.assetName = builtinOrnament(id)?.label;
   svg.renderMode = "mask";
   svg.color = color;
-  svg.alpha = alpha3;
+  svg.alpha = alpha2;
   svg.fit = "contain";
   svg.positionX = 50;
   svg.positionY = 50;
@@ -5305,7 +5358,7 @@ function mediaFlowPackets(mode = "full", unclipped = true) {
   flow.unclipped = unclipped;
   return [flow];
 }
-function vnHeartPackets(sizeValue, color, alpha3 = 1) {
+function vnHeartPackets(sizeValue, color, alpha2 = 1) {
   const background = packet("background");
   background.mode = "image";
   background.image.assetPath = ornamentPath("scribble-heart");
@@ -5315,7 +5368,7 @@ function vnHeartPackets(sizeValue, color, alpha3 = 1) {
   background.image.repeat = "no-repeat";
   background.image.renderMode = "mask";
   background.image.maskColor = color;
-  background.image.maskAlpha = alpha3;
+  background.image.maskAlpha = alpha2;
   background.image.hideContents = false;
   const size = packet("size");
   size.width = { mode: "fixed", value: sizeValue, unit: "px" };
@@ -18726,6 +18779,11 @@ function composerSvgDataUri(svg) {
 function escapeHtml(value) {
   return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 }
+function escapeCssIdentifier(value) {
+  const css = globalThis.CSS;
+  if (typeof css?.escape === "function") return css.escape(value);
+  return value.replace(/[^a-zA-Z0-9_-]/g, (char) => `\\${char}`);
+}
 function formatBytes(value) {
   return value === void 0 ? "" : value < 1024 ? `${value} B` : value < 1048576 ? `${Math.round(value / 1024)} KB` : `${(value / 1048576).toFixed(1)} MB`;
 }
@@ -20113,8 +20171,8 @@ var ThemeStudioUI = class {
     root.querySelectorAll("[data-pack-asset-pad]").forEach((pad) => {
       const packId = pad.dataset.packId ?? "";
       const slotId = pad.dataset.packAssetPad ?? "";
-      const xInput = pad.parentElement?.querySelector(`[data-pack-asset-x="${CSS.escape(slotId)}"]`);
-      const yInput = pad.parentElement?.querySelector(`[data-pack-asset-y="${CSS.escape(slotId)}"]`);
+      const xInput = pad.parentElement?.querySelector(`[data-pack-asset-x="${escapeCssIdentifier(slotId)}"]`);
+      const yInput = pad.parentElement?.querySelector(`[data-pack-asset-y="${escapeCssIdentifier(slotId)}"]`);
       let nextX = Number(pad.dataset.packAssetPadX) || 0;
       let nextY = Number(pad.dataset.packAssetPadY) || 0;
       const preview2 = (event) => {
@@ -20142,7 +20200,7 @@ var ThemeStudioUI = class {
     root.querySelectorAll("[data-pack-asset-y]").forEach((input) => input.addEventListener("change", () => this.applyPackAssetBinding(input.dataset.packId ?? "", input.dataset.packAssetY ?? "", { y: Number(input.value) || 0 })));
     root.querySelectorAll("[data-pack-asset-size]").forEach((input) => {
       input.addEventListener("input", () => {
-        const label = root.querySelector(`[data-pack-asset-size-value="${CSS.escape(input.dataset.packAssetSize ?? "")}"]`);
+        const label = root.querySelector(`[data-pack-asset-size-value="${escapeCssIdentifier(input.dataset.packAssetSize ?? "")}"]`);
         if (label) label.textContent = `${Math.round(Number(input.value) || 0)}px`;
       });
       input.addEventListener("change", () => this.applyPackAssetBinding(input.dataset.packId ?? "", input.dataset.packAssetSize ?? "", { size: Number(input.value) || 96 }));
@@ -20168,7 +20226,7 @@ var ThemeStudioUI = class {
       packNavButtons.forEach((button, index) => button.setAttribute("aria-current", index === activeIndex ? "true" : "false"));
     };
     packNavButtons.forEach((button) => button.addEventListener("click", () => {
-      const section = root.querySelector(`[data-pack-section="${CSS.escape(button.dataset.packScrollSection ?? "")}"]`);
+      const section = root.querySelector(`[data-pack-section="${escapeCssIdentifier(button.dataset.packScrollSection ?? "")}"]`);
       if (!section || !packMain) return;
       const mainRect = packMain.getBoundingClientRect();
       const navHeight = packNav?.offsetHeight ?? 0;
@@ -21039,8 +21097,8 @@ var ThemeStudioUI = class {
     if (!this.recentColors.length) return "";
     return `<div class="ts-recent"><span>Recent</span><div class="ts-recent-swatches">${this.recentColors.map((color) => `<button type="button" class="ts-recent-swatch" data-recent-color="${escapeHtml(color)}" data-recent-field="${escapeHtml(field)}" style="--ts-recent:${escapeHtml(color)}" title="Use ${escapeHtml(color)}" aria-label="Use recent color ${escapeHtml(color)}"></button>`).join("")}</div></div>`;
   }
-  colorField(label, field, value, alpha3) {
-    return `<div class="ts-field"><label class="ts-label">${label}</label><div class="ts-color-row"><label class="ts-color-picker" title="Open color picker"><input class="ts-color" type="color" value="${escapeHtml(colorInput(value))}" data-packet-field="${field}" aria-label="Pick ${label.toLowerCase()} color"><span>Pick</span></label><input class="ts-input" type="text" value="${escapeHtml(value)}" data-packet-field="${field}" aria-label="${label} value"></div>${this.renderRecentColors(field)}</div>${alpha3 === void 0 ? "" : this.rangeField(`${label} opacity`, `${field}-alpha`, percent(alpha3), 0, 100, "%")}`;
+  colorField(label, field, value, alpha2) {
+    return `<div class="ts-field"><label class="ts-label">${label}</label><div class="ts-color-row"><label class="ts-color-picker" title="Open color picker"><input class="ts-color" type="color" value="${escapeHtml(colorInput(value))}" data-packet-field="${field}" aria-label="Pick ${label.toLowerCase()} color"><span>Pick</span></label><input class="ts-input" type="text" value="${escapeHtml(value)}" data-packet-field="${field}" aria-label="${label} value"></div>${this.renderRecentColors(field)}</div>${alpha2 === void 0 ? "" : this.rangeField(`${label} opacity`, `${field}-alpha`, percent(alpha2), 0, 100, "%")}`;
   }
   dimensionField(label, field, value) {
     const current = value ?? { mode: "native" };
@@ -21945,6 +22003,7 @@ var ThemeStudioUI = class {
     };
     push(project2.boost.primary.color);
     push(project2.boost.secondary?.color);
+    push(project2.boost.text.color);
     for (const override2 of project2.componentOverrides) {
       for (const packet2 of override2.states.normal ?? []) {
         if (packet2.type === "background") {
@@ -21975,15 +22034,17 @@ var ThemeStudioUI = class {
     const fonts = knownTypographyChoices(this.store.activeProject, this.variables), diagnostics = this.themeRuntime?.diagnostics;
     const slider = (label, field, value, min, max) => `<div class="ts-field"><label class="ts-label">${label}<span data-boost-value="${field}">${Math.round(value * 100)}%</span></label><input class="ts-range" type="range" min="${min}" max="${max}" value="${Math.round(value * 100)}" data-boost-param="${field}"></div>`;
     const boostRecent = (key) => this.recentColors.length ? `<div class="ts-recent"><span>Recent</span><div class="ts-recent-swatches">${this.recentColors.map((color) => `<button type="button" class="ts-recent-swatch" data-boost-recent="${key}" data-recent-color="${escapeHtml(color)}" style="--ts-recent:${escapeHtml(color)}" title="Use ${escapeHtml(color)}"></button>`).join("")}</div></div>` : "";
+    const boostColorField = (key, label, value, fallback) => `<div class="ts-field"><label class="ts-label">${label}</label><div class="ts-color-row"><label class="ts-color-picker" title="Open color picker"><input class="ts-color" type="color" value="${escapeHtml(colorInput(value, fallback))}" data-boost-color="${key}" aria-label="Pick ${escapeHtml(label)}"><span>Pick</span></label><input class="ts-input" value="${escapeHtml(value)}" data-boost-color="${key}"></div>${boostRecent(key)}</div>`;
+    const textTreatment = `<div class="ts-field ts-boost-text-treatment"><label class="ts-label">Text treatment</label><div class="ts-segment"><button type="button" data-boost-text-mode="auto" aria-pressed="${boost.textMode === "auto"}">Auto contrast</button><button type="button" data-boost-text-mode="custom" aria-pressed="${boost.textMode === "custom"}">Custom</button></div><p class="ts-note">Auto keeps native foreground character and repairs the main text anchor against the transformed surface. Custom uses your foreground anchor instead.</p></div>${boost.textMode === "custom" ? boostColorField("text", "Text anchor", boost.text.color, "#f4eef8") : ""}`;
+    const diagnosticRoles = diagnostics ? `<div class="ts-meta ts-boost-role-meta"><span>Primary <strong>${diagnostics.roleCounts.primary}</strong></span><span>Secondary <strong>${diagnostics.roleCounts.secondary}</strong></span><span>Surface <strong>${diagnostics.roleCounts.surface}</strong></span><span>Text <strong>${diagnostics.roleCounts.text}</strong></span><span>Muted <strong>${diagnostics.roleCounts.muted}</strong></span><span>Border <strong>${diagnostics.roleCounts.border}</strong></span><span>Neutral <strong>${diagnostics.roleCounts.neutral}</strong></span><span>Semantic <strong>${diagnostics.roleCounts.semantic}</strong></span><span>Pass-through <strong>${diagnostics.roleCounts.preserve}</strong></span></div>` : "";
     const colorsBody = boost.colorsEnabled ? `<div class="ts-segment"><button type="button" data-boost-mode="recolor" aria-pressed="${boost.mode === "recolor"}">Recolor</button><button type="button" data-boost-mode="smart-invert" aria-pressed="${boost.mode === "smart-invert"}">Smart Invert</button></div>
-      ${["primary", "secondary"].map((key) => {
-      const value = key === "primary" ? boost.primary.color : boost.secondary?.color ?? boost.primary.color;
-      return `<div class="ts-field"><label class="ts-label">${key === "primary" ? "Primary" : "Secondary"} anchor</label><div class="ts-color-row"><label class="ts-color-picker" title="Open color picker"><input class="ts-color" type="color" value="${escapeHtml(colorInput(value, "#9370db"))}" data-boost-color="${key}" aria-label="Pick ${key} Boost color"><span>Pick</span></label><input class="ts-input" value="${escapeHtml(value)}" data-boost-color="${key}"></div>${boostRecent(key)}</div>`;
-    }).join("")}
+      ${boostColorField("primary", "Primary accent", boost.primary.color, "#9370db")}
+      ${boostColorField("secondary", "Secondary accent", boost.secondary?.color ?? boost.primary.color, "#786bf0")}
+      <p class="ts-note">Primary also seeds the automatic surface and border tint. Secondary stays within supporting accent roles.</p>
+      ${textTreatment}
       ${slider("Contrast", "contrast", boost.contrast, -100, 100)}${slider("Brightness", "brightness", boost.brightness, -100, 100)}${slider("Original saturation", "originalSaturation", boost.originalSaturation, 0, 100)}
-      <label class="ts-check ts-boost-protect"><input type="checkbox" data-boost-protect-controls ${boost.protectControls ? "checked" : ""}> <span><strong>Protect controls</strong><small>Keep native button/primary text readable after recoloring.</small></span></label>
-      ${boost.legacyPalette && Object.keys(boost.legacyPalette).length ? `<p class="ts-note">${Object.keys(boost.legacyPalette).length} migrated palette role${Object.keys(boost.legacyPalette).length === 1 ? "" : "s"} remain as compatibility overrides after the transform.</p>` : ""}
-      ${diagnostics ? `<details class="ts-advanced"><summary>Transform diagnostics</summary><div class="ts-meta"><span>Source <strong>${diagnostics.sourceCount}</strong></span><span>Standalone <strong>${diagnostics.standaloneColorCount}</strong></span><span>Complex <strong>${diagnostics.complexColorCount}</strong></span><span>Color tokens <strong>${diagnostics.transformedColorTokenCount}</strong></span><span>Changed <strong>${diagnostics.changedCount}</strong></span><span>Preserved <strong>${diagnostics.preservedCount}</strong></span></div></details>` : ""}` : '<p class="ts-note">Leave Colors off when you only want an app-wide font change. No palette variables are transformed.</p>';
+      <label class="ts-check ts-boost-protect"><input type="checkbox" data-boost-protect-controls ${boost.protectControls ? "checked" : ""}> <span><strong>Protect controls</strong><small>Repair control foregrounds that lose contrast after recoloring.</small></span></label>
+      ${diagnostics ? `<details class="ts-advanced"><summary>Transform diagnostics</summary><div class="ts-meta"><span>Source <strong>${diagnostics.sourceCount}</strong></span><span>Standalone <strong>${diagnostics.standaloneColorCount}</strong></span><span>Complex <strong>${diagnostics.complexColorCount}</strong></span><span>Color tokens <strong>${diagnostics.transformedColorTokenCount}</strong></span><span>Changed <strong>${diagnostics.changedCount}</strong></span><span>Preserved <strong>${diagnostics.preservedCount}</strong></span></div>${diagnosticRoles}</details>` : ""}` : '<p class="ts-note">Leave Colors off when you only want an app-wide font change. No palette variables are transformed.</p>';
     const typographyBody = boost.typographyEnabled ? `<div class="ts-field"><label class="ts-label">Typeface <span>${fonts.length} loaded</span></label>${this.fontSamples("boost", boost.typography.fontFamily)}<details class="ts-advanced ts-font-exact"><summary>Exact font</summary><select class="ts-input ts-font-select" data-boost-font><option value="">Native font</option>${fonts.map((font2) => `<option value="${escapeHtml(font2)}" ${boost.typography.fontFamily === font2 ? "selected" : ""}>${escapeHtml(font2)}</option>`).join("")}</select></details></div><div class="ts-field"><label class="ts-label">App type scale <span data-boost-value="scale">${Math.round((boost.typography.scale ?? 1) * 100)}%</span></label><input class="ts-range" type="range" min="75" max="150" value="${Math.round((boost.typography.scale ?? 1) * 100)}" data-boost-scale></div>` : '<p class="ts-note">Typography is independent from recoloring. Turn it on to change only the app\u2019s loaded font and scale.</p>';
     const wallpaperSlider = (label, key, value, min, max, suffix, step = 1) => `<div class="ts-field"><label class="ts-label">${label}<span data-boost-wallpaper-value="${key}">${Math.round(value)}${suffix}</span></label><input class="ts-range" type="range" min="${min}" max="${max}" step="${step}" value="${value}" data-boost-wallpaper="${key}"></div>`;
     const wallpaperTreatment = boost.wallpaperTreatmentEnabled ? `<div class="ts-boost-subsection"><div class="ts-boost-subhead"><div><strong>Wallpaper layer</strong><small>Direct treatment of the mounted wallpaper image.</small></div><label class="ts-switch"><input type="checkbox" data-boost-wallpaper-enabled checked><span aria-hidden="true"></span></label></div>${wallpaperSlider("Visibility", "opacity", boost.wallpaperOpacity * 100, 0, 100, "%")}${wallpaperSlider("Blur", "blur", boost.wallpaperBlur, 0, 32, "px")}${wallpaperSlider("Saturation", "saturation", boost.wallpaperSaturation * 100, 0, 200, "%")}${wallpaperSlider("Contrast", "contrast", boost.wallpaperContrast * 100, 25, 200, "%")}${wallpaperSlider("Brightness", "brightness", boost.wallpaperBrightness * 100, 10, 200, "%")}<p class="ts-note">This layer is intentionally authoritative: Palette can override Lumiverse\u2019s inline wallpaper opacity without changing the Wallpaper setting itself.</p></div>` : `<div class="ts-boost-subsection"><div class="ts-boost-subhead"><div><strong>Wallpaper layer</strong><small>Visibility, blur, saturation, contrast, and brightness.</small></div><label class="ts-switch"><input type="checkbox" data-boost-wallpaper-enabled><span aria-hidden="true"></span></label></div><p class="ts-note">Enable direct wallpaper treatment. Disable it to fall straight back to Lumiverse\u2019s own wallpaper opacity and image styling.</p></div>`;
@@ -22673,7 +22734,7 @@ var ThemeStudioUI = class {
     root.querySelectorAll("[data-recent-color]").forEach((button) => button.addEventListener("click", () => {
       const color = button.dataset.recentColor, field = button.dataset.recentField, article = button.closest("[data-packet-id]");
       if (!color || !field || !article) return;
-      const peer = article.querySelector(`[data-packet-field="${CSS.escape(field)}"]`);
+      const peer = article.querySelector(`[data-packet-field="${escapeCssIdentifier(field)}"]`);
       if (!peer) return;
       peer.value = color;
       this.rememberColor(color);
@@ -22693,10 +22754,10 @@ var ThemeStudioUI = class {
       if (range) {
         input.addEventListener("input", () => {
           const field = input.dataset.packetField ?? "";
-          input.closest("[data-packet-id]")?.querySelectorAll(`[data-packet-field="${CSS.escape(field)}"]`).forEach((peer) => {
+          input.closest("[data-packet-id]")?.querySelectorAll(`[data-packet-field="${escapeCssIdentifier(field)}"]`).forEach((peer) => {
             if (peer !== input) peer.value = input.value;
           });
-          input.closest("[data-packet-id]")?.querySelectorAll(`[data-range-display="${CSS.escape(field)}"]`).forEach((display) => {
+          input.closest("[data-packet-id]")?.querySelectorAll(`[data-range-display="${escapeCssIdentifier(field)}"]`).forEach((display) => {
             display.textContent = `${input.value}${display.dataset.rangeUnit ?? ""}`;
           });
           this.previewPacketField(input);
@@ -22858,20 +22919,20 @@ ${compileComponentOverride(draft, previewOptions)}`);
     const field = input.dataset.packetField ?? "";
     const numeric2 = () => Number.isFinite(Number(input.value)) ? Number(input.value) : 0;
     const optionalNumeric = () => input.value.trim() === "" || !Number.isFinite(Number(input.value)) ? void 0 : Number(input.value);
-    const alpha3 = () => Math.max(0, Math.min(1, numeric2() / 100));
+    const alpha2 = () => Math.max(0, Math.min(1, numeric2() / 100));
     if (packet2.type === "background") {
       if (field === "background-solid") return { ...packet2, solid: { ...packet2.solid, color: input.value } };
-      if (field === "background-solid-alpha") return { ...packet2, solid: { ...packet2.solid, alpha: alpha3() } };
+      if (field === "background-solid-alpha") return { ...packet2, solid: { ...packet2.solid, alpha: alpha2() } };
       if (field === "gradient-angle") return { ...packet2, gradient: { ...packet2.gradient, angle: Math.max(0, Math.min(359, numeric2())) } };
       const stopMatch = field.match(/^gradient-(stop|position)-(\d+)(-alpha)?$/);
       if (stopMatch) {
         const index = Number(stopMatch[2]);
-        const stops = packet2.gradient.stops.map((stop, i) => i !== index ? stop : stopMatch[1] === "position" ? { ...stop, position: Math.max(0, Math.min(100, numeric2())) } : stopMatch[3] ? { ...stop, alpha: alpha3() } : { ...stop, color: input.value });
+        const stops = packet2.gradient.stops.map((stop, i) => i !== index ? stop : stopMatch[1] === "position" ? { ...stop, position: Math.max(0, Math.min(100, numeric2())) } : stopMatch[3] ? { ...stop, alpha: alpha2() } : { ...stop, color: input.value });
         return { ...packet2, gradient: { ...packet2.gradient, stops } };
       }
       if (field === "background-image-path") return { ...packet2, image: { ...packet2.image, assetPath: input.value } };
       if (field === "background-mask-color") return { ...packet2, image: { ...packet2.image, maskColor: input.value } };
-      if (field === "background-mask-color-alpha") return { ...packet2, image: { ...packet2.image, maskAlpha: alpha3() } };
+      if (field === "background-mask-color-alpha") return { ...packet2, image: { ...packet2.image, maskAlpha: alpha2() } };
       if (field === "background-mask-hide-contents") return { ...packet2, image: { ...packet2.image, hideContents: input.checked } };
       if (field === "background-image-size") return { ...packet2, image: { ...packet2.image, size: input.value } };
       if (field === "background-image-x") return { ...packet2, image: { ...packet2.image, positionX: Math.max(0, Math.min(100, numeric2())) } };
@@ -22879,7 +22940,7 @@ ${compileComponentOverride(draft, previewOptions)}`);
     }
     if (packet2.type === "pattern") {
       if (field === "pattern-color") return { ...packet2, color: input.value };
-      if (field === "pattern-color-alpha") return { ...packet2, alpha: alpha3() };
+      if (field === "pattern-color-alpha") return { ...packet2, alpha: alpha2() };
       if (field === "pattern-scale") return { ...packet2, scale: Math.max(4, Math.min(240, numeric2())) };
       if (field === "pattern-angle") return { ...packet2, angle: Math.max(0, Math.min(360, numeric2())) };
     }
@@ -22888,7 +22949,7 @@ ${compileComponentOverride(draft, previewOptions)}`);
     }
     if (packet2.type === "svg-asset") {
       if (field === "svg-asset-color") return { ...packet2, color: input.value };
-      if (field === "svg-asset-color-alpha") return { ...packet2, alpha: alpha3() };
+      if (field === "svg-asset-color-alpha") return { ...packet2, alpha: alpha2() };
       if (field === "svg-asset-opacity") return { ...packet2, alpha: Math.max(0, Math.min(1, numeric2() / 100)) };
       if (field === "svg-asset-x") return { ...packet2, positionX: Math.max(0, Math.min(100, numeric2())) };
       if (field === "svg-asset-y") return { ...packet2, positionY: Math.max(0, Math.min(100, numeric2())) };
@@ -22945,17 +23006,17 @@ ${compileComponentOverride(draft, previewOptions)}`);
     if (packet2.type === "content" && field === "content-value") return { ...packet2, value: input.value.slice(0, 4e3) };
     if (packet2.type === "text") {
       if (field === "text-color") return { ...packet2, solid: { ...packet2.solid, color: input.value } };
-      if (field === "text-color-alpha") return { ...packet2, solid: { ...packet2.solid, alpha: alpha3() } };
+      if (field === "text-color-alpha") return { ...packet2, solid: { ...packet2.solid, alpha: alpha2() } };
       if (field === "text-gradient-angle") return { ...packet2, gradient: { ...packet2.gradient, angle: Math.max(0, Math.min(359, numeric2())) } };
       const stopMatch = field.match(/^text-gradient-(stop|position)-(\d+)(-alpha)?$/);
       if (stopMatch) {
         const index = Number(stopMatch[2]);
-        const stops = packet2.gradient.stops.map((stop, i) => i !== index ? stop : stopMatch[1] === "position" ? { ...stop, position: Math.max(0, Math.min(100, numeric2())) } : stopMatch[3] ? { ...stop, alpha: alpha3() } : { ...stop, color: input.value });
+        const stops = packet2.gradient.stops.map((stop, i) => i !== index ? stop : stopMatch[1] === "position" ? { ...stop, position: Math.max(0, Math.min(100, numeric2())) } : stopMatch[3] ? { ...stop, alpha: alpha2() } : { ...stop, color: input.value });
         return { ...packet2, gradient: { ...packet2.gradient, stops } };
       }
       if (field === "text-stroke-width") return { ...packet2, strokeWidth: Math.max(0, Math.min(100, numeric2())) };
       if (field === "text-stroke") return { ...packet2, strokeColor: input.value };
-      if (field === "text-stroke-alpha") return { ...packet2, strokeAlpha: alpha3() };
+      if (field === "text-stroke-alpha") return { ...packet2, strokeAlpha: alpha2() };
       if (field === "text-glow-strength") {
         const blur = Math.max(0, Math.min(80, numeric2()));
         if (blur <= 0) return { ...packet2, shadow: packet2.shadow && Math.abs(packet2.shadow.x) < 1e-3 && Math.abs(packet2.shadow.y) < 1e-3 ? void 0 : packet2.shadow };
@@ -22967,7 +23028,7 @@ ${compileComponentOverride(draft, previewOptions)}`);
       if (field === "text-shadow-y") return { ...packet2, shadow: { ...packet2.shadow ?? { x: 0, y: 2, blur: 8, color: "#000000", alpha: 0.35 }, y: numeric2() } };
       if (field === "text-shadow-blur") return { ...packet2, shadow: { ...packet2.shadow ?? { x: 0, y: 2, blur: 8, color: "#000000", alpha: 0.35 }, blur: Math.max(0, Math.min(100, numeric2())) } };
       if (field === "text-shadow-color") return { ...packet2, shadow: { ...packet2.shadow ?? { x: 0, y: 2, blur: 8, color: "#000000", alpha: 0.35 }, color: input.value } };
-      if (field === "text-shadow-color-alpha") return { ...packet2, shadow: { ...packet2.shadow ?? { x: 0, y: 2, blur: 8, color: "#000000", alpha: 0.35 }, alpha: alpha3() } };
+      if (field === "text-shadow-color-alpha") return { ...packet2, shadow: { ...packet2.shadow ?? { x: 0, y: 2, blur: 8, color: "#000000", alpha: 0.35 }, alpha: alpha2() } };
     }
     if (packet2.type === "typography") {
       if (field === "typography-family") return { ...packet2, fontFamily: input.value.trim() || void 0 };
@@ -22990,7 +23051,7 @@ ${compileComponentOverride(draft, previewOptions)}`);
       if (field === "text-entry-line-height") return { ...packet2, lineHeight: Math.max(0.1, Math.min(20, numeric2() / 100)) };
       if (field === "text-entry-letter-spacing") return { ...packet2, letterSpacing: Math.max(-1e3, Math.min(1e3, numeric2())) };
       if (field === "text-entry-placeholder-color") return { ...packet2, placeholderColor: input.value };
-      if (field === "text-entry-placeholder-color-alpha") return { ...packet2, placeholderAlpha: alpha3() };
+      if (field === "text-entry-placeholder-color-alpha") return { ...packet2, placeholderAlpha: alpha2() };
       if (field === "text-entry-placeholder-style") return { ...packet2, placeholderStyle: input.value === "italic" ? "italic" : "normal" };
       if (field === "text-entry-placeholder-weight") return { ...packet2, placeholderWeight: Math.max(100, Math.min(900, numeric2())) };
     }
@@ -22999,7 +23060,7 @@ ${compileComponentOverride(draft, previewOptions)}`);
       if (field === "border-width") return { ...packet2, width: Math.max(0, Math.min(20, numeric2())) };
       if (field === "border-style") return { ...packet2, style: input.value };
       if (field === "border-color") return { ...packet2, color: input.value, alpha: packet2.alpha <= 1e-3 ? 1 : packet2.alpha };
-      if (field === "border-color-alpha") return { ...packet2, alpha: alpha3() };
+      if (field === "border-color-alpha") return { ...packet2, alpha: alpha2() };
     }
     if (packet2.type === "corners") {
       if (field === "corners-linked") return { ...packet2, linked: input.checked };
@@ -23038,7 +23099,7 @@ ${compileComponentOverride(draft, previewOptions)}`);
       if (field === "shadow-blur") return { ...packet2, blur: Math.max(0, Math.min(100, numeric2())) };
       if (field === "shadow-spread") return { ...packet2, spread: numeric2() };
       if (field === "shadow-color") return { ...packet2, color: input.value };
-      if (field === "shadow-color-alpha") return { ...packet2, alpha: alpha3() };
+      if (field === "shadow-color-alpha") return { ...packet2, alpha: alpha2() };
       if (field === "shadow-inset") return { ...packet2, inset: input.checked };
     }
     if (packet2.type === "glass") {
@@ -23049,16 +23110,16 @@ ${compileComponentOverride(draft, previewOptions)}`);
       }
       if (field === "glass-tint-enabled") return { ...packet2, tintColor: input.checked ? "#5f4b8b" : void 0, tintAlpha: input.checked ? packet2.tintAlpha ?? 0.12 : void 0 };
       if (field === "glass-tint") return { ...packet2, tintColor: input.value };
-      if (field === "glass-tint-alpha") return { ...packet2, tintAlpha: alpha3() };
+      if (field === "glass-tint-alpha") return { ...packet2, tintAlpha: alpha2() };
       if (field === "glass-blur") return { ...packet2, blur: Math.max(0, Math.min(100, numeric2())) };
       if (field === "glass-saturation") return { ...packet2, saturation: Math.max(0, Math.min(3, numeric2() / 100)) };
       if (field === "glass-border") return { ...packet2, borderColor: input.value };
-      if (field === "glass-border-alpha") return { ...packet2, borderAlpha: alpha3() };
+      if (field === "glass-border-alpha") return { ...packet2, borderAlpha: alpha2() };
       if (field === "glass-border-width") return { ...packet2, borderWidth: Math.max(0, Math.min(20, numeric2())) };
-      if (field === "glass-depth") return { ...packet2, shadowStrength: alpha3() };
-      if (field === "glass-highlight") return { ...packet2, innerHighlight: alpha3() };
+      if (field === "glass-depth") return { ...packet2, shadowStrength: alpha2() };
+      if (field === "glass-highlight") return { ...packet2, innerHighlight: alpha2() };
     }
-    if (packet2.type === "opacity" && field === "element-opacity") return { ...packet2, value: alpha3() };
+    if (packet2.type === "opacity" && field === "element-opacity") return { ...packet2, value: alpha2() };
     if (packet2.type === "position") {
       if (field === "position-unit") return { ...packet2, unit: input.value };
       if (field === "position-z") return { ...packet2, zIndex: Math.max(-2147483648, Math.min(2147483647, Math.round(numeric2()))) };
@@ -23296,11 +23357,16 @@ ${compileComponentOverride(draft, previewOptions)}`);
       this.clearBoostPreview();
       this.store.setBoostMode(button.dataset.boostMode === "smart-invert" ? "smart-invert" : "recolor");
     }));
+    this.root.querySelectorAll("[data-boost-text-mode]").forEach((button) => button.addEventListener("click", () => {
+      this.clearBoostPreview();
+      this.store.setBoostTextMode(button.dataset.boostTextMode === "custom" ? "custom" : "auto");
+    }));
     const commitBoostColor = (key, value) => {
       if (!/^#[0-9a-f]{6}$/i.test(value)) return;
       this.rememberColor(value);
       this.clearBoostPreview();
-      this.store.updateBoostParameters({ [key]: { color: value, alpha: key === "primary" ? this.store.activeProject.boost.primary.alpha : this.store.activeProject.boost.secondary?.alpha ?? 1 } });
+      const boost = this.store.activeProject.boost, alpha2 = key === "primary" ? boost.primary.alpha : key === "secondary" ? boost.secondary?.alpha ?? 1 : boost.text.alpha;
+      this.store.updateBoostParameters({ [key]: { color: value, alpha: alpha2 } });
     };
     this.root.querySelectorAll("[data-boost-color]").forEach((input) => input.addEventListener("change", () => commitBoostColor(input.dataset.boostColor, input.value)));
     this.root.querySelectorAll("[data-boost-recent]").forEach((button) => button.addEventListener("click", () => {
@@ -23836,7 +23902,7 @@ ${compileComponentOverride(draft, previewOptions)}`);
   }
   revealStylePacket(packetId, focus = true) {
     const run = () => {
-      const card = this.root.querySelector(`[data-packet-id="${CSS.escape(packetId)}"]`);
+      const card = this.root.querySelector(`[data-packet-id="${escapeCssIdentifier(packetId)}"]`);
       if (!card) return;
       card.scrollIntoView({ behavior: "smooth", block: "nearest" });
       card.classList.remove("is-arrived");
@@ -24135,6 +24201,7 @@ var THEME_STUDIO_CSS = `
 .ts-selector-code { display: block; margin: 5px 0 7px; padding: 7px 8px; border-radius: 5px; background: var(--lumiverse-bg-deep, #0e0b16); color: var(--lumiverse-primary-text, #d2b7ff); font-family: var(--lumiverse-font-mono, monospace); font-size: 11px; overflow-wrap: anywhere; user-select: all; }
 .ts-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; color: var(--ts-muted); font-size: 11px; }
 .ts-meta strong { color: var(--ts-text); font-weight: 650; }
+.ts-boost-role-meta { margin-top:8px; padding-top:8px; border-top:1px solid var(--ts-border); }
 .ts-warning { margin-top: 7px; color: var(--lumiverse-warning, #f59e0b); font-size: 11px; line-height: 1.35; }
 .ts-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
 .ts-btn { appearance: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; border: 1px solid var(--ts-border); border-radius: var(--lumiverse-radius-sm, 6px); padding: 6px 10px; background: var(--lumiverse-fill-subtle, rgba(0,0,0,.12)); color: var(--ts-text); cursor: pointer; font: inherit; font-size: 12px; }
@@ -27563,7 +27630,13 @@ var ThemeRuntimeBridge = class {
     }
   }
   async fetchCanonicalBaseline() {
-    return await this.request({ type: "theme_studio:get_theme_baseline" });
+    const response = await this.request({ type: "theme_studio:get_theme_baseline" });
+    if (!isRecord2(response) || !isRecord2(response.variables)) throw new Error("Canonical theme baseline is unavailable or malformed.");
+    const variables = {};
+    for (const [name, value] of Object.entries(response.variables)) if (typeof value === "string") variables[name] = value;
+    if (!Object.keys(variables).length) throw new Error("Canonical theme baseline contains no variables.");
+    const info = isRecord2(response.info) ? response.info : {};
+    return { info, variables };
   }
   rootHasStaleBoostMarker() {
     if (typeof document === "undefined") return false;

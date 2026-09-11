@@ -78,6 +78,11 @@ function composerSvgDataUri(svg: string): string { return `data:image/svg+xml,${
 
 
 function escapeHtml(value: unknown): string { return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;') }
+function escapeCssIdentifier(value: string): string {
+  const css = globalThis.CSS as { escape?: (input: string) => string } | undefined
+  if (typeof css?.escape === 'function') return css.escape(value)
+  return value.replace(/[^a-zA-Z0-9_-]/g, (char) => `\\${char}`)
+}
 function formatBytes(value?: number): string { return value === undefined ? '' : value < 1024 ? `${value} B` : value < 1048576 ? `${Math.round(value / 1024)} KB` : `${(value / 1048576).toFixed(1)} MB` }
 function stabilityLabel(value: string): string { return value === 'high' ? 'Good' : value === 'medium' ? 'Fair' : 'Fragile' }
 function percent(value: number | undefined, fallback = 1): number { return Math.round((Number.isFinite(value) ? value! : fallback) * 100) }
@@ -1327,8 +1332,8 @@ export class ThemeStudioUI {
     root.querySelectorAll<HTMLElement>('[data-pack-asset-pad]').forEach((pad) => {
       const packId = pad.dataset.packId ?? ''
       const slotId = pad.dataset.packAssetPad ?? ''
-      const xInput = pad.parentElement?.querySelector<HTMLInputElement>(`[data-pack-asset-x="${CSS.escape(slotId)}"]`)
-      const yInput = pad.parentElement?.querySelector<HTMLInputElement>(`[data-pack-asset-y="${CSS.escape(slotId)}"]`)
+      const xInput = pad.parentElement?.querySelector<HTMLInputElement>(`[data-pack-asset-x="${escapeCssIdentifier(slotId)}"]`)
+      const yInput = pad.parentElement?.querySelector<HTMLInputElement>(`[data-pack-asset-y="${escapeCssIdentifier(slotId)}"]`)
       let nextX = Number(pad.dataset.packAssetPadX) || 0
       let nextY = Number(pad.dataset.packAssetPadY) || 0
       const preview = (event: PointerEvent) => {
@@ -1347,7 +1352,7 @@ export class ThemeStudioUI {
     root.querySelectorAll<HTMLInputElement>('[data-pack-asset-x]').forEach((input) => input.addEventListener('change', () => this.applyPackAssetBinding(input.dataset.packId ?? '', input.dataset.packAssetX ?? '', { x: Number(input.value) || 0 })))
     root.querySelectorAll<HTMLInputElement>('[data-pack-asset-y]').forEach((input) => input.addEventListener('change', () => this.applyPackAssetBinding(input.dataset.packId ?? '', input.dataset.packAssetY ?? '', { y: Number(input.value) || 0 })))
     root.querySelectorAll<HTMLInputElement>('[data-pack-asset-size]').forEach((input) => {
-      input.addEventListener('input', () => { const label = root.querySelector<HTMLElement>(`[data-pack-asset-size-value="${CSS.escape(input.dataset.packAssetSize ?? '')}"]`); if (label) label.textContent = `${Math.round(Number(input.value) || 0)}px` })
+      input.addEventListener('input', () => { const label = root.querySelector<HTMLElement>(`[data-pack-asset-size-value="${escapeCssIdentifier(input.dataset.packAssetSize ?? '')}"]`); if (label) label.textContent = `${Math.round(Number(input.value) || 0)}px` })
       input.addEventListener('change', () => this.applyPackAssetBinding(input.dataset.packId ?? '', input.dataset.packAssetSize ?? '', { size: Number(input.value) || 96 }))
     })
     root.querySelectorAll<HTMLButtonElement>('[data-pack-layout]').forEach((button) => button.addEventListener('click', () => this.setPackWorkbenchLayout(button.dataset.packId ?? '', button.dataset.packLayout as PackWorkbenchLayout)))
@@ -1371,7 +1376,7 @@ export class ThemeStudioUI {
       packNavButtons.forEach((button, index) => button.setAttribute('aria-current', index === activeIndex ? 'true' : 'false'))
     }
     packNavButtons.forEach((button) => button.addEventListener('click', () => {
-      const section = root.querySelector<HTMLElement>(`[data-pack-section="${CSS.escape(button.dataset.packScrollSection ?? '')}"]`)
+      const section = root.querySelector<HTMLElement>(`[data-pack-section="${escapeCssIdentifier(button.dataset.packScrollSection ?? '')}"]`)
       if (!section || !packMain) return
       const mainRect = packMain.getBoundingClientRect()
       const navHeight = packNav?.offsetHeight ?? 0
@@ -3489,7 +3494,7 @@ export class ThemeStudioUI {
     root.querySelectorAll<HTMLButtonElement>('[data-recent-color]').forEach((button) => button.addEventListener('click', () => {
       const color = button.dataset.recentColor, field = button.dataset.recentField, article = button.closest<HTMLElement>('[data-packet-id]')
       if (!color || !field || !article) return
-      const peer = article.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-packet-field="${CSS.escape(field)}"]`)
+      const peer = article.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-packet-field="${escapeCssIdentifier(field)}"]`)
       if (!peer) return
       peer.value = color; this.rememberColor(color); this.handlePacketField(peer)
     }))
@@ -3503,8 +3508,8 @@ export class ThemeStudioUI {
       if (range) {
         input.addEventListener('input', () => {
           const field = input.dataset.packetField ?? ''
-          input.closest('[data-packet-id]')?.querySelectorAll<HTMLInputElement>(`[data-packet-field="${CSS.escape(field)}"]`).forEach((peer) => { if (peer !== input) peer.value = input.value })
-          input.closest('[data-packet-id]')?.querySelectorAll<HTMLElement>(`[data-range-display="${CSS.escape(field)}"]`).forEach((display) => { display.textContent = `${input.value}${display.dataset.rangeUnit ?? ''}` })
+          input.closest('[data-packet-id]')?.querySelectorAll<HTMLInputElement>(`[data-packet-field="${escapeCssIdentifier(field)}"]`).forEach((peer) => { if (peer !== input) peer.value = input.value })
+          input.closest('[data-packet-id]')?.querySelectorAll<HTMLElement>(`[data-range-display="${escapeCssIdentifier(field)}"]`).forEach((display) => { display.textContent = `${input.value}${display.dataset.rangeUnit ?? ''}` })
           this.previewPacketField(input)
         })
         input.addEventListener('change', () => { this.preview.clearTransient(); this.handlePacketField(input) })
@@ -4341,7 +4346,7 @@ ${compileComponentOverride(draft, previewOptions)}`)
   }
   private revealStylePacket(packetId: string, focus = true): void {
     const run = () => {
-      const card = this.root.querySelector<HTMLElement>(`[data-packet-id="${CSS.escape(packetId)}"]`)
+      const card = this.root.querySelector<HTMLElement>(`[data-packet-id="${escapeCssIdentifier(packetId)}"]`)
       if (!card) return
       card.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
       card.classList.remove('is-arrived')

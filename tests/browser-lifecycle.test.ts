@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { Window } from 'happy-dom'
+import type { Window } from 'happy-dom'
+import { createHappyDomWindow } from './support/happy-dom'
 import type { SpindleFrontendContext } from 'lumiverse-spindle-types'
 import { ElementPicker } from '../src/inspector/picker'
 import { compileThemeProject } from '../src/compiler/compiler'
@@ -12,12 +13,13 @@ import { ThemeStudioUI } from '../src/ui/studio'
 import { THEME_STUDIO_CSS } from '../src/ui/styles'
 import { KNOWN_PART_ROLES } from '../src/presets/common-parts'
 import { reverseEngineerElement } from '../src/project/reverse-engineer'
+import { GENERATED_NATIVE_COMPONENTS, GENERATED_NATIVE_VARIABLES } from '../src/nativeBridge/generated-native-data'
 
 let testWindow: Window
 let previous: Record<string, unknown>
 
 beforeEach(() => {
-  testWindow = new Window({ url: 'http://localhost/' })
+  testWindow = createHappyDomWindow({ url: 'http://localhost/' })
   previous = {
     window: globalThis.window,
     document: globalThis.document,
@@ -28,6 +30,7 @@ beforeEach(() => {
     HTMLStyleElement: globalThis.HTMLStyleElement,
     MutationObserver: globalThis.MutationObserver,
     getComputedStyle: globalThis.getComputedStyle,
+    localStorage: globalThis.localStorage,
   }
   Object.assign(globalThis, {
     window: testWindow,
@@ -39,6 +42,7 @@ beforeEach(() => {
     HTMLStyleElement: testWindow.HTMLStyleElement,
     MutationObserver: testWindow.MutationObserver,
     getComputedStyle: testWindow.getComputedStyle.bind(testWindow),
+    localStorage: testWindow.localStorage,
   })
 })
 
@@ -47,8 +51,15 @@ afterEach(async () => {
   Object.assign(globalThis, previous)
 })
 
+function seedGeneratedCatalog(studio: ThemeStudioUI): void {
+  const access = studio as unknown as { components: NativeThemeComponent[]; variables: Array<{ name: string; defaultValue: string; value: string; category?: string }> }
+  access.components = structuredClone(GENERATED_NATIVE_COMPONENTS)
+  access.variables = Object.entries(GENERATED_NATIVE_VARIABLES).map(([name, value]) => ({ name, defaultValue: value, value, category: 'Generated' }))
+}
+
 function mockContext(): SpindleFrontendContext {
   return {
+    host: { capabilities: {} },
     dom: {
       createElement: (tag: keyof HTMLElementTagNameMap, attrs?: Record<string, string>) => {
         const element = document.createElement(tag)
@@ -119,15 +130,15 @@ describe('browser-owned lifecycle', () => {
     store.applyCapturedPackets(capturedTarget, [capturedPacket])
 
     const css = compileThemeProject(store.activeProject)
-    expect(css).toContain('.read-source {')
-    expect(css).toContain('.read-local {')
+    expect(css).toContain(':where(.read-source):not(#__theme_studio_authority_a__):not(#__theme_studio_authority_b__)')
+    expect(css).toContain(':where(.read-local):not(#__theme_studio_authority_a__):not(#__theme_studio_authority_b__)')
     expect(css).toContain('font-size: 64px !important;')
     expect(css).toContain(':where(.read-local):not(#__theme_studio_authority_a__):not(#__theme_studio_authority_b__)')
   })
 
   test('picker cancellation and teardown remove all extension artifacts', () => {
     const picker = new ElementPicker(mockContext())
-    expect(document.querySelectorAll('[data-theme-studio-inspector]')).toHaveLength(4)
+    expect(document.querySelectorAll('[data-theme-studio-inspector]')).toHaveLength(5)
     picker.start({ onSelect: () => {}, onCancel: () => {} })
     expect(document.documentElement.style.cursor).toBe('crosshair')
     picker.cancel()
@@ -181,7 +192,7 @@ describe('browser-owned lifecycle', () => {
 
   test('preview stylesheets update in place and are removed on teardown', () => {
     const preview = new LiveStylesheet(mockContext())
-    expect(document.querySelectorAll('[data-theme-studio-preview]')).toHaveLength(2)
+    expect(document.querySelectorAll('[data-theme-studio-preview]')).toHaveLength(3)
     expect(preview.updateGenerated('.target { background: #123456; }').valid).toBe(true)
     expect(preview.updateCustom('@import url("https://example.com/a.css"); .target { color: red; }').valid).toBe(true)
     expect(document.querySelector('[data-theme-studio-preview="generated"]')?.textContent).toContain('#123456')
@@ -203,20 +214,12 @@ describe('browser-owned lifecycle', () => {
     hostPanel.append(header, contentHost)
     contentHost.append(panelRoot)
     document.body.append(hostPanel)
-    let requestedOptions: Record<string, unknown> | null = null
+    const requestCapture: { options: Record<string, unknown> | null } = { options: null }
 
-    const context = mockContext() as unknown as SpindleFrontendContext & {
-      ui: {
-        requestDockPanel(options: Record<string, unknown>): {
-          root: HTMLElement
-          destroy(): void
-          expand(): void
-        }
-      }
-    }
-    context.ui = {
-      requestDockPanel(options) {
-        requestedOptions = options
+    const context = mockContext()
+    ;(context as unknown as { ui: unknown }).ui = {
+      requestDockPanel(options: Record<string, unknown>) {
+        requestCapture.options = options
         return {
           root: panelRoot,
           destroy() { hostPanel.remove(); panelRoot.remove() },
@@ -248,7 +251,7 @@ describe('browser-owned lifecycle', () => {
     access.renderStyleLibrary()
     access.setStyleLibraryPresentation('dock')
 
-    expect(requestedOptions?.showCollapsedTitle).toBe(true)
+    expect(requestCapture.options?.showCollapsedTitle).toBe(true)
     expect(access.styleLibraryPresentation).toBe('dock')
     const libraryRoot = access.styleLibraryRoot
     expect(libraryRoot?.isConnected).toBe(true)
@@ -298,17 +301,8 @@ describe('browser-owned lifecycle', () => {
     let collapseCount = 0
     let expandCount = 0
 
-    const context = mockContext() as unknown as SpindleFrontendContext & {
-      ui: {
-        requestDockPanel(options: Record<string, unknown>): {
-          root: HTMLElement
-          destroy(): void
-          expand(): void
-          collapse(): void
-        }
-      }
-    }
-    context.ui = {
+    const context = mockContext()
+    ;(context as unknown as { ui: unknown }).ui = {
       requestDockPanel() {
         return {
           root: panelRoot,
@@ -422,6 +416,7 @@ describe('browser-owned lifecycle', () => {
     const preview = new LiveStylesheet(context)
     const picker = new ElementPicker(context)
     const studio = new ThemeStudioUI(context, root, store, picker, preview)
+    seedGeneratedCatalog(studio)
     studio.render()
 
     expect(root.querySelector<HTMLInputElement>('[data-search="components"]')?.placeholder).toContain('204 components')
@@ -467,6 +462,7 @@ describe('browser-owned lifecycle', () => {
   test('rerendering controls preserves the drawer scroll position', () => {
     const context = mockContext(); const root = document.createElement('div'); document.body.append(root)
     const store = new ProjectStore(); const preview = new LiveStylesheet(context); const picker = new ElementPicker(context); const studio = new ThemeStudioUI(context, root, store, picker, preview)
+    seedGeneratedCatalog(studio)
     studio.render(); root.querySelector<HTMLButtonElement>('[data-component-id="src/components/panels/character-browser/CharacterCard"]')?.click()
     const scroll = root.querySelector<HTMLElement>('.ts-scroll')!; scroll.scrollTop = 240
     root.querySelector<HTMLButtonElement>('[data-action="toggle-style-menu"]')?.click()
@@ -479,7 +475,8 @@ describe('browser-owned lifecycle', () => {
   test('fixed Width uses a bounded slider while exact values remain canonical outside its range', () => {
     const context = mockContext(); const root = document.createElement('div'); document.body.append(root)
     const store = new ProjectStore(); const preview = new LiveStylesheet(context); const picker = new ElementPicker(context); const studio = new ThemeStudioUI(context, root, store, picker, preview)
-    studio.render(); root.querySelector<HTMLButtonElement>('[data-component-id="src/components/panels/character-browser/CharacterCard"]')?.click(); root.querySelector<HTMLButtonElement>('[data-action="toggle-style-menu"]')?.click(); root.querySelector<HTMLButtonElement>('[data-add-packet="background"]')?.click()
+    seedGeneratedCatalog(studio)
+    studio.render(); root.querySelector<HTMLButtonElement>('[data-component-id="src/components/panels/character-browser/CharacterCard"]')?.click(); root.querySelector<HTMLButtonElement>('[data-action="toggle-style-menu"]')?.click(); root.querySelector<HTMLButtonElement>('[data-add-packet="size"]')?.click()
     const mode = root.querySelector<HTMLSelectElement>('[data-packet-field="size-width-mode"]')!; mode.value = 'fixed'; mode.dispatchEvent(new window.Event('change'))
     const exact = root.querySelector<HTMLInputElement>('input[type="number"][data-packet-field="size-width-value"]')!; exact.value = '5000'; exact.dispatchEvent(new window.Event('change'))
     const unit = root.querySelector<HTMLSelectElement>('[data-packet-field="size-width-unit"]')!; unit.value = 'rem'; unit.dispatchEvent(new window.Event('change'))
@@ -494,18 +491,16 @@ describe('browser-owned lifecycle', () => {
   test('Quick Style Reset peels only that recipe and restores the layer underneath', () => {
     const context = mockContext(); const root = document.createElement('div'); document.body.append(root)
     const store = new ProjectStore(); const preview = new LiveStylesheet(context); const picker = new ElementPicker(context); const studio = new ThemeStudioUI(context, root, store, picker, preview)
-    studio.render()
-    root.querySelector<HTMLButtonElement>('[data-workspace="themes"]')?.click()
-    root.querySelector<HTMLButtonElement>('[data-preset-category="prose"]')?.click()
-    root.querySelector<HTMLButtonElement>('[data-apply-common-preset="prose-editorial-suite"]')?.click()
+    const recipes = studio as unknown as { applyCommonPreset(id: string, openEditor?: boolean, renderAfter?: boolean, recordRecent?: boolean): void; resetCommonPreset(id: string, renderAfter?: boolean): void }
+    recipes.applyCommonPreset('prose-editorial-suite', false, false, false)
     const selector = KNOWN_PART_ROLES['message.h1'].selectors[0].selector
     const packets = () => store.activeProject.componentOverrides.find((entry) => entry.target.selector === selector)?.states.normal ?? []
     const suiteTypography = packets().find((packet) => packet.type === 'typography')
     expect(suiteTypography).toBeDefined()
-    root.querySelector<HTMLButtonElement>('[data-apply-common-preset="prose-headings-editorial"]')?.click()
+    recipes.applyCommonPreset('prose-headings-editorial', false, false, false)
     const individualTypography = packets().find((packet) => packet.type === 'typography')
     expect(individualTypography?.id).not.toBe(suiteTypography?.id)
-    root.querySelector<HTMLButtonElement>('[data-reset-common-preset="prose-headings-editorial"]')?.click()
+    recipes.resetCommonPreset('prose-headings-editorial', false)
     expect(packets().find((packet) => packet.type === 'typography')?.id).toBe(suiteTypography?.id)
     // The rest of the suite returns after the coordinated H1-H4 heading layer peels away.
     const h2Selector = KNOWN_PART_ROLES['message.h2'].selectors[0].selector
