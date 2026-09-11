@@ -524,22 +524,23 @@ function svgAsset(value: unknown): StudioSvgAsset | null {
 function project(value: unknown): ThemeStudioProject | null {
   if (!record(value) || !string(value.id)) return null
   const sourceVersion = bounded(value.version, 0, 0, Number.MAX_SAFE_INTEGER)
-  const now = Date.now(); const boostValue = record(value.boost) ? value.boost : {}; const paletteValue = record(boostValue.palette) ? boostValue.palette : {}; const legacyValue = record(boostValue.legacyPalette) ? boostValue.legacyPalette : {}; const legacyPalette: NonNullable<ThemeStudioProject['boost']['legacyPalette']> = {}
-  for (const role of ['primary', 'secondary', 'accent', 'surface', 'text', 'muted', 'border'] as const) { const entry = paletteValue[role]; if (record(entry) && string(entry.color)) legacyPalette[role] = { color: string(entry.color), alpha: alpha(entry.alpha) } }
-  for (const role of ['primary', 'secondary', 'accent', 'surface', 'text', 'muted', 'border'] as const) { const entry = legacyValue[role]; if (record(entry) && string(entry.color)) legacyPalette[role] = { color: string(entry.color), alpha: alpha(entry.alpha) } }
+  const now = Date.now(); const boostValue = record(value.boost) ? value.boost : {}
   const typography = record(boostValue.typography) ? boostValue.typography : {}; const invert = record(boostValue.smartInvert) ? boostValue.smartInvert : {}
-  const defaultBoost = createBoost(); const primaryValue = record(boostValue.primary) ? boostValue.primary : legacyPalette.primary; const secondaryValue = record(boostValue.secondary) ? boostValue.secondary : legacyPalette.secondary
-  const hasLegacyIntent = Object.keys(legacyPalette).length > 0 || typeof typography.fontFamily === 'string' || typography.scale !== undefined || invert.enabled === true
-  const legacyEnabled = boostValue.enabled === true || (boostValue.enabled === undefined && hasLegacyIntent)
-  const typographyEnabled = boostValue.typographyEnabled === true || (boostValue.typographyEnabled === undefined && legacyEnabled && (typeof typography.fontFamily === 'string' || typography.scale !== undefined))
-  const colorsEnabled = boostValue.colorsEnabled === true || (boostValue.colorsEnabled === undefined && legacyEnabled)
+  const defaultBoost = createBoost(); const primaryValue = record(boostValue.primary) ? boostValue.primary : undefined; const secondaryValue = record(boostValue.secondary) ? boostValue.secondary : undefined; const textValue = record(boostValue.text) ? boostValue.text : undefined
+  const hasColorIntent = Boolean(primaryValue || secondaryValue || textValue || boostValue.mode === 'recolor' || boostValue.mode === 'smart-invert')
+  const hasBoostIntent = hasColorIntent || typeof typography.fontFamily === 'string' || typography.scale !== undefined || invert.enabled === true
+  const boostEnabled = boostValue.enabled === true || (boostValue.enabled === undefined && hasBoostIntent)
+  const typographyEnabled = boostValue.typographyEnabled === true || (boostValue.typographyEnabled === undefined && boostEnabled && (typeof typography.fontFamily === 'string' || typography.scale !== undefined))
+  const colorsEnabled = boostValue.colorsEnabled === true || (boostValue.colorsEnabled === undefined && boostEnabled && hasColorIntent)
   const canvasEnabled = boostValue.canvasEnabled === true
   const boost: ThemeStudioProject['boost'] = {
-    enabled: legacyEnabled || colorsEnabled || typographyEnabled || canvasEnabled,
+    enabled: boostEnabled || colorsEnabled || typographyEnabled || canvasEnabled,
     colorsEnabled, typographyEnabled, canvasEnabled,
     mode: boostValue.mode === 'smart-invert' || (boostValue.mode === undefined && invert.enabled === true) ? 'smart-invert' : 'recolor',
     primary: record(primaryValue) && string(primaryValue.color) ? { color: string(primaryValue.color), alpha: alpha(primaryValue.alpha) } : defaultBoost.primary,
     secondary: record(secondaryValue) && string(secondaryValue.color) ? { color: string(secondaryValue.color), alpha: alpha(secondaryValue.alpha) } : structuredClone(defaultBoost.secondary),
+    textMode: boostValue.textMode === 'custom' ? 'custom' : 'auto',
+    text: record(textValue) && string(textValue.color) ? { color: string(textValue.color), alpha: alpha(textValue.alpha) } : structuredClone(defaultBoost.text),
     contrast: bounded(boostValue.contrast, defaultBoost.contrast, -1, 1), brightness: bounded(boostValue.brightness, defaultBoost.brightness, -1, 1), originalSaturation: bounded(boostValue.originalSaturation, defaultBoost.originalSaturation, 0, 1), canvasOpacity: bounded(boostValue.canvasOpacity, defaultBoost.canvasOpacity, 0, 1),
     wallpaperTreatmentEnabled: boostValue.wallpaperTreatmentEnabled === true,
     wallpaperOpacity: bounded(boostValue.wallpaperOpacity, defaultBoost.wallpaperOpacity, 0, 1),
@@ -549,7 +550,6 @@ function project(value: unknown): ThemeStudioProject | null {
     wallpaperBrightness: bounded(boostValue.wallpaperBrightness, defaultBoost.wallpaperBrightness, 0.1, 3),
     protectControls: boostValue.protectControls !== false,
     typography: { fontFamily: typeof typography.fontFamily === 'string' ? typography.fontFamily : undefined, scale: typography.scale === undefined ? undefined : bounded(typography.scale, 1, 0.25, 4) },
-    legacyPalette: Object.keys(legacyPalette).length ? legacyPalette : undefined,
     shuffleSeed: bounded(boostValue.shuffleSeed, defaultBoost.shuffleSeed, 1, 0x7fffffff),
   }
   const componentOverrides = repairRedundantContextComposition(repairV275TransparentSparseBorders(

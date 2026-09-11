@@ -346,7 +346,8 @@ export interface SavedStyleBundle {
   updatedAt: number
 }
 export interface BoostColor { color: string; alpha: number }
-export type BoostPaletteRole = 'primary' | 'secondary' | 'accent' | 'surface' | 'text' | 'muted' | 'border'
+export type BoostPaletteRole = 'primary' | 'secondary' | 'surface' | 'text' | 'muted' | 'border'
+export type BoostTextMode = 'auto' | 'custom'
 export interface SmartInvertConfig { enabled: boolean; strength: number; preserveAccents: boolean; preserveMedia: boolean }
 export interface ProjectBoost {
   enabled: boolean
@@ -356,6 +357,8 @@ export interface ProjectBoost {
   mode: 'recolor' | 'smart-invert'
   primary: BoostColor
   secondary?: BoostColor
+  textMode: BoostTextMode
+  text: BoostColor
   contrast: number
   brightness: number
   originalSaturation: number
@@ -370,8 +373,6 @@ export interface ProjectBoost {
   /** Keep transformed interactive foregrounds readable against their surfaces. */
   protectControls: boolean
   typography: { fontFamily?: string; scale?: number }
-  /** Phase Four semantic palette retained as explicit post-transform compatibility overrides. */
-  legacyPalette?: Partial<Record<BoostPaletteRole, BoostColor>>
   shuffleSeed: number
 }
 
@@ -419,7 +420,7 @@ export function createStylePacket(type: PacketType): StylePacket {
     case 'size': return { id, type, width: { mode: 'native' }, height: { mode: 'native' }, mobileSafe: true }
   }
 }
-export function createBoost(): ProjectBoost { return { enabled: false, colorsEnabled: false, typographyEnabled: false, canvasEnabled: false, mode: 'recolor', primary: { color: '#9370db', alpha: 1 }, secondary: { color: '#786bf0', alpha: 1 }, contrast: 0, brightness: 0, originalSaturation: 0.2, canvasOpacity: 1, wallpaperTreatmentEnabled: false, wallpaperOpacity: 1, wallpaperBlur: 0, wallpaperSaturation: 1, wallpaperContrast: 1, wallpaperBrightness: 1, protectControls: true, typography: {}, shuffleSeed: 1 } }
+export function createBoost(): ProjectBoost { return { enabled: false, colorsEnabled: false, typographyEnabled: false, canvasEnabled: false, mode: 'recolor', primary: { color: '#9370db', alpha: 1 }, secondary: { color: '#786bf0', alpha: 1 }, textMode: 'auto', text: { color: '#f4eef8', alpha: 1 }, contrast: 0, brightness: 0, originalSaturation: 0.2, canvasOpacity: 1, wallpaperTreatmentEnabled: false, wallpaperOpacity: 1, wallpaperBlur: 0, wallpaperSaturation: 1, wallpaperContrast: 1, wallpaperBrightness: 1, protectControls: true, typography: {}, shuffleSeed: 1 } }
 export function createProject(name = 'Untitled Theme'): ThemeStudioProject {
   const now = Date.now()
   return { version: PROJECT_VERSION, id: newId('project'), name, tokens: [], componentOverrides: [], layoutGroups: [], recipeSlots: [], customCss: '', assets: [], nativeAssetBundleId: undefined, fonts: [], presets: [], svgAssets: [], boost: createBoost(), createdAt: now, updatedAt: now }

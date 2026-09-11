@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { Window } from 'happy-dom'
 import type { SpindleFrontendContext } from 'lumiverse-spindle-types'
-import { deriveBoostTokenOverrides, inspectBoostCssValue, transformThemeVariables } from '../src/compiler/boost'
-import { parseHexColor } from '../src/compiler/color'
+import { classifyBoostVariable, deriveBoostTokenOverrides, inspectBoostCssValue, transformThemeVariables } from '../src/compiler/boost'
+import { contrastRatio, parseHexColor } from '../src/compiler/color'
 import { compileLayoutItemPacket, compileLayoutPacket, compileThemeProject } from '../src/compiler/compiler'
 import { validateOverride } from '../src/compiler/validation'
 import { ThemeRuntimeBridge, materializeBoostBaseline } from '../src/nativeBridge/theme-runtime'
@@ -141,13 +141,13 @@ describe('Phase Four layout, size and state semantics', () => {
 })
 
 describe('Phase Four Boost semantics', () => {
-  test('materializes native baseline and derives only real variable families', () => {
-    const baseline = materializeBoostBaseline({ '--lumiverse-primary': 'rgb(225, 75, 165)', '--lumiverse-bg': '#18231d', '--lumiverse-text': '#f0eee8', '--lumiverse-border': 'rgba(255,255,255,.2)' })
+  test('materializes the native semantic baseline without legacy palette bootstrapping', () => {
+    const native = { '--lumiverse-primary': 'rgb(225, 75, 165)', '--lumiverse-secondary': '#6c7fd8', '--lumiverse-bg': '#18231d', '--lumiverse-text': '#f0eee8', '--lumiverse-border': 'rgba(255,255,255,.2)' }
+    const baseline = materializeBoostBaseline(native)
     expect(baseline.primary?.color).toBe('#e14ba5'); expect(baseline.surface?.color).toBe('#18231d')
-    const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.legacyPalette = { ...baseline, accent: { color: '#ffaa00', alpha: 1 } }; const variables = deriveBoostTokenOverrides(project.boost)
-    expect(Object.keys(variables).filter((name) => name.startsWith('--lumiverse-primary')).length).toBeGreaterThan(3)
-    expect(Object.keys(variables).filter((name) => name.startsWith('--lumiverse-bg') || name.startsWith('--lumiverse-card')).length).toBeGreaterThan(3)
-    expect(variables['--lumiverse-accent']).toBeUndefined(); expect(compileThemeProject(project)).not.toContain('--lumiverse-accent'); expect(compileThemeProject(project)).not.toContain('Application-wide Palette Boost'); expect(compileThemeProject(project)).not.toContain('--lumiverse-primary')
+    const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.primary = { color: '#ff4f9a', alpha: 1 }; const variables = deriveBoostTokenOverrides(project.boost, native)
+    expect(variables['--lumiverse-primary']).not.toBe(native['--lumiverse-primary']); expect(variables['--lumiverse-bg']).not.toBe(native['--lumiverse-bg'])
+    expect(compileThemeProject(project)).not.toContain('Application-wide Palette Boost'); expect(compileThemeProject(project)).not.toContain('--lumiverse-primary')
   })
   test('live theme bridge owns Lumiverse root inline variables and restores the newest native declaration', async () => {
     const sent: Array<Record<string, unknown>> = []; let handler: (payload: unknown) => void = () => {}
@@ -358,7 +358,34 @@ describe('Phase Four Boost semantics', () => {
     const first = transformThemeVariables(baseline, project.boost), second = transformThemeVariables(baseline, project.boost)
     expect(first.variables).toEqual(second.variables); expect(Object.keys(first.variables)).toEqual(Object.keys(baseline)); expect(first.variables['--lumiverse-primary']).toContain('0.35'); expect(first.variables['--lumiverse-font-scale']).toBe('1')
   })
-  test('blood mode strongly pulls the whole color map toward the red anchor', () => {
+  test('semantic routing keeps Secondary in its own lane and preserves status colors', () => {
+    const baseline = { '--lumiverse-primary': '#4060d0', '--lumiverse-secondary': '#687080', '--lumiverse-bg': '#203050', '--lumiverse-border': '#526070', '--lumiverse-text': '#f2f2f2', '--lumiverse-danger': '#ef4444', '--lumiverse-success': '#22c55e', '--lumiverse-custom-color': '#336699' }
+    const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.originalSaturation = 0; project.boost.primary = { color: '#ff7043', alpha: 1 }; project.boost.secondary = { color: '#22aa66', alpha: 1 }
+    const greenSecondary = transformThemeVariables(baseline, project.boost)
+    project.boost.secondary = { color: '#6655ff', alpha: 1 }
+    const violetSecondary = transformThemeVariables(baseline, project.boost)
+    expect(greenSecondary.variables['--lumiverse-secondary']).not.toBe(violetSecondary.variables['--lumiverse-secondary'])
+    expect(greenSecondary.variables['--lumiverse-primary']).toBe(violetSecondary.variables['--lumiverse-primary'])
+    expect(greenSecondary.variables['--lumiverse-bg']).toBe(violetSecondary.variables['--lumiverse-bg'])
+    expect(greenSecondary.variables['--lumiverse-border']).toBe(violetSecondary.variables['--lumiverse-border'])
+    expect(greenSecondary.variables['--lumiverse-danger']).toBe(baseline['--lumiverse-danger']); expect(greenSecondary.variables['--lumiverse-success']).toBe(baseline['--lumiverse-success']); expect(greenSecondary.variables['--lumiverse-custom-color']).toBe(baseline['--lumiverse-custom-color'])
+    expect(greenSecondary.diagnostics.roleCounts).toMatchObject({ primary: 1, secondary: 1, surface: 1, text: 1, border: 1, semantic: 2, preserve: 1 })
+  })
+  test('neutral overlays and borders stay out of accent routing', () => {
+    expect(classifyBoostVariable('--lumiverse-fill')).toBe('neutral'); expect(classifyBoostVariable('--lumiverse-fill-heavy')).toBe('neutral')
+    expect(classifyBoostVariable('--lumiverse-bg-darker')).toBe('neutral'); expect(classifyBoostVariable('--lumiverse-border-neutral')).toBe('neutral'); expect(classifyBoostVariable('--lumiverse-swatch-border')).toBe('neutral')
+    expect(classifyBoostVariable('--lumiverse-border')).toBe('border'); expect(classifyBoostVariable('--lumiverse-card-bg')).toBe('surface')
+  })
+  test('Auto text repairs foreground contrast while Custom owns the text family', () => {
+    const baseline = { '--lumiverse-bg': '#777777', '--lumiverse-text': '#888888', '--lumiverse-text-muted': 'rgba(136, 136, 136, .65)', '--lumiverse-icon': 'rgba(136, 136, 136, .9)' }
+    const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.originalSaturation = 1; project.boost.textMode = 'auto'
+    const auto = transformThemeVariables(baseline, project.boost).variables, autoText = parseHexColor(auto['--lumiverse-text']), autoSurface = parseHexColor(auto['--lumiverse-bg'])
+    expect(autoText).not.toBeNull(); expect(autoSurface).not.toBeNull(); expect(contrastRatio(autoText!, autoSurface!)).toBeGreaterThanOrEqual(4.5)
+    project.boost.textMode = 'custom'; project.boost.text = { color: '#ffe0f0', alpha: 1 }
+    const custom = transformThemeVariables(baseline, project.boost).variables
+    expect(custom['--lumiverse-text']).toBe('#ffe0f0'); expect(custom['--lumiverse-text-muted']).toContain('255, 224, 240'); expect(custom['--lumiverse-icon']).toContain('255, 224, 240')
+  })
+  test('blood mode strongly pulls primary and surface roles toward the red theme family', () => {
     const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.primary = { color: '#ff0000', alpha: 1 }; project.boost.secondary = { color: '#a80000', alpha: 1 }; project.boost.originalSaturation = 0
     const variables = transformThemeVariables({ '--lumiverse-primary': '#4060d0', '--lumiverse-bg': '#203050' }, project.boost).variables
     expect(variables['--lumiverse-primary']).not.toBe('#4060d0'); expect(variables['--lumiverse-bg']).not.toBe('#203050')
@@ -416,21 +443,21 @@ describe('Phase Four Boost semantics', () => {
   test('transforms embedded hex and rgb tokens in radial gradients', () => {
     const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.primary = { color: '#ff1493', alpha: 1 }; project.boost.originalSaturation = 0
     const value = 'radial-gradient(circle at 30% 40%, #123 0%, rgb(20, 30, 40) 55%, rgba(50, 60, 70, .4) 100%)'
-    const result = transformThemeVariables({ '--lumiverse-radial': value }, project.boost), output = result.variables['--lumiverse-radial']
+    const result = transformThemeVariables({ '--lumiverse-card-image-bg': value }, project.boost), output = result.variables['--lumiverse-card-image-bg']
     expect(output).toStartWith('radial-gradient(circle at 30% 40%, #'); expect(output).toContain(' 0%'); expect(output).toContain(' 55%'); expect(output).toContain(' 100%)')
     expect(output).not.toContain('#123 0%'); expect(output).not.toContain('rgb(20, 30, 40)'); expect(output).not.toContain('rgba(50, 60, 70, .4)'); expect(output).toContain(', 0.4)')
     expect(result.diagnostics).toMatchObject({ standaloneColorCount: 0, complexColorCount: 1, transformedColorTokenCount: 3, changedCount: 1 })
   })
-  test('preserves the function family of standalone literal colors', () => {
+  test('preserves unknown standalone literal colors instead of assigning them to Primary', () => {
     const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.primary = { color: '#ff1493', alpha: 1 }; project.boost.originalSaturation = 0
-    const output = transformThemeVariables({ '--rgb': 'rgb(20, 30, 40)', '--hsl': 'hsl(276, 3%, 12%)', '--hsla': 'hsla(276, 3%, 12%, .35)' }, project.boost).variables
-    expect(output['--rgb']).toStartWith('rgb('); expect(output['--hsl']).toStartWith('hsl('); expect(output['--hsla']).toStartWith('hsla('); expect(output['--hsla']).toEndWith(', 0.35)')
+    const source = { '--rgb': 'rgb(20, 30, 40)', '--hsl': 'hsl(276, 3%, 12%)', '--hsla': 'hsla(276, 3%, 12%, .35)' }, result = transformThemeVariables(source, project.boost)
+    expect(result.variables).toEqual(source); expect(result.diagnostics.roleCounts.preserve).toBe(3); expect(result.diagnostics.changedCount).toBe(0)
   })
   test('transforms safe color-mix literals but never scans strings or URL payloads', () => {
     const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.primary = { color: '#ff0000', alpha: 1 }; project.boost.originalSaturation = 0
     const mixed = 'color-mix(in srgb, #336699 25%, var(--lumiverse-bg))', url = `url("data:image/svg+xml,%3Csvg%20fill='#fff'%3E") center / cover`, string = '"literal #fff rgba(1, 2, 3, .5)"'
-    const result = transformThemeVariables({ '--lumiverse-mixed': mixed, '--lumiverse-image': url, '--lumiverse-string': string }, project.boost)
-    expect(result.variables['--lumiverse-mixed']).toStartWith('color-mix(in srgb, #'); expect(result.variables['--lumiverse-mixed']).not.toContain('#336699'); expect(result.variables['--lumiverse-mixed']).toContain('var(--lumiverse-bg)')
+    const result = transformThemeVariables({ '--lumiverse-card-bg': mixed, '--lumiverse-image': url, '--lumiverse-string': string }, project.boost)
+    expect(result.variables['--lumiverse-card-bg']).toStartWith('color-mix(in srgb, #'); expect(result.variables['--lumiverse-card-bg']).not.toContain('#336699'); expect(result.variables['--lumiverse-card-bg']).toContain('var(--lumiverse-bg)')
     expect(result.variables['--lumiverse-image']).toBe(url); expect(result.variables['--lumiverse-string']).toBe(string); expect(result.diagnostics.complexColorCount).toBe(1); expect(result.diagnostics.preservedCount).toBe(2)
   })
 })

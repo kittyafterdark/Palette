@@ -457,13 +457,13 @@ describe('Phase Three semantic CSS compiler', () => {
     expect(compileBackgroundPacket(background)).toContain('background-image: url("./assets/panel.png");')
   })
 
-  test('DOM-only full packet/state rules and app-wide Boost compile without native metadata', () => {
-    const project = createProject('Boosted DOM'); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.typographyEnabled = true; project.boost.legacyPalette = { surface: { color: '#ffffff', alpha: 1 } }; project.boost.typography.fontFamily = 'Studio Sans'
+  test('DOM-only full packet/state rules and app-wide Boost compile from the native baseline', () => {
+    const project = createProject('Boosted DOM'); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.typographyEnabled = true; project.boost.primary = { color: '#ff8a65', alpha: 1 }; project.boost.textMode = 'custom'; project.boost.text = { color: '#fff3e0', alpha: 1 }; project.boost.typography.fontFamily = 'Studio Sans'
     const types = ['background', 'text', 'border', 'corners', 'spacing', 'shadow', 'glass', 'opacity', 'layout', 'size'] as const
     project.componentOverrides.push(override('[class*="_thirdPartyWidget_"]', { normal: types.map(createStylePacket), hover: [createStylePacket('shadow')] }))
-    const css = compileThemeProject(project)
+    const css = compilePreviewThemeProject(project, { includeBoost: true }, { '--lumiverse-primary': '#9370db', '--lumiverse-bg': '#18151f', '--lumiverse-text': '#f4eef8', '--lumiverse-font-family': 'Native Sans' })
     expect(css).toContain('/* Application-wide Palette Boost */')
-    expect(css).toContain('--lumiverse-bg: #ffffff;')
+    expect(css).toContain('--lumiverse-text: #fff3e0;')
     expect(css).toContain('/* DOM target · button · Chats')
     expect(css).toContain('[class*="_thirdPartyWidget_"]:hover')
   })

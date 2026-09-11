@@ -98,6 +98,7 @@ export const THEME_STUDIO_CSS = `
 .ts-selector-code { display: block; margin: 5px 0 7px; padding: 7px 8px; border-radius: 5px; background: var(--lumiverse-bg-deep, #0e0b16); color: var(--lumiverse-primary-text, #d2b7ff); font-family: var(--lumiverse-font-mono, monospace); font-size: 11px; overflow-wrap: anywhere; user-select: all; }
 .ts-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; color: var(--ts-muted); font-size: 11px; }
 .ts-meta strong { color: var(--ts-text); font-weight: 650; }
+.ts-boost-role-meta { margin-top:8px; padding-top:8px; border-top:1px solid var(--ts-border); }
 .ts-warning { margin-top: 7px; color: var(--lumiverse-warning, #f59e0b); font-size: 11px; line-height: 1.35; }
 .ts-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
 .ts-btn { appearance: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; border: 1px solid var(--ts-border); border-radius: var(--lumiverse-radius-sm, 6px); padding: 6px 10px; background: var(--lumiverse-fill-subtle, rgba(0,0,0,.12)); color: var(--ts-text); cursor: pointer; font: inherit; font-size: 12px; }

@@ -18,10 +18,10 @@ describe('Phase Three persistence and migrations', () => {
     const state = createInitialState(); const project = state.projects[0]
     project.componentOverrides.push({ id: 'dom', target: { selector: '.widget', strategy: 'exact-class', stability: 'low', persistence: 'persistent', source: 'dom-scoped', label: 'div · widget' }, states: { normal: [createStylePacket('background'), createStylePacket('layout')], hover: [createStylePacket('shadow')] } })
     project.fonts.push({ id: 'font', family: 'Alike Angular', source: { type: 'theme-asset', path: './assets/alike.woff2' }, weight: 400, style: 'normal', display: 'swap' })
-    project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.typographyEnabled = true; project.boost.legacyPalette = { surface: { color: '#18151f', alpha: 0.9 } }; project.boost.typography.fontFamily = 'Alike Angular'
+    project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.typographyEnabled = true; project.boost.textMode = 'custom'; project.boost.text = { color: '#f2d8e8', alpha: .9 }; project.boost.typography.fontFamily = 'Alike Angular'
     const restored = normalizeState(JSON.parse(JSON.stringify(state))); const override = restored.projects[0].componentOverrides[0]
     expect(override.target.source).toBe('dom-scoped'); expect(override.states.normal.map((packet) => packet.type)).toEqual(['background', 'layout']); expect(override.states.hover?.[0].type).toBe('shadow')
-    expect(restored.projects[0].fonts[0].source.path).toBe('./assets/alike.woff2'); expect(restored.projects[0].boost.legacyPalette?.surface?.alpha).toBe(0.9)
+    expect(restored.projects[0].fonts[0].source.path).toBe('./assets/alike.woff2'); expect(restored.projects[0].boost.textMode).toBe('custom'); expect(restored.projects[0].boost.text).toEqual({ color: '#f2d8e8', alpha: .9 })
   })
 
   test('migrates a Phase Two target and packets into target metadata plus states.normal', () => {
@@ -34,10 +34,10 @@ describe('Phase Three persistence and migrations', () => {
     const background = override.states.normal[2]; if (background.type !== 'background') throw new Error(); expect(background.gradient.stops.map((stop) => stop.alpha)).toEqual([1, 1])
   })
 
-  test('migrates Phase Four dimensions and palette without losing intent', () => {
+  test('retired Phase Four palette payloads do not bootstrap current Boost colors', () => {
     const old = { version: 4, activeProjectId: 'p', projects: [{ version: 4, id: 'p', name: 'Phase Four', tokens: [], componentOverrides: [{ id: 'o', target: { selector: '.card', strategy: 'exact-class', stability: 'low', persistence: 'persistent', source: 'dom-scoped' }, states: { normal: [{ id: 's', type: 'size', width: { mode: 'auto' }, height: { mode: 'fill' }, maxWidth: { mode: 'fit' } }] } }], customCss: '', assets: [], fonts: [], presets: [], boost: { palette: { primary: { color: '#ff0000', alpha: .8 }, surface: { color: '#111111', alpha: 1 } }, typography: { fontFamily: 'Verdana' }, smartInvert: { enabled: true, strength: 1, preserveAccents: true, preserveMedia: true } }, createdAt: 1, updatedAt: 2 }] }
     const project = normalizeState(old).projects[0], size = project.componentOverrides[0].states.normal[0]
-    expect(project.boost.enabled).toBe(true); expect(project.boost.mode).toBe('smart-invert'); expect(project.boost.primary).toEqual({ color: '#ff0000', alpha: .8 }); expect(project.boost.legacyPalette?.surface?.color).toBe('#111111')
+    expect(project.boost.enabled).toBe(true); expect(project.boost.mode).toBe('smart-invert'); expect(project.boost.primary).toEqual({ color: '#9370db', alpha: 1 }); expect('legacyPalette' in project.boost).toBe(false)
     expect(size.type === 'size' && [size.width?.mode, size.height?.mode, size.maxWidth?.mode]).toEqual(['native', 'parent', 'content'])
   })
 

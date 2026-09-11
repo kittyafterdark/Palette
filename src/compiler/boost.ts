@@ -1,7 +1,20 @@
-import type { BoostColor, BoostPaletteRole, ProjectBoost } from '../project/model'
-import { colorWithAlpha, parseHexColor, type RgbaColor } from './color'
+import type { BoostColor, ProjectBoost } from '../project/model'
+import { contrastRatio, mixRgba, parseHexColor, type RgbaColor } from './color'
 
-export interface BoostTransformDiagnostics { sourceCount: number; standaloneColorCount: number; complexColorCount: number; transformedColorTokenCount: number; colorCount: number; changedCount: number; preservedCount: number; skippedCount: number; samples: Array<{ variable: string; before: string; after: string }> }
+export type BoostTransformRole = 'primary' | 'secondary' | 'surface' | 'text' | 'muted' | 'border' | 'neutral' | 'semantic' | 'preserve'
+export interface BoostTransformSample { variable: string; role: BoostTransformRole; before: string; after: string }
+export interface BoostTransformDiagnostics {
+  sourceCount: number
+  standaloneColorCount: number
+  complexColorCount: number
+  transformedColorTokenCount: number
+  colorCount: number
+  changedCount: number
+  preservedCount: number
+  skippedCount: number
+  roleCounts: Record<BoostTransformRole, number>
+  samples: BoostTransformSample[]
+}
 export interface BoostTransformResult { variables: Record<string, string>; diagnostics: BoostTransformDiagnostics }
 export interface BoostCssValueTrace { json: string; normalizedJson: string; codePoints: number[]; prohibited: Array<{ index: number; codePoint: number }>; parsedAsColor: boolean }
 interface Oklch { l: number; c: number; h: number; alpha: number }
@@ -11,6 +24,8 @@ const channel = (value: number) => byte(value).toString(16).padStart(2, '0')
 const hueDelta = (from: number, to: number) => ((to - from + 540) % 360) - 180
 const normalizeCssValueBoundary = (value: string) => value.replace(/^[ \t\r\n]+|[ \t\r\n]+$/g, '')
 const prohibitedControlCharacters = (value: string) => [...value].map((character, index) => ({ index, codePoint: character.codePointAt(0) ?? 0 })).filter(({ codePoint }) => codePoint <= 8 || codePoint === 11 || codePoint === 12 || (codePoint >= 14 && codePoint <= 31))
+const TEXT_FAMILY = ['--lumiverse-text', '--lumiverse-text-muted', '--lumiverse-text-dim', '--lumiverse-text-hint', '--lumiverse-icon', '--lumiverse-icon-muted', '--lumiverse-icon-dim'] as const
+const BOOST_ROLES: BoostTransformRole[] = ['primary', 'secondary', 'surface', 'text', 'muted', 'border', 'neutral', 'semantic', 'preserve']
 
 function parseCssColor(value: string): RgbaColor | null {
   const normalized = normalizeCssValueBoundary(value)
@@ -41,10 +56,44 @@ function fromOklch(value: Oklch): RgbaColor {
 function inGamut(color: RgbaColor): boolean { return color.r >= 0 && color.r <= 255 && color.g >= 0 && color.g <= 255 && color.b >= 0 && color.b <= 255 }
 function render(value: Oklch): string { let candidate = { ...value }, rgb = fromOklch(candidate); for (let i = 0; i < 20 && !inGamut(rgb); i++) { candidate.c *= .9; rgb = fromOklch(candidate) } const base = `#${channel(rgb.r)}${channel(rgb.g)}${channel(rgb.b)}`; return value.alpha >= .9995 ? base : `rgba(${byte(rgb.r)}, ${byte(rgb.g)}, ${byte(rgb.b)}, ${Math.round(clamp(value.alpha) * 1000) / 1000})` }
 function anchor(value: BoostColor | undefined, fallback: BoostColor): Oklch { return toOklch(parseCssColor(value?.color ?? fallback.color) ?? { r: 147, g: 112, b: 219, alpha: 1 }) }
-function useSecondary(name: string): boolean { return /(?:bg|surface|card|fill|border|shadow|overlay|modal|sidebar|panel)/i.test(name) }
-function transformColor(name: string, source: RgbaColor, boost: ProjectBoost): string {
-  const original = toOklch(source), primary = anchor(boost.primary, boost.primary), secondary = anchor(boost.secondary, boost.primary), selected = useSecondary(name) ? secondary : primary, retention = clamp(boost.originalSaturation), recolor = 1 - retention
-  let l = boost.mode === 'smart-invert' ? 1 - original.l : original.l; l = clamp(.5 + (l - .5) * (1 + clamp(boost.contrast, -1, 1) * .9) + clamp(boost.brightness, -1, 1) * .28)
+
+export function classifyBoostVariable(name: string): BoostTransformRole {
+  if (/^--lumiverse-(?:danger|success|warning|error)(?:-|$)/i.test(name)) return 'semantic'
+  if (/^--lumiverse-(?:primary(?:-|$)|accent(?:-|$))/i.test(name)) return 'primary'
+  if (/^--lumiverse-secondary(?:-|$)/i.test(name)) return 'secondary'
+  if (/^--lumiverse-(?:text-muted|text-dim|text-hint|icon-muted|icon-dim|muted)(?:-|$)?/i.test(name)) return 'muted'
+  if (/^--lumiverse-(?:text|icon)$/i.test(name)) return 'text'
+  if (/^--lumiverse-(?:bg-dark(?:er)?$|fill(?:-|$)|border-(?:light|neutral(?:-hover)?)$|swatch-border$|shadow(?:-|$)|highlight-inset(?:-|$)|modal-backdrop$|scene-text-scrim$)/i.test(name)) return 'neutral'
+  if (/^--lumiverse-border(?:-|$)/i.test(name)) return 'border'
+  if (/^--lumiverse-(?:bg(?:-|$)|card(?:-|$)|gradient-modal$)/i.test(name)) return 'surface'
+  return 'preserve'
+}
+
+function surfaceAnchor(boost: ProjectBoost): Oklch {
+  const primary = anchor(boost.primary, boost.primary)
+  return { l: .5, c: Math.min(.075, primary.c * .48), h: primary.h, alpha: 1 }
+}
+function borderAnchor(boost: ProjectBoost): Oklch {
+  const primary = anchor(boost.primary, boost.primary)
+  return { l: .5, c: Math.min(.11, primary.c * .72), h: primary.h, alpha: 1 }
+}
+function roleAnchor(role: BoostTransformRole, boost: ProjectBoost): Oklch | undefined {
+  if (role === 'primary') return anchor(boost.primary, boost.primary)
+  if (role === 'secondary') return anchor(boost.secondary, boost.primary)
+  if (role === 'surface') return surfaceAnchor(boost)
+  if (role === 'border') return borderAnchor(boost)
+  if ((role === 'text' || role === 'muted') && boost.textMode === 'custom' && boost.text) return anchor(boost.text, boost.text)
+  return undefined
+}
+function transformLightness(value: number, boost: ProjectBoost): number {
+  let l = boost.mode === 'smart-invert' ? 1 - value : value
+  return clamp(.5 + (l - .5) * (1 + clamp(boost.contrast, -1, 1) * .9) + clamp(boost.brightness, -1, 1) * .28)
+}
+function transformColor(role: BoostTransformRole, source: RgbaColor, boost: ProjectBoost): string {
+  if (role === 'semantic' || role === 'preserve') return render(toOklch(source))
+  const original = toOklch(source), selected = roleAnchor(role, boost), retention = clamp(boost.originalSaturation), recolor = 1 - retention
+  const l = transformLightness(original.l, boost)
+  if (!selected) return render({ ...original, l, alpha: source.alpha })
   return render({ l, c: clamp(original.c * retention + selected.c * recolor, 0, .4), h: original.h + hueDelta(original.h, selected.h) * recolor, alpha: source.alpha })
 }
 
@@ -64,6 +113,7 @@ function serializeColorLike(sourceToken: string, transformed: string): string {
   if (fn?.toLowerCase() === 'hsl' || fn?.toLowerCase() === 'hsla') { const hsl = rgbToHsl(color), body = `${Math.round(hsl.h * 1000) / 1000}, ${Math.round(hsl.s * 10000) / 100}%, ${Math.round(hsl.l * 10000) / 100}%`; return fn.toLowerCase() === 'hsla' ? `${fn}(${body}, ${alphaText(color.alpha)})` : `${fn}(${body})` }
   return transformed
 }
+function rgbaCss(value: RgbaColor): string { return `rgba(${byte(value.r)}, ${byte(value.g)}, ${byte(value.b)}, ${alphaText(value.alpha)})` }
 
 function quotedEnd(value: string, start: number): number { const quote = value[start]; let index = start + 1; while (index < value.length) { if (value[index] === '\\') index += 2; else if (value[index++] === quote) break } return index }
 function commentEnd(value: string, start: number): number { const close = value.indexOf('*/', start + 2); return close < 0 ? value.length : close + 2 }
@@ -82,22 +132,22 @@ function functionEnd(value: string, open: number): number {
 interface TokenTransform { value: string; count: number }
 const COLOR_FUNCTIONS = new Set(['rgb', 'rgba', 'hsl', 'hsla'])
 const COLOR_CONTAINERS = new Set(['linear-gradient', 'radial-gradient', 'color-mix'])
-function transformColorTokens(name: string, value: string, boost: ProjectBoost): TokenTransform {
+function transformColorTokens(role: BoostTransformRole, value: string, boost: ProjectBoost): TokenTransform {
   let output = '', count = 0, index = 0
   while (index < value.length) {
     if (value[index] === '"' || value[index] === "'") { const end = quotedEnd(value, index); output += value.slice(index, end); index = end; continue }
     if (value.startsWith('/*', index)) { const end = commentEnd(value, index); output += value.slice(index, end); index = end; continue }
     if (value[index] === '#') {
       const match = value.slice(index).match(/^#([0-9a-fA-F]+)/), length = match?.[1].length ?? 0, end = index + 1 + length, boundary = value[end]
-      if ([3, 4, 6, 8].includes(length) && (!boundary || !/[A-Za-z0-9_-]/.test(boundary))) { const token = value.slice(index, end), parsed = parseCssColor(token); if (parsed) { output += serializeColorLike(token, transformColor(name, parsed, boost)); count += 1; index = end; continue } }
+      if ([3, 4, 6, 8].includes(length) && (!boundary || !/[A-Za-z0-9_-]/.test(boundary))) { const token = value.slice(index, end), parsed = parseCssColor(token); if (parsed) { output += serializeColorLike(token, transformColor(role, parsed, boost)); count += 1; index = end; continue } }
     }
     const functionMatch = value.slice(index).match(/^(-?[A-Za-z][A-Za-z0-9-]*)([ \t\r\n]*)\(/)
     if (functionMatch) {
       const functionName = functionMatch[1].toLowerCase(), open = index + functionMatch[0].length - 1, close = functionEnd(value, open)
       if (close >= 0) {
         const whole = value.slice(index, close + 1)
-        if (COLOR_FUNCTIONS.has(functionName)) { const parsed = parseCssColor(whole); if (parsed) { output += serializeColorLike(whole, transformColor(name, parsed, boost)); count += 1; index = close + 1; continue } }
-        if (COLOR_CONTAINERS.has(functionName)) { const inner = transformColorTokens(name, value.slice(open + 1, close), boost); output += value.slice(index, open + 1) + inner.value + ')'; count += inner.count; index = close + 1; continue }
+        if (COLOR_FUNCTIONS.has(functionName)) { const parsed = parseCssColor(whole); if (parsed) { output += serializeColorLike(whole, transformColor(role, parsed, boost)); count += 1; index = close + 1; continue } }
+        if (COLOR_CONTAINERS.has(functionName)) { const inner = transformColorTokens(role, value.slice(open + 1, close), boost); output += value.slice(index, open + 1) + inner.value + ')'; count += inner.count; index = close + 1; continue }
         // var(), url(), data payloads, and unrelated functions are deliberately opaque.
         output += whole; index = close + 1; continue
       }
@@ -108,36 +158,65 @@ function transformColorTokens(name: string, value: string, boost: ProjectBoost):
   return { value: output, count }
 }
 
+function ensureContrast(candidate: RgbaColor, background: RgbaColor, minimum = 4.5): RgbaColor {
+  const opaqueCandidate = { ...candidate, alpha: 1 }, opaqueBackground = { ...background, alpha: 1 }, targetRatio = minimum + .05
+  if (contrastRatio(opaqueCandidate, opaqueBackground) >= targetRatio) return candidate
+  const light: RgbaColor = { r: 255, g: 255, b: 255, alpha: 1 }, dark: RgbaColor = { r: 0, g: 0, b: 0, alpha: 1 }
+  const target = contrastRatio(light, opaqueBackground) >= contrastRatio(dark, opaqueBackground) ? light : dark
+  if (contrastRatio(target, opaqueBackground) < minimum) return { ...target, alpha: candidate.alpha }
+  let low = 0, high = 1
+  for (let i = 0; i < 18; i++) { const mid = (low + high) / 2, mixed = mixRgba(opaqueCandidate, target, mid); if (contrastRatio(mixed, opaqueBackground) >= targetRatio) high = mid; else low = mid }
+  return { ...mixRgba(opaqueCandidate, target, high), alpha: candidate.alpha }
+}
+function applyTextTreatment(variables: Record<string, string>, baseline: Record<string, string>, boost: ProjectBoost): void {
+  const referenceName = TEXT_FAMILY.find((name) => parseCssColor(variables[name] ?? baseline[name] ?? ''))
+  if (!referenceName) return
+  const currentReference = parseCssColor(variables[referenceName] ?? baseline[referenceName]); if (!currentReference) return
+  let base: RgbaColor
+  if (boost.textMode === 'custom' && boost.text) {
+    const custom = parseCssColor(boost.text.color); if (!custom) return
+    base = { ...custom, alpha: clamp(boost.text.alpha) }
+  } else {
+    const surface = parseCssColor(variables['--lumiverse-bg'] ?? baseline['--lumiverse-bg'] ?? '')
+    base = surface ? ensureContrast(currentReference, surface, 4.5) : currentReference
+  }
+  for (const name of TEXT_FAMILY) {
+    if (!(name in baseline) && !(name in variables)) continue
+    const source = normalizeCssValueBoundary(baseline[name] ?? variables[name]), current = parseCssColor(variables[name] ?? source)
+    if (!current) continue
+    const alpha = boost.textMode === 'custom' && boost.text ? current.alpha * clamp(boost.text.alpha) : current.alpha
+    variables[name] = serializeColorLike(source, rgbaCss({ r: base.r, g: base.g, b: base.b, alpha }))
+  }
+}
 function readableCss(value: string): string {
   const parsed = parseCssColor(value)
   if (!parsed) return '#ffffff'
-  const luminance = (.2126 * parsed.r + .7152 * parsed.g + .0722 * parsed.b) / 255
-  return luminance <= .58 ? '#ffffff' : '#17131f'
+  const light = { r: 255, g: 255, b: 255, alpha: 1 }, dark = { r: 23, g: 19, b: 31, alpha: 1 }
+  return contrastRatio(light, parsed) >= contrastRatio(dark, parsed) ? '#ffffff' : '#17131f'
 }
 function protectInteractiveVariables(variables: Record<string, string>, baseline: Record<string, string>): void {
   // `--lumiverse-primary-text` is not control-only: native prose/dialogue variables
-  // can reference it. Rewriting it made unrelated text unreadable. Keep the guard
-  // deliberately surgical and only repair the explicit deep-surface contrast token
-  // used by filled primary controls.
+  // can reference it. Keep this repair deliberately surgical and only target the
+  // explicit foreground paired with the deep filled-primary surface.
   const deep = variables['--lumiverse-primary-deep'] ?? baseline['--lumiverse-primary-deep']
   if (deep && '--lumiverse-primary-deep-contrast' in baseline) variables['--lumiverse-primary-deep-contrast'] = readableCss(deep)
 }
 
+function emptyRoleCounts(): Record<BoostTransformRole, number> { return Object.fromEntries(BOOST_ROLES.map((role) => [role, 0])) as Record<BoostTransformRole, number> }
 export function transformThemeVariables(baseline: Record<string, string>, boost: ProjectBoost): BoostTransformResult {
-  const variables: Record<string, string> = {}, samples: BoostTransformDiagnostics['samples'] = []; let standaloneColorCount = 0, complexColorCount = 0, transformedColorTokenCount = 0, changedCount = 0
-  // Color Boost intentionally transforms the complete native map so complex
-  // expressions keep their original structure while every safe literal color
-  // participates. Typography-only Boost is deliberately sparse: changing the
-  // app font should not resend hundreds of untouched theme variables.
+  if (boost.enabled) for (const [name, value] of Object.entries(baseline)) { const prohibited = prohibitedControlCharacters(value); if (prohibited.length) throw new Error(`Boost baseline CSS value ${name} contains prohibited control characters: ${JSON.stringify(value)} (${prohibited.map((entry) => `index ${entry.index}=U+${entry.codePoint.toString(16).toUpperCase().padStart(4, '0')}`).join(', ')})`) }
+  const variables: Record<string, string> = {}, roleCounts = emptyRoleCounts(); let standaloneColorCount = 0, complexColorCount = 0, transformedColorTokenCount = 0
   if (boost.enabled && boost.colorsEnabled) for (const [name, raw] of Object.entries(baseline)) {
-    const before = normalizeCssValueBoundary(raw), parsed = parseCssColor(before)
+    const before = normalizeCssValueBoundary(raw), role = classifyBoostVariable(name); roleCounts[role] += 1
+    const parsed = parseCssColor(before); if (parsed) standaloneColorCount += 1
+    if (role === 'semantic' || role === 'preserve') { variables[name] = before; continue }
     let after = before, tokenCount = 0
-    if (parsed) { after = serializeColorLike(before, transformColor(name, parsed, boost)); standaloneColorCount += 1; tokenCount = 1 }
-    else { const transformed = transformColorTokens(name, before, boost); after = transformed.value; tokenCount = transformed.count; if (tokenCount) complexColorCount += 1 }
+    if (parsed) { after = serializeColorLike(before, transformColor(role, parsed, boost)); tokenCount = 1 }
+    else { const transformed = transformColorTokens(role, before, boost); after = transformed.value; tokenCount = transformed.count; if (tokenCount) complexColorCount += 1 }
     transformedColorTokenCount += tokenCount
-    if (tokenCount) { changedCount += 1; if (samples.length < 8) samples.push({ variable: name, before, after }) }
     variables[name] = after
   }
+  if (boost.enabled && boost.colorsEnabled) applyTextTreatment(variables, baseline, boost)
   if (boost.enabled && boost.canvasEnabled) {
     // Lumiverse's scene wash is a small family, not one variable. ChatView's
     // wallpaper/text context layers can combine the explicit scene scrim with
@@ -147,37 +226,25 @@ export function transformThemeVariables(baseline: Record<string, string>, boost:
     const canvasVariables = ['--lumiverse-scene-text-scrim', '--lumiverse-bg-deep-080', '--lumiverse-bg-070'] as const
     for (const name of canvasVariables) {
       if (!(name in baseline)) continue
-      const source = variables[name] ?? normalizeCssValueBoundary(baseline[name])
-      const parsed = parseCssColor(source)
-      if (parsed) {
-        const adjusted = `rgba(${byte(parsed.r)}, ${byte(parsed.g)}, ${byte(parsed.b)}, ${alphaText(parsed.alpha * canvasAlpha)})`
-        const after = serializeColorLike(source, adjusted)
-        variables[name] = after
-        if (after !== source) {
-          changedCount += 1
-          if (samples.length < 8) samples.push({ variable: name, before: source, after })
-        }
-      } else variables[name] = source
+      const source = variables[name] ?? normalizeCssValueBoundary(baseline[name]), parsed = parseCssColor(source)
+      if (parsed) variables[name] = serializeColorLike(source, rgbaCss({ ...parsed, alpha: parsed.alpha * canvasAlpha }))
+      else variables[name] = source
     }
   }
-  if (boost.enabled && boost.colorsEnabled) Object.assign(variables, deriveLegacyBoostOverrides(boost))
   if (boost.enabled && boost.colorsEnabled && boost.protectControls) protectInteractiveVariables(variables, baseline)
   if (boost.enabled && boost.typographyEnabled && boost.typography.fontFamily && '--lumiverse-font-family' in baseline) variables['--lumiverse-font-family'] = boost.typography.fontFamily
   if (boost.enabled && boost.typographyEnabled && boost.typography.scale !== undefined && '--lumiverse-font-scale' in baseline) variables['--lumiverse-font-scale'] = String(clamp(boost.typography.scale, .25, 4))
   for (const [name, value] of Object.entries(variables)) { const prohibited = prohibitedControlCharacters(value); if (prohibited.length) throw new Error(`Boost CSS value ${name} contains prohibited control characters: ${JSON.stringify(value)} (${prohibited.map((entry) => `index ${entry.index}=U+${entry.codePoint.toString(16).toUpperCase().padStart(4, '0')}`).join(', ')})`) }
-  const sourceCount = Object.keys(baseline).length, colorCount = standaloneColorCount + complexColorCount, preservedCount = boost.enabled && (boost.colorsEnabled || boost.canvasEnabled) ? Math.max(0, sourceCount - changedCount) : sourceCount
-  return { variables, diagnostics: { sourceCount, standaloneColorCount, complexColorCount, transformedColorTokenCount, colorCount, changedCount, preservedCount, skippedCount: preservedCount, samples } }
+  const samples: BoostTransformSample[] = [], sourceCount = Object.keys(baseline).length
+  let changedCount = 0
+  for (const [name, raw] of Object.entries(baseline)) {
+    const before = normalizeCssValueBoundary(raw), after = variables[name]
+    if (after === undefined || after === before) continue
+    changedCount += 1
+    if (samples.length < 8) samples.push({ variable: name, role: classifyBoostVariable(name), before, after })
+  }
+  const colorCount = standaloneColorCount + complexColorCount, preservedCount = boost.enabled ? Math.max(0, sourceCount - changedCount) : sourceCount
+  return { variables, diagnostics: { sourceCount, standaloneColorCount, complexColorCount, transformedColorTokenCount, colorCount, changedCount, preservedCount, skippedCount: preservedCount, roleCounts, samples } }
 }
 
-function mix(color: string, target: '#000000' | '#ffffff', amount: number): string { const source = parseHexColor(color), destination = parseHexColor(target); if (!source || !destination) return color; const value = clamp(amount); return `#${channel(source.r + (destination.r - source.r) * value)}${channel(source.g + (destination.g - source.g) * value)}${channel(source.b + (destination.b - source.b) * value)}` }
-function readable(color: string): string { const value = parseHexColor(color); return !value || (.2126 * value.r + .7152 * value.g + .0722 * value.b) / 255 <= .58 ? '#ffffff' : '#17131f' }
-function alpha(value: BoostColor, multiplier = 1): string { return colorWithAlpha(value.color, clamp(value.alpha * multiplier)) }
-function valid(entries: Record<string, string>): Record<string, string> { return entries }
-export function compilePrimaryFamily(value: BoostColor): Record<string, string> { return valid({ '--lumiverse-primary': alpha(value), '--lumiverse-primary-hover': colorWithAlpha(mix(value.color, '#ffffff', .12), value.alpha), '--lumiverse-primary-light': alpha(value, .1), '--lumiverse-primary-muted': alpha(value, .6), '--lumiverse-primary-text': colorWithAlpha(mix(value.color, '#ffffff', .18), Math.max(value.alpha, .92)), '--lumiverse-primary-010': alpha(value, .1), '--lumiverse-primary-015': alpha(value, .15), '--lumiverse-primary-020': alpha(value, .2), '--lumiverse-primary-050': alpha(value, .5), '--lumiverse-primary-deep': mix(value.color, '#000000', .72), '--lumiverse-primary-deep-hover': mix(value.color, '#000000', .62), '--lumiverse-primary-deep-contrast': readable(mix(value.color, '#000000', .72)) }) }
-export function compileSecondaryFamily(value: BoostColor): Record<string, string> { return valid({ '--lumiverse-secondary': alpha(value, .35), '--lumiverse-secondary-hover': alpha(value, .5), '--lumiverse-secondary-border': alpha(value, .45) }) }
-export function compileSurfaceFamily(value: BoostColor): Record<string, string> { const elevated = mix(value.color, '#ffffff', .07), hover = mix(value.color, '#ffffff', .12), deep = mix(value.color, '#000000', .22); return valid({ '--lumiverse-bg': alpha(value), '--lumiverse-bg-elevated': colorWithAlpha(elevated, value.alpha), '--lumiverse-bg-hover': colorWithAlpha(hover, value.alpha), '--lumiverse-bg-dark': mix(value.color, '#000000', .12), '--lumiverse-bg-darker': deep, '--lumiverse-bg-040': alpha(value, .4), '--lumiverse-bg-050': alpha(value, .5), '--lumiverse-bg-070': alpha(value, .7), '--lumiverse-card-bg': colorWithAlpha(elevated, value.alpha * .92), '--lumiverse-card-bg-solid': elevated, '--lumiverse-fill': colorWithAlpha(hover, .1), '--lumiverse-fill-hover': colorWithAlpha(hover, .15), '--lumiverse-fill-strong': colorWithAlpha(hover, .35) }) }
-export function compileTextFamily(value: BoostColor): Record<string, string> { return valid({ '--lumiverse-text': alpha(value), '--lumiverse-text-muted': alpha(value, .68), '--lumiverse-text-dim': alpha(value, .48), '--lumiverse-text-hint': alpha(value, .36), '--lumiverse-icon': alpha(value, .9), '--lumiverse-icon-muted': alpha(value, .62), '--lumiverse-icon-dim': alpha(value, .42) }) }
-export function compileMutedFamily(value: BoostColor): Record<string, string> { return valid({ '--lumiverse-text-muted': alpha(value), '--lumiverse-text-dim': alpha(value, .7), '--lumiverse-text-hint': alpha(value, .5), '--lumiverse-icon-muted': alpha(value, .9), '--lumiverse-icon-dim': alpha(value, .65) }) }
-export function compileBorderFamily(value: BoostColor): Record<string, string> { return valid({ '--lumiverse-border': alpha(value, .45), '--lumiverse-border-hover': alpha(value, .68), '--lumiverse-border-light': alpha(value, .25), '--lumiverse-border-neutral': alpha(value, .34), '--lumiverse-border-neutral-hover': alpha(value, .55) }) }
-export function deriveLegacyBoostOverrides(boost: ProjectBoost): Record<string, string> { const result: Record<string, string> = {}, compile: Partial<Record<BoostPaletteRole, (value: BoostColor) => Record<string, string>>> = { primary: compilePrimaryFamily, secondary: compileSecondaryFamily, surface: compileSurfaceFamily, text: compileTextFamily, muted: compileMutedFamily, border: compileBorderFamily }; for (const role of Object.keys(boost.legacyPalette ?? {}) as BoostPaletteRole[]) { const value = boost.legacyPalette?.[role], family = compile[role]; if (value && family) Object.assign(result, family(value)) } return result }
 export function deriveBoostTokenOverrides(boost: ProjectBoost, baseline: Record<string, string> = {}): Record<string, string> { return boost.enabled ? transformThemeVariables(baseline, boost).variables : {} }

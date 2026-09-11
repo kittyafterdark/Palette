@@ -1,6 +1,6 @@
 import {
   STYLE_STATES, clonePacketStack, createBoost, createInitialState, createProject, newId,
-  type BoostColor, type BoostPaletteRole, type ComponentOverride, type LayoutGroup, type LayoutGroupState, type SmartInvertConfig,
+  type ComponentOverride, type LayoutGroup, type LayoutGroupState, type SmartInvertConfig,
   type StatePacketStacks, type StudioFontFace, type StudioTarget, type StylePacket, type StylePreset, type SavedStyleBundle, type RecipePacketSlot, type StudioSvgAsset,
   type StyleStateName, type ResponsiveScopeName, type ThemeStudioProject, type ThemeStudioState,
 } from './model'
@@ -297,8 +297,6 @@ export class ProjectStore {
   saveComposerSvg(name: string, source: string): StudioSvgAsset | null { return this.saveSvgAsset(name, source) }
   removeComposerSvg(svgId: string): void { this.removeSvgAsset(svgId) }
 
-  /** Phase Four compatibility editor; legacy roles are explicit post-transform overrides. */
-  setBoostPaletteRole(role: BoostPaletteRole, value?: BoostColor): void { this.updateActive((project) => ({ ...project, boost: { ...project.boost, enabled: true, legacyPalette: { ...project.boost.legacyPalette, [role]: value ? structuredClone(value) : undefined } } })) }
   setBoostEnabled(enabled: boolean): void { this.updateActive((project) => ({ ...project, boost: { ...project.boost, enabled } })) }
   setBoostColorsEnabled(colorsEnabled: boolean): void { this.updateActive((project) => { const { typographyEnabled, canvasEnabled } = project.boost; return { ...project, boost: { ...project.boost, colorsEnabled, enabled: colorsEnabled || typographyEnabled || canvasEnabled } } }) }
   setBoostTypographyEnabled(typographyEnabled: boolean): void { this.updateActive((project) => { const { colorsEnabled, canvasEnabled } = project.boost; return { ...project, boost: { ...project.boost, typographyEnabled, enabled: colorsEnabled || typographyEnabled || canvasEnabled } } }) }
@@ -312,7 +310,8 @@ export class ProjectStore {
   }
   setBoostProtectControls(protectControls: boolean): void { this.updateActive((project) => ({ ...project, boost: { ...project.boost, protectControls } })) }
   setBoostMode(mode: 'recolor' | 'smart-invert'): void { this.updateActive((project) => ({ ...project, boost: { ...project.boost, enabled: true, colorsEnabled: true, mode } })) }
-  updateBoostParameters(value: Partial<Pick<ThemeStudioProject['boost'], 'primary' | 'secondary' | 'contrast' | 'brightness' | 'originalSaturation'>>): void {
+  setBoostTextMode(textMode: ThemeStudioProject['boost']['textMode']): void { this.updateActive((project) => ({ ...project, boost: { ...project.boost, enabled: true, colorsEnabled: true, textMode } })) }
+  updateBoostParameters(value: Partial<Pick<ThemeStudioProject['boost'], 'primary' | 'secondary' | 'text' | 'contrast' | 'brightness' | 'originalSaturation'>>): void {
     this.updateActive((project) => ({ ...project, boost: { ...project.boost, ...structuredClone(value), enabled: true, colorsEnabled: true } }))
   }
   setBoostFont(fontFamily?: string, scale?: number): void { this.updateActive((project) => ({ ...project, boost: { ...project.boost, enabled: true, typographyEnabled: true, typography: { fontFamily: fontFamily?.trim() || undefined, scale } } })) }
