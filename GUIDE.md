@@ -375,7 +375,7 @@ Palette should never recursively recolor its already transformed root output.
 Color routing is semantic rather than a two-bucket hue swap:
 
 - **Primary accent** owns primary actions, active emphasis, focus/link families, and leads the low-chroma surface treatment.
-- **Secondary accent** owns the native secondary family and softly influences derived surfaces/borders so it remains visible as a supporting color; it is still not the fallback owner for cards, modals, borders, shadows, or unknown variables.
+- **Secondary accent** owns the native secondary family plus supporting elevated/card surfaces, modal/card gradients, hover surfaces, and hover borders. It also contributes to derived border tint, while Primary still leads the base canvas/background family. Neutral chrome, semantic status colors, and unknown variables remain outside accent ownership.
 - **Surface**, **Border**, and neutral chrome are transformed as their own roles. Danger/success/warning/error families preserve their semantic identity, and unclassified variables pass through unchanged.
 - **Text treatment → Auto contrast** keeps the native foreground character but repairs the main text anchor against the transformed surface using real sRGB contrast math. **Custom** lets you supply a foreground anchor while preserving the native text/muted hierarchy.
 - **Protect controls** is a final local safety pass for paired control foregrounds; it does not own ordinary prose.

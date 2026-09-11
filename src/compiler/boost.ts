@@ -61,6 +61,11 @@ export function classifyBoostVariable(name: string): BoostTransformRole {
   if (/^--lumiverse-(?:danger|success|warning|error)(?:-|$)/i.test(name)) return 'semantic'
   if (/^--lumiverse-(?:primary(?:-|$)|accent(?:-|$))/i.test(name)) return 'primary'
   if (/^--lumiverse-secondary(?:-|$)/i.test(name)) return 'secondary'
+  // Supporting surfaces are intentionally Secondary territory. These are the
+  // elevated/hover/card/gradient layers where a second accent should read as
+  // part of the theme instead of surviving only as a decorative token. Keep
+  // the root canvas/background family out of this lane so Primary still leads.
+  if (/^--lumiverse-(?:bg-elevated(?:-040)?|bg-hover|border-hover|gradient-modal|card-bg(?:-(?:solid|top|bottom))?|card-image-bg)$/i.test(name)) return 'secondary'
   if (/^--lumiverse-(?:text-muted|text-dim|text-hint|icon-muted|icon-dim|muted)(?:-|$)?/i.test(name)) return 'muted'
   if (/^--lumiverse-(?:text|icon)$/i.test(name)) return 'text'
   if (/^--lumiverse-(?:bg-dark(?:er)?$|fill(?:-|$)|border-(?:light|neutral(?:-hover)?)$|swatch-border$|shadow(?:-|$)|highlight-inset(?:-|$)|modal-backdrop$|scene-text-scrim$)/i.test(name)) return 'neutral'

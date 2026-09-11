@@ -385,7 +385,26 @@ describe('Phase Four Boost semantics', () => {
   test('neutral overlays and borders stay out of accent routing', () => {
     expect(classifyBoostVariable('--lumiverse-fill')).toBe('neutral'); expect(classifyBoostVariable('--lumiverse-fill-heavy')).toBe('neutral')
     expect(classifyBoostVariable('--lumiverse-bg-darker')).toBe('neutral'); expect(classifyBoostVariable('--lumiverse-border-neutral')).toBe('neutral'); expect(classifyBoostVariable('--lumiverse-swatch-border')).toBe('neutral')
-    expect(classifyBoostVariable('--lumiverse-border')).toBe('border'); expect(classifyBoostVariable('--lumiverse-card-bg')).toBe('surface')
+    expect(classifyBoostVariable('--lumiverse-border')).toBe('border'); expect(classifyBoostVariable('--lumiverse-card-bg')).toBe('secondary')
+  })
+  test('Secondary owns supporting panels and gradients without taking the base canvas', () => {
+    const baseline = { '--lumiverse-primary': '#4060d0', '--lumiverse-secondary': '#687080', '--lumiverse-bg': '#182038', '--lumiverse-bg-elevated': '#242c48', '--lumiverse-bg-hover': '#303956', '--lumiverse-card-bg': 'linear-gradient(165deg, #20263e 0%, #181d32 100%)', '--lumiverse-gradient-modal': 'linear-gradient(135deg, #242c48, #151a2c)', '--lumiverse-border': '#526070', '--lumiverse-border-hover': '#687080', '--lumiverse-fill': '#304050' }
+    const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.originalSaturation = 0; project.boost.primary = { color: '#0011ff', alpha: 1 }; project.boost.secondary = { color: '#ff00ae', alpha: 1 }
+    const pink = transformThemeVariables(baseline, project.boost)
+    project.boost.secondary = { color: '#00e5ff', alpha: 1 }
+    const cyan = transformThemeVariables(baseline, project.boost)
+    expect(pink.variables['--lumiverse-primary']).toBe(cyan.variables['--lumiverse-primary'])
+    expect(pink.variables['--lumiverse-bg']).not.toBe(cyan.variables['--lumiverse-bg'])
+    for (const name of ['--lumiverse-bg-elevated', '--lumiverse-bg-hover', '--lumiverse-card-bg', '--lumiverse-gradient-modal', '--lumiverse-border-hover']) expect(pink.variables[name]).not.toBe(cyan.variables[name])
+    expect(pink.variables['--lumiverse-fill']).toBe(cyan.variables['--lumiverse-fill'])
+    expect(classifyBoostVariable('--lumiverse-bg')).toBe('surface')
+    expect(classifyBoostVariable('--lumiverse-bg-elevated')).toBe('secondary')
+    expect(classifyBoostVariable('--lumiverse-bg-hover')).toBe('secondary')
+    expect(classifyBoostVariable('--lumiverse-card-bg')).toBe('secondary')
+    expect(classifyBoostVariable('--lumiverse-card-bg-top')).toBe('secondary')
+    expect(classifyBoostVariable('--lumiverse-card-image-bg')).toBe('secondary')
+    expect(classifyBoostVariable('--lumiverse-gradient-modal')).toBe('secondary')
+    expect(classifyBoostVariable('--lumiverse-border-hover')).toBe('secondary')
   })
   test('Auto text repairs foreground contrast while Custom owns the text family', () => {
     const baseline = { '--lumiverse-bg': '#777777', '--lumiverse-text': '#888888', '--lumiverse-text-muted': 'rgba(136, 136, 136, .65)', '--lumiverse-icon': 'rgba(136, 136, 136, .9)' }
