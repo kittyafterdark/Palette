@@ -2777,7 +2777,7 @@ var ProjectStore = class {
   applySmartInvertToBoost(_config) {
     this.setBoostMode("smart-invert");
   }
-  shuffleBoost(fontChoices = []) {
+  shuffleBoost() {
     this.updateActive((project2) => {
       let seed = project2.boost.shuffleSeed * 48271 % 2147483647;
       const random = () => (seed = seed * 48271 % 2147483647) / 2147483647;
@@ -2792,8 +2792,7 @@ var ProjectStore = class {
       const hue = random() * 360;
       const primary = { color: hsl(hue, 0.62 + random() * 0.28, 0.48 + random() * 0.14), alpha: 1 };
       const secondary = { color: hsl((hue + 90 + random() * 180) % 360, 0.48 + random() * 0.32, 0.42 + random() * 0.18), alpha: 1 };
-      const fontFamily = fontChoices.length ? fontChoices[Math.floor(random() * fontChoices.length)] : project2.boost.typography.fontFamily;
-      return { ...project2, boost: { ...project2.boost, enabled: true, colorsEnabled: true, typographyEnabled: Boolean(fontFamily) || project2.boost.typographyEnabled, mode: "recolor", primary, secondary, contrast: random() * 0.7 - 0.2, brightness: random() * 0.34 - 0.17, originalSaturation: random() * 0.45, typography: { ...project2.boost.typography, fontFamily }, shuffleSeed: seed } };
+      return { ...project2, boost: { ...project2.boost, enabled: true, colorsEnabled: true, primary, secondary, shuffleSeed: seed } };
     });
   }
   applyCapturedPackets(target, packets2, state = "normal", scope = "base") {
@@ -20817,7 +20816,7 @@ var ThemeStudioUI = class {
     this.widgetRoot.querySelector('[data-widget-action="float-themes"]')?.addEventListener("click", () => this.floatEditor("themes"));
     this.widgetRoot.querySelector('[data-widget-action="shuffle-boost"]')?.addEventListener("click", () => {
       this.clearBoostPreview();
-      this.store.shuffleBoost([]);
+      this.store.shuffleBoost();
     });
     this.bindWidgetPanelDrag();
   }
@@ -22099,7 +22098,8 @@ var ThemeStudioUI = class {
     const boostColorField = (key, label, value, fallback) => `<div class="ts-field"><label class="ts-label">${label}</label><div class="ts-color-row"><label class="ts-color-picker" title="Open color picker"><input class="ts-color" type="color" value="${escapeHtml(colorInput(value, fallback))}" data-boost-color="${key}" aria-label="Pick ${escapeHtml(label)}"><span>Pick</span></label><input class="ts-input" value="${escapeHtml(value)}" data-boost-color="${key}"></div>${boostRecent(key)}</div>`;
     const textTreatment = `<div class="ts-field ts-boost-text-treatment"><label class="ts-label">Text treatment</label><div class="ts-segment"><button type="button" data-boost-text-mode="auto" aria-pressed="${boost.textMode === "auto"}">Auto contrast</button><button type="button" data-boost-text-mode="custom" aria-pressed="${boost.textMode === "custom"}">Custom</button></div><p class="ts-note">Auto keeps native foreground character and repairs the main text anchor against the transformed surface. Custom uses your foreground anchor instead.</p></div>${boost.textMode === "custom" ? boostColorField("text", "Text anchor", boost.text.color, "#f4eef8") : ""}`;
     const diagnosticRoles = diagnostics ? `<div class="ts-meta ts-boost-role-meta"><span>Primary <strong>${diagnostics.roleCounts.primary}</strong></span><span>Secondary <strong>${diagnostics.roleCounts.secondary}</strong></span><span>Canvas <strong>${diagnostics.roleCounts.canvas}</strong></span><span>Surface <strong>${diagnostics.roleCounts.surface}</strong></span><span>Raised <strong>${diagnostics.roleCounts.raised}</strong></span><span>Hover <strong>${diagnostics.roleCounts.hover}</strong></span><span>Card <strong>${diagnostics.roleCounts.card}</strong></span><span>Glass <strong>${diagnostics.roleCounts.glass}</strong></span><span>Glass hover <strong>${diagnostics.roleCounts["glass-hover"]}</strong></span><span>Control <strong>${diagnostics.roleCounts.control}</strong></span><span>Text <strong>${diagnostics.roleCounts.text}</strong></span><span>Muted <strong>${diagnostics.roleCounts.muted}</strong></span><span>Foreground <strong>${diagnostics.roleCounts.foreground}</strong></span><span>Border subtle <strong>${diagnostics.roleCounts["border-subtle"]}</strong></span><span>Border <strong>${diagnostics.roleCounts.border}</strong></span><span>Border hover <strong>${diagnostics.roleCounts["border-hover"]}</strong></span><span>Neutral <strong>${diagnostics.roleCounts.neutral}</strong></span><span>Semantic <strong>${diagnostics.roleCounts.semantic}</strong></span><span>Pass-through <strong>${diagnostics.roleCounts.preserve}</strong></span></div>` : "";
-    const colorsBody = boost.colorsEnabled ? `<div class="ts-segment"><button type="button" data-boost-mode="recolor" aria-pressed="${boost.mode === "recolor"}">Recolor</button><button type="button" data-boost-mode="smart-invert" aria-pressed="${boost.mode === "smart-invert"}">Smart Invert</button></div>
+    const colorsBody = boost.colorsEnabled ? `<div class="ts-segment"><button type="button" data-boost-mode="recolor" aria-pressed="${boost.mode === "recolor"}">Recolor</button><button type="button" data-boost-mode="smart-invert" aria-pressed="${boost.mode === "smart-invert"}">Invert brightness</button></div>
+      <p class="ts-note"><strong>Recolor</strong> keeps the source theme\u2019s light/dark balance. <strong>Invert brightness</strong> flips that balance while keeping your palette and material relationships.</p>
       ${boostColorField("primary", "Primary accent", boost.primary.color, "#9370db")}
       ${boostColorField("secondary", "Secondary accent", boost.secondary?.color ?? boost.primary.color, "#786bf0")}
       <p class="ts-note">Primary and Secondary stay faithful as direct accents. Lumiverse material roles then blend them with native canvas, surface, card, glass, control, hover, and border depth; resting chrome stays quieter while interactive hover/foreground pairs keep their own contrast behavior.</p>
@@ -23454,7 +23454,7 @@ ${compileComponentOverride(draft, previewOptions)}`);
     this.root.querySelectorAll("[data-boost-font-sample]").forEach((button) => button.addEventListener("click", () => commitFont(button.dataset.boostFontSample ?? "")));
     this.root.querySelector('[data-action="shuffle-boost"]')?.addEventListener("click", () => {
       this.clearBoostPreview();
-      this.store.shuffleBoost([]);
+      this.store.shuffleBoost();
     });
     this.root.querySelector('[data-action="refresh-boost-source"]')?.addEventListener("click", () => void this.refreshBoostSource());
     this.root.querySelector('[data-action="reset-boost"]')?.addEventListener("click", () => {

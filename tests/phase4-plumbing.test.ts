@@ -487,7 +487,26 @@ describe('Phase Four Boost semantics', () => {
     expect(retained['--lumiverse-bg']).not.toBe(pulled['--lumiverse-bg'])
     expect(retained['--lumiverse-primary']).toBe(pulled['--lumiverse-primary'])
     expect(retained['--lumiverse-secondary']).toBe(pulled['--lumiverse-secondary'])
-    const store = new ProjectStore(), seed = store.activeProject.boost.shuffleSeed; store.shuffleBoost(['Verdana']); expect(store.activeProject.boost.shuffleSeed).not.toBe(seed); expect(store.activeProject.boost.typography.fontFamily).toBe('Verdana')
+  })
+  test('Shuffle colors preserves Invert brightness and the current transform tuning', () => {
+    const store = new ProjectStore()
+    store.setBoostMode('smart-invert')
+    store.updateBoostParameters({ contrast: -0.42, brightness: 0.51, originalSaturation: 0 })
+    store.setBoostFont('Verdana', 1.1)
+    const before = structuredClone(store.activeProject.boost)
+    store.shuffleBoost()
+    const after = store.activeProject.boost
+    expect(after.shuffleSeed).not.toBe(before.shuffleSeed)
+    expect(after.primary).not.toEqual(before.primary)
+    expect(after.secondary).not.toEqual(before.secondary)
+    expect(after.mode).toBe('smart-invert')
+    expect(after.contrast).toBe(before.contrast)
+    expect(after.brightness).toBe(before.brightness)
+    expect(after.originalSaturation).toBe(before.originalSaturation)
+    expect(after.textMode).toBe(before.textMode)
+    expect(after.text).toEqual(before.text)
+    expect(after.typography).toEqual(before.typography)
+    expect(after.typographyEnabled).toBe(before.typographyEnabled)
   })
   test('normalizes harmless boundary whitespace and emits no prohibited controls', () => {
     const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.primary = { color: '#ff0000', alpha: 1 }; project.boost.originalSaturation = 0

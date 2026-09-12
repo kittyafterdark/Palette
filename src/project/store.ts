@@ -317,7 +317,7 @@ export class ProjectStore {
   setBoostFont(fontFamily?: string, scale?: number): void { this.updateActive((project) => ({ ...project, boost: { ...project.boost, enabled: true, typographyEnabled: true, typography: { fontFamily: fontFamily?.trim() || undefined, scale } } })) }
   resetBoost(): void { this.updateActive((project) => ({ ...project, boost: createBoost() })) }
   applySmartInvertToBoost(_config?: SmartInvertConfig): void { this.setBoostMode('smart-invert') }
-  shuffleBoost(fontChoices: string[] = []): void {
+  shuffleBoost(): void {
     this.updateActive((project) => {
       let seed = (project.boost.shuffleSeed * 48271) % 0x7fffffff
       const random = () => (seed = (seed * 48271) % 0x7fffffff) / 0x7fffffff
@@ -327,8 +327,7 @@ export class ProjectStore {
       }
       const hue = random() * 360; const primary = { color: hsl(hue, 0.62 + random() * 0.28, 0.48 + random() * 0.14), alpha: 1 }
       const secondary = { color: hsl((hue + 90 + random() * 180) % 360, 0.48 + random() * 0.32, 0.42 + random() * 0.18), alpha: 1 }
-      const fontFamily = fontChoices.length ? fontChoices[Math.floor(random() * fontChoices.length)] : project.boost.typography.fontFamily
-      return { ...project, boost: { ...project.boost, enabled: true, colorsEnabled: true, typographyEnabled: Boolean(fontFamily) || project.boost.typographyEnabled, mode: 'recolor' as const, primary, secondary, contrast: random() * 0.7 - 0.2, brightness: random() * 0.34 - 0.17, originalSaturation: random() * 0.45, typography: { ...project.boost.typography, fontFamily }, shuffleSeed: seed } }
+      return { ...project, boost: { ...project.boost, enabled: true, colorsEnabled: true, primary, secondary, shuffleSeed: seed } }
     })
   }
 
