@@ -2777,7 +2777,7 @@ var ProjectStore = class {
   applySmartInvertToBoost(_config) {
     this.setBoostMode("smart-invert");
   }
-  shuffleBoost(fontChoices = []) {
+  shuffleBoost() {
     this.updateActive((project2) => {
       let seed = project2.boost.shuffleSeed * 48271 % 2147483647;
       const random = () => (seed = seed * 48271 % 2147483647) / 2147483647;
@@ -2792,8 +2792,7 @@ var ProjectStore = class {
       const hue = random() * 360;
       const primary = { color: hsl(hue, 0.62 + random() * 0.28, 0.48 + random() * 0.14), alpha: 1 };
       const secondary = { color: hsl((hue + 90 + random() * 180) % 360, 0.48 + random() * 0.32, 0.42 + random() * 0.18), alpha: 1 };
-      const fontFamily = fontChoices.length ? fontChoices[Math.floor(random() * fontChoices.length)] : project2.boost.typography.fontFamily;
-      return { ...project2, boost: { ...project2.boost, enabled: true, colorsEnabled: true, typographyEnabled: Boolean(fontFamily) || project2.boost.typographyEnabled, mode: "recolor", primary, secondary, contrast: random() * 0.7 - 0.2, brightness: random() * 0.34 - 0.17, originalSaturation: random() * 0.45, typography: { ...project2.boost.typography, fontFamily }, shuffleSeed: seed } };
+      return { ...project2, boost: { ...project2.boost, enabled: true, colorsEnabled: true, primary, secondary, shuffleSeed: seed } };
     });
   }
   applyCapturedPackets(target, packets2, state = "normal", scope = "base") {
@@ -2947,8 +2946,8 @@ var channel = (value) => byte(value).toString(16).padStart(2, "0");
 var hueDelta = (from, to) => (to - from + 540) % 360 - 180;
 var normalizeCssValueBoundary = (value) => value.replace(/^[ \t\r\n]+|[ \t\r\n]+$/g, "");
 var prohibitedControlCharacters = (value) => [...value].map((character, index) => ({ index, codePoint: character.codePointAt(0) ?? 0 })).filter(({ codePoint }) => codePoint <= 8 || codePoint === 11 || codePoint === 12 || codePoint >= 14 && codePoint <= 31);
-var TEXT_FAMILY = ["--lumiverse-text", "--lumiverse-text-muted", "--lumiverse-text-dim", "--lumiverse-text-hint", "--lumiverse-icon", "--lumiverse-icon-muted", "--lumiverse-icon-dim"];
-var BOOST_ROLES = ["primary", "secondary", "surface", "text", "muted", "border", "neutral", "semantic", "preserve"];
+var TEXT_FAMILY = ["--lumiverse-text", "--lumiverse-text-primary", "--lumiverse-text-muted", "--lumiverse-text-secondary", "--lumiverse-text-dim", "--lumiverse-text-hint", "--lumiverse-icon", "--lumiverse-icon-muted", "--lumiverse-icon-dim"];
+var BOOST_ROLES = ["primary", "secondary", "canvas", "surface", "raised", "hover", "card", "glass", "glass-hover", "control", "text", "muted", "foreground", "border-subtle", "border", "border-hover", "neutral", "semantic", "preserve"];
 function parseCssColor(value) {
   const normalized = normalizeCssValueBoundary(value);
   const hex2 = parseHexColor(normalized);
@@ -3005,45 +3004,89 @@ function anchor(value, fallback) {
   return toOklch(parseCssColor(value?.color ?? fallback.color) ?? { r: 147, g: 112, b: 219, alpha: 1 });
 }
 function classifyBoostVariable(name) {
-  if (/^--lumiverse-(?:danger|success|warning|error)(?:-|$)/i.test(name)) return "semantic";
-  if (/^--lumiverse-(?:primary(?:-|$)|accent(?:-|$))/i.test(name)) return "primary";
-  if (/^--lumiverse-secondary(?:-|$)/i.test(name)) return "secondary";
-  if (/^--lumiverse-(?:bg-elevated(?:-040)?|bg-hover|border-hover|gradient-modal|card-bg(?:-(?:solid|top|bottom))?|card-image-bg)$/i.test(name)) return "secondary";
+  if (/^--lumiverse-(?:danger|success|warning|error|info)(?:-|$)/i.test(name)) return "semantic";
+  if (/^--lumiverse-(?:primary(?:-deep)?-contrast|primary-fg|on-primary|accent-fg)$/i.test(name)) return "foreground";
+  if (/^--lumiverse-text-secondary$/i.test(name)) return "muted";
+  if (/^--lumiverse-(?:text-primary|text|icon)$/i.test(name)) return "text";
   if (/^--lumiverse-(?:text-muted|text-dim|text-hint|icon-muted|icon-dim|muted)(?:-|$)?/i.test(name)) return "muted";
-  if (/^--lumiverse-(?:text|icon)$/i.test(name)) return "text";
+  if (/^--lumiverse-(?:primary(?:-|$)|primary-soft$|accent(?:-|$))/i.test(name)) return "primary";
+  if (/^--lumiverse-secondary(?:-|$)/i.test(name)) return "secondary";
+  if (/^--lumiverse-surface-raised$/i.test(name)) return "raised";
+  if (/^--lumiverse-surface-hover$/i.test(name)) return "hover";
+  if (/^--lumiverse-(?:surface-muted|input-bg)$/i.test(name)) return "control";
+  if (/^--lumiverse-surface$/i.test(name)) return "surface";
+  if (/^--lumiverse-border-subtle$/i.test(name)) return "border-subtle";
+  if (/^--lcs-glass-bg-hover$/i.test(name)) return "glass-hover";
+  if (/^--lcs-glass-bg$/i.test(name)) return "glass";
+  if (/^--lcs-glass-border-hover$/i.test(name)) return "border-hover";
+  if (/^--lcs-glass-border$/i.test(name)) return "border-subtle";
+  if (/^--lcs-/i.test(name)) return "preserve";
+  if (/^--lumiverse-bg-elevated(?:-040)?$/i.test(name)) return "raised";
+  if (/^--lumiverse-bg-hover$/i.test(name)) return "hover";
+  if (/^--lumiverse-(?:card-bg(?:-(?:solid|top|bottom))?|card-image-bg|gradient-modal)$/i.test(name)) return "card";
   if (/^--lumiverse-(?:bg-dark(?:er)?$|fill(?:-|$)|border-(?:light|neutral(?:-hover)?)$|swatch-border$|shadow(?:-|$)|highlight-inset(?:-|$)|modal-backdrop$|scene-text-scrim$)/i.test(name)) return "neutral";
+  if (/^--lumiverse-border-hover$/i.test(name)) return "border-hover";
   if (/^--lumiverse-border(?:-|$)/i.test(name)) return "border";
-  if (/^--lumiverse-(?:bg(?:-|$)|card(?:-|$)|gradient-modal$)/i.test(name)) return "surface";
+  if (/^--lumiverse-bg(?:$|-opaque$|-0(?:40|50|70)$|-deep(?:-080)?$|-deeper$)/i.test(name)) return "canvas";
+  if (/^--lumiverse-bg(?:-|$)/i.test(name)) return "surface";
   return "preserve";
 }
-function supportingAccentAnchor(boost, secondaryWeight, chromaScale, maxChroma) {
-  const primary = anchor(boost.primary, boost.primary), secondary = anchor(boost.secondary, boost.primary), weight = clamp2(secondaryWeight);
-  const primaryAngle = primary.h * Math.PI / 180, secondaryAngle = secondary.h * Math.PI / 180;
-  const a = primary.c * Math.cos(primaryAngle) * (1 - weight) + secondary.c * Math.cos(secondaryAngle) * weight;
-  const b = primary.c * Math.sin(primaryAngle) * (1 - weight) + secondary.c * Math.sin(secondaryAngle) * weight;
-  return { l: 0.5, c: Math.min(maxChroma, Math.hypot(a, b) * chromaScale), h: (Math.atan2(b, a) * 180 / Math.PI + 360) % 360, alpha: 1 };
-}
-function surfaceAnchor(boost) {
-  return supportingAccentAnchor(boost, 0.25, 0.48, 0.075);
-}
-function borderAnchor(boost) {
-  return supportingAccentAnchor(boost, 0.4, 0.72, 0.11);
+var MATERIAL_PROFILES = {
+  canvas: { secondaryWeight: 0.12, chromaScale: 0.34, maxChroma: 0.055 },
+  surface: { secondaryWeight: 0.28, chromaScale: 0.42, maxChroma: 0.065 },
+  raised: { secondaryWeight: 0.52, chromaScale: 0.48, maxChroma: 0.075 },
+  hover: { secondaryWeight: 0.72, chromaScale: 0.58, maxChroma: 0.09 },
+  card: { secondaryWeight: 0.62, chromaScale: 0.5, maxChroma: 0.08 },
+  glass: { secondaryWeight: 0.22, chromaScale: 0.24, maxChroma: 0.035 },
+  "glass-hover": { secondaryWeight: 0.52, chromaScale: 0.34, maxChroma: 0.05 },
+  control: { secondaryWeight: 0.16, chromaScale: 0.18, maxChroma: 0.026 },
+  "border-subtle": { secondaryWeight: 0.28, chromaScale: 0.38, maxChroma: 0.05 },
+  border: { secondaryWeight: 0.55, chromaScale: 0.64, maxChroma: 0.095 },
+  "border-hover": { secondaryWeight: 0.72, chromaScale: 0.76, maxChroma: 0.12 }
+};
+function supportingAccentAnchor(boost, profile) {
+  const primary = anchor(boost.primary, boost.primary), secondary = anchor(boost.secondary, boost.primary), weight = clamp2(profile.secondaryWeight);
+  const primaryChromatic = primary.c > 0.012, secondaryChromatic = secondary.c > 0.012;
+  const preferSecondary = weight >= 0.5;
+  const owner = preferSecondary ? secondaryChromatic ? secondary : primaryChromatic ? primary : secondary : primaryChromatic ? primary : secondaryChromatic ? secondary : primary;
+  const mixedChroma = primary.c * (1 - weight) + secondary.c * weight;
+  return { l: 0.5, c: Math.min(profile.maxChroma, mixedChroma * profile.chromaScale), h: owner.h, alpha: 1 };
 }
 function roleAnchor(role, boost) {
-  if (role === "primary") return anchor(boost.primary, boost.primary);
-  if (role === "secondary") return anchor(boost.secondary, boost.primary);
-  if (role === "surface") return surfaceAnchor(boost);
-  if (role === "border") return borderAnchor(boost);
+  const profile = MATERIAL_PROFILES[role];
+  if (profile) return supportingAccentAnchor(boost, profile);
   if ((role === "text" || role === "muted") && boost.textMode === "custom" && boost.text) return anchor(boost.text, boost.text);
   return void 0;
 }
-function transformLightness(value, boost) {
+function transformLightness(value, boost, strength = 1) {
   let l = boost.mode === "smart-invert" ? 1 - value : value;
-  return clamp2(0.5 + (l - 0.5) * (1 + clamp2(boost.contrast, -1, 1) * 0.9) + clamp2(boost.brightness, -1, 1) * 0.28);
+  l = clamp2(l, 1e-3, 0.999);
+  const contrast = clamp2(boost.contrast, -1, 1), brightness = clamp2(boost.brightness, -1, 1);
+  const logit = Math.log(l / (1 - l));
+  const contrastScale = 1 + contrast * 0.45 * strength;
+  const exposureShift = brightness * 2 * strength;
+  return clamp2(1 / (1 + Math.exp(-(logit * contrastScale + exposureShift))));
 }
-function transformColor(role, source, boost) {
-  if (role === "semantic" || role === "preserve") return render(toOklch(source));
-  const original = toOklch(source), selected = roleAnchor(role, boost), retention = clamp2(boost.originalSaturation), recolor = 1 - retention;
+function accentVariant(role, original, boost, context) {
+  const selected = role === "primary" ? anchor(boost.primary, boost.primary) : anchor(boost.secondary, boost.primary);
+  const reference = role === "primary" ? context.primaryReference : context.secondaryReference;
+  if (!reference) return { ...selected, l: transformLightness(selected.l, boost, 0.85), alpha: original.alpha };
+  const chromaticReference = reference.c > 8e-3 && original.c > 8e-3;
+  const hueOffset = chromaticReference ? hueDelta(reference.h, original.h) * 0.18 : 0;
+  const lightnessDelta = original.l - reference.l, variantScale = Math.abs(lightnessDelta) > 0.18 ? 0.82 : 0.42;
+  return {
+    l: transformLightness(clamp2(selected.l + lightnessDelta * variantScale), boost, 0.85),
+    c: clamp2(selected.c + (original.c - reference.c) * 0.28, 0, 0.4),
+    h: selected.h + hueOffset,
+    alpha: original.alpha
+  };
+}
+function transformColor(role, source, boost, context) {
+  if (role === "semantic" || role === "preserve" || role === "foreground") return render(toOklch(source));
+  const original = toOklch(source);
+  if (role === "primary" || role === "secondary") return render(accentVariant(role, original, boost, context));
+  if (role === "neutral" && boost.mode === "recolor") return render(original);
+  const selected = roleAnchor(role, boost), retention = clamp2(boost.originalSaturation), recolor = 1 - retention;
   const l = transformLightness(original.l, boost);
   if (!selected) return render({ ...original, l, alpha: source.alpha });
   return render({ l, c: clamp2(original.c * retention + selected.c * recolor, 0, 0.4), h: original.h + hueDelta(original.h, selected.h) * recolor, alpha: source.alpha });
@@ -3112,7 +3155,7 @@ function functionEnd(value, open) {
 }
 var COLOR_FUNCTIONS = /* @__PURE__ */ new Set(["rgb", "rgba", "hsl", "hsla"]);
 var COLOR_CONTAINERS = /* @__PURE__ */ new Set(["linear-gradient", "radial-gradient", "color-mix"]);
-function transformColorTokens(role, value, boost) {
+function transformColorTokens(role, value, boost, context) {
   let output = "", count = 0, index = 0;
   while (index < value.length) {
     if (value[index] === '"' || value[index] === "'") {
@@ -3132,7 +3175,7 @@ function transformColorTokens(role, value, boost) {
       if ([3, 4, 6, 8].includes(length) && (!boundary || !/[A-Za-z0-9_-]/.test(boundary))) {
         const token = value.slice(index, end), parsed = parseCssColor(token);
         if (parsed) {
-          output += serializeColorLike(token, transformColor(role, parsed, boost));
+          output += serializeColorLike(token, transformColor(role, parsed, boost, context));
           count += 1;
           index = end;
           continue;
@@ -3147,14 +3190,14 @@ function transformColorTokens(role, value, boost) {
         if (COLOR_FUNCTIONS.has(functionName)) {
           const parsed = parseCssColor(whole);
           if (parsed) {
-            output += serializeColorLike(whole, transformColor(role, parsed, boost));
+            output += serializeColorLike(whole, transformColor(role, parsed, boost, context));
             count += 1;
             index = close + 1;
             continue;
           }
         }
         if (COLOR_CONTAINERS.has(functionName)) {
-          const inner = transformColorTokens(role, value.slice(open + 1, close), boost);
+          const inner = transformColorTokens(role, value.slice(open + 1, close), boost, context);
           output += value.slice(index, open + 1) + inner.value + ")";
           count += inner.count;
           index = close + 1;
@@ -3218,8 +3261,16 @@ function readableCss(value) {
   return contrastRatio(light, parsed) >= contrastRatio(dark, parsed) ? "#ffffff" : "#17131f";
 }
 function protectInteractiveVariables(variables, baseline) {
-  const deep = variables["--lumiverse-primary-deep"] ?? baseline["--lumiverse-primary-deep"];
-  if (deep && "--lumiverse-primary-deep-contrast" in baseline) variables["--lumiverse-primary-deep-contrast"] = readableCss(deep);
+  const repair = (foreground, background) => {
+    if (!(foreground in baseline)) return;
+    const pairedSurface = variables[background] ?? baseline[background];
+    if (pairedSurface) variables[foreground] = readableCss(pairedSurface);
+  };
+  repair("--lumiverse-primary-contrast", "--lumiverse-primary");
+  repair("--lumiverse-primary-fg", "--lumiverse-primary");
+  repair("--lumiverse-on-primary", "--lumiverse-primary");
+  repair("--lumiverse-accent-fg", "--lumiverse-accent");
+  repair("--lumiverse-primary-deep-contrast", "--lumiverse-primary-deep");
 }
 function emptyRoleCounts() {
   return Object.fromEntries(BOOST_ROLES.map((role) => [role, 0]));
@@ -3231,6 +3282,10 @@ function transformThemeVariables(baseline, boost) {
   }
   const variables = {}, roleCounts = emptyRoleCounts();
   let standaloneColorCount = 0, complexColorCount = 0, transformedColorTokenCount = 0;
+  const context = {
+    primaryReference: parseCssColor(normalizeCssValueBoundary(baseline["--lumiverse-primary"] ?? "")) ? toOklch(parseCssColor(normalizeCssValueBoundary(baseline["--lumiverse-primary"]))) : void 0,
+    secondaryReference: parseCssColor(normalizeCssValueBoundary(baseline["--lumiverse-secondary"] ?? "")) ? toOklch(parseCssColor(normalizeCssValueBoundary(baseline["--lumiverse-secondary"]))) : void 0
+  };
   if (boost.enabled && boost.colorsEnabled) for (const [name, raw] of Object.entries(baseline)) {
     const before = normalizeCssValueBoundary(raw), role = classifyBoostVariable(name);
     roleCounts[role] += 1;
@@ -3242,10 +3297,10 @@ function transformThemeVariables(baseline, boost) {
     }
     let after = before, tokenCount = 0;
     if (parsed) {
-      after = serializeColorLike(before, transformColor(role, parsed, boost));
+      after = serializeColorLike(before, transformColor(role, parsed, boost, context));
       tokenCount = 1;
     } else {
-      const transformed = transformColorTokens(role, before, boost);
+      const transformed = transformColorTokens(role, before, boost, context);
       after = transformed.value;
       tokenCount = transformed.count;
       if (tokenCount) complexColorCount += 1;
@@ -20761,7 +20816,7 @@ var ThemeStudioUI = class {
     this.widgetRoot.querySelector('[data-widget-action="float-themes"]')?.addEventListener("click", () => this.floatEditor("themes"));
     this.widgetRoot.querySelector('[data-widget-action="shuffle-boost"]')?.addEventListener("click", () => {
       this.clearBoostPreview();
-      this.store.shuffleBoost([]);
+      this.store.shuffleBoost();
     });
     this.bindWidgetPanelDrag();
   }
@@ -22042,11 +22097,12 @@ var ThemeStudioUI = class {
     const boostRecent = (key) => this.recentColors.length ? `<div class="ts-recent"><span>Recent</span><div class="ts-recent-swatches">${this.recentColors.map((color) => `<button type="button" class="ts-recent-swatch" data-boost-recent="${key}" data-recent-color="${escapeHtml(color)}" style="--ts-recent:${escapeHtml(color)}" title="Use ${escapeHtml(color)}"></button>`).join("")}</div></div>` : "";
     const boostColorField = (key, label, value, fallback) => `<div class="ts-field"><label class="ts-label">${label}</label><div class="ts-color-row"><label class="ts-color-picker" title="Open color picker"><input class="ts-color" type="color" value="${escapeHtml(colorInput(value, fallback))}" data-boost-color="${key}" aria-label="Pick ${escapeHtml(label)}"><span>Pick</span></label><input class="ts-input" value="${escapeHtml(value)}" data-boost-color="${key}"></div>${boostRecent(key)}</div>`;
     const textTreatment = `<div class="ts-field ts-boost-text-treatment"><label class="ts-label">Text treatment</label><div class="ts-segment"><button type="button" data-boost-text-mode="auto" aria-pressed="${boost.textMode === "auto"}">Auto contrast</button><button type="button" data-boost-text-mode="custom" aria-pressed="${boost.textMode === "custom"}">Custom</button></div><p class="ts-note">Auto keeps native foreground character and repairs the main text anchor against the transformed surface. Custom uses your foreground anchor instead.</p></div>${boost.textMode === "custom" ? boostColorField("text", "Text anchor", boost.text.color, "#f4eef8") : ""}`;
-    const diagnosticRoles = diagnostics ? `<div class="ts-meta ts-boost-role-meta"><span>Primary <strong>${diagnostics.roleCounts.primary}</strong></span><span>Secondary <strong>${diagnostics.roleCounts.secondary}</strong></span><span>Surface <strong>${diagnostics.roleCounts.surface}</strong></span><span>Text <strong>${diagnostics.roleCounts.text}</strong></span><span>Muted <strong>${diagnostics.roleCounts.muted}</strong></span><span>Border <strong>${diagnostics.roleCounts.border}</strong></span><span>Neutral <strong>${diagnostics.roleCounts.neutral}</strong></span><span>Semantic <strong>${diagnostics.roleCounts.semantic}</strong></span><span>Pass-through <strong>${diagnostics.roleCounts.preserve}</strong></span></div>` : "";
-    const colorsBody = boost.colorsEnabled ? `<div class="ts-segment"><button type="button" data-boost-mode="recolor" aria-pressed="${boost.mode === "recolor"}">Recolor</button><button type="button" data-boost-mode="smart-invert" aria-pressed="${boost.mode === "smart-invert"}">Smart Invert</button></div>
+    const diagnosticRoles = diagnostics ? `<div class="ts-meta ts-boost-role-meta"><span>Primary <strong>${diagnostics.roleCounts.primary}</strong></span><span>Secondary <strong>${diagnostics.roleCounts.secondary}</strong></span><span>Canvas <strong>${diagnostics.roleCounts.canvas}</strong></span><span>Surface <strong>${diagnostics.roleCounts.surface}</strong></span><span>Raised <strong>${diagnostics.roleCounts.raised}</strong></span><span>Hover <strong>${diagnostics.roleCounts.hover}</strong></span><span>Card <strong>${diagnostics.roleCounts.card}</strong></span><span>Glass <strong>${diagnostics.roleCounts.glass}</strong></span><span>Glass hover <strong>${diagnostics.roleCounts["glass-hover"]}</strong></span><span>Control <strong>${diagnostics.roleCounts.control}</strong></span><span>Text <strong>${diagnostics.roleCounts.text}</strong></span><span>Muted <strong>${diagnostics.roleCounts.muted}</strong></span><span>Foreground <strong>${diagnostics.roleCounts.foreground}</strong></span><span>Border subtle <strong>${diagnostics.roleCounts["border-subtle"]}</strong></span><span>Border <strong>${diagnostics.roleCounts.border}</strong></span><span>Border hover <strong>${diagnostics.roleCounts["border-hover"]}</strong></span><span>Neutral <strong>${diagnostics.roleCounts.neutral}</strong></span><span>Semantic <strong>${diagnostics.roleCounts.semantic}</strong></span><span>Pass-through <strong>${diagnostics.roleCounts.preserve}</strong></span></div>` : "";
+    const colorsBody = boost.colorsEnabled ? `<div class="ts-segment"><button type="button" data-boost-mode="recolor" aria-pressed="${boost.mode === "recolor"}">Recolor</button><button type="button" data-boost-mode="smart-invert" aria-pressed="${boost.mode === "smart-invert"}">Invert brightness</button></div>
+      <p class="ts-note"><strong>Recolor</strong> keeps the source theme\u2019s light/dark balance. <strong>Invert brightness</strong> flips that balance while keeping your palette and material relationships.</p>
       ${boostColorField("primary", "Primary accent", boost.primary.color, "#9370db")}
       ${boostColorField("secondary", "Secondary accent", boost.secondary?.color ?? boost.primary.color, "#786bf0")}
-      <p class="ts-note">Primary leads the canvas and main emphasis. Secondary owns supporting accents plus elevated/card surfaces, gradients, hover states, and a share of derived borders.</p>
+      <p class="ts-note">Primary and Secondary stay faithful as direct accents. Lumiverse material roles then blend them with native canvas, surface, card, glass, control, hover, and border depth; resting chrome stays quieter while interactive hover/foreground pairs keep their own contrast behavior.</p>
       ${textTreatment}
       ${slider("Contrast", "contrast", boost.contrast, -100, 100)}${slider("Brightness", "brightness", boost.brightness, -100, 100)}${slider("Original saturation", "originalSaturation", boost.originalSaturation, 0, 100)}
       <label class="ts-check ts-boost-protect"><input type="checkbox" data-boost-protect-controls ${boost.protectControls ? "checked" : ""}> <span><strong>Protect controls</strong><small>Repair control foregrounds that lose contrast after recoloring.</small></span></label>
@@ -23398,7 +23454,7 @@ ${compileComponentOverride(draft, previewOptions)}`);
     this.root.querySelectorAll("[data-boost-font-sample]").forEach((button) => button.addEventListener("click", () => commitFont(button.dataset.boostFontSample ?? "")));
     this.root.querySelector('[data-action="shuffle-boost"]')?.addEventListener("click", () => {
       this.clearBoostPreview();
-      this.store.shuffleBoost([]);
+      this.store.shuffleBoost();
     });
     this.root.querySelector('[data-action="refresh-boost-source"]')?.addEventListener("click", () => void this.refreshBoostSource());
     this.root.querySelector('[data-action="reset-boost"]')?.addEventListener("click", () => {

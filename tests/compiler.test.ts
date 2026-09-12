@@ -532,17 +532,35 @@ describe('Phase Three semantic CSS compiler', () => {
     expect(designOnly).toContain('.avatar')
   })
 
-  test('Protect controls stays surgical and never rewrites shared primary prose text', () => {
+  test('Protect controls stays surgical and repairs paired accent foregrounds without rewriting prose', () => {
     const project = createProject('Readable Barney')
     project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.protectControls = true; project.boost.originalSaturation = 0
     project.boost.primary = { color: '#ffffff', alpha: 1 }
-    const baseline = { '--lumiverse-primary': '#f5f5f5', '--lumiverse-primary-text': '#ffffff', '--lumiverse-primary-deep': '#f0f0f0', '--lumiverse-primary-deep-contrast': '#ffffff' }
+    const baseline = {
+      '--lumiverse-primary': '#5f4b8b',
+      '--lumiverse-primary-contrast': '#ffffff',
+      '--lumiverse-primary-text': '#d7c8ff',
+      '--lumiverse-primary-deep': '#f0f0f0',
+      '--lumiverse-primary-deep-contrast': '#ffffff',
+    }
     const protectedVars = transformThemeVariables(baseline, project.boost).variables
     project.boost.protectControls = false
     const rawVars = transformThemeVariables(baseline, project.boost).variables
     expect(protectedVars['--lumiverse-primary-text']).toBe(rawVars['--lumiverse-primary-text'])
+    expect(protectedVars['--lumiverse-primary-contrast']).toBe('#17131f')
     expect(protectedVars['--lumiverse-primary-deep-contrast']).toBe('#17131f')
-    expect(rawVars['--lumiverse-primary-deep-contrast']).not.toBe('#17131f')
+    expect(rawVars['--lumiverse-primary-contrast']).toBe('#ffffff')
+    expect(rawVars['--lumiverse-primary-deep-contrast']).toBe('#ffffff')
+  })
+
+  test('Custom text treatment does not hijack paired control foreground variables', () => {
+    const project = createProject('Readable controls')
+    project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.protectControls = false
+    project.boost.textMode = 'custom'; project.boost.text = { color: '#ff3355', alpha: 1 }
+    const baseline = { '--lumiverse-primary': '#9370db', '--lumiverse-primary-contrast': '#ffffff', '--lumiverse-text': '#f4eef8' }
+    const variables = transformThemeVariables(baseline, project.boost).variables
+    expect(variables['--lumiverse-text']).not.toBe('#f4eef8')
+    expect(variables['--lumiverse-primary-contrast']).toBe('#ffffff')
   })
 
   test('Canvas Boost can reveal wallpaper without recoloring the rest of the variable map', () => {

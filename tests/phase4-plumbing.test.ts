@@ -339,12 +339,16 @@ describe('Phase Four Boost semantics', () => {
     document.documentElement.setAttribute('data-theme-studio-boost-live', '')
     const bridge = new ThemeRuntimeBridge(context), project = createProject()
     project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.primary = { color: '#9370db', alpha: 1 }; project.boost.originalSaturation = 0
-    const expected = transformThemeVariables(workerNative, project.boost).variables['--lumiverse-primary']
+    const expected = transformThemeVariables(workerNative, project.boost).variables
+    const stale = transformThemeVariables(staleCatalog, project.boost).variables
 
     await bridge.refreshBaseline()
     await bridge.sync(project.boost)
-    expect(document.documentElement.style.getPropertyValue('--lumiverse-primary').trim()).toBe(expected)
-    expect(document.documentElement.style.getPropertyValue('--lumiverse-primary').trim()).not.toBe(transformThemeVariables(staleCatalog, project.boost).variables['--lumiverse-primary'])
+    expect(document.documentElement.style.getPropertyValue('--lumiverse-primary').trim()).toBe(expected['--lumiverse-primary'])
+    expect(document.documentElement.style.getPropertyValue('--lumiverse-bg').trim()).toBe(expected['--lumiverse-bg'])
+    // Direct accent tokens intentionally resolve to the explicit pick, so use a
+    // source-dependent material token to prove Refresh source ignored the stale catalog.
+    expect(document.documentElement.style.getPropertyValue('--lumiverse-bg').trim()).not.toBe(stale['--lumiverse-bg'])
     await bridge.destroy()
   })
 
@@ -376,35 +380,74 @@ describe('Phase Four Boost semantics', () => {
     const violetSecondary = transformThemeVariables(baseline, project.boost)
     expect(greenSecondary.variables['--lumiverse-secondary']).not.toBe(violetSecondary.variables['--lumiverse-secondary'])
     expect(greenSecondary.variables['--lumiverse-primary']).toBe(violetSecondary.variables['--lumiverse-primary'])
-    expect(greenSecondary.variables['--lumiverse-bg']).not.toBe(violetSecondary.variables['--lumiverse-bg'])
+    // Canvas is Primary-led in the material graph; Secondary owns supporting
+    // accents and border/elevated territories instead of tinting the whole world.
+    expect(greenSecondary.variables['--lumiverse-bg']).toBe(violetSecondary.variables['--lumiverse-bg'])
     expect(greenSecondary.variables['--lumiverse-border']).not.toBe(violetSecondary.variables['--lumiverse-border'])
     expect(greenSecondary.variables['--lumiverse-fill']).toBe(violetSecondary.variables['--lumiverse-fill'])
     expect(greenSecondary.variables['--lumiverse-danger']).toBe(baseline['--lumiverse-danger']); expect(greenSecondary.variables['--lumiverse-success']).toBe(baseline['--lumiverse-success']); expect(greenSecondary.variables['--lumiverse-custom-color']).toBe(baseline['--lumiverse-custom-color'])
-    expect(greenSecondary.diagnostics.roleCounts).toMatchObject({ primary: 1, secondary: 1, surface: 1, text: 1, border: 1, neutral: 1, semantic: 2, preserve: 1 })
+    expect(greenSecondary.diagnostics.roleCounts).toMatchObject({ primary: 1, secondary: 1, canvas: 1, text: 1, border: 1, neutral: 1, semantic: 2, preserve: 1 })
   })
   test('neutral overlays and borders stay out of accent routing', () => {
     expect(classifyBoostVariable('--lumiverse-fill')).toBe('neutral'); expect(classifyBoostVariable('--lumiverse-fill-heavy')).toBe('neutral')
     expect(classifyBoostVariable('--lumiverse-bg-darker')).toBe('neutral'); expect(classifyBoostVariable('--lumiverse-border-neutral')).toBe('neutral'); expect(classifyBoostVariable('--lumiverse-swatch-border')).toBe('neutral')
-    expect(classifyBoostVariable('--lumiverse-border')).toBe('border'); expect(classifyBoostVariable('--lumiverse-card-bg')).toBe('secondary')
+    expect(classifyBoostVariable('--lumiverse-border')).toBe('border'); expect(classifyBoostVariable('--lumiverse-card-bg')).toBe('card')
+    expect(classifyBoostVariable('--lumiverse-primary-contrast')).toBe('foreground'); expect(classifyBoostVariable('--lumiverse-primary-deep-contrast')).toBe('foreground')
   })
-  test('Secondary owns supporting panels and gradients without taking the base canvas', () => {
-    const baseline = { '--lumiverse-primary': '#4060d0', '--lumiverse-secondary': '#687080', '--lumiverse-bg': '#182038', '--lumiverse-bg-elevated': '#242c48', '--lumiverse-bg-hover': '#303956', '--lumiverse-card-bg': 'linear-gradient(165deg, #20263e 0%, #181d32 100%)', '--lumiverse-gradient-modal': 'linear-gradient(135deg, #242c48, #151a2c)', '--lumiverse-border': '#526070', '--lumiverse-border-hover': '#687080', '--lumiverse-fill': '#304050' }
+  test('material graph consumes Lumiverse semantic aliases and Chat Shell glass without flattening them into Secondary', () => {
+    const baseline = {
+      '--lumiverse-primary': '#4060d0', '--lumiverse-secondary': '#687080', '--lumiverse-bg': '#182038', '--lumiverse-surface': '#182038',
+      '--lumiverse-bg-elevated': '#242c48', '--lumiverse-surface-raised': '#242c48', '--lumiverse-bg-hover': '#303956', '--lumiverse-surface-hover': '#303956',
+      '--lumiverse-card-bg': 'linear-gradient(165deg, #20263e 0%, #181d32 100%)', '--lumiverse-gradient-modal': 'linear-gradient(135deg, #242c48, #151a2c)',
+      '--lumiverse-input-bg': '#101318', '--lumiverse-border': '#526070', '--lumiverse-border-hover': '#687080', '--lumiverse-border-subtle': '#46505c',
+      '--lcs-glass-bg': '#151824', '--lcs-glass-bg-hover': '#1d2230', '--lcs-glass-border': '#3e4652', '--lcs-glass-border-hover': '#596372', '--lumiverse-fill': '#304050',
+    }
     const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.originalSaturation = 0; project.boost.primary = { color: '#0011ff', alpha: 1 }; project.boost.secondary = { color: '#ff00ae', alpha: 1 }
     const pink = transformThemeVariables(baseline, project.boost)
     project.boost.secondary = { color: '#00e5ff', alpha: 1 }
     const cyan = transformThemeVariables(baseline, project.boost)
     expect(pink.variables['--lumiverse-primary']).toBe(cyan.variables['--lumiverse-primary'])
-    expect(pink.variables['--lumiverse-bg']).not.toBe(cyan.variables['--lumiverse-bg'])
-    for (const name of ['--lumiverse-bg-elevated', '--lumiverse-bg-hover', '--lumiverse-card-bg', '--lumiverse-gradient-modal', '--lumiverse-border-hover']) expect(pink.variables[name]).not.toBe(cyan.variables[name])
+    // Canvas, ordinary surfaces, resting glass, and controls remain Primary-led.
+    for (const name of ['--lumiverse-bg', '--lumiverse-surface', '--lumiverse-input-bg', '--lcs-glass-bg']) expect(pink.variables[name]).toBe(cyan.variables[name])
+    // Raised/card/hover and interactive border materials are Secondary-led and therefore visibly move.
+    for (const name of ['--lumiverse-bg-elevated', '--lumiverse-surface-raised', '--lumiverse-bg-hover', '--lumiverse-surface-hover', '--lumiverse-card-bg', '--lumiverse-gradient-modal', '--lumiverse-border-hover', '--lcs-glass-bg-hover', '--lcs-glass-border-hover']) expect(pink.variables[name]).not.toBe(cyan.variables[name])
     expect(pink.variables['--lumiverse-fill']).toBe(cyan.variables['--lumiverse-fill'])
-    expect(classifyBoostVariable('--lumiverse-bg')).toBe('surface')
-    expect(classifyBoostVariable('--lumiverse-bg-elevated')).toBe('secondary')
-    expect(classifyBoostVariable('--lumiverse-bg-hover')).toBe('secondary')
-    expect(classifyBoostVariable('--lumiverse-card-bg')).toBe('secondary')
-    expect(classifyBoostVariable('--lumiverse-card-bg-top')).toBe('secondary')
-    expect(classifyBoostVariable('--lumiverse-card-image-bg')).toBe('secondary')
-    expect(classifyBoostVariable('--lumiverse-gradient-modal')).toBe('secondary')
-    expect(classifyBoostVariable('--lumiverse-border-hover')).toBe('secondary')
+    expect(classifyBoostVariable('--lumiverse-bg')).toBe('canvas')
+    expect(classifyBoostVariable('--lumiverse-surface')).toBe('surface')
+    expect(classifyBoostVariable('--lumiverse-bg-elevated')).toBe('raised')
+    expect(classifyBoostVariable('--lumiverse-surface-raised')).toBe('raised')
+    expect(classifyBoostVariable('--lumiverse-bg-hover')).toBe('hover')
+    expect(classifyBoostVariable('--lumiverse-surface-hover')).toBe('hover')
+    expect(classifyBoostVariable('--lumiverse-card-bg')).toBe('card')
+    expect(classifyBoostVariable('--lumiverse-gradient-modal')).toBe('card')
+    expect(classifyBoostVariable('--lumiverse-input-bg')).toBe('control')
+    expect(classifyBoostVariable('--lcs-glass-bg')).toBe('glass')
+    expect(classifyBoostVariable('--lcs-glass-bg-hover')).toBe('glass-hover')
+    expect(classifyBoostVariable('--lcs-glass-border')).toBe('border-subtle')
+    expect(classifyBoostVariable('--lcs-glass-border-hover')).toBe('border-hover')
+    expect(classifyBoostVariable('--lumiverse-border-subtle')).toBe('border-subtle')
+    expect(classifyBoostVariable('--lumiverse-border-hover')).toBe('border-hover')
+    expect(classifyBoostVariable('--lcs-radius')).toBe('preserve')
+  })
+  test('achromatic accent owners borrow the other chromatic accent instead of inventing an OKLCH hue', () => {
+    const baseline = { '--lumiverse-primary': '#9370db', '--lumiverse-secondary': '#808080', '--lumiverse-bg': '#181818', '--lcs-glass-bg': '#151824', '--lumiverse-text': '#eeeeee' }
+    const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.originalSaturation = 0; project.boost.primary = { color: '#ffffff', alpha: 1 }; project.boost.secondary = { color: '#ff00d0', alpha: 1 }
+    const variables = transformThemeVariables(baseline, project.boost).variables
+    const glass = parseHexColor(variables['--lcs-glass-bg'])!, canvas = parseHexColor(variables['--lumiverse-bg'])!
+    expect(glass.r).toBeGreaterThan(glass.g); expect(glass.b).toBeGreaterThan(glass.g)
+    expect(canvas.r).toBeGreaterThan(canvas.g); expect(canvas.b).toBeGreaterThan(canvas.g)
+  })
+
+  test('direct accents stay faithful to explicit picks while native accent variants keep their hierarchy', () => {
+    const baseline = { '--lumiverse-primary': '#9370db', '--lumiverse-primary-hover': '#a784ef', '--lumiverse-primary-deep': '#1a1427', '--lumiverse-secondary': '#808080', '--lumiverse-secondary-hover': '#969696' }
+    const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.primary = { color: '#00ff55', alpha: 1 }; project.boost.secondary = { color: '#ff00d0', alpha: 1 }; project.boost.originalSaturation = .2; project.boost.brightness = 0; project.boost.contrast = 0
+    const variables = transformThemeVariables(baseline, project.boost).variables
+    const distance = (a: string, b: string) => { const left = parseHexColor(a)!, right = parseHexColor(b)!; return Math.hypot(left.r - right.r, left.g - right.g, left.b - right.b) }
+    expect(distance(variables['--lumiverse-primary'], '#00ff55')).toBeLessThanOrEqual(3)
+    expect(distance(variables['--lumiverse-secondary'], '#ff00d0')).toBeLessThanOrEqual(3)
+    expect(variables['--lumiverse-primary-hover']).not.toBe(variables['--lumiverse-primary'])
+    const deep = parseHexColor(variables['--lumiverse-primary-deep'])!, primary = parseHexColor(variables['--lumiverse-primary'])!
+    expect(deep.r + deep.g + deep.b).toBeLessThan(primary.r + primary.g + primary.b)
   })
   test('Auto text repairs foreground contrast while Custom owns the text family', () => {
     const baseline = { '--lumiverse-bg': '#777777', '--lumiverse-text': '#888888', '--lumiverse-text-muted': 'rgba(136, 136, 136, .65)', '--lumiverse-icon': 'rgba(136, 136, 136, .9)' }
@@ -420,22 +463,50 @@ describe('Phase Four Boost semantics', () => {
     const variables = transformThemeVariables({ '--lumiverse-primary': '#4060d0', '--lumiverse-bg': '#203050' }, project.boost).variables
     expect(variables['--lumiverse-primary']).not.toBe('#4060d0'); expect(variables['--lumiverse-bg']).not.toBe('#203050')
   })
-  test('Boost preserves hierarchy while contrast and brightness act independently', () => {
-    const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.primary = { color: '#ff0000', alpha: 1 }; project.boost.secondary = { color: '#990000', alpha: 1 }; project.boost.originalSaturation = 0
-    const source = { '--lumiverse-bg-dark': '#202020', '--lumiverse-bg': '#505050', '--lumiverse-bg-elevated': '#909090' }
+  test('base 0/0 and deranged +100/-100 both preserve the native material ladder', () => {
+    const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.primary = { color: '#00ff55', alpha: 1 }; project.boost.secondary = { color: '#ff00d0', alpha: 1 }; project.boost.originalSaturation = .2
+    const source = { '--lumiverse-bg-deep': '#101010', '--lumiverse-bg': '#202020', '--lumiverse-surface': '#282828', '--lumiverse-surface-raised': '#383838', '--lumiverse-surface-hover': '#505050', '--lcs-glass-bg': '#181818', '--lumiverse-input-bg': '#141414', '--lumiverse-fill': 'rgba(0, 0, 0, 0.15)' }
     const luminance = (value: string) => { const color = parseHexColor(value)!; return .2126 * color.r + .7152 * color.g + .0722 * color.b }
-    const neutral = transformThemeVariables(source, project.boost).variables
-    expect(luminance(neutral['--lumiverse-bg-dark'])).toBeLessThan(luminance(neutral['--lumiverse-bg'])); expect(luminance(neutral['--lumiverse-bg'])).toBeLessThan(luminance(neutral['--lumiverse-bg-elevated']))
-    project.boost.contrast = 1; const contrast = transformThemeVariables(source, project.boost).variables
-    expect(luminance(contrast['--lumiverse-bg-elevated']) - luminance(contrast['--lumiverse-bg-dark'])).toBeGreaterThan(luminance(neutral['--lumiverse-bg-elevated']) - luminance(neutral['--lumiverse-bg-dark']))
-    project.boost.contrast = 0; project.boost.brightness = .5; const bright = transformThemeVariables(source, project.boost).variables
-    expect(luminance(bright['--lumiverse-bg'])).toBeGreaterThan(luminance(neutral['--lumiverse-bg']))
+    const assertLadder = (variables: Record<string, string>) => {
+      expect(luminance(variables['--lumiverse-bg-deep'])).toBeLessThan(luminance(variables['--lumiverse-bg']))
+      expect(luminance(variables['--lumiverse-bg'])).toBeLessThan(luminance(variables['--lumiverse-surface-raised']))
+      expect(luminance(variables['--lumiverse-surface-raised'])).toBeLessThan(luminance(variables['--lumiverse-surface-hover']))
+      expect(new Set(['--lumiverse-bg', '--lumiverse-surface', '--lumiverse-surface-raised', '--lumiverse-surface-hover', '--lcs-glass-bg', '--lumiverse-input-bg'].map((name) => variables[name])).size).toBeGreaterThanOrEqual(5)
+    }
+    const base = transformThemeVariables(source, project.boost).variables; assertLadder(base)
+    project.boost.brightness = 1; project.boost.contrast = -1
+    const deranged = transformThemeVariables(source, project.boost).variables; assertLadder(deranged)
+    expect(luminance(deranged['--lumiverse-bg'])).toBeGreaterThan(luminance(base['--lumiverse-bg']))
+    expect(deranged['--lumiverse-fill']).toBe(source['--lumiverse-fill'])
   })
-  test('Original Saturation controls source-color retention and Shuffle is persisted', () => {
-    const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.primary = { color: '#ff0000', alpha: 1 }
-    project.boost.originalSaturation = 0; const pulled = transformThemeVariables({ '--lumiverse-primary': '#0066ff' }, project.boost).variables['--lumiverse-primary']
-    project.boost.originalSaturation = 1; const retained = transformThemeVariables({ '--lumiverse-primary': '#0066ff' }, project.boost).variables['--lumiverse-primary']; expect(retained).not.toBe(pulled)
-    const store = new ProjectStore(), seed = store.activeProject.boost.shuffleSeed; store.shuffleBoost(['Verdana']); expect(store.activeProject.boost.shuffleSeed).not.toBe(seed); expect(store.activeProject.boost.typography.fontFamily).toBe('Verdana')
+  test('Original Saturation controls material source-color retention without pulling explicit accents away from their picks', () => {
+    const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.primary = { color: '#ff0000', alpha: 1 }; project.boost.secondary = { color: '#00ffcc', alpha: 1 }
+    const source = { '--lumiverse-primary': '#0066ff', '--lumiverse-secondary': '#808080', '--lumiverse-bg': '#0066ff' }
+    project.boost.originalSaturation = 0; const pulled = transformThemeVariables(source, project.boost).variables
+    project.boost.originalSaturation = 1; const retained = transformThemeVariables(source, project.boost).variables
+    expect(retained['--lumiverse-bg']).not.toBe(pulled['--lumiverse-bg'])
+    expect(retained['--lumiverse-primary']).toBe(pulled['--lumiverse-primary'])
+    expect(retained['--lumiverse-secondary']).toBe(pulled['--lumiverse-secondary'])
+  })
+  test('Shuffle colors preserves Invert brightness and the current transform tuning', () => {
+    const store = new ProjectStore()
+    store.setBoostMode('smart-invert')
+    store.updateBoostParameters({ contrast: -0.42, brightness: 0.51, originalSaturation: 0 })
+    store.setBoostFont('Verdana', 1.1)
+    const before = structuredClone(store.activeProject.boost)
+    store.shuffleBoost()
+    const after = store.activeProject.boost
+    expect(after.shuffleSeed).not.toBe(before.shuffleSeed)
+    expect(after.primary).not.toEqual(before.primary)
+    expect(after.secondary).not.toEqual(before.secondary)
+    expect(after.mode).toBe('smart-invert')
+    expect(after.contrast).toBe(before.contrast)
+    expect(after.brightness).toBe(before.brightness)
+    expect(after.originalSaturation).toBe(before.originalSaturation)
+    expect(after.textMode).toBe(before.textMode)
+    expect(after.text).toEqual(before.text)
+    expect(after.typography).toEqual(before.typography)
+    expect(after.typographyEnabled).toBe(before.typographyEnabled)
   })
   test('normalizes harmless boundary whitespace and emits no prohibited controls', () => {
     const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.primary = { color: '#ff0000', alpha: 1 }; project.boost.originalSaturation = 0
