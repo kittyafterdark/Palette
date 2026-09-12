@@ -1,7 +1,7 @@
 import type { BoostColor, ProjectBoost } from '../project/model'
 import { contrastRatio, mixRgba, parseHexColor, type RgbaColor } from './color'
 
-export type BoostTransformRole = 'primary' | 'secondary' | 'canvas' | 'surface' | 'raised' | 'hover' | 'card' | 'glass' | 'control' | 'text' | 'muted' | 'border' | 'neutral' | 'semantic' | 'preserve'
+export type BoostTransformRole = 'primary' | 'secondary' | 'canvas' | 'surface' | 'raised' | 'hover' | 'card' | 'glass' | 'glass-hover' | 'control' | 'text' | 'muted' | 'foreground' | 'border-subtle' | 'border' | 'border-hover' | 'neutral' | 'semantic' | 'preserve'
 export interface BoostTransformSample { variable: string; role: BoostTransformRole; before: string; after: string }
 export interface BoostTransformDiagnostics {
   sourceCount: number
@@ -25,7 +25,7 @@ const hueDelta = (from: number, to: number) => ((to - from + 540) % 360) - 180
 const normalizeCssValueBoundary = (value: string) => value.replace(/^[ \t\r\n]+|[ \t\r\n]+$/g, '')
 const prohibitedControlCharacters = (value: string) => [...value].map((character, index) => ({ index, codePoint: character.codePointAt(0) ?? 0 })).filter(({ codePoint }) => codePoint <= 8 || codePoint === 11 || codePoint === 12 || (codePoint >= 14 && codePoint <= 31))
 const TEXT_FAMILY = ['--lumiverse-text', '--lumiverse-text-primary', '--lumiverse-text-muted', '--lumiverse-text-secondary', '--lumiverse-text-dim', '--lumiverse-text-hint', '--lumiverse-icon', '--lumiverse-icon-muted', '--lumiverse-icon-dim'] as const
-const BOOST_ROLES: BoostTransformRole[] = ['primary', 'secondary', 'canvas', 'surface', 'raised', 'hover', 'card', 'glass', 'control', 'text', 'muted', 'border', 'neutral', 'semantic', 'preserve']
+const BOOST_ROLES: BoostTransformRole[] = ['primary', 'secondary', 'canvas', 'surface', 'raised', 'hover', 'card', 'glass', 'glass-hover', 'control', 'text', 'muted', 'foreground', 'border-subtle', 'border', 'border-hover', 'neutral', 'semantic', 'preserve']
 
 function parseCssColor(value: string): RgbaColor | null {
   const normalized = normalizeCssValueBoundary(value)
@@ -58,8 +58,11 @@ function render(value: Oklch): string { let candidate = { ...value }, rgb = from
 function anchor(value: BoostColor | undefined, fallback: BoostColor): Oklch { return toOklch(parseCssColor(value?.color ?? fallback.color) ?? { r: 147, g: 112, b: 219, alpha: 1 }) }
 
 export function classifyBoostVariable(name: string): BoostTransformRole {
-  if (/^--lumiverse-(?:danger|success|warning|error)(?:-|$)/i.test(name)) return 'semantic'
-  if (/^--lumiverse-primary-deep-contrast$/i.test(name)) return 'text'
+  if (/^--lumiverse-(?:danger|success|warning|error|info)(?:-|$)/i.test(name)) return 'semantic'
+  // Paired foregrounds are neither accent paint nor prose. Keep the host's
+  // foreground character intact, then optionally recalculate it against the
+  // recolored control when Protect controls is enabled.
+  if (/^--lumiverse-(?:primary(?:-deep)?-contrast|primary-fg|on-primary|accent-fg)$/i.test(name)) return 'foreground'
   if (/^--lumiverse-text-secondary$/i.test(name)) return 'muted'
   if (/^--lumiverse-(?:text-primary|text|icon)$/i.test(name)) return 'text'
   if (/^--lumiverse-(?:text-muted|text-dim|text-hint|icon-muted|icon-dim|muted)(?:-|$)?/i.test(name)) return 'muted'
@@ -72,12 +75,15 @@ export function classifyBoostVariable(name: string): BoostTransformRole {
   if (/^--lumiverse-surface-hover$/i.test(name)) return 'hover'
   if (/^--lumiverse-(?:surface-muted|input-bg)$/i.test(name)) return 'control'
   if (/^--lumiverse-surface$/i.test(name)) return 'surface'
-  if (/^--lumiverse-border-subtle$/i.test(name)) return 'border'
+  if (/^--lumiverse-border-subtle$/i.test(name)) return 'border-subtle'
 
-  // Chat Shell glass is a material in its own right. Blur/radius/transition
-  // tokens remain pass-through because they are not colors.
-  if (/^--lcs-glass-bg(?:-hover)?$/i.test(name)) return 'glass'
-  if (/^--lcs-glass-border(?:-hover)?$/i.test(name)) return 'border'
+  // Chat Shell glass is a material in its own right. Hover glass gets a
+  // slightly stronger supporting-accent affinity than resting glass, while
+  // its ordinary border stays quieter than an interactive hover border.
+  if (/^--lcs-glass-bg-hover$/i.test(name)) return 'glass-hover'
+  if (/^--lcs-glass-bg$/i.test(name)) return 'glass'
+  if (/^--lcs-glass-border-hover$/i.test(name)) return 'border-hover'
+  if (/^--lcs-glass-border$/i.test(name)) return 'border-subtle'
   if (/^--lcs-/i.test(name)) return 'preserve'
 
   // Compatibility for components that still consume the older primitives.
@@ -85,8 +91,9 @@ export function classifyBoostVariable(name: string): BoostTransformRole {
   if (/^--lumiverse-bg-hover$/i.test(name)) return 'hover'
   if (/^--lumiverse-(?:card-bg(?:-(?:solid|top|bottom))?|card-image-bg|gradient-modal)$/i.test(name)) return 'card'
   if (/^--lumiverse-(?:bg-dark(?:er)?$|fill(?:-|$)|border-(?:light|neutral(?:-hover)?)$|swatch-border$|shadow(?:-|$)|highlight-inset(?:-|$)|modal-backdrop$|scene-text-scrim$)/i.test(name)) return 'neutral'
+  if (/^--lumiverse-border-hover$/i.test(name)) return 'border-hover'
   if (/^--lumiverse-border(?:-|$)/i.test(name)) return 'border'
-  if (/^--lumiverse-bg(?:$|-opaque$|-0(?:40|50|70)$|-deep(?:-080)?$)/i.test(name)) return 'canvas'
+  if (/^--lumiverse-bg(?:$|-opaque$|-0(?:40|50|70)$|-deep(?:-080)?$|-deeper$)/i.test(name)) return 'canvas'
   if (/^--lumiverse-bg(?:-|$)/i.test(name)) return 'surface'
   return 'preserve'
 }
@@ -103,18 +110,25 @@ const MATERIAL_PROFILES: Partial<Record<BoostTransformRole, MaterialProfile>> = 
   hover: { secondaryWeight: .72, chromaScale: .58, maxChroma: .09 },
   card: { secondaryWeight: .62, chromaScale: .50, maxChroma: .08 },
   glass: { secondaryWeight: .22, chromaScale: .24, maxChroma: .035 },
+  'glass-hover': { secondaryWeight: .52, chromaScale: .34, maxChroma: .05 },
   control: { secondaryWeight: .16, chromaScale: .18, maxChroma: .026 },
-  border: { secondaryWeight: .55, chromaScale: .70, maxChroma: .11 },
+  'border-subtle': { secondaryWeight: .28, chromaScale: .38, maxChroma: .05 },
+  border: { secondaryWeight: .55, chromaScale: .64, maxChroma: .095 },
+  'border-hover': { secondaryWeight: .72, chromaScale: .76, maxChroma: .12 },
 }
 
 function supportingAccentAnchor(boost: ProjectBoost, profile: MaterialProfile): Oklch {
   const primary = anchor(boost.primary, boost.primary), secondary = anchor(boost.secondary, boost.primary), weight = clamp(profile.secondaryWeight)
   // Do not literally average opposing hues: green + magenta should not turn a
-  // supporting card into accidental beige. Accent affinity gives supporting materials a real owner instead of averaging
-  // opposing hues into beige. A genuinely gray Secondary falls back to Primary,
-  // so neutral support colors soften a material without injecting arbitrary hue.
-  const secondaryLed = weight >= .5 && secondary.c > .012
-  const owner = secondaryLed ? secondary : primary
+  // supporting card into accidental beige. Accent affinity gives each material
+  // a real chromatic owner. If the preferred owner is achromatic, borrow the
+  // other accent's hue instead of amplifying the meaningless OKLCH hue carried
+  // by gray/white/black values.
+  const primaryChromatic = primary.c > .012, secondaryChromatic = secondary.c > .012
+  const preferSecondary = weight >= .5
+  const owner = preferSecondary
+    ? (secondaryChromatic ? secondary : primaryChromatic ? primary : secondary)
+    : (primaryChromatic ? primary : secondaryChromatic ? secondary : primary)
   const mixedChroma = primary.c * (1 - weight) + secondary.c * weight
   return { l: .5, c: Math.min(profile.maxChroma, mixedChroma * profile.chromaScale), h: owner.h, alpha: 1 }
 }
@@ -151,7 +165,7 @@ function accentVariant(role: 'primary' | 'secondary', original: Oklch, boost: Pr
   }
 }
 function transformColor(role: BoostTransformRole, source: RgbaColor, boost: ProjectBoost, context: BoostTransformContext): string {
-  if (role === 'semantic' || role === 'preserve') return render(toOklch(source))
+  if (role === 'semantic' || role === 'preserve' || role === 'foreground') return render(toOklch(source))
   const original = toOklch(source)
   if (role === 'primary' || role === 'secondary') return render(accentVariant(role, original, boost, context))
   // Neutral overlays, shadows and scrims are structural. In Recolor mode they
@@ -263,10 +277,19 @@ function readableCss(value: string): string {
 }
 function protectInteractiveVariables(variables: Record<string, string>, baseline: Record<string, string>): void {
   // `--lumiverse-primary-text` is not control-only: native prose/dialogue variables
-  // can reference it. Keep this repair deliberately surgical and only target the
-  // explicit foreground paired with the deep filled-primary surface.
-  const deep = variables['--lumiverse-primary-deep'] ?? baseline['--lumiverse-primary-deep']
-  if (deep && '--lumiverse-primary-deep-contrast' in baseline) variables['--lumiverse-primary-deep-contrast'] = readableCss(deep)
+  // can reference it. Repair only explicit foreground/background pairs. This also
+  // keeps future host aliases safe without inventing variables the baseline did
+  // not publish.
+  const repair = (foreground: string, background: string): void => {
+    if (!(foreground in baseline)) return
+    const pairedSurface = variables[background] ?? baseline[background]
+    if (pairedSurface) variables[foreground] = readableCss(pairedSurface)
+  }
+  repair('--lumiverse-primary-contrast', '--lumiverse-primary')
+  repair('--lumiverse-primary-fg', '--lumiverse-primary')
+  repair('--lumiverse-on-primary', '--lumiverse-primary')
+  repair('--lumiverse-accent-fg', '--lumiverse-accent')
+  repair('--lumiverse-primary-deep-contrast', '--lumiverse-primary-deep')
 }
 
 function emptyRoleCounts(): Record<BoostTransformRole, number> { return Object.fromEntries(BOOST_ROLES.map((role) => [role, 0])) as Record<BoostTransformRole, number> }

@@ -2,7 +2,7 @@
   "version": "1.0.5",
   "name": "Palette",
   "identifier": "theme_studio",
-  "author": "Palette contributors",
+  "author": "kittyafterdark",
   "description": "An independent visual, component-aware theme editor for Lumiverse.",
   "permissions": [
     "app_manipulation",

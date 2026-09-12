@@ -392,6 +392,7 @@ describe('Phase Four Boost semantics', () => {
     expect(classifyBoostVariable('--lumiverse-fill')).toBe('neutral'); expect(classifyBoostVariable('--lumiverse-fill-heavy')).toBe('neutral')
     expect(classifyBoostVariable('--lumiverse-bg-darker')).toBe('neutral'); expect(classifyBoostVariable('--lumiverse-border-neutral')).toBe('neutral'); expect(classifyBoostVariable('--lumiverse-swatch-border')).toBe('neutral')
     expect(classifyBoostVariable('--lumiverse-border')).toBe('border'); expect(classifyBoostVariable('--lumiverse-card-bg')).toBe('card')
+    expect(classifyBoostVariable('--lumiverse-primary-contrast')).toBe('foreground'); expect(classifyBoostVariable('--lumiverse-primary-deep-contrast')).toBe('foreground')
   })
   test('material graph consumes Lumiverse semantic aliases and Chat Shell glass without flattening them into Secondary', () => {
     const baseline = {
@@ -399,17 +400,17 @@ describe('Phase Four Boost semantics', () => {
       '--lumiverse-bg-elevated': '#242c48', '--lumiverse-surface-raised': '#242c48', '--lumiverse-bg-hover': '#303956', '--lumiverse-surface-hover': '#303956',
       '--lumiverse-card-bg': 'linear-gradient(165deg, #20263e 0%, #181d32 100%)', '--lumiverse-gradient-modal': 'linear-gradient(135deg, #242c48, #151a2c)',
       '--lumiverse-input-bg': '#101318', '--lumiverse-border': '#526070', '--lumiverse-border-hover': '#687080', '--lumiverse-border-subtle': '#46505c',
-      '--lcs-glass-bg': '#151824', '--lcs-glass-bg-hover': '#1d2230', '--lcs-glass-border': '#3e4652', '--lumiverse-fill': '#304050',
+      '--lcs-glass-bg': '#151824', '--lcs-glass-bg-hover': '#1d2230', '--lcs-glass-border': '#3e4652', '--lcs-glass-border-hover': '#596372', '--lumiverse-fill': '#304050',
     }
     const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.originalSaturation = 0; project.boost.primary = { color: '#0011ff', alpha: 1 }; project.boost.secondary = { color: '#ff00ae', alpha: 1 }
     const pink = transformThemeVariables(baseline, project.boost)
     project.boost.secondary = { color: '#00e5ff', alpha: 1 }
     const cyan = transformThemeVariables(baseline, project.boost)
     expect(pink.variables['--lumiverse-primary']).toBe(cyan.variables['--lumiverse-primary'])
-    // Canvas, ordinary surfaces, glass, and resting controls remain Primary-led.
+    // Canvas, ordinary surfaces, resting glass, and controls remain Primary-led.
     for (const name of ['--lumiverse-bg', '--lumiverse-surface', '--lumiverse-input-bg', '--lcs-glass-bg']) expect(pink.variables[name]).toBe(cyan.variables[name])
-    // Raised/card/hover/border materials are Secondary-led and therefore visibly move.
-    for (const name of ['--lumiverse-bg-elevated', '--lumiverse-surface-raised', '--lumiverse-bg-hover', '--lumiverse-surface-hover', '--lumiverse-card-bg', '--lumiverse-gradient-modal', '--lumiverse-border-hover']) expect(pink.variables[name]).not.toBe(cyan.variables[name])
+    // Raised/card/hover and interactive border materials are Secondary-led and therefore visibly move.
+    for (const name of ['--lumiverse-bg-elevated', '--lumiverse-surface-raised', '--lumiverse-bg-hover', '--lumiverse-surface-hover', '--lumiverse-card-bg', '--lumiverse-gradient-modal', '--lumiverse-border-hover', '--lcs-glass-bg-hover', '--lcs-glass-border-hover']) expect(pink.variables[name]).not.toBe(cyan.variables[name])
     expect(pink.variables['--lumiverse-fill']).toBe(cyan.variables['--lumiverse-fill'])
     expect(classifyBoostVariable('--lumiverse-bg')).toBe('canvas')
     expect(classifyBoostVariable('--lumiverse-surface')).toBe('surface')
@@ -421,10 +422,22 @@ describe('Phase Four Boost semantics', () => {
     expect(classifyBoostVariable('--lumiverse-gradient-modal')).toBe('card')
     expect(classifyBoostVariable('--lumiverse-input-bg')).toBe('control')
     expect(classifyBoostVariable('--lcs-glass-bg')).toBe('glass')
-    expect(classifyBoostVariable('--lcs-glass-bg-hover')).toBe('glass')
-    expect(classifyBoostVariable('--lcs-glass-border')).toBe('border')
+    expect(classifyBoostVariable('--lcs-glass-bg-hover')).toBe('glass-hover')
+    expect(classifyBoostVariable('--lcs-glass-border')).toBe('border-subtle')
+    expect(classifyBoostVariable('--lcs-glass-border-hover')).toBe('border-hover')
+    expect(classifyBoostVariable('--lumiverse-border-subtle')).toBe('border-subtle')
+    expect(classifyBoostVariable('--lumiverse-border-hover')).toBe('border-hover')
     expect(classifyBoostVariable('--lcs-radius')).toBe('preserve')
   })
+  test('achromatic accent owners borrow the other chromatic accent instead of inventing an OKLCH hue', () => {
+    const baseline = { '--lumiverse-primary': '#9370db', '--lumiverse-secondary': '#808080', '--lumiverse-bg': '#181818', '--lcs-glass-bg': '#151824', '--lumiverse-text': '#eeeeee' }
+    const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.originalSaturation = 0; project.boost.primary = { color: '#ffffff', alpha: 1 }; project.boost.secondary = { color: '#ff00d0', alpha: 1 }
+    const variables = transformThemeVariables(baseline, project.boost).variables
+    const glass = parseHexColor(variables['--lcs-glass-bg'])!, canvas = parseHexColor(variables['--lumiverse-bg'])!
+    expect(glass.r).toBeGreaterThan(glass.g); expect(glass.b).toBeGreaterThan(glass.g)
+    expect(canvas.r).toBeGreaterThan(canvas.g); expect(canvas.b).toBeGreaterThan(canvas.g)
+  })
+
   test('direct accents stay faithful to explicit picks while native accent variants keep their hierarchy', () => {
     const baseline = { '--lumiverse-primary': '#9370db', '--lumiverse-primary-hover': '#a784ef', '--lumiverse-primary-deep': '#1a1427', '--lumiverse-secondary': '#808080', '--lumiverse-secondary-hover': '#969696' }
     const project = createProject(); project.boost.enabled = true; project.boost.colorsEnabled = true; project.boost.primary = { color: '#00ff55', alpha: 1 }; project.boost.secondary = { color: '#ff00d0', alpha: 1 }; project.boost.originalSaturation = .2; project.boost.brightness = 0; project.boost.contrast = 0

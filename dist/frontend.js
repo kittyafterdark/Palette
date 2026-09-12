@@ -2948,7 +2948,7 @@ var hueDelta = (from, to) => (to - from + 540) % 360 - 180;
 var normalizeCssValueBoundary = (value) => value.replace(/^[ \t\r\n]+|[ \t\r\n]+$/g, "");
 var prohibitedControlCharacters = (value) => [...value].map((character, index) => ({ index, codePoint: character.codePointAt(0) ?? 0 })).filter(({ codePoint }) => codePoint <= 8 || codePoint === 11 || codePoint === 12 || codePoint >= 14 && codePoint <= 31);
 var TEXT_FAMILY = ["--lumiverse-text", "--lumiverse-text-primary", "--lumiverse-text-muted", "--lumiverse-text-secondary", "--lumiverse-text-dim", "--lumiverse-text-hint", "--lumiverse-icon", "--lumiverse-icon-muted", "--lumiverse-icon-dim"];
-var BOOST_ROLES = ["primary", "secondary", "canvas", "surface", "raised", "hover", "card", "glass", "control", "text", "muted", "border", "neutral", "semantic", "preserve"];
+var BOOST_ROLES = ["primary", "secondary", "canvas", "surface", "raised", "hover", "card", "glass", "glass-hover", "control", "text", "muted", "foreground", "border-subtle", "border", "border-hover", "neutral", "semantic", "preserve"];
 function parseCssColor(value) {
   const normalized = normalizeCssValueBoundary(value);
   const hex2 = parseHexColor(normalized);
@@ -3005,8 +3005,8 @@ function anchor(value, fallback) {
   return toOklch(parseCssColor(value?.color ?? fallback.color) ?? { r: 147, g: 112, b: 219, alpha: 1 });
 }
 function classifyBoostVariable(name) {
-  if (/^--lumiverse-(?:danger|success|warning|error)(?:-|$)/i.test(name)) return "semantic";
-  if (/^--lumiverse-primary-deep-contrast$/i.test(name)) return "text";
+  if (/^--lumiverse-(?:danger|success|warning|error|info)(?:-|$)/i.test(name)) return "semantic";
+  if (/^--lumiverse-(?:primary(?:-deep)?-contrast|primary-fg|on-primary|accent-fg)$/i.test(name)) return "foreground";
   if (/^--lumiverse-text-secondary$/i.test(name)) return "muted";
   if (/^--lumiverse-(?:text-primary|text|icon)$/i.test(name)) return "text";
   if (/^--lumiverse-(?:text-muted|text-dim|text-hint|icon-muted|icon-dim|muted)(?:-|$)?/i.test(name)) return "muted";
@@ -3016,16 +3016,19 @@ function classifyBoostVariable(name) {
   if (/^--lumiverse-surface-hover$/i.test(name)) return "hover";
   if (/^--lumiverse-(?:surface-muted|input-bg)$/i.test(name)) return "control";
   if (/^--lumiverse-surface$/i.test(name)) return "surface";
-  if (/^--lumiverse-border-subtle$/i.test(name)) return "border";
-  if (/^--lcs-glass-bg(?:-hover)?$/i.test(name)) return "glass";
-  if (/^--lcs-glass-border(?:-hover)?$/i.test(name)) return "border";
+  if (/^--lumiverse-border-subtle$/i.test(name)) return "border-subtle";
+  if (/^--lcs-glass-bg-hover$/i.test(name)) return "glass-hover";
+  if (/^--lcs-glass-bg$/i.test(name)) return "glass";
+  if (/^--lcs-glass-border-hover$/i.test(name)) return "border-hover";
+  if (/^--lcs-glass-border$/i.test(name)) return "border-subtle";
   if (/^--lcs-/i.test(name)) return "preserve";
   if (/^--lumiverse-bg-elevated(?:-040)?$/i.test(name)) return "raised";
   if (/^--lumiverse-bg-hover$/i.test(name)) return "hover";
   if (/^--lumiverse-(?:card-bg(?:-(?:solid|top|bottom))?|card-image-bg|gradient-modal)$/i.test(name)) return "card";
   if (/^--lumiverse-(?:bg-dark(?:er)?$|fill(?:-|$)|border-(?:light|neutral(?:-hover)?)$|swatch-border$|shadow(?:-|$)|highlight-inset(?:-|$)|modal-backdrop$|scene-text-scrim$)/i.test(name)) return "neutral";
+  if (/^--lumiverse-border-hover$/i.test(name)) return "border-hover";
   if (/^--lumiverse-border(?:-|$)/i.test(name)) return "border";
-  if (/^--lumiverse-bg(?:$|-opaque$|-0(?:40|50|70)$|-deep(?:-080)?$)/i.test(name)) return "canvas";
+  if (/^--lumiverse-bg(?:$|-opaque$|-0(?:40|50|70)$|-deep(?:-080)?$|-deeper$)/i.test(name)) return "canvas";
   if (/^--lumiverse-bg(?:-|$)/i.test(name)) return "surface";
   return "preserve";
 }
@@ -3036,13 +3039,17 @@ var MATERIAL_PROFILES = {
   hover: { secondaryWeight: 0.72, chromaScale: 0.58, maxChroma: 0.09 },
   card: { secondaryWeight: 0.62, chromaScale: 0.5, maxChroma: 0.08 },
   glass: { secondaryWeight: 0.22, chromaScale: 0.24, maxChroma: 0.035 },
+  "glass-hover": { secondaryWeight: 0.52, chromaScale: 0.34, maxChroma: 0.05 },
   control: { secondaryWeight: 0.16, chromaScale: 0.18, maxChroma: 0.026 },
-  border: { secondaryWeight: 0.55, chromaScale: 0.7, maxChroma: 0.11 }
+  "border-subtle": { secondaryWeight: 0.28, chromaScale: 0.38, maxChroma: 0.05 },
+  border: { secondaryWeight: 0.55, chromaScale: 0.64, maxChroma: 0.095 },
+  "border-hover": { secondaryWeight: 0.72, chromaScale: 0.76, maxChroma: 0.12 }
 };
 function supportingAccentAnchor(boost, profile) {
   const primary = anchor(boost.primary, boost.primary), secondary = anchor(boost.secondary, boost.primary), weight = clamp2(profile.secondaryWeight);
-  const secondaryLed = weight >= 0.5 && secondary.c > 0.012;
-  const owner = secondaryLed ? secondary : primary;
+  const primaryChromatic = primary.c > 0.012, secondaryChromatic = secondary.c > 0.012;
+  const preferSecondary = weight >= 0.5;
+  const owner = preferSecondary ? secondaryChromatic ? secondary : primaryChromatic ? primary : secondary : primaryChromatic ? primary : secondaryChromatic ? secondary : primary;
   const mixedChroma = primary.c * (1 - weight) + secondary.c * weight;
   return { l: 0.5, c: Math.min(profile.maxChroma, mixedChroma * profile.chromaScale), h: owner.h, alpha: 1 };
 }
@@ -3076,7 +3083,7 @@ function accentVariant(role, original, boost, context) {
   };
 }
 function transformColor(role, source, boost, context) {
-  if (role === "semantic" || role === "preserve") return render(toOklch(source));
+  if (role === "semantic" || role === "preserve" || role === "foreground") return render(toOklch(source));
   const original = toOklch(source);
   if (role === "primary" || role === "secondary") return render(accentVariant(role, original, boost, context));
   if (role === "neutral" && boost.mode === "recolor") return render(original);
@@ -3255,8 +3262,16 @@ function readableCss(value) {
   return contrastRatio(light, parsed) >= contrastRatio(dark, parsed) ? "#ffffff" : "#17131f";
 }
 function protectInteractiveVariables(variables, baseline) {
-  const deep = variables["--lumiverse-primary-deep"] ?? baseline["--lumiverse-primary-deep"];
-  if (deep && "--lumiverse-primary-deep-contrast" in baseline) variables["--lumiverse-primary-deep-contrast"] = readableCss(deep);
+  const repair = (foreground, background) => {
+    if (!(foreground in baseline)) return;
+    const pairedSurface = variables[background] ?? baseline[background];
+    if (pairedSurface) variables[foreground] = readableCss(pairedSurface);
+  };
+  repair("--lumiverse-primary-contrast", "--lumiverse-primary");
+  repair("--lumiverse-primary-fg", "--lumiverse-primary");
+  repair("--lumiverse-on-primary", "--lumiverse-primary");
+  repair("--lumiverse-accent-fg", "--lumiverse-accent");
+  repair("--lumiverse-primary-deep-contrast", "--lumiverse-primary-deep");
 }
 function emptyRoleCounts() {
   return Object.fromEntries(BOOST_ROLES.map((role) => [role, 0]));
@@ -22083,11 +22098,11 @@ var ThemeStudioUI = class {
     const boostRecent = (key) => this.recentColors.length ? `<div class="ts-recent"><span>Recent</span><div class="ts-recent-swatches">${this.recentColors.map((color) => `<button type="button" class="ts-recent-swatch" data-boost-recent="${key}" data-recent-color="${escapeHtml(color)}" style="--ts-recent:${escapeHtml(color)}" title="Use ${escapeHtml(color)}"></button>`).join("")}</div></div>` : "";
     const boostColorField = (key, label, value, fallback) => `<div class="ts-field"><label class="ts-label">${label}</label><div class="ts-color-row"><label class="ts-color-picker" title="Open color picker"><input class="ts-color" type="color" value="${escapeHtml(colorInput(value, fallback))}" data-boost-color="${key}" aria-label="Pick ${escapeHtml(label)}"><span>Pick</span></label><input class="ts-input" value="${escapeHtml(value)}" data-boost-color="${key}"></div>${boostRecent(key)}</div>`;
     const textTreatment = `<div class="ts-field ts-boost-text-treatment"><label class="ts-label">Text treatment</label><div class="ts-segment"><button type="button" data-boost-text-mode="auto" aria-pressed="${boost.textMode === "auto"}">Auto contrast</button><button type="button" data-boost-text-mode="custom" aria-pressed="${boost.textMode === "custom"}">Custom</button></div><p class="ts-note">Auto keeps native foreground character and repairs the main text anchor against the transformed surface. Custom uses your foreground anchor instead.</p></div>${boost.textMode === "custom" ? boostColorField("text", "Text anchor", boost.text.color, "#f4eef8") : ""}`;
-    const diagnosticRoles = diagnostics ? `<div class="ts-meta ts-boost-role-meta"><span>Primary <strong>${diagnostics.roleCounts.primary}</strong></span><span>Secondary <strong>${diagnostics.roleCounts.secondary}</strong></span><span>Canvas <strong>${diagnostics.roleCounts.canvas}</strong></span><span>Surface <strong>${diagnostics.roleCounts.surface}</strong></span><span>Raised <strong>${diagnostics.roleCounts.raised}</strong></span><span>Hover <strong>${diagnostics.roleCounts.hover}</strong></span><span>Card <strong>${diagnostics.roleCounts.card}</strong></span><span>Glass <strong>${diagnostics.roleCounts.glass}</strong></span><span>Control <strong>${diagnostics.roleCounts.control}</strong></span><span>Text <strong>${diagnostics.roleCounts.text}</strong></span><span>Muted <strong>${diagnostics.roleCounts.muted}</strong></span><span>Border <strong>${diagnostics.roleCounts.border}</strong></span><span>Neutral <strong>${diagnostics.roleCounts.neutral}</strong></span><span>Semantic <strong>${diagnostics.roleCounts.semantic}</strong></span><span>Pass-through <strong>${diagnostics.roleCounts.preserve}</strong></span></div>` : "";
+    const diagnosticRoles = diagnostics ? `<div class="ts-meta ts-boost-role-meta"><span>Primary <strong>${diagnostics.roleCounts.primary}</strong></span><span>Secondary <strong>${diagnostics.roleCounts.secondary}</strong></span><span>Canvas <strong>${diagnostics.roleCounts.canvas}</strong></span><span>Surface <strong>${diagnostics.roleCounts.surface}</strong></span><span>Raised <strong>${diagnostics.roleCounts.raised}</strong></span><span>Hover <strong>${diagnostics.roleCounts.hover}</strong></span><span>Card <strong>${diagnostics.roleCounts.card}</strong></span><span>Glass <strong>${diagnostics.roleCounts.glass}</strong></span><span>Glass hover <strong>${diagnostics.roleCounts["glass-hover"]}</strong></span><span>Control <strong>${diagnostics.roleCounts.control}</strong></span><span>Text <strong>${diagnostics.roleCounts.text}</strong></span><span>Muted <strong>${diagnostics.roleCounts.muted}</strong></span><span>Foreground <strong>${diagnostics.roleCounts.foreground}</strong></span><span>Border subtle <strong>${diagnostics.roleCounts["border-subtle"]}</strong></span><span>Border <strong>${diagnostics.roleCounts.border}</strong></span><span>Border hover <strong>${diagnostics.roleCounts["border-hover"]}</strong></span><span>Neutral <strong>${diagnostics.roleCounts.neutral}</strong></span><span>Semantic <strong>${diagnostics.roleCounts.semantic}</strong></span><span>Pass-through <strong>${diagnostics.roleCounts.preserve}</strong></span></div>` : "";
     const colorsBody = boost.colorsEnabled ? `<div class="ts-segment"><button type="button" data-boost-mode="recolor" aria-pressed="${boost.mode === "recolor"}">Recolor</button><button type="button" data-boost-mode="smart-invert" aria-pressed="${boost.mode === "smart-invert"}">Smart Invert</button></div>
       ${boostColorField("primary", "Primary accent", boost.primary.color, "#9370db")}
       ${boostColorField("secondary", "Secondary accent", boost.secondary?.color ?? boost.primary.color, "#786bf0")}
-      <p class="ts-note">Primary and Secondary stay faithful as direct accents. Lumiverse material roles then blend them with native canvas, surface, card, glass, control, hover, and border depth instead of painting every panel from one bucket.</p>
+      <p class="ts-note">Primary and Secondary stay faithful as direct accents. Lumiverse material roles then blend them with native canvas, surface, card, glass, control, hover, and border depth; resting chrome stays quieter while interactive hover/foreground pairs keep their own contrast behavior.</p>
       ${textTreatment}
       ${slider("Contrast", "contrast", boost.contrast, -100, 100)}${slider("Brightness", "brightness", boost.brightness, -100, 100)}${slider("Original saturation", "originalSaturation", boost.originalSaturation, 0, 100)}
       <label class="ts-check ts-boost-protect"><input type="checkbox" data-boost-protect-controls ${boost.protectControls ? "checked" : ""}> <span><strong>Protect controls</strong><small>Repair control foregrounds that lose contrast after recoloring.</small></span></label>
