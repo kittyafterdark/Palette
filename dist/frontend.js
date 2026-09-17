@@ -4757,10 +4757,10 @@ function nativeVariableMap(variables) {
 function joinCss(parts) {
   return parts.map((value) => value.trim()).filter(Boolean).join("\n\n");
 }
-function projectToNativeDraft(project2, components, variables) {
+function projectToNativeDraft(project2, components, variables, boostBaseline) {
   const componentIds = new Set(components.map((component) => component.id));
   const grouped = /* @__PURE__ */ new Map();
-  const globalParts = [compileThemeGlobalLayers(project2, nativeVariableMap(variables), false)];
+  const globalParts = [compileThemeGlobalLayers(project2, boostBaseline ?? nativeVariableMap(variables), true)];
   for (const override2 of project2.componentOverrides) {
     const css = compileComponentOverride(override2);
     if (!css.trim()) continue;
@@ -24147,8 +24147,10 @@ ${compileComponentOverride(draft, previewOptions)}`);
       this.render();
     }
   }
-  nativeDraft() {
-    return projectToNativeDraft(this.store.activeProject, this.components, this.variables);
+  async nativeDraft() {
+    const project2 = this.store.activeProject;
+    const boostBaseline = project2.boost.enabled && this.themeRuntime ? (await this.themeRuntime.getBaseline()).variables : void 0;
+    return projectToNativeDraft(project2, this.components, this.variables, boostBaseline);
   }
   downloadBytes(bytes, filename) {
     const owned = bytes.slice();
@@ -24166,7 +24168,7 @@ ${compileComponentOverride(draft, previewOptions)}`);
   async exportNativeTheme() {
     if (!this.capabilities.exportLumitheme) return;
     try {
-      const bytes = await exportLumitheme(this.ctx, this.nativeDraft());
+      const bytes = await exportLumitheme(this.ctx, await this.nativeDraft());
       const safeName = this.store.activeProject.name.trim().replace(/[^a-z0-9_-]+/gi, "-").replace(/^-+|-+$/g, "") || "theme-studio";
       this.downloadBytes(bytes, `${safeName}.lumitheme`);
       this.nativeActionStatus = `Exported canonical .lumitheme \xB7 ${Math.round(bytes.byteLength / 1024)} KB.`;
@@ -24178,7 +24180,7 @@ ${compileComponentOverride(draft, previewOptions)}`);
   async installNativeTheme() {
     if (!this.capabilities.applyTheme) return;
     try {
-      const result = await sendToLumiverse(this.ctx, this.nativeDraft(), true);
+      const result = await sendToLumiverse(this.ctx, await this.nativeDraft(), true);
       this.nativeActionStatus = `Installed in Lumiverse \xB7 ${result.componentCount} component section${result.componentCount === 1 ? "" : "s"} \xB7 ${result.assetCount} asset${result.assetCount === 1 ? "" : "s"}${result.savedToLibrary ? " \xB7 saved to library" : ""}. Source project assets stay in their project bundle; Lumiverse installed a fresh native bundle (${result.bundleId}).`;
       this.render();
     } catch (error) {

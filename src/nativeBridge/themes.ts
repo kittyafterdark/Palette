@@ -6,12 +6,14 @@ import { nativeVariableMap } from './variables'
 
 function joinCss(parts: string[]): string { return parts.map((value) => value.trim()).filter(Boolean).join('\n\n') }
 
-export function projectToNativeDraft(project: ThemeStudioProject, components: NativeThemeComponent[], variables: NativeThemeVariable[]): SpindleThemePackDraft {
+export function projectToNativeDraft(project: ThemeStudioProject, components: NativeThemeComponent[], variables: NativeThemeVariable[], boostBaseline?: Record<string, string>): SpindleThemePackDraft {
   const componentIds = new Set(components.map((component) => component.id))
   const grouped = new Map<string, string[]>()
-  // Boost is live extension world-state, not persistent theme CSS. Baking it into a native
-  // .lumitheme makes the installed :root declarations compete with later live Boost edits.
-  const globalParts: string[] = [compileThemeGlobalLayers(project, nativeVariableMap(variables), false)]
+  // Boost stays a live pre-CSS layer while authoring, but native handoff is the distribution
+  // boundary: bake the current Boost result into Global so exported/installed themes keep it.
+  // Prefer the runtime's canonical worker baseline so a catalog already painted by Boost can
+  // never become Boost's own export source.
+  const globalParts: string[] = [compileThemeGlobalLayers(project, boostBaseline ?? nativeVariableMap(variables), true)]
   for (const override of project.componentOverrides) {
     const css = compileComponentOverride(override)
     if (!css.trim()) continue

@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import type { SpindleFrontendContext, SpindleThemeAsset } from 'lumiverse-spindle-types'
 import { activeNativeThemeBundleId, adaptNativeAsset, cloneNativeThemeAssetToBundle } from '../src/nativeBridge/assets'
 import { getNativeThemeCapabilities, THEME_AUTHORING_CAPABILITIES } from '../src/nativeBridge/capabilities'
+import { transformThemeVariables } from '../src/compiler/boost'
 import { adaptNativeComponentMetadata, groupNativeComponents, listNativeComponents } from '../src/nativeBridge/components'
 import { projectToNativeDraft } from '../src/nativeBridge/themes'
 import { listNativeThemeVariables, nativeVariableMap } from '../src/nativeBridge/variables'
@@ -122,5 +123,29 @@ describe('public ctx.theme bridge', () => {
     expect((draft as unknown as Record<string, unknown>).tsx).toBeUndefined()
     expect((draft.components?.BubbleMessage as unknown as Record<string, unknown>).tsx).toBeUndefined()
     expect(draft.globalCSS).not.toContain('Application-wide Palette Boost')
+  })
+
+  test('bakes enabled Boost into native Global from the canonical handoff baseline', () => {
+    const project = createProject('Boost Export')
+    project.boost.enabled = true
+    project.boost.colorsEnabled = true
+    project.boost.originalSaturation = 0
+    project.boost.primary = { color: '#ff4fa3', alpha: 1 }
+    const canonical = { '--lumiverse-primary': '#4060d0', '--lumiverse-bg': '#203050', '--lumiverse-text': '#f2f2f2' }
+    const staleCatalog = [
+      { name: '--lumiverse-primary', defaultValue: '#4060d0', value: '#00ff00', category: 'Primary' },
+      { name: '--lumiverse-bg', defaultValue: '#203050', value: '#101010', category: 'Surface' },
+      { name: '--lumiverse-text', defaultValue: '#f2f2f2', value: '#eeeeee', category: 'Text' },
+    ]
+    project.customCss = '.after-boost { color: hotpink; }'
+
+    const draft = projectToNativeDraft(project, [], staleCatalog, canonical)
+    const expectedSurface = transformThemeVariables(canonical, project.boost).variables['--lumiverse-bg']
+    const staleSurface = transformThemeVariables(Object.fromEntries(staleCatalog.map((entry) => [entry.name, entry.value])), project.boost).variables['--lumiverse-bg']
+
+    expect(draft.globalCSS).toContain('Application-wide Palette Boost')
+    expect(draft.globalCSS).toContain(`--lumiverse-bg: ${expectedSurface};`)
+    expect(expectedSurface).not.toBe(staleSurface)
+    expect(draft.globalCSS.indexOf('Application-wide Palette Boost')).toBeLessThan(draft.globalCSS.indexOf('.after-boost'))
   })
 })
