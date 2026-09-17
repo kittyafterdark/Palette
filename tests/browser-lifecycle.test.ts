@@ -139,6 +139,7 @@ describe('browser-owned lifecycle', () => {
   test('picker cancellation and teardown remove all extension artifacts', () => {
     const picker = new ElementPicker(mockContext())
     expect(document.querySelectorAll('[data-theme-studio-inspector]')).toHaveLength(5)
+    expect(document.querySelectorAll('[data-theme-studio-inspector-probe]')).toHaveLength(1)
     picker.start({ onSelect: () => {}, onCancel: () => {} })
     expect(document.documentElement.style.cursor).toBe('crosshair')
     picker.cancel()
@@ -146,6 +147,27 @@ describe('browser-owned lifecycle', () => {
     expect(picker.isActive).toBe(false)
     picker.destroy()
     expect(document.querySelectorAll('[data-theme-studio-inspector]')).toHaveLength(0)
+    expect(document.querySelectorAll('[data-theme-studio-inspector-probe]')).toHaveLength(0)
+  })
+
+  test('picker compensates fixed inspector geometry for a scaled or translated host coordinate space', () => {
+    const picker = new ElementPicker(mockContext()), target = document.createElement('button'); document.body.append(target)
+    const probe = document.querySelector<HTMLElement>('[data-theme-studio-inspector-probe]')!
+    probe.getBoundingClientRect = () => ({ x: 24, y: 12, left: 24, top: 12, right: 114, bottom: 102, width: 90, height: 90, toJSON() {} } as DOMRect)
+    target.getBoundingClientRect = () => ({ x: 204, y: 102, left: 204, top: 102, right: 474, bottom: 237, width: 270, height: 135, toJSON() {} } as DOMRect)
+
+    picker.highlight(target, 'size')
+
+    const overlay = document.querySelector<HTMLElement>('[data-theme-studio-inspector="selected-overlay"]')!
+    const sizeGuide = document.querySelector<HTMLElement>('[data-guide-kind="size"]')!
+    expect(overlay.style.transform).toBe('translate(200px, 100px)')
+    expect(overlay.style.width).toBe('300px')
+    expect(overlay.style.height).toBe('150px')
+    expect(sizeGuide.style.left).toBe('200px')
+    expect(sizeGuide.style.top).toBe('100px')
+    expect(sizeGuide.style.width).toBe('300px')
+    expect(sizeGuide.style.height).toBe('150px')
+    picker.destroy()
   })
 
   test('picker supports one-shot selection for the compact widget', () => {
