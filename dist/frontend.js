@@ -4302,7 +4302,7 @@ function characterGridColumnBridgeRule(target, packets2, strength) {
   if (!isCharacterGridRowTarget(target)) return "";
   const layout = packets2.find((packet2) => packet2.type === "layout" && (packet2.display === "grid" || packet2.display === "inline-grid") && packet2.gridColumns?.mode === "count" && ownsField(packet2, "gridColumns"));
   if (!layout || layout.gridColumns?.mode !== "count") return "";
-  const count = Math.round(clamp3(layout.gridColumns.count, 1, 24));
+  const count = Math.round(clamp(layout.gridColumns.count, 1, 24));
   return [
     "/* CharacterGrid virtualization sync \xB7 explicit themed column count */",
     `${ruleSelector("[data-character-grid]", strength)} {`,
@@ -4413,7 +4413,7 @@ function compileScopedStateStacks(override2, stacks, scope, preview, inheritedSu
     const packets2 = stacks[state] ?? [];
     if (!packets2.length) continue;
     const canonical = stateSelector(override2.target.selector, state);
-    for (const helper of helperRulesForPackets(canonical, packets2, strength, override2.target, state)) helpers.add(helper);
+    for (const helper of helperRulesForPackets(canonical, packets2, strength, override.target, state)) helpers.add(helper);
     const forcedScope = preview.forcedScope ?? "base";
     const selector2 = preview.forcedOverrideId === override2.id && preview.forcedState === state && forcedScope === scope ? `${canonical},
 ${previewSelector(override2.target.selector, state)}` : canonical;

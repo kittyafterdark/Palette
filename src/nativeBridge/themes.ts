@@ -13,7 +13,10 @@ export function projectToNativeDraft(project: ThemeStudioProject, components: Na
   // boundary: bake the current Boost result into Global so exported/installed themes keep it.
   // Prefer the runtime's canonical worker baseline so a catalog already painted by Boost can
   // never become Boost's own export source.
-  const globalParts: string[] = [compileThemeGlobalLayers(project, boostBaseline ?? nativeVariableMap(variables), true)]
+  // Lumiverse owns its native variables on the root inline style. Native handoff must
+  // preserve Palette's live root-inline-important authority or baked Boost/token values
+  // are present in Global CSS but lose the cascade and become inert.
+  const globalParts: string[] = [compileThemeGlobalLayers(project, boostBaseline ?? nativeVariableMap(variables), true, 'strong')]
   for (const override of project.componentOverrides) {
     const css = compileComponentOverride(override)
     if (!css.trim()) continue

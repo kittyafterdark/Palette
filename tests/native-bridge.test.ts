@@ -137,6 +137,7 @@ describe('public ctx.theme bridge', () => {
       { name: '--lumiverse-bg', defaultValue: '#203050', value: '#101010', category: 'Surface' },
       { name: '--lumiverse-text', defaultValue: '#f2f2f2', value: '#eeeeee', category: 'Text' },
     ]
+    project.tokens.push({ variable: '--lumiverse-primary', value: '#abcdef' })
     project.customCss = '.after-boost { color: hotpink; }'
 
     const draft = projectToNativeDraft(project, [], staleCatalog, canonical)
@@ -144,7 +145,8 @@ describe('public ctx.theme bridge', () => {
     const staleSurface = transformThemeVariables(Object.fromEntries(staleCatalog.map((entry) => [entry.name, entry.value])), project.boost).variables['--lumiverse-bg']
 
     expect(draft.globalCSS).toContain('Application-wide Palette Boost')
-    expect(draft.globalCSS).toContain(`--lumiverse-bg: ${expectedSurface};`)
+    expect(draft.globalCSS).toContain(`--lumiverse-bg: ${expectedSurface} !important;`)
+    expect(draft.globalCSS).toContain('--lumiverse-primary: #abcdef !important;')
     expect(expectedSurface).not.toBe(staleSurface)
     expect(draft.globalCSS.indexOf('Application-wide Palette Boost')).toBeLessThan(draft.globalCSS.indexOf('.after-boost'))
   })
