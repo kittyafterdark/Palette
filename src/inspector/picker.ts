@@ -26,6 +26,26 @@ interface InspectorCoordinateMap {
 }
 
 const COORDINATE_PROBE_SIZE = 100
+const NATIVE_UI_SCALE_PROPERTY = '--lumiverse-ui-scale'
+
+function nativeUiScale(): number {
+  if (typeof document === 'undefined' || typeof getComputedStyle !== 'function') return 1
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(NATIVE_UI_SCALE_PROPERTY)
+  const parsed = Number.parseFloat(raw)
+  return Number.isFinite(parsed) && parsed > 0.001 ? parsed : 1
+}
+
+function inspectorAxisScale(probeScale: number, hostScale: number): number {
+  const measured = Number.isFinite(probeScale) && probeScale > 0.001 ? probeScale : 1
+  // Lumiverse publishes its native zoom-layer scale explicitly. Some browsers
+  // report fixed-probe geometry in unzoomed CSS pixels even though sibling
+  // fixed overlays are still painted through that zoom layer. When the probe
+  // looks effectively 1:1, trust the host contract instead of double-scaling
+  // viewport rects. Real transformed/scaled containing blocks still win when
+  // the probe reports a non-trivial scale of its own.
+  if (Math.abs(hostScale - 1) > 0.001 && Math.abs(measured - 1) <= 0.01) return hostScale
+  return measured
+}
 
 export class ElementPicker {
   private readonly overlay: HTMLDivElement
@@ -193,11 +213,12 @@ export class ElementPicker {
     const probeRect = this.coordinateProbe.getBoundingClientRect()
     const rawScaleX = probeRect.width / COORDINATE_PROBE_SIZE
     const rawScaleY = probeRect.height / COORDINATE_PROBE_SIZE
+    const hostScale = nativeUiScale()
     this.inspectorCoordinateMap = {
       originX: Number.isFinite(probeRect.left) ? probeRect.left : 0,
       originY: Number.isFinite(probeRect.top) ? probeRect.top : 0,
-      scaleX: Number.isFinite(rawScaleX) && rawScaleX > 0.001 ? rawScaleX : 1,
-      scaleY: Number.isFinite(rawScaleY) && rawScaleY > 0.001 ? rawScaleY : 1,
+      scaleX: inspectorAxisScale(rawScaleX, hostScale),
+      scaleY: inspectorAxisScale(rawScaleY, hostScale),
     }
   }
 

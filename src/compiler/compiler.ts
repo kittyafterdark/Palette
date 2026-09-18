@@ -796,8 +796,13 @@ function svgReplacementRules(selector: string, packet: SvgAssetPacket, strength:
 }
 
 const CHARACTER_GRID_NATIVE_ID = 'src/components/panels/character-browser/CharacterGrid'
+const CHARACTER_DRAWER_NATIVE_ID = 'mounted:drawer:characters'
 function isCharacterGridRowTarget(target: StudioTarget): boolean {
-  if (target.nativeComponentId !== CHARACTER_GRID_NATIVE_ID) return false
+  const contextIdentity = `${target.nativeComponentId ?? ''} ${target.nativeContextSelector ?? ''} ${target.selector}`
+  const characterSurface = target.nativeComponentId === CHARACTER_GRID_NATIVE_ID
+    || target.nativeComponentId === CHARACTER_DRAWER_NATIVE_ID
+    || /\[data-spindle-drawer-tab=["']characters["']\]/i.test(contextIdentity)
+  if (!characterSurface) return false
   const rowIdentity = `${target.localSelector ?? ''} ${target.selector}`
   return /\[class\*=["']_row_["']\]/i.test(rowIdentity) || /\[data-index(?:[=\]])/i.test(rowIdentity)
 }
