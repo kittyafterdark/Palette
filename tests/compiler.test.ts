@@ -464,6 +464,7 @@ describe('Phase Three semantic CSS compiler', () => {
     const css = compilePreviewThemeProject(project, { includeBoost: true }, { '--lumiverse-primary': '#9370db', '--lumiverse-bg': '#18151f', '--lumiverse-text': '#f4eef8', '--lumiverse-font-family': 'Native Sans' })
     expect(css).toContain('/* Application-wide Palette Boost */')
     expect(css).toContain('--lumiverse-text: #fff3e0;')
+    expect(css).not.toContain('--lumiverse-text: #fff3e0 !important;')
     expect(css).toContain('/* DOM target · button · Chats')
     expect(css).toContain('[class*="_thirdPartyWidget_"]:hover')
   })

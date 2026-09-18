@@ -4573,16 +4573,16 @@ function compileFontFace(font2) {
   if (!font2.family.trim() || !path || /["'(){};]/.test(path) || !format) return "";
   return ["@font-face {", `  font-family: "${escapeCssString(font2.family)}";`, `  src: url("${path}") format("${format}");`, `  font-weight: ${safe(String(font2.weight ?? 400), "400")};`, `  font-style: ${font2.style ?? "normal"};`, `  font-display: ${font2.display ?? "swap"};`, "}"].join("\n");
 }
-function compileTokenOverrides(tokens) {
+function compileTokenOverrides(tokens, strength = "normal") {
   const valid = tokens.filter((token) => /^--[a-zA-Z0-9_-]+$/.test(token.variable) && token.value.trim());
-  return valid.length ? ["/* Global theme tokens */", ":root {", ...valid.map((token) => `  ${token.variable}: ${safe(token.value, "initial")};`), "}"].join("\n") : "";
+  return valid.length ? ["/* Global theme tokens */", ":root {", ...valid.map((token) => `  ${token.variable}: ${importantValue(safe(token.value, "initial"), strength)};`), "}"].join("\n") : "";
 }
-function compileBoost(project2, nativeVariables = {}) {
-  const declarations = Object.entries(deriveBoostTokenOverrides(project2.boost, nativeVariables)).sort(([a], [b]) => a.localeCompare(b)).map(([name, value]) => `  ${name}: ${safe(value, "initial")};`);
+function compileBoost(project2, nativeVariables = {}, strength = "normal") {
+  const declarations = Object.entries(deriveBoostTokenOverrides(project2.boost, nativeVariables)).sort(([a], [b]) => a.localeCompare(b)).map(([name, value]) => `  ${name}: ${importantValue(safe(value, "initial"), strength)};`);
   return declarations.length ? ["/* Application-wide Palette Boost */", ":root {", ...declarations, "}"].join("\n") : "";
 }
-function compileThemeGlobalLayers(project2, nativeVariables = {}, includeBoost = false) {
-  return [...project2.fonts.map(compileFontFace), includeBoost ? compileBoost(project2, nativeVariables) : "", compileTokenOverrides(project2.tokens)].filter(Boolean).join("\n\n");
+function compileThemeGlobalLayers(project2, nativeVariables = {}, includeBoost = false, rootStrength = "normal") {
+  return [...project2.fonts.map(compileFontFace), includeBoost ? compileBoost(project2, nativeVariables, rootStrength) : "", compileTokenOverrides(project2.tokens, rootStrength)].filter(Boolean).join("\n\n");
 }
 function compileProject(project2, preview, nativeVariables = {}) {
   const sections = [compileThemeGlobalLayers(project2, nativeVariables, preview.includeBoost === true), ...project2.componentOverrides.map((override2) => compileComponentOverride(override2, preview)), ...project2.layoutGroups.map((group) => compileLayoutGroup(group))].filter(Boolean);
@@ -4798,7 +4798,7 @@ function joinCss(parts) {
 function projectToNativeDraft(project2, components, variables, boostBaseline) {
   const componentIds = new Set(components.map((component) => component.id));
   const grouped = /* @__PURE__ */ new Map();
-  const globalParts = [compileThemeGlobalLayers(project2, boostBaseline ?? nativeVariableMap(variables), true)];
+  const globalParts = [compileThemeGlobalLayers(project2, boostBaseline ?? nativeVariableMap(variables), true, "strong")];
   for (const override2 of project2.componentOverrides) {
     const css = compileComponentOverride(override2);
     if (!css.trim()) continue;

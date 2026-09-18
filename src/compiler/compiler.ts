@@ -1123,13 +1123,13 @@ export function compileFontFace(font: StudioFontFace): string {
   if (!font.family.trim() || !path || /["'(){};]/.test(path) || !format) return ''
   return ['@font-face {', `  font-family: "${escapeCssString(font.family)}";`, `  src: url("${path}") format("${format}");`, `  font-weight: ${safe(String(font.weight ?? 400), '400')};`, `  font-style: ${font.style ?? 'normal'};`, `  font-display: ${font.display ?? 'swap'};`, '}'].join('\n')
 }
-export function compileTokenOverrides(tokens: ThemeTokenOverride[]): string { const valid = tokens.filter((token) => /^--[a-zA-Z0-9_-]+$/.test(token.variable) && token.value.trim()); return valid.length ? ['/* Global theme tokens */', ':root {', ...valid.map((token) => `  ${token.variable}: ${safe(token.value, 'initial')};`), '}'].join('\n') : '' }
-export function compileBoost(project: ThemeStudioProject, nativeVariables: Record<string, string> = {}): string {
-  const declarations = Object.entries(deriveBoostTokenOverrides(project.boost, nativeVariables)).sort(([a], [b]) => a.localeCompare(b)).map(([name, value]) => `  ${name}: ${safe(value, 'initial')};`)
+export function compileTokenOverrides(tokens: ThemeTokenOverride[], strength: 'normal' | 'strong' = 'normal'): string { const valid = tokens.filter((token) => /^--[a-zA-Z0-9_-]+$/.test(token.variable) && token.value.trim()); return valid.length ? ['/* Global theme tokens */', ':root {', ...valid.map((token) => `  ${token.variable}: ${importantValue(safe(token.value, 'initial'), strength)};`), '}'].join('\n') : '' }
+export function compileBoost(project: ThemeStudioProject, nativeVariables: Record<string, string> = {}, strength: 'normal' | 'strong' = 'normal'): string {
+  const declarations = Object.entries(deriveBoostTokenOverrides(project.boost, nativeVariables)).sort(([a], [b]) => a.localeCompare(b)).map(([name, value]) => `  ${name}: ${importantValue(safe(value, 'initial'), strength)};`)
   return declarations.length ? ['/* Application-wide Palette Boost */', ':root {', ...declarations, '}'].join('\n') : ''
 }
-export function compileThemeGlobalLayers(project: ThemeStudioProject, nativeVariables: Record<string, string> = {}, includeBoost = false): string {
-  return [...project.fonts.map(compileFontFace), includeBoost ? compileBoost(project, nativeVariables) : '', compileTokenOverrides(project.tokens)].filter(Boolean).join('\n\n')
+export function compileThemeGlobalLayers(project: ThemeStudioProject, nativeVariables: Record<string, string> = {}, includeBoost = false, rootStrength: 'normal' | 'strong' = 'normal'): string {
+  return [...project.fonts.map(compileFontFace), includeBoost ? compileBoost(project, nativeVariables, rootStrength) : '', compileTokenOverrides(project.tokens, rootStrength)].filter(Boolean).join('\n\n')
 }
 function compileProject(project: ThemeStudioProject, preview: PreviewCompileOptions, nativeVariables: Record<string, string> = {}): string {
   const sections = [compileThemeGlobalLayers(project, nativeVariables, preview.includeBoost === true), ...project.componentOverrides.map((override) => compileComponentOverride(override, preview)), ...project.layoutGroups.map((group) => compileLayoutGroup(group))].filter(Boolean)
