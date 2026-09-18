@@ -170,6 +170,31 @@ describe('browser-owned lifecycle', () => {
     picker.destroy()
   })
 
+  test('picker honors Lumiverse native UI scale when fixed-probe geometry reports 1:1', () => {
+    document.documentElement.style.setProperty('--lumiverse-ui-scale', '0.8')
+    const picker = new ElementPicker(mockContext()), target = document.createElement('button'); document.body.append(target)
+    const probe = document.querySelector<HTMLElement>('[data-theme-studio-inspector-probe]')!
+    // Reproduce the native UI-scale failure mode: the target rect is already in
+    // rendered viewport pixels, while the fixed calibration probe reports its
+    // authored 100px size instead of the host zoom layer.
+    probe.getBoundingClientRect = () => ({ x: 0, y: 0, left: 0, top: 0, right: 100, bottom: 100, width: 100, height: 100, toJSON() {} } as DOMRect)
+    target.getBoundingClientRect = () => ({ x: 320, y: 160, left: 320, top: 160, right: 560, bottom: 280, width: 240, height: 120, toJSON() {} } as DOMRect)
+
+    picker.highlight(target, 'size')
+
+    const overlay = document.querySelector<HTMLElement>('[data-theme-studio-inspector="selected-overlay"]')!
+    const sizeGuide = document.querySelector<HTMLElement>('[data-guide-kind="size"]')!
+    expect(overlay.style.transform).toBe('translate(400px, 200px)')
+    expect(overlay.style.width).toBe('300px')
+    expect(overlay.style.height).toBe('150px')
+    expect(sizeGuide.style.left).toBe('400px')
+    expect(sizeGuide.style.top).toBe('200px')
+    expect(sizeGuide.style.width).toBe('300px')
+    expect(sizeGuide.style.height).toBe('150px')
+    picker.destroy()
+    document.documentElement.style.removeProperty('--lumiverse-ui-scale')
+  })
+
   test('picker supports one-shot selection for the compact widget', () => {
     const picker = new ElementPicker(mockContext()), target = document.createElement('button')
     document.body.append(target)

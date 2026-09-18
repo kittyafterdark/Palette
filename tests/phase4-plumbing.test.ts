@@ -136,9 +136,33 @@ describe('Phase Four layout, size and state semantics', () => {
     expect(css).toContain('[data-character-grid] {\n  --character-grid-columns: 4;\n}')
     expect(css).toContain('grid-template-columns: repeat(4, minmax(0, 1fr));')
 
+    const mountedDrawer = createProject()
+    mountedDrawer.componentOverrides.push({
+      id: newId('override'),
+      target: {
+        selector: ':where([data-spindle-drawer-tab="characters"]) [class*="_row_"]',
+        strategy: 'css-module', stability: 'medium', persistence: 'persistent', source: 'native-aware',
+        label: 'Row in Characters', nativeComponentId: 'mounted:drawer:characters', nativeContextSelector: '[data-spindle-drawer-tab="characters"]', localSelector: '[class*="_row_"]',
+      },
+      states: { normal: [packet] },
+    })
+    expect(compileThemeProject(mountedDrawer)).toContain('[data-character-grid] {\n  --character-grid-columns: 4;\n}')
+
     const ordinary = createProject()
     ordinary.componentOverrides.push(item({ normal: [packet] }))
     expect(compileThemeProject(ordinary)).not.toContain('--character-grid-columns')
+
+    const otherDrawer = createProject()
+    otherDrawer.componentOverrides.push({
+      id: newId('override'),
+      target: {
+        selector: ':where([data-spindle-drawer-tab="personas"]) [class*="_row_"]',
+        strategy: 'css-module', stability: 'medium', persistence: 'persistent', source: 'native-aware',
+        label: 'Row in Personas', nativeComponentId: 'mounted:drawer:personas', nativeContextSelector: '[data-spindle-drawer-tab="personas"]', localSelector: '[class*="_row_"]',
+      },
+      states: { normal: [packet] },
+    })
+    expect(compileThemeProject(otherDrawer)).not.toContain('--character-grid-columns')
 
     packet.gridColumns = { mode: 'auto-fit', min: { mode: 'fixed', value: 180, unit: 'px' } }
     expect(compileThemeProject(project)).not.toContain('--character-grid-columns')

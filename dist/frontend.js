@@ -1027,6 +1027,18 @@ function rect(left, top, width, height) {
   return { left, top, width: Math.max(0, width), height: Math.max(0, height), right: left + Math.max(0, width), bottom: top + Math.max(0, height), x: left, y: top, toJSON: () => ({}) };
 }
 var COORDINATE_PROBE_SIZE = 100;
+var NATIVE_UI_SCALE_PROPERTY = "--lumiverse-ui-scale";
+function nativeUiScale() {
+  if (typeof document === "undefined" || typeof getComputedStyle !== "function") return 1;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(NATIVE_UI_SCALE_PROPERTY);
+  const parsed = Number.parseFloat(raw);
+  return Number.isFinite(parsed) && parsed > 1e-3 ? parsed : 1;
+}
+function inspectorAxisScale(probeScale, hostScale) {
+  const measured = Number.isFinite(probeScale) && probeScale > 1e-3 ? probeScale : 1;
+  if (Math.abs(hostScale - 1) > 1e-3 && Math.abs(measured - 1) <= 0.01) return hostScale;
+  return measured;
+}
 var ElementPicker = class {
   overlay;
   label;
@@ -1208,11 +1220,12 @@ var ElementPicker = class {
     const probeRect = this.coordinateProbe.getBoundingClientRect();
     const rawScaleX = probeRect.width / COORDINATE_PROBE_SIZE;
     const rawScaleY = probeRect.height / COORDINATE_PROBE_SIZE;
+    const hostScale = nativeUiScale();
     this.inspectorCoordinateMap = {
       originX: Number.isFinite(probeRect.left) ? probeRect.left : 0,
       originY: Number.isFinite(probeRect.top) ? probeRect.top : 0,
-      scaleX: Number.isFinite(rawScaleX) && rawScaleX > 1e-3 ? rawScaleX : 1,
-      scaleY: Number.isFinite(rawScaleY) && rawScaleY > 1e-3 ? rawScaleY : 1
+      scaleX: inspectorAxisScale(rawScaleX, hostScale),
+      scaleY: inspectorAxisScale(rawScaleY, hostScale)
     };
   }
   toInspectorRect(viewportRect) {
@@ -4277,8 +4290,11 @@ ${body}
   ].join("\n");
 }
 var CHARACTER_GRID_NATIVE_ID = "src/components/panels/character-browser/CharacterGrid";
+var CHARACTER_DRAWER_NATIVE_ID = "mounted:drawer:characters";
 function isCharacterGridRowTarget(target) {
-  if (target.nativeComponentId !== CHARACTER_GRID_NATIVE_ID) return false;
+  const contextIdentity = `${target.nativeComponentId ?? ""} ${target.nativeContextSelector ?? ""} ${target.selector}`;
+  const characterSurface = target.nativeComponentId === CHARACTER_GRID_NATIVE_ID || target.nativeComponentId === CHARACTER_DRAWER_NATIVE_ID || /\[data-spindle-drawer-tab=["']characters["']\]/i.test(contextIdentity);
+  if (!characterSurface) return false;
   const rowIdentity = `${target.localSelector ?? ""} ${target.selector}`;
   return /\[class\*=["']_row_["']\]/i.test(rowIdentity) || /\[data-index(?:[=\]])/i.test(rowIdentity);
 }
