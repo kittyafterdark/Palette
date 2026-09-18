@@ -119,6 +119,30 @@ describe('Phase Four layout, size and state semantics', () => {
     packet.display = 'grid'; packet.gridColumns = { mode: 'count', count: 3 }; expect(compileLayoutPacket(packet)).toContain('grid-template-columns: repeat(3, minmax(0, 1fr));')
     packet.gridColumns = { mode: 'auto-fit', min: { mode: 'fixed', value: 180, unit: 'px' } }; expect(compileLayoutPacket(packet)).toContain('repeat(auto-fit, minmax(180px, 1fr))')
   })
+  test('bridges CharacterGrid row counts into the host virtualizer contract without affecting ordinary grids', () => {
+    const packet = createStylePacket('layout'); if (packet.type !== 'layout') throw new Error()
+    packet.display = 'grid'; packet.gridColumns = { mode: 'count', count: 4 }
+    const project = createProject()
+    project.componentOverrides.push({
+      id: newId('override'),
+      target: {
+        selector: '[class*="_row_"]',
+        strategy: 'css-module', stability: 'medium', persistence: 'persistent', source: 'native-aware',
+        label: 'Row', nativeComponentId: 'src/components/panels/character-browser/CharacterGrid', localSelector: '[class*="_row_"]',
+      },
+      states: { normal: [packet] },
+    })
+    const css = compileThemeProject(project)
+    expect(css).toContain('[data-character-grid] {\n  --character-grid-columns: 4;\n}')
+    expect(css).toContain('grid-template-columns: repeat(4, minmax(0, 1fr));')
+
+    const ordinary = createProject()
+    ordinary.componentOverrides.push(item({ normal: [packet] }))
+    expect(compileThemeProject(ordinary)).not.toContain('--character-grid-columns')
+
+    packet.gridColumns = { mode: 'auto-fit', min: { mode: 'fixed', value: 180, unit: 'px' } }
+    expect(compileThemeProject(project)).not.toContain('--character-grid-columns')
+  })
   test('fill remaining uses flex-item semantics and coexists with container layout', () => {
     const layoutItem = createStylePacket('layout-item'); const layout = createStylePacket('layout'); if (layoutItem.type !== 'layout-item' || layout.type !== 'layout') throw new Error()
     expect(compileLayoutItemPacket(layoutItem)).toBe('')
