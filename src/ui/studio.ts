@@ -4461,7 +4461,11 @@ ${compileComponentOverride(draft, previewOptions)}`)
     catch (error) { this.assetError = error instanceof Error ? error.message : 'Native WebP optimization failed.'; this.render() }
   }
 
-  private nativeDraft() { return projectToNativeDraft(this.store.activeProject, this.components, this.variables) }
+  private async nativeDraft() {
+    const project = this.store.activeProject
+    const boostBaseline = project.boost.enabled && this.themeRuntime ? (await this.themeRuntime.getBaseline()).variables : undefined
+    return projectToNativeDraft(project, this.components, this.variables, boostBaseline)
+  }
 
   private downloadBytes(bytes: Uint8Array, filename: string): void {
     const owned = bytes.slice()
@@ -4474,7 +4478,7 @@ ${compileComponentOverride(draft, previewOptions)}`)
   private async exportNativeTheme(): Promise<void> {
     if (!this.capabilities.exportLumitheme) return
     try {
-      const bytes = await exportLumitheme(this.ctx, this.nativeDraft())
+      const bytes = await exportLumitheme(this.ctx, await this.nativeDraft())
       const safeName = this.store.activeProject.name.trim().replace(/[^a-z0-9_-]+/gi, '-').replace(/^-+|-+$/g, '') || 'theme-studio'
       this.downloadBytes(bytes, `${safeName}.lumitheme`)
       this.nativeActionStatus = `Exported canonical .lumitheme · ${Math.round(bytes.byteLength / 1024)} KB.`
@@ -4485,7 +4489,7 @@ ${compileComponentOverride(draft, previewOptions)}`)
   private async installNativeTheme(): Promise<void> {
     if (!this.capabilities.applyTheme) return
     try {
-      const result = await sendToLumiverse(this.ctx, this.nativeDraft(), true)
+      const result = await sendToLumiverse(this.ctx, await this.nativeDraft(), true)
       this.nativeActionStatus = `Installed in Lumiverse · ${result.componentCount} component section${result.componentCount === 1 ? '' : 's'} · ${result.assetCount} asset${result.assetCount === 1 ? '' : 's'}${result.savedToLibrary ? ' · saved to library' : ''}. Source project assets stay in their project bundle; Lumiverse installed a fresh native bundle (${result.bundleId}).`
       this.render()
     } catch (error) { this.nativeActionStatus = `Install failed: ${error instanceof Error ? error.message : 'unknown error'}`; this.render() }

@@ -795,8 +795,31 @@ function svgReplacementRules(selector: string, packet: SvgAssetPacket, strength:
   ].join('\n')
 }
 
-function helperRulesForPackets(selector: string, packets: StylePacket[], strength: 'normal' | 'strong' = 'normal'): string[] {
+const CHARACTER_GRID_NATIVE_ID = 'src/components/panels/character-browser/CharacterGrid'
+function isCharacterGridRowTarget(target: StudioTarget): boolean {
+  if (target.nativeComponentId !== CHARACTER_GRID_NATIVE_ID) return false
+  const rowIdentity = `${target.localSelector ?? ''} ${target.selector}`
+  return /\[class\*=["']_row_["']\]/i.test(rowIdentity) || /\[data-index(?:[=\]])/i.test(rowIdentity)
+}
+function characterGridColumnBridgeRule(target: StudioTarget, packets: StylePacket[], strength: 'normal' | 'strong'): string {
+  if (!isCharacterGridRowTarget(target)) return ''
+  const layout = packets.find((packet): packet is LayoutPacket => packet.type === 'layout' && (packet.display === 'grid' || packet.display === 'inline-grid') && packet.gridColumns?.mode === 'count' && ownsField(packet, 'gridColumns'))
+  if (!layout || layout.gridColumns?.mode !== 'count') return ''
+  const count = Math.round(clamp(layout.gridColumns.count, 1, 24))
+  return [
+    '/* CharacterGrid virtualization sync · explicit themed column count */',
+    `${ruleSelector('[data-character-grid]', strength)} {`,
+    `  --character-grid-columns: ${importantValue(String(count), strength)};`,
+    '}',
+  ].join('\n')
+}
+
+function helperRulesForPackets(selector: string, packets: StylePacket[], strength: 'normal' | 'strong' = 'normal', target?: StudioTarget, state: StyleStateName = 'normal'): string[] {
   const rules: string[] = []
+  if (target && state === 'normal') {
+    const characterGridBridge = characterGridColumnBridgeRule(target, packets, strength)
+    if (characterGridBridge) rules.push(characterGridBridge)
+  }
   for (const packet of packets) {
     if (packet.type === 'svg-asset' && packet.targetMode === 'replace') { const rule = svgReplacementRules(selector, packet, strength); if (rule) rules.push(rule) }
     if (packet.type === 'composer-icons' && ownsField(packet, 'family', 'customIcons')) { const rule = composerIconRules(selector, packet, strength); if (rule) rules.push(rule) }
@@ -928,7 +951,7 @@ function compileScopedStateStacks(
     const packets = stacks[state] ?? []
     if (!packets.length) continue
     const canonical = stateSelector(override.target.selector, state)
-    for (const helper of helperRulesForPackets(canonical, packets, strength)) helpers.add(helper)
+    for (const helper of helperRulesForPackets(canonical, packets, strength, override.target, state)) helpers.add(helper)
     const forcedScope = preview.forcedScope ?? 'base'
     const selector = preview.forcedOverrideId === override.id && preview.forcedState === state && forcedScope === scope
       ? `${canonical},\n${previewSelector(override.target.selector, state)}`
