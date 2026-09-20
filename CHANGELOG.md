@@ -7,7 +7,8 @@
 - Kept **Protect controls** surgical: it repairs paired interactive foregrounds rather than rewriting shared prose variables. Direct accent foregrounds (`primary-contrast` / deep contrast and compatible host aliases) now stay out of accent paint entirely until that repair pass, while resting/hover glass and subtle/interactive borders have separate material roles. Transform diagnostics expose the expanded routing counts and role-tagged samples.
 - Retired the unused legacy palette bootstrap path now that current Lumiverse exposes the native theme contract directly. Boost continues to transform only the canonical worker-generated variable map so live output cannot feed back into its own source.
 - Hardened Palette's browser test harness for Bun 1.4 canary + Happy DOM realm gaps (`SyntaxError`, `CSS.escape`, storage/computed-style shims), refreshed stale current-source expectations, and tightened semantic picker ownership so mounted `data-component` / Spindle surfaces cannot be renamed by noisy shared CSS-module guesses.
-- Added repository `.gitignore`. Persisted project schema remains **v43** and minimum Lumiverse remains **1.1.6**.
+- Imported `.lumitheme` projects now preserve authored Global CSS and native component CSS as a first-class **Theme Source** layer instead of flattening everything into Custom CSS. Theme Source is protected by default, can be explicitly **Forked & edited** inside the local Palette project, previews below Palette Design, and round-trips component enabled state/metadata through native export.
+- Added repository `.gitignore`. Persisted project schema is now **v44** and minimum Lumiverse remains **1.1.6**.
 
 ## 1.0.4 — SVG / Icon Primitive
 

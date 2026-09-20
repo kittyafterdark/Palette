@@ -3,7 +3,7 @@ import {
   type AlignmentPacket, type BackgroundPacket, type BorderPacket, type BoxSpacing, type ComponentOverride, type ContentPacket,
   type CornersPacket, type GlassPacket, type ImagePacket, type MaskPacket, type ComposerIconsPacket, type PatternPacket, type LayoutGroup, type LayoutGroupState, type LayoutGroupStyleBucket, type LayoutGroupContentTarget, type LayoutItemPacket, type LayoutPacket, type PlacementPacket, type OpacityPacket, type PositionPacket, type ShadowPacket,
   type SizePacket, type SpacingPacket, type StatePacketStacks, type StylePacket, type StudioFontFace, type TransformPacket, type StudioSvgAsset, type SvgAssetPacket, type MediaFlowPacket,
-  type StylePreset, type SavedStyleBundle, type StudioTarget, type TextPacket, type TypographyPacket, type TextEntryPacket, type VisibilityPacket, type RecipePacketSlot, type ThemeStudioProject, type ThemeStudioState,
+  type StylePreset, type SavedStyleBundle, type StudioTarget, type TextPacket, type TypographyPacket, type TextEntryPacket, type VisibilityPacket, type RecipePacketSlot, type ThemeSourceSnapshot, type ThemeStudioProject, type ThemeStudioState,
 } from './model'
 import { alpha, bounded, normalizeDimension, percentage } from './values'
 import { canonicalizeSavedContextSelector, composeContextSelector } from '../registry/selector-utils'
@@ -521,6 +521,26 @@ function svgAsset(value: unknown): StudioSvgAsset | null {
   return { id: identifier(value), name: (string(value.name).trim() || 'Saved SVG').slice(0, 80), svg, createdAt: bounded(value.createdAt, Date.now(), 0, Number.MAX_SAFE_INTEGER) }
 }
 
+function themeSource(value: unknown): ThemeSourceSnapshot | undefined {
+  if (!record(value) || value.origin !== 'lumitheme') return undefined
+  const componentsValue = record(value.components) ? value.components : {}
+  const components: ThemeSourceSnapshot['components'] = {}
+  for (const [id, componentValue] of Object.entries(componentsValue)) {
+    if (!id.trim() || !record(componentValue) || typeof componentValue.css !== 'string') continue
+    components[id] = { css: componentValue.css, enabled: componentValue.enabled !== false }
+  }
+  return {
+    origin: 'lumitheme',
+    editable: value.editable === true,
+    archiveName: string(value.archiveName).trim().slice(0, 240) || undefined,
+    name: string(value.name).trim().slice(0, 240) || undefined,
+    author: string(value.author).trim().slice(0, 240) || undefined,
+    description: string(value.description).slice(0, 4000) || undefined,
+    globalCSS: string(value.globalCSS),
+    components,
+  }
+}
+
 function project(value: unknown): ThemeStudioProject | null {
   if (!record(value) || !string(value.id)) return null
   const sourceVersion = bounded(value.version, 0, 0, Number.MAX_SAFE_INTEGER)
@@ -556,7 +576,7 @@ function project(value: unknown): ThemeStudioProject | null {
     repairProjectMessageScopeOrphans((Array.isArray(value.componentOverrides) ? value.componentOverrides : []).map((entry) => override(entry, sourceVersion)).filter((entry): entry is ComponentOverride => entry !== null), sourceVersion),
     sourceVersion,
   ))
-  return { version: PROJECT_VERSION, id: string(value.id), name: (string(value.name).trim() || 'Untitled Theme').slice(0, 120), tokens: (Array.isArray(value.tokens) ? value.tokens : []).filter(record).filter((entry) => typeof entry.variable === 'string' && typeof entry.value === 'string').map((entry) => ({ variable: String(entry.variable), value: String(entry.value) })), componentOverrides, layoutGroups: (Array.isArray(value.layoutGroups) ? value.layoutGroups : []).map(layoutGroup).filter((entry): entry is LayoutGroup => entry !== null), recipeSlots: (Array.isArray(value.recipeSlots) ? value.recipeSlots : []).flatMap(recipeSlots), customCss: string(value.customCss), assets: (Array.isArray(value.assets) ? value.assets : []).filter(record).filter((entry) => typeof entry.path === 'string').map((entry) => ({ assetId: typeof entry.assetId === 'string' ? entry.assetId : undefined, path: String(entry.path), name: typeof entry.name === 'string' ? entry.name : undefined, mimeType: typeof entry.mimeType === 'string' ? entry.mimeType : undefined, contentUrl: typeof entry.contentUrl === 'string' ? entry.contentUrl : undefined })), nativeAssetBundleId: typeof value.nativeAssetBundleId === 'string' ? value.nativeAssetBundleId : undefined, fonts: (Array.isArray(value.fonts) ? value.fonts : []).map(font).filter((entry): entry is StudioFontFace => entry !== null), presets: (Array.isArray(value.presets) ? value.presets : []).filter(record).map((entry): StylePreset => ({ id: identifier(entry), name: string(entry.name, 'Untitled preset').slice(0, 120), states: Object.fromEntries(STYLE_STATES.map((state) => [state, packetList(record(entry.states) ? entry.states[state] : undefined)]).filter(([, list]) => (list as StylePacket[]).length)) })), svgAssets: (Array.isArray(value.svgAssets) ? value.svgAssets : Array.isArray(value.composerSvgs) ? value.composerSvgs : []).map(svgAsset).filter((entry): entry is StudioSvgAsset => entry !== null), boost, createdAt: bounded(value.createdAt, now, 0, Number.MAX_SAFE_INTEGER), updatedAt: bounded(value.updatedAt, now, 0, Number.MAX_SAFE_INTEGER) }
+  return { version: PROJECT_VERSION, id: string(value.id), name: (string(value.name).trim() || 'Untitled Theme').slice(0, 120), tokens: (Array.isArray(value.tokens) ? value.tokens : []).filter(record).filter((entry) => typeof entry.variable === 'string' && typeof entry.value === 'string').map((entry) => ({ variable: String(entry.variable), value: String(entry.value) })), componentOverrides, layoutGroups: (Array.isArray(value.layoutGroups) ? value.layoutGroups : []).map(layoutGroup).filter((entry): entry is LayoutGroup => entry !== null), recipeSlots: (Array.isArray(value.recipeSlots) ? value.recipeSlots : []).flatMap(recipeSlots), sourceTheme: themeSource(value.sourceTheme), customCss: string(value.customCss), assets: (Array.isArray(value.assets) ? value.assets : []).filter(record).filter((entry) => typeof entry.path === 'string').map((entry) => ({ assetId: typeof entry.assetId === 'string' ? entry.assetId : undefined, path: String(entry.path), name: typeof entry.name === 'string' ? entry.name : undefined, mimeType: typeof entry.mimeType === 'string' ? entry.mimeType : undefined, contentUrl: typeof entry.contentUrl === 'string' ? entry.contentUrl : undefined })), nativeAssetBundleId: typeof value.nativeAssetBundleId === 'string' ? value.nativeAssetBundleId : undefined, fonts: (Array.isArray(value.fonts) ? value.fonts : []).map(font).filter((entry): entry is StudioFontFace => entry !== null), presets: (Array.isArray(value.presets) ? value.presets : []).filter(record).map((entry): StylePreset => ({ id: identifier(entry), name: string(entry.name, 'Untitled preset').slice(0, 120), states: Object.fromEntries(STYLE_STATES.map((state) => [state, packetList(record(entry.states) ? entry.states[state] : undefined)]).filter(([, list]) => (list as StylePacket[]).length)) })), svgAssets: (Array.isArray(value.svgAssets) ? value.svgAssets : Array.isArray(value.composerSvgs) ? value.composerSvgs : []).map(svgAsset).filter((entry): entry is StudioSvgAsset => entry !== null), boost, createdAt: bounded(value.createdAt, now, 0, Number.MAX_SAFE_INTEGER), updatedAt: bounded(value.updatedAt, now, 0, Number.MAX_SAFE_INTEGER) }
 }
 
 
