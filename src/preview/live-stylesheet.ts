@@ -54,9 +54,8 @@ function validateCss(css: string): PreviewResult {
   }
 }
 
-/** Owns isolated replace-in-place stylesheets for imported source, committed Design, transient Design scrubs, and Custom CSS. */
+/** Owns isolated replace-in-place stylesheets for committed Design, transient Design scrubs, and Custom CSS. */
 export class LiveStylesheet {
-  private readonly source: HTMLStyleElement
   private readonly generated: HTMLStyleElement
   private readonly transient: HTMLStyleElement
   private readonly custom: HTMLStyleElement
@@ -65,9 +64,6 @@ export class LiveStylesheet {
   private themeAssets: Array<Pick<NativeThemeAsset, 'path' | 'contentUrl'>> = []
 
   constructor(ctx: SpindleFrontendContext) {
-    this.source = ctx.dom.createElement('style', {
-      'data-theme-studio-preview': 'source',
-    })
     this.generated = ctx.dom.createElement('style', {
       'data-theme-studio-preview': 'generated',
     })
@@ -77,10 +73,9 @@ export class LiveStylesheet {
     this.custom = ctx.dom.createElement('style', {
       'data-theme-studio-preview': 'custom',
     })
-    // Imported source remains the baseline. Custom CSS deliberately stays last.
-    // A transient slider preview should preview Design intent without unexpectedly
-    // outranking handwritten CSS.
-    document.head.append(this.source, this.generated, this.transient, this.custom)
+    // Custom CSS deliberately stays last. A transient slider preview should
+    // preview Design intent without unexpectedly outranking handwritten CSS.
+    document.head.append(this.generated, this.transient, this.custom)
   }
 
   setThemeAssets(assets: Iterable<Pick<NativeThemeAsset, 'path' | 'contentUrl'>>): void {
@@ -88,14 +83,6 @@ export class LiveStylesheet {
   }
 
   private resolveAssets(css: string): string { return resolvePreviewAssetUrls(css, this.themeAssets) }
-
-  updateSource(css: string): PreviewResult {
-    const sanitized = sanitizeCustomCss(css)
-    const resolved = this.resolveAssets(sanitized)
-    const result = validateCss(resolved)
-    if (result.valid) this.source.textContent = resolved
-    return result
-  }
 
   updateGenerated(css: string): PreviewResult {
     const resolved = this.resolveAssets(css)
@@ -141,7 +128,6 @@ export class LiveStylesheet {
 
   destroy(): void {
     this.clearTransient()
-    this.source.remove()
     this.generated.remove()
     this.transient.remove()
     this.custom.remove()

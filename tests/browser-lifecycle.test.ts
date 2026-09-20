@@ -239,12 +239,9 @@ describe('browser-owned lifecycle', () => {
 
   test('preview stylesheets update in place and are removed on teardown', () => {
     const preview = new LiveStylesheet(mockContext())
-    expect(document.querySelectorAll('[data-theme-studio-preview]')).toHaveLength(4)
-    expect(preview.updateSource('@import url("https://example.com/source.css"); .target { color: pink; }').valid).toBe(true)
+    expect(document.querySelectorAll('[data-theme-studio-preview]')).toHaveLength(3)
     expect(preview.updateGenerated('.target { background: #123456; }').valid).toBe(true)
     expect(preview.updateCustom('@import url("https://example.com/a.css"); .target { color: red; }').valid).toBe(true)
-    expect(document.querySelector('[data-theme-studio-preview="source"]')?.textContent).toContain('color: pink')
-    expect(document.querySelector('[data-theme-studio-preview="source"]')?.textContent).not.toContain('https://example.com')
     expect(document.querySelector('[data-theme-studio-preview="generated"]')?.textContent).toContain('#123456')
     expect(document.querySelector('[data-theme-studio-preview="custom"]')?.textContent).toContain('@import stripped')
     expect(document.querySelector('[data-theme-studio-preview="custom"]')?.textContent).not.toContain('https://example.com')
