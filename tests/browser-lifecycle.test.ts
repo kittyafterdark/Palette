@@ -808,6 +808,31 @@ describe('browser-owned lifecycle', () => {
     studio.destroy(); picker.destroy(); preview.destroy()
   })
 
+  test('new native edits default to Strong authority while an explicit Normal choice stays sticky', () => {
+    const context = mockContext(); const root = document.createElement('div'); document.body.append(root)
+    const native = document.createElement('div'); native.dataset.component = 'MinimalMessage'; native.className = '_card_native_1'; document.body.append(native)
+    const component: NativeThemeComponent = { id: 'src/MinimalMessage', label: 'MinimalMessage', area: 'Messages', sources: ['css', 'tsx'], selectors: ['[data-component="MinimalMessage"]'], cssClasses: ['card'], nativeKey: 'src/MinimalMessage' }
+    const selection = resolveElement(native, [component])
+    expect(selection.nativeContext?.component.label).toBe('MinimalMessage')
+
+    const store = new ProjectStore(); const preview = new LiveStylesheet(context); const picker = new ElementPicker(context); const studio = new ThemeStudioUI(context, root, store, picker, preview)
+    const access = studio as unknown as { selection: ReturnType<typeof resolveElement>; targetForSelection(): { selector: string; overrideStrength?: 'normal' | 'strong'; strategy: any; stability: any; persistence: any; source: any; label?: string; nativeComponentId?: string; nativeContextSelector?: string; localSelector?: string } }
+    access.selection = selection
+
+    const fresh = access.targetForSelection()
+    expect(fresh.overrideStrength).toBe('strong')
+
+    const packet = createStylePacket('corners')
+    store.upsertPacket({ ...fresh, overrideStrength: 'normal' }, packet)
+    expect(access.targetForSelection().overrideStrength).toBe('normal')
+
+    const loose = document.createElement('div'); loose.className = '_loose_surface_1'; document.body.append(loose)
+    access.selection = resolveElement(loose, [])
+    expect(access.targetForSelection().overrideStrength).toBe('normal')
+
+    studio.destroy(); picker.destroy(); preview.destroy()
+  })
+
   test('Both message scope does not borrow a one-sided authored packet and new edits compile to both branches', () => {
     const context = mockContext(); const root = document.createElement('div'); document.body.append(root)
     document.body.insertAdjacentHTML('afterbegin', `

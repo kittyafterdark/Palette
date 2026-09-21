@@ -1767,12 +1767,19 @@ export class ThemeStudioUI {
       ?? this.selection.scopeCandidates.find((scope) => scope.persistence === 'persistent' && scope.selector !== current.selector && scope.type === 'context-local')
   }
 
+  private defaultOverrideStrength(selection: ResolvedSelection, scope: SelectionScope): 'normal' | 'strong' {
+    // Palette edits to mounted/native Lumiverse surfaces should win by default.
+    // Users can still opt a saved target down to Normal, and that explicit choice
+    // remains sticky because existing overrides always take precedence below.
+    return scope.source === 'native-aware' || Boolean(scope.nativeComponentId ?? scope.componentId ?? selection.nativeContext?.component.id) ? 'strong' : 'normal'
+  }
+
   private targetFromResolvedScope(selection: ResolvedSelection, scope: SelectionScope): StudioTarget {
     const existing = this.store.activeProject.componentOverrides.find((override) => override.target.selector === scope.selector)
     return {
       selector: scope.selector, strategy: scope.strategy, stability: scope.stability, persistence: scope.persistence, source: scope.source, label: scope.label,
       nativeComponentId: scope.nativeComponentId ?? scope.componentId ?? selection.nativeContext?.component.id, nativeContextSelector: scope.nativeContextSelector, localSelector: scope.localSelector,
-      overrideStrength: existing?.target.overrideStrength ?? 'normal',
+      overrideStrength: existing?.target.overrideStrength ?? this.defaultOverrideStrength(selection, scope),
     }
   }
   private targetFromScope(scope: SelectionScope): StudioTarget {
@@ -4540,7 +4547,7 @@ ${compileComponentOverride(draft, previewOptions)}`)
     const surfaceLabel = this.targetSurface === 'before' ? 'Back layer' : this.targetSurface === 'after' ? 'Front layer' : ''
     const selector = selectorForSurface(scope.selector, this.targetSurface)
     const existing = this.store.activeProject.componentOverrides.find((override) => override.target.selector === selector)
-    return { selector, strategy: scope.strategy, stability: scope.stability, persistence: scope.persistence, source: scope.source, label: surfaceLabel ? `${scope.label} · ${surfaceLabel}` : scope.label, nativeComponentId: scope.nativeComponentId ?? scope.componentId ?? this.selection.nativeContext?.component.id, nativeContextSelector: scope.nativeContextSelector, localSelector: scope.localSelector, overrideStrength: existing?.target.overrideStrength ?? 'normal' }
+    return { selector, strategy: scope.strategy, stability: scope.stability, persistence: scope.persistence, source: scope.source, label: surfaceLabel ? `${scope.label} · ${surfaceLabel}` : scope.label, nativeComponentId: scope.nativeComponentId ?? scope.componentId ?? this.selection.nativeContext?.component.id, nativeContextSelector: scope.nativeContextSelector, localSelector: scope.localSelector, overrideStrength: existing?.target.overrideStrength ?? this.defaultOverrideStrength(this.selection, scope) }
   }
   private updatePacket(packetId: string | undefined, updater: (packet: StylePacket) => StylePacket): void {
     if (!packetId) return

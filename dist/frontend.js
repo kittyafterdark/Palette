@@ -21084,6 +21084,9 @@ var ThemeStudioUI = class {
     const current = activeScope(this.selection);
     return this.selection.scopeCandidates.find((scope) => scope.persistence === "persistent" && scope.selector !== current.selector && scope.type === "similar-elements") ?? this.selection.scopeCandidates.find((scope) => scope.persistence === "persistent" && scope.selector !== current.selector && scope.type === "context-local");
   }
+  defaultOverrideStrength(selection, scope) {
+    return scope.source === "native-aware" || Boolean(scope.nativeComponentId ?? scope.componentId ?? selection.nativeContext?.component.id) ? "strong" : "normal";
+  }
   targetFromResolvedScope(selection, scope) {
     const existing = this.store.activeProject.componentOverrides.find((override2) => override2.target.selector === scope.selector);
     return {
@@ -21096,7 +21099,7 @@ var ThemeStudioUI = class {
       nativeComponentId: scope.nativeComponentId ?? scope.componentId ?? selection.nativeContext?.component.id,
       nativeContextSelector: scope.nativeContextSelector,
       localSelector: scope.localSelector,
-      overrideStrength: existing?.target.overrideStrength ?? "normal"
+      overrideStrength: existing?.target.overrideStrength ?? this.defaultOverrideStrength(selection, scope)
     };
   }
   targetFromScope(scope) {
@@ -24569,7 +24572,7 @@ ${compileComponentOverride(draft, previewOptions)}`);
     const surfaceLabel = this.targetSurface === "before" ? "Back layer" : this.targetSurface === "after" ? "Front layer" : "";
     const selector2 = selectorForSurface(scope.selector, this.targetSurface);
     const existing = this.store.activeProject.componentOverrides.find((override2) => override2.target.selector === selector2);
-    return { selector: selector2, strategy: scope.strategy, stability: scope.stability, persistence: scope.persistence, source: scope.source, label: surfaceLabel ? `${scope.label} \xB7 ${surfaceLabel}` : scope.label, nativeComponentId: scope.nativeComponentId ?? scope.componentId ?? this.selection.nativeContext?.component.id, nativeContextSelector: scope.nativeContextSelector, localSelector: scope.localSelector, overrideStrength: existing?.target.overrideStrength ?? "normal" };
+    return { selector: selector2, strategy: scope.strategy, stability: scope.stability, persistence: scope.persistence, source: scope.source, label: surfaceLabel ? `${scope.label} \xB7 ${surfaceLabel}` : scope.label, nativeComponentId: scope.nativeComponentId ?? scope.componentId ?? this.selection.nativeContext?.component.id, nativeContextSelector: scope.nativeContextSelector, localSelector: scope.localSelector, overrideStrength: existing?.target.overrideStrength ?? this.defaultOverrideStrength(this.selection, scope) };
   }
   updatePacket(packetId, updater) {
     if (!packetId) return;
