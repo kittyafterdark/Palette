@@ -22062,22 +22062,30 @@ var ThemeStudioUI = class {
     if (!source) return "";
     const editable = source.editable;
     const previewEnabled = source.previewEnabled;
-    const metadata = [source.name || source.archiveName || "Imported .lumitheme", source.author ? `by ${source.author}` : ""].filter(Boolean).join(" \xB7 ");
+    const displayName = source.name || source.archiveName || "Imported .lumitheme";
+    const author = source.author ? `by ${source.author}` : "";
     const components = Object.entries(source.components);
     const archiveSource = source.fidelity === "archive";
-    const fidelityLabel = archiveSource ? `Original archive source${source.archiveFormat ? ` \xB7 format ${source.archiveFormat}` : ""}` : "Lumiverse-imported fallback";
+    const fidelityLabel = archiveSource ? `Original archive${source.archiveFormat ? ` \xB7 Format ${source.archiveFormat}` : ""}` : "Lumiverse-imported fallback";
+    const archiveMeta = archiveSource && source.archiveAssets?.length ? ` \xB7 ${source.archiveAssets.length} asset${source.archiveAssets.length === 1 ? "" : "s"}` : "";
     const sourceStatusClass = !previewEnabled ? "ts-status-muted" : this.sourcePreviewResult.valid ? "ts-status-ok" : "ts-status-error";
-    const sourceStatusText = !previewEnabled ? "Preview off" : this.sourcePreviewResult.valid ? "Overlay on" : escapeHtml(this.sourcePreviewResult.error ?? "Invalid CSS");
+    const sourceStatusText = !previewEnabled ? "Off" : this.sourcePreviewResult.valid ? "On" : escapeHtml(this.sourcePreviewResult.error ?? "Invalid CSS");
+    const globalCss = source.globalCSS.trim();
+    const globalSummary = globalCss ? "Source CSS" : "Empty";
     const componentMarkup = components.length ? components.map(([id, component]) => {
-      const tsxEditor = component.tsx !== void 0 ? `<details class="ts-advanced ts-source-tsx"><summary>TSX source${component.tsx.trim() ? "" : " \xB7 empty"}</summary><textarea class="ts-textarea ts-code ts-code-source-component" data-source-component-tsx="${escapeHtml(id)}" ${editable ? "" : "readonly"} spellcheck="false" placeholder="/* Optional native component TSX */">${escapeHtml(component.tsx)}</textarea></details>` : "";
-      return `<details class="ts-source-component"><summary><span><strong>${escapeHtml(id)}</strong><small>${component.enabled ? "Enabled" : "Disabled"} native section</small></span><span class="ts-chip">${component.enabled ? "On" : "Off"}</span></summary><div class="ts-source-component-body"><label class="ts-source-enabled"><input type="checkbox" data-source-component-enabled="${escapeHtml(id)}" ${component.enabled ? "checked" : ""} ${editable ? "" : "disabled"}><span>Include this native component section</span></label><div class="ts-code-label"><span class="ts-label">CSS</span></div><textarea class="ts-textarea ts-code ts-code-source-component" data-source-component-css="${escapeHtml(id)}" ${editable ? "" : "readonly"} spellcheck="false">${escapeHtml(component.css)}</textarea>${tsxEditor}</div></details>`;
+      const tsxValue = component.tsx ?? "";
+      const tsxEditor = component.tsx !== void 0 ? `<details class="ts-code-fold ts-source-tsx"><summary><span><strong>TSX</strong><small>${tsxValue.trim() ? "Native component source" : "Empty"}</small></span><span class="ts-code-fold-arrow" aria-hidden="true">\u2304</span></summary><div class="ts-code-fold-body"><textarea class="ts-textarea ts-code ts-code-source-component" data-source-component-tsx="${escapeHtml(id)}" ${editable ? "" : "readonly"} spellcheck="false" placeholder="/* Optional native component TSX */">${escapeHtml(tsxValue)}</textarea></div></details>` : "";
+      const open = components.length === 1 ? " open" : "";
+      return `<details class="ts-source-component"${open}><summary><span><strong>${escapeHtml(id)}</strong><small>${component.enabled ? "Enabled" : "Disabled"} native section</small></span><span class="ts-source-summary-meta"><span class="ts-chip">${component.enabled ? "On" : "Off"}</span><span class="ts-code-fold-arrow" aria-hidden="true">\u2304</span></span></summary><div class="ts-source-component-body"><label class="ts-source-enabled"><input type="checkbox" data-source-component-enabled="${escapeHtml(id)}" ${component.enabled ? "checked" : ""} ${editable ? "" : "disabled"}><span>Include this native component section</span></label><div class="ts-code-label ts-code-label-tight"><span class="ts-label">CSS</span></div><textarea class="ts-textarea ts-code ts-code-source-component" data-source-component-css="${escapeHtml(id)}" ${editable ? "" : "readonly"} spellcheck="false">${escapeHtml(component.css)}</textarea>${tsxEditor}</div></details>`;
     }).join("") : '<div class="ts-empty">This theme has no native component source sections.</div>';
-    const archiveMeta = archiveSource && source.archiveAssets?.length ? `<span class="ts-chip">${source.archiveAssets.length} bundled asset${source.archiveAssets.length === 1 ? "" : "s"}</span>` : "";
-    const fallbackWarning = archiveSource ? "" : `<div class="ts-warning">Palette could not read the original theme.json source for this project, so this older/fallback import contains Lumiverse's canonicalized draft instead.</div>`;
-    return `<section class="ts-section ts-theme-source"><div class="ts-code-label ts-theme-source-head"><div><p class="ts-kicker" style="margin:0">Theme Source</p><p class="ts-note">${escapeHtml(metadata)} \xB7 kept separate from Palette Design.</p><div class="ts-source-row"><span class="ts-chip">${escapeHtml(fidelityLabel)}</span>${archiveMeta}</div></div><div class="ts-source-actions"><span class="ts-chip">${editable ? "Editable local fork" : "Protected source"}</span><button class="ts-btn ${previewEnabled ? "" : "ts-btn-primary"}" type="button" data-source-action="toggle-preview">${previewEnabled ? "Stop CSS overlay" : "Overlay CSS"}</button><button class="ts-btn ${editable ? "" : "ts-btn-primary"}" type="button" data-source-action="toggle-edit">${editable ? "Protect source" : "Fork & edit"}</button></div></div>${fallbackWarning}<div class="ts-code-label"><span class="ts-label">Global source CSS</span><span data-source-status class="${sourceStatusClass}">${sourceStatusText}</span></div><textarea class="ts-textarea ts-code ts-code-source" data-source-global-css ${editable ? "" : "readonly"} spellcheck="false">${escapeHtml(source.globalCSS)}</textarea>${components.length ? `<div class="ts-source-components"><div class="ts-source-components-head"><strong>Native component source</strong><span>${components.length} section${components.length === 1 ? "" : "s"}</span></div>${componentMarkup}</div>` : componentMarkup}<p class="ts-note">The source above comes directly from the downloaded archive when possible. <strong>Fork & edit</strong> only unlocks this local copy; Palette Design still writes separate override CSS. <strong>Overlay CSS</strong> is a diagnostic authoring layer, while <strong>Send to Lumiverse</strong> remains the native apply path.</p></section>`;
+    const fallbackWarning = archiveSource ? "" : `<div class="ts-warning">This older/fallback project only contains Lumiverse's canonicalized draft; source removed before Palette received it cannot be recovered.</div>`;
+    return `<section class="ts-section ts-theme-source"><div class="ts-theme-source-head"><div class="ts-theme-source-title"><p class="ts-kicker">Theme Source</p><strong>${escapeHtml(displayName)}</strong>${author ? `<small>${escapeHtml(author)}</small>` : ""}<span class="ts-source-meta">${escapeHtml(fidelityLabel + archiveMeta)}</span></div><div class="ts-source-actions"><span class="ts-chip">${editable ? "Local fork" : "Protected"}</span><button class="ts-btn ${editable ? "" : "ts-btn-primary"}" type="button" data-source-action="toggle-edit">${editable ? "Protect source" : "Fork & edit"}</button></div></div>${fallbackWarning}<details class="ts-code-fold ts-source-global"${globalCss ? " open" : ""}><summary><span><strong>Global CSS</strong><small>${globalSummary}</small></span><span class="ts-code-fold-arrow" aria-hidden="true">\u2304</span></summary><div class="ts-code-fold-body"><textarea class="ts-textarea ts-code ts-code-source" data-source-global-css ${editable ? "" : "readonly"} spellcheck="false">${escapeHtml(source.globalCSS)}</textarea></div></details><div class="ts-source-components"><div class="ts-source-components-head"><strong>Components</strong><span>${components.length} section${components.length === 1 ? "" : "s"}</span></div>${componentMarkup}</div><p class="ts-note ts-theme-source-note">Palette Design stays separate and overrides this source non-destructively.</p><details class="ts-code-fold ts-source-advanced"${previewEnabled ? " open" : ""}><summary><span><strong>Advanced</strong><small data-source-status class="${sourceStatusClass}">CSS overlay \xB7 ${sourceStatusText}</small></span><span class="ts-code-fold-arrow" aria-hidden="true">\u2304</span></summary><div class="ts-code-fold-body ts-source-advanced-body"><button class="ts-btn" type="button" data-source-action="toggle-preview">${previewEnabled ? "Stop CSS overlay" : "Overlay CSS"}</button><p class="ts-note">Diagnostic only. Native theme rendering still belongs to Lumiverse; use Send to Lumiverse for the real apply path.</p></div></details></section>`;
   }
   renderCode(generatedCss) {
-    return `${this.renderThemeSource()}<section class="ts-section"><div class="ts-code-label"><p class="ts-kicker" style="margin:0">Generated CSS</p><span class="ts-chip">Compiler owned</span></div><textarea class="ts-textarea ts-code ts-code-generated" readonly spellcheck="false">${escapeHtml(generatedCss)}</textarea><p class="ts-note">Palette Design loads after Theme Source. Visual edits stay as explicit override CSS instead of mutating imported rules.</p></section><section class="ts-section"><div class="ts-code-label"><p class="ts-kicker" style="margin:0">Custom CSS</p><span data-custom-status class="${this.previewResult.valid ? "ts-status-ok" : "ts-status-error"}">${this.previewResult.valid ? "Previewing" : escapeHtml(this.previewResult.error ?? "Invalid CSS")}</span></div><textarea class="ts-textarea ts-code ts-code-custom" data-custom-css spellcheck="false" placeholder="/* Advanced CSS stays separate from visual packets. */">${escapeHtml(this.store.activeProject.customCss)}</textarea><p class="ts-note">Custom CSS stays last in the cascade so advanced users can deliberately override both source and visual output.</p></section><section class="ts-section ts-code-handoff"><div class="ts-code-label"><div><p class="ts-kicker" style="margin:0">Native handoff</p><p class="ts-note">The canonical Lumiverse bridge owns assets, .lumitheme encoding, installation, and native editor navigation.</p></div><span class="ts-chip">ctx.theme</span></div><div class="ts-actions ts-native-handoff-actions"><button class="ts-btn ts-btn-primary" type="button" data-native-action="install" ${this.capabilities.applyTheme ? "" : "disabled"}>Send to Lumiverse</button><button class="ts-btn" type="button" data-native-action="export" ${this.capabilities.exportLumitheme ? "" : "disabled"}>Export .lumitheme</button><button class="ts-btn" type="button" data-native-action="import" ${this.capabilities.importTheme ? "" : "disabled"}>Import .lumitheme</button><button class="ts-btn" type="button" data-native-action="editor" ${this.capabilities.openNativeEditor ? "" : "disabled"}>Open native editor</button><input type="file" accept=".lumitheme,application/zip" data-native-theme-file hidden></div>${this.nativeActionStatus ? `<div class="ts-native-status">${escapeHtml(this.nativeActionStatus)}</div>` : ""}<p class="ts-note">Send installs a fresh native bundle and saves the result to Lumiverse's theme library. Import is intentionally inert: it becomes a new Palette project with a protected source snapshot and does not apply itself.</p></section>`;
+    const customCss = this.store.activeProject.customCss;
+    const customOpen = customCss.trim() ? " open" : "";
+    const customSummary = customCss.trim() ? this.previewResult.valid ? "Active override layer" : escapeHtml(this.previewResult.error ?? "Invalid CSS") : "Empty";
+    return `${this.renderThemeSource()}<section class="ts-section ts-code-output"><details class="ts-code-fold"><summary><span><strong>Palette output</strong><small>Generated CSS \xB7 compiler owned</small></span><span class="ts-code-fold-arrow" aria-hidden="true">\u2304</span></summary><div class="ts-code-fold-body"><textarea class="ts-textarea ts-code ts-code-generated" readonly spellcheck="false">${escapeHtml(generatedCss)}</textarea><p class="ts-note">Generated from Palette Design and loaded after Theme Source. Edit the visual packets, not this output.</p></div></details></section><section class="ts-section ts-code-custom-section"><details class="ts-code-fold"${customOpen}><summary><span><strong>Custom CSS</strong><small data-custom-status class="${this.previewResult.valid ? customCss.trim() ? "ts-status-ok" : "ts-status-muted" : "ts-status-error"}">${customSummary}</small></span><span class="ts-code-fold-arrow" aria-hidden="true">\u2304</span></summary><div class="ts-code-fold-body"><textarea class="ts-textarea ts-code ts-code-custom" data-custom-css spellcheck="false" placeholder="/* Advanced CSS stays separate from visual packets. */">${escapeHtml(customCss)}</textarea><p class="ts-note">Last in the cascade. Use this when you intentionally want to override both Theme Source and Palette Design.</p></div></details></section><section class="ts-section ts-code-handoff"><div class="ts-code-label"><div><p class="ts-kicker" style="margin:0">Native handoff</p><p class="ts-note">Lumiverse owns installation, native rendering, asset extraction, and .lumitheme encoding.</p></div><span class="ts-chip">ctx.theme</span></div><div class="ts-actions ts-native-handoff-actions"><button class="ts-btn ts-btn-primary" type="button" data-native-action="install" ${this.capabilities.applyTheme ? "" : "disabled"}>Send to Lumiverse</button><button class="ts-btn" type="button" data-native-action="export" ${this.capabilities.exportLumitheme ? "" : "disabled"}>Export .lumitheme</button><button class="ts-btn" type="button" data-native-action="import" ${this.capabilities.importTheme ? "" : "disabled"}>Import .lumitheme</button><button class="ts-btn" type="button" data-native-action="editor" ${this.capabilities.openNativeEditor ? "" : "disabled"}>Open native editor</button><input type="file" accept=".lumitheme,application/zip" data-native-theme-file hidden></div>${this.nativeActionStatus ? `<div class="ts-native-status">${escapeHtml(this.nativeActionStatus)}</div>` : ""}<p class="ts-note">Import creates a protected Palette source snapshot without applying it. Send installs a fresh native bundle and saves it to Lumiverse's theme library.</p></section>`;
   }
   renderPresetPreview(preview) {
     return `<div class="ts-preset-preview" data-preset-preview="${escapeHtml(preview)}" aria-hidden="true"><span class="ts-preview-avatar"></span><span class="ts-preview-name">Gabrielle</span><span class="ts-preview-line ts-preview-line-a"></span><span class="ts-preview-line ts-preview-line-b"></span><span class="ts-preview-meta">#0 \xB7 5:23 PM</span></div>`;
@@ -23899,7 +23907,7 @@ ${compileComponentOverride(draft, previewOptions)}`);
       const status2 = this.root.querySelector("[data-source-status]");
       if (status2) {
         status2.className = !source?.previewEnabled ? "ts-status-muted" : this.sourcePreviewResult.valid ? "ts-status-ok" : "ts-status-error";
-        status2.textContent = !source?.previewEnabled ? "Preview off" : this.sourcePreviewResult.valid ? "Overlay on" : this.sourcePreviewResult.error ?? "Invalid CSS";
+        status2.textContent = `CSS overlay \xB7 ${!source?.previewEnabled ? "Off" : this.sourcePreviewResult.valid ? "On" : this.sourcePreviewResult.error ?? "Invalid CSS"}`;
       }
     };
     this.root.querySelector('[data-source-action="toggle-preview"]')?.addEventListener("click", () => this.store.setSourceThemePreviewEnabled(!this.store.activeProject.sourceTheme?.previewEnabled));
@@ -23934,8 +23942,8 @@ ${compileComponentOverride(draft, previewOptions)}`);
       this.store.setCustomCss(textarea.value);
       this.previewResult = this.preview.updateCustom(textarea.value);
       if (status) {
-        status.className = this.previewResult.valid ? "ts-status-ok" : "ts-status-error";
-        status.textContent = this.previewResult.valid ? "Previewing" : this.previewResult.error ?? "Invalid CSS";
+        status.className = this.previewResult.valid ? textarea.value.trim() ? "ts-status-ok" : "ts-status-muted" : "ts-status-error";
+        status.textContent = this.previewResult.valid ? textarea.value.trim() ? "Active override layer" : "Empty" : this.previewResult.error ?? "Invalid CSS";
       }
     });
     this.root.querySelector('[data-native-action="export"]')?.addEventListener("click", () => void this.exportNativeTheme());
@@ -27513,26 +27521,52 @@ var THEME_STUDIO_CSS = `
 
 .ts-native-handoff-actions { display:flex; flex-wrap:wrap; align-items:stretch; gap:6px; }
 .ts-native-handoff-actions .ts-btn { flex:1 1 150px; min-width:0; }
-.ts-theme-source { padding-bottom:4px; border-bottom:1px solid var(--ts-border); }
-.ts-theme-source-head { align-items:flex-start; gap:10px; }
+.ts-theme-source { padding-bottom:5px; border-bottom:1px solid var(--ts-border); }
+.ts-theme-source-head { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:start; gap:10px; margin-bottom:9px; }
+.ts-theme-source-title { min-width:0; display:grid; gap:2px; }
+.ts-theme-source-title .ts-kicker { margin:0 0 1px; }
+.ts-theme-source-title > strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }
+.ts-theme-source-title > small { color:var(--ts-muted); font-size:8px; }
+.ts-source-meta { margin-top:2px; color:var(--ts-dim); font-size:7.5px; font-weight:700; letter-spacing:.02em; }
 .ts-source-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px; align-items:center; }
-.ts-code-source { min-height:180px; max-height:42vh; }
-.ts-source-components { display:grid; gap:6px; margin-top:10px; }
-.ts-source-components-head { display:flex; justify-content:space-between; gap:8px; color:var(--ts-muted); font-size:8px; }
+.ts-code-fold { border:1px solid var(--ts-border); border-radius:8px; background:color-mix(in srgb,var(--ts-surface) 52%,transparent); overflow:hidden; }
+.ts-code-fold > summary { list-style:none; display:flex; justify-content:space-between; align-items:center; gap:8px; min-height:39px; padding:7px 9px; cursor:pointer; }
+.ts-code-fold > summary::-webkit-details-marker { display:none; }
+.ts-code-fold > summary > span:first-child { min-width:0; display:grid; gap:2px; }
+.ts-code-fold > summary strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ts-text); font-size:9px; }
+.ts-code-fold > summary small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ts-muted); font-size:7.5px; font-weight:600; }
+.ts-code-fold-arrow { flex:none; color:var(--ts-dim); font-size:10px; font-style:normal; transition:transform .12s ease; }
+.ts-code-fold[open] > summary .ts-code-fold-arrow { transform:rotate(180deg); }
+.ts-code-fold-body { display:grid; gap:7px; border-top:1px solid var(--ts-border); padding:8px; }
+.ts-source-global { margin-bottom:10px; }
+.ts-code-source { min-height:128px; max-height:38vh; }
+.ts-source-components { display:grid; gap:6px; }
+.ts-source-components-head { display:flex; justify-content:space-between; align-items:center; gap:8px; color:var(--ts-muted); font-size:8px; }
 .ts-source-components-head strong { color:var(--ts-text); font-size:9px; }
 .ts-source-component { border:1px solid var(--ts-border); border-radius:8px; background:color-mix(in srgb,var(--ts-surface) 58%,transparent); overflow:hidden; }
 .ts-source-component > summary { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 9px; cursor:pointer; list-style:none; }
 .ts-source-component > summary::-webkit-details-marker { display:none; }
-.ts-source-component > summary span:first-child { min-width:0; display:grid; gap:2px; }
+.ts-source-component > summary > span:first-child { min-width:0; display:grid; gap:2px; }
 .ts-source-component > summary strong,.ts-source-component > summary small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .ts-source-component > summary strong { font-size:9px; }
 .ts-source-component > summary small { color:var(--ts-muted); font-size:7.5px; }
+.ts-source-summary-meta { display:flex; align-items:center; gap:6px; }
+.ts-source-component[open] > summary .ts-code-fold-arrow { transform:rotate(180deg); }
 .ts-source-component-body { display:grid; gap:7px; padding:0 8px 8px; border-top:1px solid var(--ts-border); }
 .ts-source-enabled { display:flex; gap:7px; align-items:center; padding-top:7px; color:var(--ts-muted); font-size:8px; }
-.ts-code-source-component { min-height:140px; max-height:34vh; }
-.ts-code-generated { min-height:210px; max-height:42vh; }
-.ts-code-custom { min-height:200px; }
-.ts-code-handoff { padding-top:2px; border-top:1px solid var(--ts-border); }
+.ts-code-label-tight { margin:0; }
+.ts-code-source-component { min-height:190px; max-height:46vh; }
+.ts-source-tsx { margin-top:1px; }
+.ts-source-tsx .ts-code-source-component { min-height:150px; max-height:36vh; }
+.ts-theme-source-note { margin:8px 1px 0; }
+.ts-source-advanced { margin-top:8px; background:transparent; }
+.ts-source-advanced-body { grid-template-columns:auto minmax(0,1fr); align-items:center; }
+.ts-source-advanced-body .ts-note { margin:0; }
+.ts-code-output,.ts-code-custom-section { padding-block:4px; }
+.ts-code-output .ts-code-fold,.ts-code-custom-section .ts-code-fold { background:transparent; }
+.ts-code-generated { min-height:190px; max-height:42vh; }
+.ts-code-custom { min-height:180px; }
+.ts-code-handoff { padding-top:8px; border-top:1px solid var(--ts-border); }
 .ts-code-handoff .ts-code-label { align-items:flex-start; }
 
 /* Flatten routine editing chrome: packet cards stay cards; scope/state are toolbars. */
@@ -27557,6 +27591,9 @@ var THEME_STUDIO_CSS = `
 @media (max-width:440px) {
   .ts-native-handoff-actions .ts-btn { flex-basis:100%; }
   .ts-save-style-menu > summary span { display:none; }
+  .ts-theme-source-head { grid-template-columns:1fr; }
+  .ts-source-actions { justify-content:flex-start; }
+  .ts-source-advanced-body { grid-template-columns:1fr; }
 }
 
 .ts-quick-palette-fold { margin:8px 0 10px; border:1px solid var(--ts-border); border-radius:9px; background:color-mix(in srgb,var(--ts-elevated) 92%,var(--ts-surface)); overflow:hidden; }

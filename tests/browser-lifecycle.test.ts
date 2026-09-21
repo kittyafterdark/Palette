@@ -430,12 +430,48 @@ describe('browser-owned lifecycle', () => {
     // Theme Source controls live in Code. Exercise the real workspace switch
     // instead of asserting against UI that Design intentionally does not render.
     root.querySelector<HTMLButtonElement>('[data-workspace="code"]')!.click()
-    expect(root.textContent).toContain('Preview off')
+    expect(root.textContent).toContain('CSS overlay · Off')
+    expect(root.querySelector<HTMLDetailsElement>('.ts-source-global')?.open).toBe(true)
+    expect(root.querySelector<HTMLDetailsElement>('.ts-source-component')?.open).toBe(true)
+    expect(root.querySelector<HTMLDetailsElement>('.ts-code-output .ts-code-fold')?.open).toBe(false)
+    expect(root.querySelector<HTMLDetailsElement>('.ts-code-custom-section .ts-code-fold')?.open).toBe(false)
 
     store.setSourceThemePreviewEnabled(true)
     expect(sourceStyle.textContent).toContain('.imported-global')
     expect(sourceStyle.textContent).toContain('.imported-minimal')
-    expect(root.textContent).toContain('Overlay on')
+    expect(root.textContent).toContain('CSS overlay · On')
+    expect(root.querySelector<HTMLDetailsElement>('.ts-source-advanced')?.open).toBe(true)
+
+    studio.destroy(); picker.destroy(); preview.destroy(); root.remove()
+  })
+
+  test('Code prioritizes the real imported component and keeps empty source/output chrome folded', () => {
+    const context = mockContext()
+    const root = document.createElement('div'); document.body.append(root)
+    const store = new ProjectStore()
+    store.setSourceTheme({
+      origin: 'lumitheme', editable: true, previewEnabled: false, fidelity: 'archive', archiveFormat: 3,
+      name: 'Slate', archiveAssets: [{ slug: 'asset', archivePath: 'assets/asset.png', mimeType: 'image/png', originalFilename: 'asset.png' }],
+      globalCSS: '', components: { MinimalMessage: { css: '.minimal { display: grid; }', tsx: '', enabled: true } },
+    })
+    const preview = new LiveStylesheet(context)
+    const picker = new ElementPicker(context)
+    const studio = new ThemeStudioUI(context, root, store, picker, preview)
+
+    studio.render()
+    root.querySelector<HTMLButtonElement>('[data-workspace="code"]')!.click()
+
+    const global = root.querySelector<HTMLDetailsElement>('.ts-source-global')!
+    const component = root.querySelector<HTMLDetailsElement>('.ts-source-component')!
+    const tsx = root.querySelector<HTMLDetailsElement>('.ts-source-tsx')!
+    expect(global.open).toBe(false)
+    expect(global.querySelector('summary')?.textContent).toContain('Empty')
+    expect(component.open).toBe(true)
+    expect(component.textContent).toContain('MinimalMessage')
+    expect(tsx.open).toBe(false)
+    expect(tsx.querySelector('summary')?.textContent).toContain('Empty')
+    expect(root.querySelector<HTMLDetailsElement>('.ts-code-output .ts-code-fold')?.open).toBe(false)
+    expect(root.querySelector<HTMLDetailsElement>('.ts-code-custom-section .ts-code-fold')?.open).toBe(false)
 
     studio.destroy(); picker.destroy(); preview.destroy(); root.remove()
   })
