@@ -68,6 +68,26 @@ function mockContext(): SpindleFrontendContext {
         return element
       },
     },
+    ui: {
+      createFloatWidget: (options: { width: number; height: number }) => {
+        const root = document.createElement('div')
+        root.dataset.testSpindleFloatWidget = 'true'
+        root.style.width = `${options.width}px`
+        root.style.height = `${options.height}px`
+        document.body.append(root)
+        let position = { x: 0, y: 0 }
+        let dragEnd: ((next: { x: number; y: number }) => void) | null = null
+        return {
+          root,
+          destroy: () => root.remove(),
+          setSize: (width: number, height: number) => { root.style.width = `${width}px`; root.style.height = `${height}px` },
+          moveTo: (x: number, y: number) => { position = { x, y }; root.style.left = `${x}px`; root.style.top = `${y}px` },
+          getPosition: () => ({ ...position }),
+          onDragEnd: (callback: (next: { x: number; y: number }) => void) => { dragEnd = callback; return () => { dragEnd = null } },
+          __dragTo: (x: number, y: number) => { position = { x, y }; dragEnd?.(position) },
+        }
+      },
+    },
   } as unknown as SpindleFrontendContext
 }
 
@@ -218,18 +238,25 @@ describe('browser-owned lifecycle', () => {
     document.documentElement.style.removeProperty('--lumiverse-ui-scale')
   })
 
-  test('mini widget and floating editor share the host pointer coordinate space', () => {
+  test('mini widget delegates scaled placement and hit testing to Spindle instead of counter-zooming its content', () => {
     document.documentElement.style.setProperty('--lumiverse-ui-scale', '0.8')
     Object.defineProperty(document.body, 'currentCSSZoom', { configurable: true, value: 0.8 })
     const root = document.createElement('div'); document.body.append(root)
     const context = mockContext(), store = new ProjectStore(), preview = new LiveStylesheet(context), picker = new ElementPicker(context)
     const studio = new ThemeStudioUI(context, root, store, picker, preview)
-    const access = studio as unknown as { mountWidget(): void; syncHostUiScaleIsolation(): void; widgetRoot: HTMLElement | null; floatingFrame: HTMLElement | null }
+    const access = studio as unknown as { mountWidget(): void; syncHostUiScaleIsolation(): void; widgetRoot: HTMLElement | null; widgetHost: { root: HTMLElement; __dragTo?: (x: number, y: number) => void } | null; floatingFrame: HTMLElement | null }
 
     access.mountWidget()
     access.syncHostUiScaleIsolation()
 
-    expect(access.widgetRoot?.style.getPropertyValue('zoom')).toBe('1.25')
+    expect(access.widgetHost?.root.dataset.testSpindleFloatWidget).toBe('true')
+    expect(access.widgetRoot?.parentElement).toBe(access.widgetHost?.root)
+    expect(access.widgetRoot?.style.getPropertyValue('zoom')).toBe('')
+    expect(access.widgetHost?.root.style.getPropertyValue('zoom')).toBe('')
+    access.widgetHost?.__dragTo?.(123, 456)
+    expect(JSON.parse(localStorage.getItem('theme-studio:widget-position') ?? '{}')).toEqual({ x: 123, y: 456 })
+    // The separate full editor is still a body portal and keeps its existing
+    // isolation behavior; only the mini widget is now natively hosted.
     expect(access.floatingFrame?.style.getPropertyValue('zoom')).toBe('1.25')
 
     studio.destroy(); picker.destroy(); preview.destroy(); root.remove()

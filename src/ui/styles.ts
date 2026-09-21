@@ -520,8 +520,9 @@ export const THEME_STUDIO_CSS = `
 
 /* Zen-ish floating bridge. It is intentionally small until the user undocks the real editor. */
 .ts-widget-root,.ts-floating-editor,.ts-drawer-placeholder { --ts-surface:var(--lumiverse-bg,#1c1826); --ts-elevated:var(--lumiverse-bg-elevated,#231e30); --ts-hover:var(--lumiverse-bg-hover,#2d283a); --ts-border:var(--lumiverse-border,rgba(147,112,219,.18)); --ts-text:var(--lumiverse-text,rgba(255,255,255,.9)); --ts-muted:var(--lumiverse-text-muted,rgba(255,255,255,.62)); --ts-dim:var(--lumiverse-text-dim,rgba(255,255,255,.4)); --ts-accent:var(--lumiverse-primary,#9370db); --ts-accent-soft:var(--lumiverse-primary-015,rgba(147,112,219,.15)); font-family:var(--lumiverse-font-family,system-ui,sans-serif); color:var(--ts-text); }
-.ts-widget-root { position:fixed; left:18px; bottom:72px; z-index:2147483638; pointer-events:none; }
-.ts-widget-root > * { pointer-events:auto; }
+/* Spindle owns the mini widget's outer fixed-position surface, drag hitbox, and
+   host UI-scale coordinate space. Palette only owns the content inside it. */
+.ts-widget-root { position:relative; width:max-content; height:max-content; overflow:visible; pointer-events:auto; }
 .ts-widget-launch { appearance:none; display:flex; align-items:center; gap:6px; min-width:42px; height:42px; border:1px solid var(--ts-border); border-radius:14px; padding:0 11px; background:color-mix(in srgb,var(--ts-elevated) 92%,transparent); color:var(--ts-text); box-shadow:0 12px 36px rgba(0,0,0,.36),inset 0 1px rgba(255,255,255,.06); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); cursor:pointer; }
 .ts-widget-launch span { color:var(--ts-accent); font-size:17px; }
 .ts-widget-launch i { border-radius:99px; padding:2px 5px; background:var(--ts-accent-soft); color:var(--ts-accent); font-size:8px; font-style:normal; font-weight:800; text-transform:uppercase; }
@@ -613,7 +614,7 @@ export const THEME_STUDIO_CSS = `
   .ts-font-grid .ts-font-sample { min-height: 44px; flex-basis:auto; }
   .ts-preset-grid { grid-template-columns: 1fr; }
   .ts-preset-categories { margin-inline: -2px; }
-  .ts-widget-root { left: 8px; bottom: 58px; max-width: calc(100vw - 16px); }
+  .ts-widget-root { max-width: calc(100vw - 16px); }
   .ts-widget-panel { width: min(242px,calc(100vw - 16px)); }
   .ts-floating-editor { inset: 8px; width: auto; height: auto; max-width: none; max-height: none; }
   .ts-floating-editor-head { cursor: default; }

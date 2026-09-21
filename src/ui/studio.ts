@@ -318,6 +318,22 @@ function matchingOverridesForSelection(selection: ResolvedSelection | null, over
   return matches
 }
 
+type PaletteFloatWidgetHandle = {
+  root: HTMLElement
+  destroy(): void
+  setSize(width: number, height: number): void
+  moveTo(x: number, y: number): void
+  getPosition(): { x: number; y: number }
+  onDragEnd(callback: (position: { x: number; y: number }) => void): void | (() => void)
+}
+
+type PaletteFloatWidgetFactory = (options: {
+  width: number
+  height: number
+  tooltip?: string
+  chromeless?: boolean
+}) => PaletteFloatWidgetHandle
+
 export class ThemeStudioUI {
   private components: NativeThemeComponent[] = []
   private variables: NativeThemeVariable[] = []
@@ -395,7 +411,11 @@ export class ThemeStudioUI {
   /** Persistent recipe layers let Reset reveal the style underneath instead of deleting unrelated/manual packets, even after reload. */
   private readonly quickStyleSlots = new Map<string, QuickStyleSlot>()
   private readonly hydratedRecipeProjects = new Set<string>()
+  /** Palette's authored widget content. When available, Spindle owns the outer
+   * float widget shell, placement, drag geometry, and UI-scale coordinate space. */
   private widgetRoot: HTMLElement | null = null
+  private widgetHost: PaletteFloatWidgetHandle | null = null
+  private widgetHostDragCleanup?: () => void
   private floatingFrame: HTMLElement | null = null
   private floatingBody: HTMLElement | null = null
   private drawerHost: HTMLElement | null = null
@@ -475,7 +495,7 @@ export class ThemeStudioUI {
     await this.refreshAssets()
     this.render()
   }
-  destroy(): void { this.clearBoostPreview(); this.clearPreviewMarker(); this.picker.clearHighlight(); this.unsubscribeStore(); this.scrollResizeObserver?.disconnect(); this.hostScaleMutationObserver?.disconnect(); applyDockUiScaleIsolation(this.root, 1, false); if (typeof window !== 'undefined') window.removeEventListener('resize', this.handleViewportResize); this.root.removeEventListener('wheel', this.handleDrawerWheel); this.dockEditor(); applyDockUiScaleIsolation(this.root, 1, false); this.widgetRoot?.remove(); this.floatingFrame?.remove(); this.drawerPlaceholder?.remove(); this.destroyStyleLibraryDock(); this.styleLibraryOverlayRoot?.remove(); this.styleLibraryRoot = null; this.styleMapRoot?.remove(); this.root.replaceChildren() }
+  destroy(): void { this.clearBoostPreview(); this.clearPreviewMarker(); this.picker.clearHighlight(); this.unsubscribeStore(); this.scrollResizeObserver?.disconnect(); this.hostScaleMutationObserver?.disconnect(); applyDockUiScaleIsolation(this.root, 1, false); if (typeof window !== 'undefined') window.removeEventListener('resize', this.handleViewportResize); this.root.removeEventListener('wheel', this.handleDrawerWheel); this.dockEditor(); applyDockUiScaleIsolation(this.root, 1, false); this.widgetHostDragCleanup?.(); this.widgetHostDragCleanup = undefined; this.widgetHost?.destroy(); this.widgetHost = null; this.widgetRoot?.remove(); this.floatingFrame?.remove(); this.drawerPlaceholder?.remove(); this.destroyStyleLibraryDock(); this.styleLibraryOverlayRoot?.remove(); this.styleLibraryRoot = null; this.styleMapRoot?.remove(); this.root.replaceChildren() }
 
   render(): void {
     this.ensureQuickStyleSlotsHydrated()
@@ -520,7 +540,10 @@ export class ThemeStudioUI {
 
   private syncHostUiScaleIsolation(): void {
     applyDockUiScaleIsolation(this.root, nativeUiScale(this.root), !this.editorFloating)
-    if (this.widgetRoot) applyPortalUiScaleIsolation(this.widgetRoot, ancestorUiScale(this.widgetRoot))
+    // The mini widget deliberately does NOT participate here. Spindle's native
+    // createFloatWidget surface owns its placement, hit testing, and host UI-scale
+    // coordinate space (the same contract used by SpotifyControls). Counter-zooming
+    // Palette's inner content separates the visual from the native drag/hit box.
     if (this.floatingFrame) applyPortalUiScaleIsolation(this.floatingFrame, ancestorUiScale(this.floatingFrame))
   }
 
@@ -590,6 +613,24 @@ export class ThemeStudioUI {
     this.widgetRoot.setAttribute('data-theme-studio-widget', 'dock')
     this.widgetRoot.setAttribute('aria-live', 'polite')
 
+    // Use the exact Spindle float-widget primitive used by SpotifyControls. The
+    // host now owns position, drag capture, hit testing, and UI-scale geometry;
+    // Palette is only the content rendered inside that native floating surface.
+    const createFloatWidget = (this.ctx.ui as unknown as { createFloatWidget?: PaletteFloatWidgetFactory }).createFloatWidget
+    if (createFloatWidget) {
+      try {
+        this.widgetHost = createFloatWidget.call(this.ctx.ui, { width: 60, height: 44, tooltip: 'Palette', chromeless: true })
+        this.widgetHost.root.setAttribute('data-theme-studio-widget', 'host')
+        this.widgetHost.root.setAttribute('data-theme-studio-widget-host', 'palette')
+        this.widgetHost.root.append(this.widgetRoot)
+        const cleanup = this.widgetHost.onDragEnd((position) => this.saveWidgetPosition(position))
+        if (typeof cleanup === 'function') this.widgetHostDragCleanup = cleanup
+      } catch (error) {
+        console.warn('[Palette] Native float widget unavailable; falling back to a local fixed surface.', error)
+        this.widgetHost = null
+      }
+    }
+
     this.floatingFrame = document.createElement('section')
     this.floatingFrame.className = 'ts-floating-editor'
     this.floatingFrame.setAttribute('data-theme-studio-widget', 'editor')
@@ -603,10 +644,23 @@ export class ThemeStudioUI {
     this.drawerPlaceholder.setAttribute('data-theme-studio-widget', 'placeholder')
     this.drawerPlaceholder.innerHTML = `<strong>Palette is floating.</strong><span>The live editor is detached so you can style drawers, popovers, and modals without losing access to it.</span><button type="button" data-widget-action="dock-placeholder">Return editor here</button>`
     this.drawerHost?.append(this.drawerPlaceholder)
-    document.body.append(this.widgetRoot, this.floatingFrame)
+    if (!this.widgetHost) {
+      // Compatibility fallback for older hosts without createFloatWidget().
+      Object.assign(this.widgetRoot.style, { position: 'fixed', left: '18px', bottom: '72px', zIndex: '2147483638' })
+      document.body.append(this.widgetRoot)
+    }
+    document.body.append(this.floatingFrame)
+
     try {
-      const saved = JSON.parse(localStorage.getItem('theme-studio:widget-position') ?? 'null') as { left?: string; top?: string } | null
-      if (saved?.left && saved?.top) { this.widgetRoot.style.left = saved.left; this.widgetRoot.style.top = saved.top; this.widgetRoot.style.right = 'auto'; this.widgetRoot.style.bottom = 'auto' }
+      const saved = JSON.parse(localStorage.getItem('theme-studio:widget-position') ?? 'null') as { x?: number; y?: number; left?: string; top?: string } | null
+      const legacyX = Number.parseFloat(saved?.left ?? '')
+      const legacyY = Number.parseFloat(saved?.top ?? '')
+      const x = Number.isFinite(saved?.x) ? Number(saved?.x) : legacyX
+      const y = Number.isFinite(saved?.y) ? Number(saved?.y) : legacyY
+      if (Number.isFinite(x) && Number.isFinite(y)) {
+        if (this.widgetHost) this.widgetHost.moveTo(x, y)
+        else { this.widgetRoot.style.left = `${x}px`; this.widgetRoot.style.top = `${y}px`; this.widgetRoot.style.right = 'auto'; this.widgetRoot.style.bottom = 'auto' }
+      }
     } catch { /* local widget position is best-effort */ }
     try { this.widgetHidden = localStorage.getItem('theme-studio:widget-hidden') === '1' } catch { this.widgetHidden = false }
 
@@ -630,6 +684,34 @@ export class ThemeStudioUI {
     this.syncMobileEdgeControl()
     this.syncMobileDensityControl()
     this.bindFloatingDrag()
+  }
+
+  private saveWidgetPosition(position?: { x: number; y: number }): void {
+    const current = position ?? this.widgetHost?.getPosition()
+    if (current && Number.isFinite(current.x) && Number.isFinite(current.y)) {
+      try { localStorage.setItem('theme-studio:widget-position', JSON.stringify({ x: current.x, y: current.y })) } catch { /* best effort */ }
+      return
+    }
+    if (!this.widgetRoot) return
+    const rect = this.widgetRoot.getBoundingClientRect()
+    try { localStorage.setItem('theme-studio:widget-position', JSON.stringify({ x: rect.left, y: rect.top })) } catch { /* best effort */ }
+  }
+
+  private syncWidgetHostSize(): void {
+    const host = this.widgetHost
+    const root = this.widgetRoot
+    if (!host || !root || this.widgetHidden) return
+    const content = root.firstElementChild as HTMLElement | null
+    if (!content) return
+    const commit = () => {
+      if (!this.widgetHost || !content.isConnected) return
+      const rect = content.getBoundingClientRect()
+      const width = Math.ceil(rect.width || content.offsetWidth || (this.widgetExpanded ? 272 : 60))
+      const height = Math.ceil(rect.height || content.offsetHeight || (this.widgetExpanded ? 220 : 44))
+      this.widgetHost.setSize(Math.max(1, width), Math.max(1, height))
+    }
+    commit()
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(commit)
   }
 
   private mountStyleMap(): void {
@@ -1862,6 +1944,7 @@ export class ThemeStudioUI {
   private renderWidget(): void {
     if (!this.widgetRoot) return
     this.widgetRoot.hidden = this.widgetHidden
+    if (this.widgetHost) this.widgetHost.root.style.display = this.widgetHidden ? 'none' : ''
     if (this.widgetHidden) return
     const scope = this.selection ? activeScope(this.selection) : undefined
     const label = scope?.label ?? 'Pick something'
@@ -1876,6 +1959,7 @@ export class ThemeStudioUI {
     }
     this.bindWidget()
     this.bindWidgetContextMenu()
+    this.syncWidgetHostSize()
   }
 
   private bindWidget(): void {
@@ -1895,7 +1979,9 @@ export class ThemeStudioUI {
     this.widgetRoot.querySelector('[data-widget-insert="related"]')?.addEventListener('click', () => this.insertSelectorIntoCustomCss(this.widgetRelatedScope()))
     this.widgetRoot.querySelector('[data-widget-action="float-themes"]')?.addEventListener('click', () => this.floatEditor('themes'))
     this.widgetRoot.querySelector('[data-widget-action="shuffle-boost"]')?.addEventListener('click', () => { this.clearBoostPreview(); this.store.shuffleBoost() })
-    this.bindWidgetPanelDrag()
+    // Native Spindle widgets own drag behavior. Only the compatibility fallback
+    // needs Palette's legacy manual pointer-move implementation.
+    if (!this.widgetHost) this.bindWidgetPanelDrag()
   }
 
   private bindWidgetPanelDrag(): void {
@@ -1917,7 +2003,7 @@ export class ThemeStudioUI {
       const up = (upEvent: PointerEvent) => {
         handle.releasePointerCapture?.(upEvent.pointerId)
         handle.removeEventListener('pointermove', move); handle.removeEventListener('pointerup', up); handle.removeEventListener('pointercancel', up)
-        try { localStorage.setItem('theme-studio:widget-position', JSON.stringify({ left: root.style.left, top: root.style.top })) } catch { /* best effort */ }
+        this.saveWidgetPosition({ x: Number.parseFloat(root.style.left) || root.getBoundingClientRect().left, y: Number.parseFloat(root.style.top) || root.getBoundingClientRect().top })
       }
       handle.addEventListener('pointermove', move); handle.addEventListener('pointerup', up); handle.addEventListener('pointercancel', up)
     })
