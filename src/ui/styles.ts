@@ -183,6 +183,7 @@ export const THEME_STUDIO_CSS = `
 .ts-code[readonly] { color: var(--lumiverse-primary-text, #d2b7ff); background: var(--lumiverse-bg-deep, #0e0b16); }
 .ts-status-ok { color: var(--lumiverse-success, #22c55e); font-size: 10px; }
 .ts-status-error { color: var(--lumiverse-danger, #ef4444); font-size: 10px; }
+.ts-status-muted { color: var(--ts-muted); font-size: 10px; }
 .ts-project-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; margin-top: 8px; }
 .ts-capability { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--ts-border); }
 .ts-capability:last-child { border-bottom: 0; }
@@ -2656,6 +2657,23 @@ export const THEME_STUDIO_CSS = `
 
 .ts-native-handoff-actions { display:flex; flex-wrap:wrap; align-items:stretch; gap:6px; }
 .ts-native-handoff-actions .ts-btn { flex:1 1 150px; min-width:0; }
+.ts-theme-source { padding-bottom:4px; border-bottom:1px solid var(--ts-border); }
+.ts-theme-source-head { align-items:flex-start; gap:10px; }
+.ts-source-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px; align-items:center; }
+.ts-code-source { min-height:180px; max-height:42vh; }
+.ts-source-components { display:grid; gap:6px; margin-top:10px; }
+.ts-source-components-head { display:flex; justify-content:space-between; gap:8px; color:var(--ts-muted); font-size:8px; }
+.ts-source-components-head strong { color:var(--ts-text); font-size:9px; }
+.ts-source-component { border:1px solid var(--ts-border); border-radius:8px; background:color-mix(in srgb,var(--ts-surface) 58%,transparent); overflow:hidden; }
+.ts-source-component > summary { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 9px; cursor:pointer; list-style:none; }
+.ts-source-component > summary::-webkit-details-marker { display:none; }
+.ts-source-component > summary span:first-child { min-width:0; display:grid; gap:2px; }
+.ts-source-component > summary strong,.ts-source-component > summary small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ts-source-component > summary strong { font-size:9px; }
+.ts-source-component > summary small { color:var(--ts-muted); font-size:7.5px; }
+.ts-source-component-body { display:grid; gap:7px; padding:0 8px 8px; border-top:1px solid var(--ts-border); }
+.ts-source-enabled { display:flex; gap:7px; align-items:center; padding-top:7px; color:var(--ts-muted); font-size:8px; }
+.ts-code-source-component { min-height:140px; max-height:34vh; }
 .ts-code-generated { min-height:210px; max-height:42vh; }
 .ts-code-custom { min-height:200px; }
 .ts-code-handoff { padding-top:2px; border-top:1px solid var(--ts-border); }

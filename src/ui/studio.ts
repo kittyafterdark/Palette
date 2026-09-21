@@ -4,7 +4,7 @@ import { authoritySelector, compileComponentOverride, compileImageCustomMask, co
 import { validateOverride } from '../compiler/validation'
 import { ElementPicker, type GeometryGuideMode } from '../inspector/picker'
 import { activeNativeThemeBundleId, cloneNativeThemeAssetToBundle, exportLumitheme, getNativeThemeCapabilities, groupNativeComponents, importLumitheme, listNativeComponents, listNativeThemeAssets, listNativeThemeVariables, nativeVariableMap, projectToNativeDraft, refreshMountedComponentParts, sendToLumiverse, uploadNativeThemeAsset } from '../nativeBridge'
-import { COMPOSER_ICON_ACTIONS, MOBILE_BREAKPOINT_PX, STYLE_STATES, createStylePacket, newId, normalizeSvgSource, stateInheritanceSummary, type BoxSpacing, type ComposerIconAction, type ComponentOverride, type DimensionValue, type LayoutGroup, type LayoutGroupContentTarget, type LayoutGroupMember, type LayoutGroupState, type LayoutGroupStyleBucket, type ImageCustomMask, type ImagePacket, type MaskPacket, type RecipePacketSlot, type PacketType, type ResponsiveScopeName, type StatePacketStacks, type StudioTarget, type StylePacket, type StyleStateName } from '../project/model'
+import { COMPOSER_ICON_ACTIONS, MOBILE_BREAKPOINT_PX, STYLE_STATES, createStylePacket, newId, normalizeSvgSource, stateInheritanceSummary, themeSourcePreviewCss, type BoxSpacing, type ComposerIconAction, type ComponentOverride, type DimensionValue, type LayoutGroup, type LayoutGroupContentTarget, type LayoutGroupMember, type LayoutGroupState, type LayoutGroupStyleBucket, type ImageCustomMask, type ImagePacket, type MaskPacket, type RecipePacketSlot, type PacketType, type ResponsiveScopeName, type StatePacketStacks, type StudioTarget, type StylePacket, type StyleStateName } from '../project/model'
 import { isMediaElement } from '../project/smart-invert'
 import { reverseEngineerElement } from '../project/reverse-engineer'
 import { ProjectStore } from '../project/store'
@@ -14,6 +14,7 @@ import { inspectLayoutContext } from '../registry/layout-context'
 import type { MessageSideName, NativeThemeAsset, NativeThemeCapabilities, NativeThemeComponent, NativeThemeVariable, ResolvedSelection, SelectionScope } from '../registry/types'
 import { appendPseudoToSelectorList, evaluateSelectorHealth } from '../registry/selector-utils'
 import type { ThemeRuntimeBridge } from '../nativeBridge/theme-runtime'
+import { applyDockUiScaleIsolation, nativeUiScale } from './host-scale'
 import { knownTypographyChoices } from '../nativeBridge/fonts'
 import { COMMON_PART_PRESETS, KNOWN_PART_ROLES, applyTextInkPolicyForRole, presetRoles, targetForKnownRole, type CommonPartPreset, type KnownPartRoleId } from '../presets/common-parts'
 import { STYLE_LIBRARY_AREAS, STYLE_LIBRARY_PACKS, STYLE_LIBRARY_RECIPES, packCompatiblePresetIds, packDefaultPresetIds, packDefaultPresetIdsForLayout, packForId, packPresetIds, recipeMetaForId, styleLibraryFamilies, styleLibraryPackSearchText, styleLibrarySearchText, type MessageLayoutSupport, type PackWorkbenchLayout, type StyleLibraryArea, type StyleLibraryItemKey, type StyleLibraryPack, type StyleLibraryRecipeMeta } from '../presets/style-library'
@@ -341,6 +342,7 @@ export class ThemeStudioUI {
   private assetError = ''
   private boostError = ''
   private previewResult: PreviewResult = { valid: true }
+  private sourcePreviewResult: PreviewResult = { valid: true }
   private suppressRender = false
   private packetMenuOpen = false
   private editingState: StyleStateName = 'normal'
@@ -415,7 +417,9 @@ export class ThemeStudioUI {
   private readonly unsubscribeStore: () => void
   private assetProjectId: string
   private scrollResizeObserver?: ResizeObserver
+  private hostScaleMutationObserver?: MutationObserver
   private readonly handleViewportResize = () => {
+    this.syncHostUiScaleIsolation()
     this.syncScrollViewport()
     if (this.styleLibraryPresentation === 'dock' && !this.canDockStyleLibrary()) this.setStyleLibraryPresentation('fullscreen')
     if (this.responsiveScopePinned) return
@@ -462,14 +466,16 @@ export class ThemeStudioUI {
     this.mountWidget()
     this.mountStyleLibrary()
     this.mountStyleMap()
-    if (typeof ResizeObserver !== 'undefined' && this.drawerHost) { this.scrollResizeObserver = new ResizeObserver(() => this.syncScrollViewport()); this.scrollResizeObserver.observe(this.drawerHost) }
+    this.syncHostUiScaleIsolation()
+    if (typeof ResizeObserver !== 'undefined' && this.drawerHost) { this.scrollResizeObserver = new ResizeObserver(() => { this.syncHostUiScaleIsolation(); this.syncScrollViewport() }); this.scrollResizeObserver.observe(this.drawerHost) }
+    this.observeHostUiScale()
     if (typeof window !== 'undefined') window.addEventListener('resize', this.handleViewportResize)
     this.root.addEventListener('wheel', this.handleDrawerWheel, { passive: false })
     await this.refreshNativeCatalog()
     await this.refreshAssets()
     this.render()
   }
-  destroy(): void { this.clearBoostPreview(); this.clearPreviewMarker(); this.picker.clearHighlight(); this.unsubscribeStore(); this.scrollResizeObserver?.disconnect(); if (typeof window !== 'undefined') window.removeEventListener('resize', this.handleViewportResize); this.root.removeEventListener('wheel', this.handleDrawerWheel); this.dockEditor(); this.widgetRoot?.remove(); this.floatingFrame?.remove(); this.drawerPlaceholder?.remove(); this.destroyStyleLibraryDock(); this.styleLibraryOverlayRoot?.remove(); this.styleLibraryRoot = null; this.styleMapRoot?.remove(); this.root.replaceChildren() }
+  destroy(): void { this.clearBoostPreview(); this.clearPreviewMarker(); this.picker.clearHighlight(); this.unsubscribeStore(); this.scrollResizeObserver?.disconnect(); this.hostScaleMutationObserver?.disconnect(); applyDockUiScaleIsolation(this.root, 1, false); if (typeof window !== 'undefined') window.removeEventListener('resize', this.handleViewportResize); this.root.removeEventListener('wheel', this.handleDrawerWheel); this.dockEditor(); applyDockUiScaleIsolation(this.root, 1, false); this.widgetRoot?.remove(); this.floatingFrame?.remove(); this.drawerPlaceholder?.remove(); this.destroyStyleLibraryDock(); this.styleLibraryOverlayRoot?.remove(); this.styleLibraryRoot = null; this.styleMapRoot?.remove(); this.root.replaceChildren() }
 
   render(): void {
     this.ensureQuickStyleSlotsHydrated()
@@ -489,6 +495,7 @@ export class ThemeStudioUI {
     const nativeVariables = nativeVariableMap(this.variables)
     const generatedCss = compileThemeProject(this.store.activeProject, nativeVariables)
     const currentOverride = overrideForSelection(this.selection, this.store.activeProject.componentOverrides, this.targetSurface)
+    this.sourcePreviewResult = this.preview.updateSource(themeSourcePreviewCss(this.store.activeProject.sourceTheme))
     this.preview.updateGenerated(compilePreviewThemeProject(this.store.activeProject, this.editingState === 'normal' ? { includeBoost: false } : { forcedOverrideId: currentOverride?.id, forcedState: this.editingState, includeBoost: false }, nativeVariables))
     this.previewResult = this.preview.updateCustom(this.store.activeProject.customCss)
     this.root.innerHTML = `<div class="ts-shell">${this.renderProjectBar()}<nav class="ts-tabbar" aria-label="Palette workspaces">
@@ -501,6 +508,7 @@ export class ThemeStudioUI {
     this.restoreOpenDetails(openDetails)
     this.restoreInnerScroll(innerScroll)
     this.syncSelectionHighlight()
+    this.syncHostUiScaleIsolation()
     this.syncScrollViewport()
     const scroller = this.root.querySelector<HTMLElement>('.ts-scroll')
     if (scroller) scroller.scrollTop = scrollTop
@@ -508,6 +516,22 @@ export class ThemeStudioUI {
     this.renderWidget()
     this.renderStyleLibrary()
     this.renderStyleMap()
+  }
+
+  private syncHostUiScaleIsolation(): void {
+    applyDockUiScaleIsolation(this.root, nativeUiScale(this.root), !this.editorFloating)
+  }
+
+  private observeHostUiScale(): void {
+    if (typeof MutationObserver === 'undefined' || typeof document === 'undefined') return
+    this.hostScaleMutationObserver?.disconnect()
+    this.hostScaleMutationObserver = new MutationObserver(() => { this.syncHostUiScaleIsolation(); this.syncScrollViewport() })
+    const observed = new Set<Element>()
+    let current: Element | null = this.drawerHost
+    while (current) { observed.add(current); current = current.parentElement }
+    observed.add(document.documentElement)
+    if (document.body) observed.add(document.body)
+    for (const element of observed) this.hostScaleMutationObserver.observe(element, { attributes: true, attributeFilter: ['class', 'style'] })
   }
 
   private syncScrollViewport(): void {
@@ -775,12 +799,17 @@ export class ThemeStudioUI {
         // panel destruction and kills Palette's dock state. Capture the host dock
         // shell instead: its content host may come and go, but the shell survives a
         // collapse and only disconnects when the native panel is actually closed.
+        //
+        // Once the shell exists, observe its *direct parent* rather than all of
+        // document.body. Besides being cheaper, this makes shell removal a precise
+        // child-list signal and avoids flaky subtree MutationObserver delivery in
+        // browser shims such as Happy DOM. The broad body watch is only a bootstrap
+        // fallback for hosts that attach the native shell after requestDockPanel().
         let dockShell = panel.root.isConnected ? panel.root.parentElement?.parentElement ?? null : null
-        const observer = new MutationObserver(() => {
-          if (this.styleLibraryDock !== panel || this.styleLibraryPresentation !== 'dock') { observer.disconnect(); return }
-          if (!dockShell && panel.root.isConnected) dockShell = panel.root.parentElement?.parentElement ?? null
-          if (!dockShell || dockShell.isConnected) return
-          observer.disconnect()
+        let observedShellParent: Node | null = null
+        const closeDetachedDock = () => {
+          if (this.styleLibraryDock !== panel || this.styleLibraryPresentation !== 'dock') return false
+          this.styleLibraryDockDisconnectObserver?.disconnect()
           this.styleLibraryDockDisconnectObserver = undefined
           this.styleLibraryDock = null
           this.styleLibraryPresentation = 'fullscreen'
@@ -789,8 +818,30 @@ export class ThemeStudioUI {
           this.styleLibraryFiltersOpen = false
           this.styleLibraryPackId = null
           this.renderStyleLibrary()
+          return true
+        }
+        const observer = new MutationObserver((records) => {
+          if (this.styleLibraryDock !== panel || this.styleLibraryPresentation !== 'dock') { observer.disconnect(); return }
+          if (!dockShell && panel.root.isConnected) dockShell = panel.root.parentElement?.parentElement ?? null
+          if (dockShell) {
+            const removedByObservedParent = records.some((record) => Array.from(record.removedNodes).includes(dockShell!))
+            if (removedByObservedParent || !dockShell.isConnected) { closeDetachedDock(); return }
+          }
+          if (dockShell && !observedShellParent) {
+            const parent = dockShell.parentNode
+            if (parent) {
+              observer.disconnect()
+              observedShellParent = parent
+              observer.observe(parent, { childList: true })
+            }
+          }
         })
-        observer.observe(document.body, { childList: true, subtree: true })
+        if (dockShell?.parentNode) {
+          observedShellParent = dockShell.parentNode
+          observer.observe(observedShellParent, { childList: true })
+        } else {
+          observer.observe(document.body, { childList: true, subtree: true })
+        }
         this.styleLibraryDockDisconnectObserver = observer
       }
       panel.expand?.()
@@ -1534,6 +1585,7 @@ export class ThemeStudioUI {
     if (!this.floatingFrame || !this.floatingBody || !this.drawerHost) return
     this.workspace = workspace
     this.editorFloating = true
+    this.syncHostUiScaleIsolation()
     this.floatingFrame.hidden = false
     if (this.drawerPlaceholder) this.drawerPlaceholder.hidden = false
     this.floatingBody.append(this.root)
@@ -1544,6 +1596,7 @@ export class ThemeStudioUI {
     if (!this.editorFloating || !this.drawerHost) return
     this.drawerHost.insertBefore(this.root, this.drawerPlaceholder)
     this.editorFloating = false
+    this.syncHostUiScaleIsolation()
     if (this.drawerPlaceholder) this.drawerPlaceholder.hidden = true
     if (this.floatingFrame) this.floatingFrame.hidden = true
     this.syncScrollViewport()
@@ -2476,8 +2529,21 @@ export class ThemeStudioUI {
     for (const variable of filtered) { const key = variable.category ?? 'Other'; grouped.set(key, [...(grouped.get(key) ?? []), variable]) }
     return `<input class="ts-search" type="search" data-search="variables" placeholder="Search ${this.variables.length} variables…" value="${escapeHtml(this.variableSearch)}"><div class="ts-resource-list" style="margin-top:8px">${filtered.length ? [...grouped].map(([category, entries]) => `<div class="ts-group-title">${escapeHtml(category)}</div>${entries.map((entry) => `<div class="ts-variable"><code>${escapeHtml(entry.name)}</code><span>${escapeHtml(entry.value ?? entry.defaultValue ?? '')}</span></div>`).join('')}`).join('') : '<div class="ts-empty">No variables found.</div>'}</div>`
   }
+  private renderThemeSource(): string {
+    const source = this.store.activeProject.sourceTheme
+    if (!source) return ''
+    const editable = source.editable
+    const previewEnabled = source.previewEnabled
+    const metadata = [source.archiveName, source.author ? `by ${source.author}` : ''].filter(Boolean).join(' · ')
+    const components = Object.entries(source.components)
+    const canonicalizedByHost = [source.globalCSS, ...components.map(([, component]) => component.css)].some((css) => /@import stripped|unsafe url stripped|external url stripped/i.test(css))
+    const sourceStatusClass = !previewEnabled ? 'ts-status-muted' : this.sourcePreviewResult.valid ? 'ts-status-ok' : 'ts-status-error'
+    const sourceStatusText = !previewEnabled ? 'Preview off' : this.sourcePreviewResult.valid ? 'Overlay on' : escapeHtml(this.sourcePreviewResult.error ?? 'Invalid CSS')
+    const componentMarkup = components.length ? components.map(([id, component]) => `<details class="ts-source-component"><summary><span><strong>${escapeHtml(id)}</strong><small>${component.enabled ? 'Enabled' : 'Disabled'} native section</small></span><span class="ts-chip">${component.enabled ? 'On' : 'Off'}</span></summary><div class="ts-source-component-body"><label class="ts-source-enabled"><input type="checkbox" data-source-component-enabled="${escapeHtml(id)}" ${component.enabled ? 'checked' : ''} ${editable ? '' : 'disabled'}><span>Include this native component section</span></label><textarea class="ts-textarea ts-code ts-code-source-component" data-source-component-css="${escapeHtml(id)}" ${editable ? '' : 'readonly'} spellcheck="false">${escapeHtml(component.css)}</textarea></div></details>`).join('') : '<div class="ts-empty">This theme has no native component CSS sections.</div>'
+    return `<section class="ts-section ts-theme-source"><div class="ts-code-label ts-theme-source-head"><div><p class="ts-kicker" style="margin:0">Theme Source</p><p class="ts-note">${escapeHtml(metadata || source.name || 'Imported .lumitheme')} · Lumiverse-imported baseline, kept separate from Palette Design.</p></div><div class="ts-source-actions"><span class="ts-chip">${editable ? 'Editable local fork' : 'Protected source'}</span><button class="ts-btn ${previewEnabled ? '' : 'ts-btn-primary'}" type="button" data-source-action="toggle-preview">${previewEnabled ? 'Stop preview' : 'Overlay preview'}</button><button class="ts-btn ${editable ? '' : 'ts-btn-primary'}" type="button" data-source-action="toggle-edit">${editable ? 'Protect source' : 'Fork & edit'}</button></div></div>${canonicalizedByHost ? '<div class="ts-warning">Lumiverse canonicalized part of this archive during import (for example, an @import rule was stripped). Palette preserves the imported draft it receives; this block is not a byte-for-byte copy of the original archive.</div>' : ''}<div class="ts-code-label"><span class="ts-label">Global source CSS</span><span data-source-status class="${sourceStatusClass}">${sourceStatusText}</span></div><textarea class="ts-textarea ts-code ts-code-source" data-source-global-css ${editable ? '' : 'readonly'} spellcheck="false">${escapeHtml(source.globalCSS)}</textarea>${components.length ? `<div class="ts-source-components"><div class="ts-source-components-head"><strong>Native component source</strong><span>${components.length} section${components.length === 1 ? '' : 's'}</span></div>${componentMarkup}</div>` : componentMarkup}<p class="ts-note">Import stays inert. <strong>Overlay preview</strong> deliberately layers Theme Source over the theme currently active in Lumiverse, so it can differ from a clean native apply. When enabled, Source loads first and Palette Design overrides it without rewriting these rules. <strong>Send to Lumiverse</strong> is the clean native apply path.</p></section>`
+  }
   private renderCode(generatedCss: string): string {
-    return `<section class="ts-section"><div class="ts-code-label"><p class="ts-kicker" style="margin:0">Generated CSS</p><span class="ts-chip">Compiler owned</span></div><textarea class="ts-textarea ts-code ts-code-generated" readonly spellcheck="false">${escapeHtml(generatedCss)}</textarea></section><section class="ts-section"><div class="ts-code-label"><p class="ts-kicker" style="margin:0">Custom CSS</p><span data-custom-status class="${this.previewResult.valid ? 'ts-status-ok' : 'ts-status-error'}">${this.previewResult.valid ? 'Previewing' : escapeHtml(this.previewResult.error ?? 'Invalid CSS')}</span></div><textarea class="ts-textarea ts-code ts-code-custom" data-custom-css spellcheck="false" placeholder="/* Advanced CSS stays separate from visual packets. */">${escapeHtml(this.store.activeProject.customCss)}</textarea><p class="ts-note">Generated CSS loads first. Custom CSS loads afterward so advanced users can deliberately override visual output.</p></section><section class="ts-section ts-code-handoff"><div class="ts-code-label"><div><p class="ts-kicker" style="margin:0">Native handoff</p><p class="ts-note">The canonical Lumiverse bridge owns assets, .lumitheme encoding, installation, and native editor navigation.</p></div><span class="ts-chip">ctx.theme</span></div><div class="ts-actions ts-native-handoff-actions"><button class="ts-btn ts-btn-primary" type="button" data-native-action="install" ${this.capabilities.applyTheme ? '' : 'disabled'}>Send to Lumiverse</button><button class="ts-btn" type="button" data-native-action="export" ${this.capabilities.exportLumitheme ? '' : 'disabled'}>Export .lumitheme</button><button class="ts-btn" type="button" data-native-action="import" ${this.capabilities.importTheme ? '' : 'disabled'}>Import .lumitheme</button><button class="ts-btn" type="button" data-native-action="editor" ${this.capabilities.openNativeEditor ? '' : 'disabled'}>Open native editor</button><input type="file" accept=".lumitheme,application/zip" data-native-theme-file hidden></div>${this.nativeActionStatus ? `<div class="ts-native-status">${escapeHtml(this.nativeActionStatus)}</div>` : ''}<p class="ts-note">Send installs a fresh native bundle and saves the result to Lumiverse's theme library. Import is intentionally inert: it becomes a new Palette project and does not apply itself.</p></section>`
+    return `${this.renderThemeSource()}<section class="ts-section"><div class="ts-code-label"><p class="ts-kicker" style="margin:0">Generated CSS</p><span class="ts-chip">Compiler owned</span></div><textarea class="ts-textarea ts-code ts-code-generated" readonly spellcheck="false">${escapeHtml(generatedCss)}</textarea><p class="ts-note">Palette Design loads after Theme Source. Visual edits stay as explicit override CSS instead of mutating imported rules.</p></section><section class="ts-section"><div class="ts-code-label"><p class="ts-kicker" style="margin:0">Custom CSS</p><span data-custom-status class="${this.previewResult.valid ? 'ts-status-ok' : 'ts-status-error'}">${this.previewResult.valid ? 'Previewing' : escapeHtml(this.previewResult.error ?? 'Invalid CSS')}</span></div><textarea class="ts-textarea ts-code ts-code-custom" data-custom-css spellcheck="false" placeholder="/* Advanced CSS stays separate from visual packets. */">${escapeHtml(this.store.activeProject.customCss)}</textarea><p class="ts-note">Custom CSS stays last in the cascade so advanced users can deliberately override both source and visual output.</p></section><section class="ts-section ts-code-handoff"><div class="ts-code-label"><div><p class="ts-kicker" style="margin:0">Native handoff</p><p class="ts-note">The canonical Lumiverse bridge owns assets, .lumitheme encoding, installation, and native editor navigation.</p></div><span class="ts-chip">ctx.theme</span></div><div class="ts-actions ts-native-handoff-actions"><button class="ts-btn ts-btn-primary" type="button" data-native-action="install" ${this.capabilities.applyTheme ? '' : 'disabled'}>Send to Lumiverse</button><button class="ts-btn" type="button" data-native-action="export" ${this.capabilities.exportLumitheme ? '' : 'disabled'}>Export .lumitheme</button><button class="ts-btn" type="button" data-native-action="import" ${this.capabilities.importTheme ? '' : 'disabled'}>Import .lumitheme</button><button class="ts-btn" type="button" data-native-action="editor" ${this.capabilities.openNativeEditor ? '' : 'disabled'}>Open native editor</button><input type="file" accept=".lumitheme,application/zip" data-native-theme-file hidden></div>${this.nativeActionStatus ? `<div class="ts-native-status">${escapeHtml(this.nativeActionStatus)}</div>` : ''}<p class="ts-note">Send installs a fresh native bundle and saves the result to Lumiverse's theme library. Import is intentionally inert: it becomes a new Palette project with a protected source snapshot and does not apply itself.</p></section>`
   }
   private renderPresetPreview(preview: string): string {
     return `<div class="ts-preset-preview" data-preset-preview="${escapeHtml(preview)}" aria-hidden="true"><span class="ts-preview-avatar"></span><span class="ts-preview-name">Gabrielle</span><span class="ts-preview-line ts-preview-line-a"></span><span class="ts-preview-line ts-preview-line-b"></span><span class="ts-preview-meta">#0 · 5:23 PM</span></div>`
@@ -3866,6 +3932,20 @@ ${compileComponentOverride(draft, previewOptions)}`)
     this.root.querySelector<HTMLInputElement>(`[data-search="${search}"]`)?.addEventListener('input', (event) => { if (search === 'components') this.componentSearch = (event.currentTarget as HTMLInputElement).value; else this.variableSearch = (event.currentTarget as HTMLInputElement).value; this.renderAndRefocus(search) })
   }
   private bindCode(): void {
+    const updateSourceStatus = () => {
+      const source = this.store.activeProject.sourceTheme
+      this.sourcePreviewResult = this.preview.updateSource(themeSourcePreviewCss(source))
+      const status = this.root.querySelector<HTMLElement>('[data-source-status]')
+      if (status) {
+        status.className = !source?.previewEnabled ? 'ts-status-muted' : this.sourcePreviewResult.valid ? 'ts-status-ok' : 'ts-status-error'
+        status.textContent = !source?.previewEnabled ? 'Preview off' : this.sourcePreviewResult.valid ? 'Overlay on' : this.sourcePreviewResult.error ?? 'Invalid CSS'
+      }
+    }
+    this.root.querySelector<HTMLButtonElement>('[data-source-action="toggle-preview"]')?.addEventListener('click', () => this.store.setSourceThemePreviewEnabled(!this.store.activeProject.sourceTheme?.previewEnabled))
+    this.root.querySelector<HTMLButtonElement>('[data-source-action="toggle-edit"]')?.addEventListener('click', () => this.store.setSourceThemeEditable(!this.store.activeProject.sourceTheme?.editable))
+    this.root.querySelector<HTMLTextAreaElement>('[data-source-global-css]')?.addEventListener('input', (event) => { this.suppressRender = true; this.store.setSourceGlobalCss((event.currentTarget as HTMLTextAreaElement).value); updateSourceStatus() })
+    this.root.querySelectorAll<HTMLTextAreaElement>('[data-source-component-css]').forEach((sourceTextarea) => sourceTextarea.addEventListener('input', () => { const componentId = sourceTextarea.dataset.sourceComponentCss; if (!componentId) return; this.suppressRender = true; this.store.setSourceComponentCss(componentId, sourceTextarea.value); updateSourceStatus() }))
+    this.root.querySelectorAll<HTMLInputElement>('[data-source-component-enabled]').forEach((checkbox) => checkbox.addEventListener('change', () => { const componentId = checkbox.dataset.sourceComponentEnabled; if (!componentId) return; this.store.setSourceComponentEnabled(componentId, checkbox.checked) }))
     const textarea = this.root.querySelector<HTMLTextAreaElement>('[data-custom-css]'); const status = this.root.querySelector<HTMLElement>('[data-custom-status]')
     textarea?.addEventListener('input', () => { this.suppressRender = true; this.store.setCustomCss(textarea.value); this.previewResult = this.preview.updateCustom(textarea.value); if (status) { status.className = this.previewResult.valid ? 'ts-status-ok' : 'ts-status-error'; status.textContent = this.previewResult.valid ? 'Previewing' : this.previewResult.error ?? 'Invalid CSS' } })
     this.root.querySelector<HTMLButtonElement>('[data-native-action="export"]')?.addEventListener('click', () => void this.exportNativeTheme())
@@ -4500,11 +4580,22 @@ ${compileComponentOverride(draft, previewOptions)}`)
     try {
       const imported = await importLumitheme(this.ctx, new Uint8Array(await file.arrayBuffer()))
       const project = this.store.create(imported.draft.name || file.name.replace(/\.lumitheme$/i, ''))
-      const componentCss = Object.entries(imported.draft.components ?? {}).flatMap(([id, value]) => value.css.trim() ? [`/* Imported native component · ${id} */\n${value.css.trim()}`] : [])
-      this.store.setCustomCss([imported.draft.globalCSS.trim(), ...componentCss].filter(Boolean).join('\n\n'))
+      const importedComponents = (imported.draft.components ?? {}) as Record<string, { css?: string; enabled?: boolean }>
+      this.store.setSourceTheme({
+        origin: 'lumitheme',
+        editable: false,
+        previewEnabled: false,
+        archiveName: file.name,
+        name: imported.draft.name || undefined,
+        author: imported.draft.author || undefined,
+        description: imported.draft.description || undefined,
+        globalCSS: imported.draft.globalCSS ?? '',
+        components: Object.fromEntries(Object.entries(importedComponents).map(([id, value]) => [id, { css: value.css ?? '', enabled: value.enabled !== false }])),
+      })
       this.store.setNativeAssetBundleId(imported.draft.assetBundleId ?? undefined)
       this.store.setAssets(imported.assets.map((asset) => ({ assetId: asset.id, path: asset.cssPath, contentUrl: asset.contentUrl, name: asset.originalFilename, mimeType: asset.mimeType })))
-      this.nativeActionStatus = `Imported ${project.name} as an inert Palette project${imported.warnings.length ? ` · ${imported.warnings.length} native warning${imported.warnings.length === 1 ? '' : 's'}` : ''}. Nothing was applied.`
+      const canonicalizedByHost = [imported.draft.globalCSS ?? '', ...Object.values(importedComponents).map((value) => value.css ?? '')].some((css) => /@import stripped|unsafe url stripped|external url stripped/i.test(css))
+      this.nativeActionStatus = `Imported ${project.name} as an inert Palette project with protected Theme Source${imported.warnings.length ? ` · ${imported.warnings.length} native warning${imported.warnings.length === 1 ? '' : 's'}` : ''}. Nothing was applied.${canonicalizedByHost ? ' Lumiverse canonicalized one or more source rules before Palette received the draft.' : ''}`
       await this.refreshAssets()
       this.workspace = 'code'
     } catch (error) { this.nativeActionStatus = `Import failed: ${error instanceof Error ? error.message : 'unknown error'}` }

@@ -10,6 +10,7 @@ import { createStylePacket } from '../src/project/model'
 import { resolveElement } from '../src/registry/selector-resolver'
 import type { NativeThemeComponent } from '../src/registry/types'
 import { ThemeStudioUI } from '../src/ui/studio'
+import { applyDockUiScaleIsolation, nativeUiScale } from '../src/ui/host-scale'
 import { THEME_STUDIO_CSS } from '../src/ui/styles'
 import { KNOWN_PART_ROLES } from '../src/presets/common-parts'
 import { reverseEngineerElement } from '../src/project/reverse-engineer'
@@ -170,6 +171,23 @@ describe('browser-owned lifecycle', () => {
     picker.destroy()
   })
 
+  test('docked Palette cancels Lumiverse UI zoom without cancelling independent font scale', () => {
+    document.documentElement.style.setProperty('--lumiverse-ui-scale', '0.8')
+    document.documentElement.style.setProperty('--lumiverse-font-scale', '1.15')
+    const root = document.createElement('div'); document.body.append(root)
+    expect(nativeUiScale(root)).toBeCloseTo(0.8)
+    applyDockUiScaleIsolation(root, nativeUiScale(root))
+    expect(root.style.getPropertyValue('zoom')).toBe('1.25')
+    expect(root.style.width).toBe('80%')
+    expect(root.style.height).toBe('80%')
+    expect(getComputedStyle(document.documentElement).getPropertyValue('--lumiverse-font-scale')).toBe('1.15')
+    applyDockUiScaleIsolation(root, nativeUiScale(root), false)
+    expect(root.style.getPropertyValue('zoom')).toBe('')
+    expect(root.style.width).toBe('')
+    document.documentElement.style.removeProperty('--lumiverse-ui-scale')
+    document.documentElement.style.removeProperty('--lumiverse-font-scale')
+  })
+
   test('picker honors Lumiverse native UI scale when fixed-probe geometry reports 1:1', () => {
     document.documentElement.style.setProperty('--lumiverse-ui-scale', '0.8')
     const picker = new ElementPicker(mockContext()), target = document.createElement('button'); document.body.append(target)
@@ -237,11 +255,44 @@ describe('browser-owned lifecycle', () => {
     picker.destroy()
   })
 
+  test('Theme Source stays inert through the Studio render pipeline until overlay preview is explicitly enabled', () => {
+    const context = mockContext()
+    const root = document.createElement('div'); document.body.append(root)
+    const store = new ProjectStore()
+    store.setSourceTheme({
+      origin: 'lumitheme', editable: false, previewEnabled: false,
+      globalCSS: '.imported-global { color: pink; }',
+      components: { MinimalMessage: { css: '.imported-minimal { padding: 8px; }', enabled: true } },
+    })
+    const preview = new LiveStylesheet(context)
+    const picker = new ElementPicker(context)
+    const studio = new ThemeStudioUI(context, root, store, picker, preview)
+
+    studio.render()
+    const sourceStyle = document.querySelector<HTMLStyleElement>('[data-theme-studio-preview="source"]')!
+    expect(sourceStyle.textContent).toBe('')
+
+    // Theme Source controls live in Code. Exercise the real workspace switch
+    // instead of asserting against UI that Design intentionally does not render.
+    root.querySelector<HTMLButtonElement>('[data-workspace="code"]')!.click()
+    expect(root.textContent).toContain('Preview off')
+
+    store.setSourceThemePreviewEnabled(true)
+    expect(sourceStyle.textContent).toContain('.imported-global')
+    expect(sourceStyle.textContent).toContain('.imported-minimal')
+    expect(root.textContent).toContain('Overlay on')
+
+    studio.destroy(); picker.destroy(); preview.destroy(); root.remove()
+  })
+
   test('preview stylesheets update in place and are removed on teardown', () => {
     const preview = new LiveStylesheet(mockContext())
-    expect(document.querySelectorAll('[data-theme-studio-preview]')).toHaveLength(3)
+    expect(document.querySelectorAll('[data-theme-studio-preview]')).toHaveLength(4)
+    expect(preview.updateSource('@import url("https://example.com/source.css"); .target { color: pink; }').valid).toBe(true)
     expect(preview.updateGenerated('.target { background: #123456; }').valid).toBe(true)
     expect(preview.updateCustom('@import url("https://example.com/a.css"); .target { color: red; }').valid).toBe(true)
+    expect(document.querySelector('[data-theme-studio-preview="source"]')?.textContent).toContain('color: pink')
+    expect(document.querySelector('[data-theme-studio-preview="source"]')?.textContent).not.toContain('https://example.com')
     expect(document.querySelector('[data-theme-studio-preview="generated"]')?.textContent).toContain('#123456')
     expect(document.querySelector('[data-theme-studio-preview="custom"]')?.textContent).toContain('@import stripped')
     expect(document.querySelector('[data-theme-studio-preview="custom"]')?.textContent).not.toContain('https://example.com')
@@ -307,7 +358,7 @@ describe('browser-owned lifecycle', () => {
     // Spindle collapses by unmounting its content host. The extension root is
     // intentionally detached during that time and must remain live state.
     contentHost.remove()
-    await new Promise((resolve) => window.setTimeout(resolve, 0))
+    await testWindow.happyDOM.waitUntilComplete()
     expect(panelRoot.isConnected).toBe(false)
     expect(hostPanel.isConnected).toBe(true)
     expect(access.styleLibraryPresentation).toBe('dock')
@@ -319,14 +370,14 @@ describe('browser-owned lifecycle', () => {
     contentHost = document.createElement('div')
     hostPanel.append(contentHost)
     contentHost.append(panelRoot)
-    await new Promise((resolve) => window.setTimeout(resolve, 0))
+    await testWindow.happyDOM.waitUntilComplete()
     expect(panelRoot.isConnected).toBe(true)
     expect(libraryRoot?.isConnected).toBe(true)
     expect(access.styleLibraryPresentation).toBe('dock')
 
     // Removing the native shell is the real close signal.
     hostPanel.remove()
-    await new Promise((resolve) => window.setTimeout(resolve, 0))
+    await testWindow.happyDOM.waitUntilComplete()
     expect(access.styleLibraryPresentation).toBe('fullscreen')
     expect(access.styleLibraryOpen).toBe(false)
 

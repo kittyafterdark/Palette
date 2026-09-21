@@ -98,6 +98,26 @@ export class ProjectStore {
   }
   rename(projectId: string, name: string): void { const trimmed = name.trim().slice(0, 120); if (trimmed) this.updateProject(projectId, (project) => ({ ...project, name: trimmed })) }
   delete(projectId: string): void { if (this.state.projects.length <= 1) return; const projects = this.state.projects.filter((project) => project.id !== projectId); this.state = { ...this.state, projects, activeProjectId: this.state.activeProjectId === projectId ? projects[0].id : this.state.activeProjectId }; this.emit() }
+  setSourceTheme(value?: ThemeStudioProject['sourceTheme']): void { this.updateActive((project) => ({ ...project, sourceTheme: value ? structuredClone(value) : undefined })) }
+  setSourceThemeEditable(editable: boolean): void { this.updateActive((project) => project.sourceTheme ? ({ ...project, sourceTheme: { ...project.sourceTheme, editable } }) : project) }
+  setSourceThemePreviewEnabled(previewEnabled: boolean): void { this.updateActive((project) => project.sourceTheme ? ({ ...project, sourceTheme: { ...project.sourceTheme, previewEnabled } }) : project) }
+  setSourceGlobalCss(value: string): void { this.updateActive((project) => project.sourceTheme?.editable ? ({ ...project, sourceTheme: { ...project.sourceTheme, globalCSS: value } }) : project) }
+  setSourceComponentCss(componentId: string, value: string): void {
+    this.updateActive((project) => {
+      const source = project.sourceTheme
+      const component = source?.components[componentId]
+      if (!source?.editable || !component) return project
+      return { ...project, sourceTheme: { ...source, components: { ...source.components, [componentId]: { ...component, css: value } } } }
+    })
+  }
+  setSourceComponentEnabled(componentId: string, enabled: boolean): void {
+    this.updateActive((project) => {
+      const source = project.sourceTheme
+      const component = source?.components[componentId]
+      if (!source?.editable || !component) return project
+      return { ...project, sourceTheme: { ...source, components: { ...source.components, [componentId]: { ...component, enabled } } } }
+    })
+  }
   setCustomCss(value: string): void { this.updateActive((project) => ({ ...project, customCss: value })) }
   setNativeAssetBundleId(bundleId?: string): void { this.updateActive((project) => ({ ...project, nativeAssetBundleId: bundleId || undefined })) }
   setAssets(assets: ThemeStudioProject['assets']): void { this.updateActive((project) => ({ ...project, assets: structuredClone(assets) })) }

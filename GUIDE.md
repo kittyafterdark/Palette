@@ -2,7 +2,7 @@
 
 > **Visual theme authoring for Lumiverse.** Pick the thing you mean, describe the visual intent, and Palette turns it into scoped, reusable CSS. Generated CSS is output; your semantic Palette project is the source of truth.
 
-**Palette 1.0.3 · schema v42**  
+**Palette 1.0.5 · schema v45**  
 Release history lives in the project changelog; this page is the actual manual.
 
 **Jump to:** [Start here](#palette-guide-start) · [Pick & scope](#palette-guide-pick) · [Style packets](#palette-guide-packets) · [Groups](#palette-guide-groups) · [Read styles](#palette-guide-read) · [Reuse](#palette-guide-reuse) · [Boost](#palette-guide-boost) · [Widget & Code](#palette-guide-code) · [CSS field guide](#palette-guide-css) · [Debugging](#palette-guide-debug)
@@ -430,17 +430,21 @@ On phones the floating editor can attach to the top or bottom edge; the resize h
 
 The mobile inspector keeps narrow empty gutters on both sides of its scroll body. Those gutters are intentional touch-safe vertical pan lanes: if a packet is mostly sliders, drag the gutter instead of negotiating with a range thumb. Palette also pins its own mobile control typography/height so the active Lumiverse theme cannot make editor dropdown labels oversized or clipped.
 
-### Generated CSS vs Custom CSS
+### Theme Source vs Generated CSS vs Custom CSS
 
-**Generated CSS** is compiler-owned and read-only. It exists so advanced users can inspect exactly what Palette emitted.
+Imported `.lumitheme` projects keep Lumiverse's imported baseline as **Theme Source**. Global source CSS and native component sections are stored separately from Palette Design and are protected by default. **Fork & edit** explicitly unlocks that local source snapshot; **Protect source** can lock it again without discarding edits. Lumiverse may canonicalize archive CSS while importing it (for example by stripping `@import`), so Theme Source is the canonical imported draft Palette receives rather than a promise of byte-for-byte archive preservation.
 
-**Custom CSS** is your deliberate escape hatch. It stays separate from semantic project state.
+Import is genuinely inert. **Overlay preview** is an explicit opt-in because it layers Theme Source over whatever native theme is currently active in Lumiverse; that composite is useful for editing but is not equivalent to a clean native theme application. **Send to Lumiverse** is the clean apply path.
 
-Do not treat generated CSS as persistence input. Palette should regenerate it deterministically from semantic state.
+**Generated CSS** is compiler-owned and read-only. When source overlay is enabled it loads after Theme Source, so visual Design edits remain explicit overrides instead of rewriting downloaded CSS.
+
+**Custom CSS** is your deliberate escape hatch. It stays separate from semantic project state and loads last, so it can deliberately override both Theme Source and generated Design output.
+
+Do not treat generated CSS as persistence input. Palette should regenerate it deterministically from semantic state. Imported Theme Source is persistence input because it is source material received from the native import bridge, not compiler output.
 
 ### Native handoff and assets
 
-The Code workspace can send/export the current work through Lumiverse's native theme bridge and import compatible `.lumitheme` data.
+The Code workspace can send/export the current work through Lumiverse's native theme bridge and import compatible `.lumitheme` data. Import is inert: it creates a new Palette project, preserves the native bridge's Global/component draft as protected Theme Source, keeps source overlay preview off, and does not apply the theme. Export keeps native component source sections structured instead of flattening them into Global CSS.
 
 Native Theme Assets are project-owned. Palette stores canonical `./assets/...` references so an exported native theme does not depend on a temporary browser URL. Images can be optimized, and font assets can be registered into the Typography browser.
 
@@ -777,4 +781,4 @@ Reasoning is an **Inner Voice plate** beneath the name and slightly over the dia
 
 Swipe navigation belongs at the **bottom-left** as compact route furniture in normal flow. `minimal.swipes.previous` and `.next` replace native chevrons with maskable built-in arrow SVGs; `minimal.swipes.counter` owns the route count; `minimal.swipes.ornament` supplies a small decorative flower. Keeping the pager in flow prevents long messages from separating the controls from the actual dialogue footer. The long-message toggle is also scoped under Minimal so it cannot inherit Bubble's serif/purple continuation chrome.
 
-Typography remains renderer-specific. Bubble VN keeps its cinematic serif language. Minimal dialogue/body copy uses compact UI sans and mono metadata through `minimal.prose.*`, applied after shared `visual-novel-prose`, so fresh Apply All preserves the renderer split. Those VN roles themselves remain static DOM anatomy. Palette project/state schema is currently **v42** because Image and Mask now persist as separate packet types.
+Typography remains renderer-specific. Bubble VN keeps its cinematic serif language. Minimal dialogue/body copy uses compact UI sans and mono metadata through `minimal.prose.*`, applied after shared `visual-novel-prose`, so fresh Apply All preserves the renderer split. Those VN roles themselves remain static DOM anatomy. Palette project/state schema is currently **v45**. Imported `.lumitheme` CSS persists as a protected, preview-off Theme Source layer, separate from Palette-generated Design CSS and Custom CSS; v43 remains the SVG / Icon replacement metadata boundary and v42 remains the Image/Mask split migration boundary.
