@@ -1,11 +1,19 @@
 const NATIVE_UI_SCALE_PROPERTY = '--lumiverse-ui-scale'
 
+type ZoomAwareElement = Element & { currentCSSZoom?: number }
+
 function parsedScale(value: string): number | null {
   const trimmed = value.trim()
   if (!trimmed) return null
   const parsed = Number.parseFloat(trimmed)
   if (!Number.isFinite(parsed) || parsed <= 0.001) return null
   return trimmed.endsWith('%') ? parsed / 100 : parsed
+}
+
+function currentCssZoom(element: Element | null): number | null {
+  if (!element) return null
+  const value = Number((element as ZoomAwareElement).currentCSSZoom)
+  return Number.isFinite(value) && value > 0.001 ? value : null
 }
 
 /** Read Lumiverse's published UI zoom multiplier. */
@@ -29,6 +37,58 @@ export function nativeUiScale(scope?: Element): number {
 }
 
 /**
+ * Read the CSS zoom inherited from a Palette portal's *actual* parent chain.
+ *
+ * This deliberately differs from nativeUiScale(): the published Lumiverse token
+ * describes the app shell, but Palette's mini widget / floating editor are
+ * portalled to document.body. Some host layouts leave body unzoomed while others
+ * zoom it too. Using the token blindly therefore either leaves a real coordinate
+ * mismatch in place or over-enlarges an already-unscaled portal.
+ */
+export function ancestorUiScale(surface?: Element | null): number {
+  if (!surface || typeof document === 'undefined' || typeof getComputedStyle !== 'function') return 1
+  const parent = surface.parentElement
+  if (!parent) return 1
+
+  // Chromium exposes the effective CSS zoom of an element, including ancestor
+  // zoom. Read the parent rather than the Palette surface itself so repeated
+  // synchronization stays stable after we apply our inverse zoom to the child.
+  const effective = currentCssZoom(parent)
+  if (effective) return effective
+
+  // Compatibility fallback for DOMs/browsers without currentCSSZoom.
+  let scale = 1
+  let current: Element | null = parent
+  while (current) {
+    const zoom = parsedScale(getComputedStyle(current).getPropertyValue('zoom'))
+    if (zoom) scale *= zoom
+    current = current.parentElement
+  }
+  return Number.isFinite(scale) && scale > 0.001 ? scale : 1
+}
+
+function applyInverseUiZoom(root: HTMLElement, scale: number, enabled: boolean): void {
+  const normalized = Number.isFinite(scale) && scale > 0.001 ? scale : 1
+  if (!enabled || Math.abs(normalized - 1) <= 0.001) {
+    root.style.removeProperty('zoom')
+    root.removeAttribute('data-ts-ui-scale-isolated')
+    return
+  }
+  root.style.setProperty('zoom', String(1 / normalized))
+  root.setAttribute('data-ts-ui-scale-isolated', String(normalized))
+}
+
+/**
+ * Cancel actual host CSS zoom for body-portalled Palette chrome. This keeps the
+ * visual widget and the browser's pointer hit-test coordinates in the same
+ * space instead of compensating against a token that may describe another DOM
+ * branch entirely.
+ */
+export function applyPortalUiScaleIsolation(root: HTMLElement, scale: number, enabled = true): void {
+  applyInverseUiZoom(root, scale, enabled)
+}
+
+/**
  * Lumiverse's app shell is zoomed by native UI scale. Palette is a tooling
  * surface, so cancel that visual zoom for the docked editor without shrinking
  * its authored layout box. The previous footprint compensation multiplied the
@@ -38,17 +98,10 @@ export function nativeUiScale(scope?: Element): number {
  * Font scale remains independent via --lumiverse-font-scale inside Palette CSS.
  */
 export function applyDockUiScaleIsolation(root: HTMLElement, scale: number, enabled = true): void {
-  const normalized = Number.isFinite(scale) && scale > 0.001 ? scale : 1
   // v45 briefly wrote scaled footprint values inline. Always clear those
   // extension-owned leftovers so a hot reload cannot strand the narrow layout.
   root.style.removeProperty('width')
   root.style.removeProperty('height')
   root.style.removeProperty('max-height')
-  if (!enabled || Math.abs(normalized - 1) <= 0.001) {
-    root.style.removeProperty('zoom')
-    root.removeAttribute('data-ts-ui-scale-isolated')
-    return
-  }
-  root.style.setProperty('zoom', String(1 / normalized))
-  root.setAttribute('data-ts-ui-scale-isolated', String(normalized))
+  applyInverseUiZoom(root, scale, enabled)
 }

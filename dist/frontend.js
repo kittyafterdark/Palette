@@ -5439,6 +5439,11 @@ function parsedScale(value) {
   if (!Number.isFinite(parsed) || parsed <= 1e-3) return null;
   return trimmed.endsWith("%") ? parsed / 100 : parsed;
 }
+function currentCssZoom(element) {
+  if (!element) return null;
+  const value = Number(element.currentCSSZoom);
+  return Number.isFinite(value) && value > 1e-3 ? value : null;
+}
 function nativeUiScale2(scope) {
   if (typeof document === "undefined" || typeof getComputedStyle !== "function") return 1;
   const published = parsedScale(getComputedStyle(document.documentElement).getPropertyValue(NATIVE_UI_SCALE_PROPERTY2));
@@ -5454,11 +5459,23 @@ function nativeUiScale2(scope) {
   }
   return Number.isFinite(scale) && scale > 1e-3 ? scale : 1;
 }
-function applyDockUiScaleIsolation(root, scale, enabled = true) {
+function ancestorUiScale(surface) {
+  if (!surface || typeof document === "undefined" || typeof getComputedStyle !== "function") return 1;
+  const parent = surface.parentElement;
+  if (!parent) return 1;
+  const effective = currentCssZoom(parent);
+  if (effective) return effective;
+  let scale = 1;
+  let current = parent;
+  while (current) {
+    const zoom = parsedScale(getComputedStyle(current).getPropertyValue("zoom"));
+    if (zoom) scale *= zoom;
+    current = current.parentElement;
+  }
+  return Number.isFinite(scale) && scale > 1e-3 ? scale : 1;
+}
+function applyInverseUiZoom(root, scale, enabled) {
   const normalized = Number.isFinite(scale) && scale > 1e-3 ? scale : 1;
-  root.style.removeProperty("width");
-  root.style.removeProperty("height");
-  root.style.removeProperty("max-height");
   if (!enabled || Math.abs(normalized - 1) <= 1e-3) {
     root.style.removeProperty("zoom");
     root.removeAttribute("data-ts-ui-scale-isolated");
@@ -5466,6 +5483,15 @@ function applyDockUiScaleIsolation(root, scale, enabled = true) {
   }
   root.style.setProperty("zoom", String(1 / normalized));
   root.setAttribute("data-ts-ui-scale-isolated", String(normalized));
+}
+function applyPortalUiScaleIsolation(root, scale, enabled = true) {
+  applyInverseUiZoom(root, scale, enabled);
+}
+function applyDockUiScaleIsolation(root, scale, enabled = true) {
+  root.style.removeProperty("width");
+  root.style.removeProperty("height");
+  root.style.removeProperty("max-height");
+  applyInverseUiZoom(root, scale, enabled);
 }
 
 // src/nativeBridge/fonts.ts
@@ -19521,6 +19547,8 @@ var ThemeStudioUI = class {
   }
   syncHostUiScaleIsolation() {
     applyDockUiScaleIsolation(this.root, nativeUiScale2(this.root), !this.editorFloating);
+    if (this.widgetRoot) applyPortalUiScaleIsolation(this.widgetRoot, ancestorUiScale(this.widgetRoot));
+    if (this.floatingFrame) applyPortalUiScaleIsolation(this.floatingFrame, ancestorUiScale(this.floatingFrame));
   }
   observeHostUiScale() {
     if (typeof MutationObserver === "undefined" || typeof document === "undefined") return;

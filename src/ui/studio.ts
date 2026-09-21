@@ -14,7 +14,7 @@ import { inspectLayoutContext } from '../registry/layout-context'
 import type { MessageSideName, NativeThemeAsset, NativeThemeCapabilities, NativeThemeComponent, NativeThemeVariable, ResolvedSelection, SelectionScope } from '../registry/types'
 import { appendPseudoToSelectorList, evaluateSelectorHealth } from '../registry/selector-utils'
 import type { ThemeRuntimeBridge } from '../nativeBridge/theme-runtime'
-import { applyDockUiScaleIsolation, nativeUiScale } from './host-scale'
+import { ancestorUiScale, applyDockUiScaleIsolation, applyPortalUiScaleIsolation, nativeUiScale } from './host-scale'
 import { knownTypographyChoices } from '../nativeBridge/fonts'
 import { COMMON_PART_PRESETS, KNOWN_PART_ROLES, applyTextInkPolicyForRole, presetRoles, targetForKnownRole, type CommonPartPreset, type KnownPartRoleId } from '../presets/common-parts'
 import { STYLE_LIBRARY_AREAS, STYLE_LIBRARY_PACKS, STYLE_LIBRARY_RECIPES, packCompatiblePresetIds, packDefaultPresetIds, packDefaultPresetIdsForLayout, packForId, packPresetIds, recipeMetaForId, styleLibraryFamilies, styleLibraryPackSearchText, styleLibrarySearchText, type MessageLayoutSupport, type PackWorkbenchLayout, type StyleLibraryArea, type StyleLibraryItemKey, type StyleLibraryPack, type StyleLibraryRecipeMeta } from '../presets/style-library'
@@ -520,6 +520,8 @@ export class ThemeStudioUI {
 
   private syncHostUiScaleIsolation(): void {
     applyDockUiScaleIsolation(this.root, nativeUiScale(this.root), !this.editorFloating)
+    if (this.widgetRoot) applyPortalUiScaleIsolation(this.widgetRoot, ancestorUiScale(this.widgetRoot))
+    if (this.floatingFrame) applyPortalUiScaleIsolation(this.floatingFrame, ancestorUiScale(this.floatingFrame))
   }
 
   private observeHostUiScale(): void {

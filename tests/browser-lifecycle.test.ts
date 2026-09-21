@@ -10,7 +10,7 @@ import { createStylePacket } from '../src/project/model'
 import { resolveElement } from '../src/registry/selector-resolver'
 import type { NativeThemeComponent } from '../src/registry/types'
 import { ThemeStudioUI } from '../src/ui/studio'
-import { applyDockUiScaleIsolation, nativeUiScale } from '../src/ui/host-scale'
+import { ancestorUiScale, applyDockUiScaleIsolation, applyPortalUiScaleIsolation, nativeUiScale } from '../src/ui/host-scale'
 import { THEME_STUDIO_CSS } from '../src/ui/styles'
 import { KNOWN_PART_ROLES } from '../src/presets/common-parts'
 import { reverseEngineerElement } from '../src/project/reverse-engineer'
@@ -191,6 +191,49 @@ describe('browser-owned lifecycle', () => {
     expect(root.style.height).toBe('')
     document.documentElement.style.removeProperty('--lumiverse-ui-scale')
     document.documentElement.style.removeProperty('--lumiverse-font-scale')
+  })
+
+  test('body-portalled Palette chrome cancels only its real ancestor CSS zoom', () => {
+    document.documentElement.style.setProperty('--lumiverse-ui-scale', '0.8')
+
+    const unscaledPortal = document.createElement('div')
+    document.body.append(unscaledPortal)
+    expect(ancestorUiScale(unscaledPortal)).toBeCloseTo(1)
+    applyPortalUiScaleIsolation(unscaledPortal, ancestorUiScale(unscaledPortal))
+    expect(unscaledPortal.style.getPropertyValue('zoom')).toBe('')
+
+    const scaledHost = document.createElement('div')
+    const scaledPortal = document.createElement('div')
+    Object.defineProperty(scaledHost, 'currentCSSZoom', { configurable: true, value: 0.8 })
+    scaledHost.append(scaledPortal)
+    document.body.append(scaledHost)
+    expect(ancestorUiScale(scaledPortal)).toBeCloseTo(0.8)
+    applyPortalUiScaleIsolation(scaledPortal, ancestorUiScale(scaledPortal))
+    expect(scaledPortal.style.getPropertyValue('zoom')).toBe('1.25')
+
+    // Re-reading the parent keeps synchronization stable after the child gains
+    // its inverse zoom; it must not see its own compensation and oscillate.
+    expect(ancestorUiScale(scaledPortal)).toBeCloseTo(0.8)
+
+    document.documentElement.style.removeProperty('--lumiverse-ui-scale')
+  })
+
+  test('mini widget and floating editor share the host pointer coordinate space', () => {
+    document.documentElement.style.setProperty('--lumiverse-ui-scale', '0.8')
+    Object.defineProperty(document.body, 'currentCSSZoom', { configurable: true, value: 0.8 })
+    const root = document.createElement('div'); document.body.append(root)
+    const context = mockContext(), store = new ProjectStore(), preview = new LiveStylesheet(context), picker = new ElementPicker(context)
+    const studio = new ThemeStudioUI(context, root, store, picker, preview)
+    const access = studio as unknown as { mountWidget(): void; syncHostUiScaleIsolation(): void; widgetRoot: HTMLElement | null; floatingFrame: HTMLElement | null }
+
+    access.mountWidget()
+    access.syncHostUiScaleIsolation()
+
+    expect(access.widgetRoot?.style.getPropertyValue('zoom')).toBe('1.25')
+    expect(access.floatingFrame?.style.getPropertyValue('zoom')).toBe('1.25')
+
+    studio.destroy(); picker.destroy(); preview.destroy(); root.remove()
+    document.documentElement.style.removeProperty('--lumiverse-ui-scale')
   })
 
   test('picker honors Lumiverse native UI scale when fixed-probe geometry reports 1:1', () => {
