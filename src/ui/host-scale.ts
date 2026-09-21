@@ -30,24 +30,25 @@ export function nativeUiScale(scope?: Element): number {
 
 /**
  * Lumiverse's app shell is zoomed by native UI scale. Palette is a tooling
- * surface, so keep its docked chrome at 1x while preserving the host-owned
- * drawer's rendered footprint. Font scale remains independent via
- * --lumiverse-font-scale inside Palette CSS.
+ * surface, so cancel that visual zoom for the docked editor without shrinking
+ * its authored layout box. The previous footprint compensation multiplied the
+ * editor width/height by the host scale as well, which double-counted the host
+ * drawer sizing and produced the narrow "diet Palette" column at 0.8x.
+ *
+ * Font scale remains independent via --lumiverse-font-scale inside Palette CSS.
  */
 export function applyDockUiScaleIsolation(root: HTMLElement, scale: number, enabled = true): void {
   const normalized = Number.isFinite(scale) && scale > 0.001 ? scale : 1
+  // v45 briefly wrote scaled footprint values inline. Always clear those
+  // extension-owned leftovers so a hot reload cannot strand the narrow layout.
+  root.style.removeProperty('width')
+  root.style.removeProperty('height')
+  root.style.removeProperty('max-height')
   if (!enabled || Math.abs(normalized - 1) <= 0.001) {
     root.style.removeProperty('zoom')
-    root.style.removeProperty('width')
-    root.style.removeProperty('height')
-    root.style.removeProperty('max-height')
     root.removeAttribute('data-ts-ui-scale-isolated')
     return
   }
   root.style.setProperty('zoom', String(1 / normalized))
-  const footprint = `${normalized * 100}%`
-  root.style.width = footprint
-  root.style.height = footprint
-  root.style.maxHeight = footprint
   root.setAttribute('data-ts-ui-scale-isolated', String(normalized))
 }

@@ -171,19 +171,24 @@ describe('browser-owned lifecycle', () => {
     picker.destroy()
   })
 
-  test('docked Palette cancels Lumiverse UI zoom without cancelling independent font scale', () => {
+  test('docked Palette cancels Lumiverse UI zoom without shrinking its layout box or cancelling independent font scale', () => {
     document.documentElement.style.setProperty('--lumiverse-ui-scale', '0.8')
     document.documentElement.style.setProperty('--lumiverse-font-scale', '1.15')
     const root = document.createElement('div'); document.body.append(root)
+    // Simulate the stale v45 footprint so the new helper also proves it heals
+    // an already-mounted editor instead of requiring a full page reload.
+    root.style.width = '80%'; root.style.height = '80%'; root.style.maxHeight = '80%'
     expect(nativeUiScale(root)).toBeCloseTo(0.8)
     applyDockUiScaleIsolation(root, nativeUiScale(root))
     expect(root.style.getPropertyValue('zoom')).toBe('1.25')
-    expect(root.style.width).toBe('80%')
-    expect(root.style.height).toBe('80%')
+    expect(root.style.width).toBe('')
+    expect(root.style.height).toBe('')
+    expect(root.style.maxHeight).toBe('')
     expect(getComputedStyle(document.documentElement).getPropertyValue('--lumiverse-font-scale')).toBe('1.15')
     applyDockUiScaleIsolation(root, nativeUiScale(root), false)
     expect(root.style.getPropertyValue('zoom')).toBe('')
     expect(root.style.width).toBe('')
+    expect(root.style.height).toBe('')
     document.documentElement.style.removeProperty('--lumiverse-ui-scale')
     document.documentElement.style.removeProperty('--lumiverse-font-scale')
   })
