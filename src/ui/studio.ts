@@ -14,7 +14,7 @@ import { inspectLayoutContext } from '../registry/layout-context'
 import type { MessageSideName, NativeThemeAsset, NativeThemeCapabilities, NativeThemeComponent, NativeThemeVariable, ResolvedSelection, SelectionScope } from '../registry/types'
 import { appendPseudoToSelectorList, evaluateSelectorHealth } from '../registry/selector-utils'
 import type { ThemeRuntimeBridge } from '../nativeBridge/theme-runtime'
-import { ancestorUiScale, applyDockUiScaleIsolation, applyPortalUiScaleIsolation, nativeUiScale, portalDragPosition } from './host-scale'
+import { ancestorUiScale, applyDockUiScaleIsolation, applyPortalUiScaleIsolation, measurePortalPositionScale, nativeUiScale, portalDragPosition } from './host-scale'
 import { knownTypographyChoices } from '../nativeBridge/fonts'
 import { COMMON_PART_PRESETS, KNOWN_PART_ROLES, applyTextInkPolicyForRole, presetRoles, targetForKnownRole, type CommonPartPreset, type KnownPartRoleId } from '../presets/common-parts'
 import { STYLE_LIBRARY_AREAS, STYLE_LIBRARY_PACKS, STYLE_LIBRARY_RECIPES, packCompatiblePresetIds, packDefaultPresetIds, packDefaultPresetIdsForLayout, packForId, packPresetIds, recipeMetaForId, styleLibraryFamilies, styleLibraryPackSearchText, styleLibrarySearchText, type MessageLayoutSupport, type PackWorkbenchLayout, type StyleLibraryArea, type StyleLibraryItemKey, type StyleLibraryPack, type StyleLibraryRecipeMeta } from '../presets/style-library'
@@ -1612,11 +1612,15 @@ export class ThemeStudioUI {
     const rect = frame.getBoundingClientRect()
     if (!rect.width || !rect.height) return
     const scale = ancestorUiScale(frame)
+    const positionScale = measurePortalPositionScale(frame, scale)
     const viewport = this.floatingViewportSize()
+    const computed = typeof getComputedStyle === 'function' ? getComputedStyle(frame) : null
     const authoredLeft = Number.parseFloat(frame.style.left)
     const authoredTop = Number.parseFloat(frame.style.top)
-    const startLeft = Number.isFinite(authoredLeft) ? authoredLeft : frame.offsetLeft
-    const startTop = Number.isFinite(authoredTop) ? authoredTop : frame.offsetTop
+    const computedLeft = Number.parseFloat(computed?.left ?? '')
+    const computedTop = Number.parseFloat(computed?.top ?? '')
+    const startLeft = Number.isFinite(authoredLeft) ? authoredLeft : Number.isFinite(computedLeft) ? computedLeft : frame.offsetLeft
+    const startTop = Number.isFinite(authoredTop) ? authoredTop : Number.isFinite(computedTop) ? computedTop : frame.offsetTop
     const next = portalDragPosition({
       startRect: rect,
       startLeft,
@@ -1624,6 +1628,8 @@ export class ThemeStudioUI {
       deltaX: 0,
       deltaY: 0,
       ancestorScale: scale,
+      positionScaleX: positionScale.x,
+      positionScaleY: positionScale.y,
       viewportWidth: viewport.width,
       viewportHeight: viewport.height,
     })
@@ -1647,11 +1653,20 @@ export class ThemeStudioUI {
       if (mobile) return
       const start = frame.getBoundingClientRect()
       const startX = event.clientX, startY = event.clientY
+      const computed = typeof getComputedStyle === 'function' ? getComputedStyle(frame) : null
       const authoredLeft = Number.parseFloat(frame.style.left)
       const authoredTop = Number.parseFloat(frame.style.top)
-      const startLeft = Number.isFinite(authoredLeft) ? authoredLeft : frame.offsetLeft
-      const startTop = Number.isFinite(authoredTop) ? authoredTop : frame.offsetTop
+      const computedLeft = Number.parseFloat(computed?.left ?? '')
+      const computedTop = Number.parseFloat(computed?.top ?? '')
+      const startLeft = Number.isFinite(authoredLeft) ? authoredLeft : Number.isFinite(computedLeft) ? computedLeft : frame.offsetLeft
+      const startTop = Number.isFinite(authoredTop) ? authoredTop : Number.isFinite(computedTop) ? computedTop : frame.offsetTop
       const scale = ancestorUiScale(frame)
+      // Do not assume the host zoom token is also this fixed portal's
+      // left/top coordinate scale. Nested CSS zoom can make those diverge.
+      // Probe the browser's real positional response once per drag so the
+      // first gesture reaches the real viewport edge instead of converging
+      // toward it over multiple release/re-grab cycles.
+      const positionScale = measurePortalPositionScale(frame, scale)
       const viewport = this.floatingViewportSize()
       desktopHandle.setPointerCapture?.(event.pointerId)
       const move = (moveEvent: PointerEvent) => {
@@ -1662,6 +1677,8 @@ export class ThemeStudioUI {
           deltaX: moveEvent.clientX - startX,
           deltaY: moveEvent.clientY - startY,
           ancestorScale: scale,
+          positionScaleX: positionScale.x,
+          positionScaleY: positionScale.y,
           viewportWidth: viewport.width,
           viewportHeight: viewport.height,
         })

@@ -95,10 +95,72 @@ export type PortalDragGeometry = {
   startTop: number
   deltaX: number
   deltaY: number
+  /** Fallback only. CSS zoom can make a fixed child's positional scale differ
+   * from the ancestor's published/effective zoom. */
   ancestorScale: number
+  /** Measured CSS-left/top -> viewport-pixel response for this exact surface. */
+  positionScaleX?: number
+  positionScaleY?: number
   viewportWidth: number
   viewportHeight: number
   padding?: number
+}
+
+export type PortalPositionScale = { x: number; y: number }
+
+function validPositionScale(value: number | undefined, fallback: number): number {
+  return Number.isFinite(value) && Number(value) > 0.001 ? Number(value) : fallback
+}
+
+/**
+ * Measure how authored `left` / `top` coordinates on this fixed portal map to
+ * rendered viewport pixels. Nested CSS `zoom` is not reliably described by the
+ * host scale token: a counter-zoomed child can have a different positional
+ * response from either its ancestor zoom or its rendered-size ratio.
+ *
+ * The probe is synchronous and restored before the browser can paint. That
+ * gives drag math the browser's real coordinate conversion rather than another
+ * inferred scale, avoiding the "release, re-grab, move a little farther"
+ * convergence bug.
+ */
+export function measurePortalPositionScale(surface: HTMLElement, fallbackScale = ancestorUiScale(surface), probe = 32): PortalPositionScale {
+  const fallback = Number.isFinite(fallbackScale) && fallbackScale > 0.001 ? fallbackScale : 1
+  if (typeof getComputedStyle !== 'function' || probe <= 0) return { x: fallback, y: fallback }
+
+  const computed = getComputedStyle(surface)
+  const computedLeft = Number.parseFloat(computed.left)
+  const computedTop = Number.parseFloat(computed.top)
+  const baseline = surface.getBoundingClientRect()
+  const inlineLeft = surface.style.getPropertyValue('left')
+  const inlineTop = surface.style.getPropertyValue('top')
+  const leftPriority = surface.style.getPropertyPriority('left')
+  const topPriority = surface.style.getPropertyPriority('top')
+  let x = fallback
+  let y = fallback
+
+  const restore = (property: 'left' | 'top', value: string, priority: string) => {
+    if (value) surface.style.setProperty(property, value, priority)
+    else surface.style.removeProperty(property)
+  }
+
+  try {
+    if (Number.isFinite(computedLeft)) {
+      surface.style.setProperty('left', `${computedLeft + probe}px`)
+      const shifted = surface.getBoundingClientRect()
+      x = validPositionScale((shifted.left - baseline.left) / probe, fallback)
+      restore('left', inlineLeft, leftPriority)
+    }
+    if (Number.isFinite(computedTop)) {
+      surface.style.setProperty('top', `${computedTop + probe}px`)
+      const shifted = surface.getBoundingClientRect()
+      y = validPositionScale((shifted.top - baseline.top) / probe, fallback)
+    }
+  } finally {
+    restore('left', inlineLeft, leftPriority)
+    restore('top', inlineTop, topPriority)
+  }
+
+  return { x, y }
 }
 
 /**
@@ -114,7 +176,9 @@ export type PortalDragGeometry = {
  */
 export function portalDragPosition(input: PortalDragGeometry): { left: number; top: number } {
   const padding = Number.isFinite(input.padding) ? Math.max(0, Number(input.padding)) : 8
-  const scale = Number.isFinite(input.ancestorScale) && input.ancestorScale > 0.001 ? input.ancestorScale : 1
+  const fallbackScale = Number.isFinite(input.ancestorScale) && input.ancestorScale > 0.001 ? input.ancestorScale : 1
+  const scaleX = validPositionScale(input.positionScaleX, fallbackScale)
+  const scaleY = validPositionScale(input.positionScaleY, fallbackScale)
   const viewportWidth = Math.max(0, Number.isFinite(input.viewportWidth) ? input.viewportWidth : 0)
   const viewportHeight = Math.max(0, Number.isFinite(input.viewportHeight) ? input.viewportHeight : 0)
   const renderedWidth = Math.max(0, Number.isFinite(input.startRect.width) ? input.startRect.width : 0)
@@ -124,8 +188,8 @@ export function portalDragPosition(input: PortalDragGeometry): { left: number; t
   const desiredRenderedLeft = Math.max(padding, Math.min(maxRenderedLeft, input.startRect.left + input.deltaX))
   const desiredRenderedTop = Math.max(padding, Math.min(maxRenderedTop, input.startRect.top + input.deltaY))
   return {
-    left: input.startLeft + (desiredRenderedLeft - input.startRect.left) / scale,
-    top: input.startTop + (desiredRenderedTop - input.startRect.top) / scale,
+    left: input.startLeft + (desiredRenderedLeft - input.startRect.left) / scaleX,
+    top: input.startTop + (desiredRenderedTop - input.startRect.top) / scaleY,
   }
 }
 

@@ -5487,9 +5487,49 @@ function applyInverseUiZoom(root, scale, enabled) {
 function applyPortalUiScaleIsolation(root, scale, enabled = true) {
   applyInverseUiZoom(root, scale, enabled);
 }
+function validPositionScale(value, fallback) {
+  return Number.isFinite(value) && Number(value) > 1e-3 ? Number(value) : fallback;
+}
+function measurePortalPositionScale(surface, fallbackScale = ancestorUiScale(surface), probe = 32) {
+  const fallback = Number.isFinite(fallbackScale) && fallbackScale > 1e-3 ? fallbackScale : 1;
+  if (typeof getComputedStyle !== "function" || probe <= 0) return { x: fallback, y: fallback };
+  const computed = getComputedStyle(surface);
+  const computedLeft = Number.parseFloat(computed.left);
+  const computedTop = Number.parseFloat(computed.top);
+  const baseline = surface.getBoundingClientRect();
+  const inlineLeft = surface.style.getPropertyValue("left");
+  const inlineTop = surface.style.getPropertyValue("top");
+  const leftPriority = surface.style.getPropertyPriority("left");
+  const topPriority = surface.style.getPropertyPriority("top");
+  let x = fallback;
+  let y = fallback;
+  const restore = (property, value, priority) => {
+    if (value) surface.style.setProperty(property, value, priority);
+    else surface.style.removeProperty(property);
+  };
+  try {
+    if (Number.isFinite(computedLeft)) {
+      surface.style.setProperty("left", `${computedLeft + probe}px`);
+      const shifted = surface.getBoundingClientRect();
+      x = validPositionScale((shifted.left - baseline.left) / probe, fallback);
+      restore("left", inlineLeft, leftPriority);
+    }
+    if (Number.isFinite(computedTop)) {
+      surface.style.setProperty("top", `${computedTop + probe}px`);
+      const shifted = surface.getBoundingClientRect();
+      y = validPositionScale((shifted.top - baseline.top) / probe, fallback);
+    }
+  } finally {
+    restore("left", inlineLeft, leftPriority);
+    restore("top", inlineTop, topPriority);
+  }
+  return { x, y };
+}
 function portalDragPosition(input) {
   const padding = Number.isFinite(input.padding) ? Math.max(0, Number(input.padding)) : 8;
-  const scale = Number.isFinite(input.ancestorScale) && input.ancestorScale > 1e-3 ? input.ancestorScale : 1;
+  const fallbackScale = Number.isFinite(input.ancestorScale) && input.ancestorScale > 1e-3 ? input.ancestorScale : 1;
+  const scaleX = validPositionScale(input.positionScaleX, fallbackScale);
+  const scaleY = validPositionScale(input.positionScaleY, fallbackScale);
   const viewportWidth = Math.max(0, Number.isFinite(input.viewportWidth) ? input.viewportWidth : 0);
   const viewportHeight = Math.max(0, Number.isFinite(input.viewportHeight) ? input.viewportHeight : 0);
   const renderedWidth = Math.max(0, Number.isFinite(input.startRect.width) ? input.startRect.width : 0);
@@ -5499,8 +5539,8 @@ function portalDragPosition(input) {
   const desiredRenderedLeft = Math.max(padding, Math.min(maxRenderedLeft, input.startRect.left + input.deltaX));
   const desiredRenderedTop = Math.max(padding, Math.min(maxRenderedTop, input.startRect.top + input.deltaY));
   return {
-    left: input.startLeft + (desiredRenderedLeft - input.startRect.left) / scale,
-    top: input.startTop + (desiredRenderedTop - input.startRect.top) / scale
+    left: input.startLeft + (desiredRenderedLeft - input.startRect.left) / scaleX,
+    top: input.startTop + (desiredRenderedTop - input.startRect.top) / scaleY
   };
 }
 function applyDockUiScaleIsolation(root, scale, enabled = true) {
@@ -20764,11 +20804,15 @@ var ThemeStudioUI = class {
     const rect2 = frame.getBoundingClientRect();
     if (!rect2.width || !rect2.height) return;
     const scale = ancestorUiScale(frame);
+    const positionScale = measurePortalPositionScale(frame, scale);
     const viewport = this.floatingViewportSize();
+    const computed = typeof getComputedStyle === "function" ? getComputedStyle(frame) : null;
     const authoredLeft = Number.parseFloat(frame.style.left);
     const authoredTop = Number.parseFloat(frame.style.top);
-    const startLeft = Number.isFinite(authoredLeft) ? authoredLeft : frame.offsetLeft;
-    const startTop = Number.isFinite(authoredTop) ? authoredTop : frame.offsetTop;
+    const computedLeft = Number.parseFloat(computed?.left ?? "");
+    const computedTop = Number.parseFloat(computed?.top ?? "");
+    const startLeft = Number.isFinite(authoredLeft) ? authoredLeft : Number.isFinite(computedLeft) ? computedLeft : frame.offsetLeft;
+    const startTop = Number.isFinite(authoredTop) ? authoredTop : Number.isFinite(computedTop) ? computedTop : frame.offsetTop;
     const next = portalDragPosition({
       startRect: rect2,
       startLeft,
@@ -20776,6 +20820,8 @@ var ThemeStudioUI = class {
       deltaX: 0,
       deltaY: 0,
       ancestorScale: scale,
+      positionScaleX: positionScale.x,
+      positionScaleY: positionScale.y,
       viewportWidth: viewport.width,
       viewportHeight: viewport.height
     });
@@ -20797,11 +20843,15 @@ var ThemeStudioUI = class {
       if (mobile) return;
       const start = frame.getBoundingClientRect();
       const startX = event.clientX, startY = event.clientY;
+      const computed = typeof getComputedStyle === "function" ? getComputedStyle(frame) : null;
       const authoredLeft = Number.parseFloat(frame.style.left);
       const authoredTop = Number.parseFloat(frame.style.top);
-      const startLeft = Number.isFinite(authoredLeft) ? authoredLeft : frame.offsetLeft;
-      const startTop = Number.isFinite(authoredTop) ? authoredTop : frame.offsetTop;
+      const computedLeft = Number.parseFloat(computed?.left ?? "");
+      const computedTop = Number.parseFloat(computed?.top ?? "");
+      const startLeft = Number.isFinite(authoredLeft) ? authoredLeft : Number.isFinite(computedLeft) ? computedLeft : frame.offsetLeft;
+      const startTop = Number.isFinite(authoredTop) ? authoredTop : Number.isFinite(computedTop) ? computedTop : frame.offsetTop;
       const scale = ancestorUiScale(frame);
+      const positionScale = measurePortalPositionScale(frame, scale);
       const viewport = this.floatingViewportSize();
       desktopHandle.setPointerCapture?.(event.pointerId);
       const move = (moveEvent) => {
@@ -20812,6 +20862,8 @@ var ThemeStudioUI = class {
           deltaX: moveEvent.clientX - startX,
           deltaY: moveEvent.clientY - startY,
           ancestorScale: scale,
+          positionScaleX: positionScale.x,
+          positionScaleY: positionScale.y,
           viewportWidth: viewport.width,
           viewportHeight: viewport.height
         });

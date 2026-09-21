@@ -10,7 +10,7 @@ import { createStylePacket } from '../src/project/model'
 import { resolveElement } from '../src/registry/selector-resolver'
 import type { NativeThemeComponent } from '../src/registry/types'
 import { ThemeStudioUI } from '../src/ui/studio'
-import { ancestorUiScale, applyDockUiScaleIsolation, applyPortalUiScaleIsolation, nativeUiScale, portalDragPosition } from '../src/ui/host-scale'
+import { ancestorUiScale, applyDockUiScaleIsolation, applyPortalUiScaleIsolation, measurePortalPositionScale, nativeUiScale, portalDragPosition } from '../src/ui/host-scale'
 import { THEME_STUDIO_CSS } from '../src/ui/styles'
 import { KNOWN_PART_ROLES } from '../src/presets/common-parts'
 import { reverseEngineerElement } from '../src/project/reverse-engineer'
@@ -259,6 +259,63 @@ describe('browser-owned lifecycle', () => {
     expect(next.top).toBeCloseTo(265)
     expect(64 + (next.left - 80) * 0.8).toBeCloseTo(762)
     expect(40 + (next.top - 50) * 0.8).toBeCloseTo(212)
+  })
+
+  test('floating editor measures its real positional scale so one drag reaches the viewport edge without ratcheting', () => {
+    const frame = document.createElement('section')
+    frame.style.left = '100px'
+    frame.style.top = '50px'
+    document.body.append(frame)
+
+    // Model Chromium/Lumiverse nested zoom where the host reports 0.8 but this
+    // counter-zoomed fixed surface actually moves 0.64/0.72 rendered px for
+    // each authored left/top px. The old ancestor-only conversion stopped
+    // short, then each release/re-grab moved another fraction toward the edge.
+    Object.defineProperty(frame, 'getBoundingClientRect', { configurable: true, value: () => {
+      const left = (Number.parseFloat(frame.style.left) || 0) * 0.64
+      const top = (Number.parseFloat(frame.style.top) || 0) * 0.72
+      return { left, top, width: 430, height: 680, right: left + 430, bottom: top + 680, x: left, y: top, toJSON: () => ({}) } as DOMRect
+    } })
+
+    const measured = measurePortalPositionScale(frame, 0.8)
+    expect(measured.x).toBeCloseTo(0.64)
+    expect(measured.y).toBeCloseTo(0.72)
+
+    const startRect = frame.getBoundingClientRect()
+    const first = portalDragPosition({
+      startRect,
+      startLeft: 100,
+      startTop: 50,
+      deltaX: 4000,
+      deltaY: 4000,
+      ancestorScale: 0.8,
+      positionScaleX: measured.x,
+      positionScaleY: measured.y,
+      viewportWidth: 1200,
+      viewportHeight: 900,
+      padding: 8,
+    })
+    frame.style.left = `${first.left}px`
+    frame.style.top = `${first.top}px`
+    expect(frame.getBoundingClientRect().left).toBeCloseTo(762)
+    expect(frame.getBoundingClientRect().top).toBeCloseTo(212)
+
+    const secondStart = frame.getBoundingClientRect()
+    const second = portalDragPosition({
+      startRect: secondStart,
+      startLeft: first.left,
+      startTop: first.top,
+      deltaX: 4000,
+      deltaY: 4000,
+      ancestorScale: 0.8,
+      positionScaleX: measured.x,
+      positionScaleY: measured.y,
+      viewportWidth: 1200,
+      viewportHeight: 900,
+      padding: 8,
+    })
+    expect(second.left).toBeCloseTo(first.left)
+    expect(second.top).toBeCloseTo(first.top)
   })
 
   test('mini widget delegates scaled placement and hit testing to Spindle instead of counter-zooming its content', () => {
