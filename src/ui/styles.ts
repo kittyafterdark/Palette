@@ -183,6 +183,7 @@ export const THEME_STUDIO_CSS = `
 .ts-code[readonly] { color: var(--lumiverse-primary-text, #d2b7ff); background: var(--lumiverse-bg-deep, #0e0b16); }
 .ts-status-ok { color: var(--lumiverse-success, #22c55e); font-size: 10px; }
 .ts-status-error { color: var(--lumiverse-danger, #ef4444); font-size: 10px; }
+.ts-status-muted { color: var(--ts-muted); font-size: 10px; }
 .ts-project-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; margin-top: 8px; }
 .ts-capability { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--ts-border); }
 .ts-capability:last-child { border-bottom: 0; }
@@ -519,8 +520,9 @@ export const THEME_STUDIO_CSS = `
 
 /* Zen-ish floating bridge. It is intentionally small until the user undocks the real editor. */
 .ts-widget-root,.ts-floating-editor,.ts-drawer-placeholder { --ts-surface:var(--lumiverse-bg,#1c1826); --ts-elevated:var(--lumiverse-bg-elevated,#231e30); --ts-hover:var(--lumiverse-bg-hover,#2d283a); --ts-border:var(--lumiverse-border,rgba(147,112,219,.18)); --ts-text:var(--lumiverse-text,rgba(255,255,255,.9)); --ts-muted:var(--lumiverse-text-muted,rgba(255,255,255,.62)); --ts-dim:var(--lumiverse-text-dim,rgba(255,255,255,.4)); --ts-accent:var(--lumiverse-primary,#9370db); --ts-accent-soft:var(--lumiverse-primary-015,rgba(147,112,219,.15)); font-family:var(--lumiverse-font-family,system-ui,sans-serif); color:var(--ts-text); }
-.ts-widget-root { position:fixed; left:18px; bottom:72px; z-index:2147483638; pointer-events:none; }
-.ts-widget-root > * { pointer-events:auto; }
+/* Spindle owns the mini widget's outer fixed-position surface, drag hitbox, and
+   host UI-scale coordinate space. Palette only owns the content inside it. */
+.ts-widget-root { position:relative; width:max-content; height:max-content; overflow:visible; pointer-events:auto; }
 .ts-widget-launch { appearance:none; display:flex; align-items:center; gap:6px; min-width:42px; height:42px; border:1px solid var(--ts-border); border-radius:14px; padding:0 11px; background:color-mix(in srgb,var(--ts-elevated) 92%,transparent); color:var(--ts-text); box-shadow:0 12px 36px rgba(0,0,0,.36),inset 0 1px rgba(255,255,255,.06); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); cursor:pointer; }
 .ts-widget-launch span { color:var(--ts-accent); font-size:17px; }
 .ts-widget-launch i { border-radius:99px; padding:2px 5px; background:var(--ts-accent-soft); color:var(--ts-accent); font-size:8px; font-style:normal; font-weight:800; text-transform:uppercase; }
@@ -612,7 +614,7 @@ export const THEME_STUDIO_CSS = `
   .ts-font-grid .ts-font-sample { min-height: 44px; flex-basis:auto; }
   .ts-preset-grid { grid-template-columns: 1fr; }
   .ts-preset-categories { margin-inline: -2px; }
-  .ts-widget-root { left: 8px; bottom: 58px; max-width: calc(100vw - 16px); }
+  .ts-widget-root { max-width: calc(100vw - 16px); }
   .ts-widget-panel { width: min(242px,calc(100vw - 16px)); }
   .ts-floating-editor { inset: 8px; width: auto; height: auto; max-width: none; max-height: none; }
   .ts-floating-editor-head { cursor: default; }
@@ -2656,9 +2658,52 @@ export const THEME_STUDIO_CSS = `
 
 .ts-native-handoff-actions { display:flex; flex-wrap:wrap; align-items:stretch; gap:6px; }
 .ts-native-handoff-actions .ts-btn { flex:1 1 150px; min-width:0; }
-.ts-code-generated { min-height:210px; max-height:42vh; }
-.ts-code-custom { min-height:200px; }
-.ts-code-handoff { padding-top:2px; border-top:1px solid var(--ts-border); }
+.ts-theme-source { padding-bottom:5px; border-bottom:1px solid var(--ts-border); }
+.ts-theme-source-head { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:start; gap:10px; margin-bottom:9px; }
+.ts-theme-source-title { min-width:0; display:grid; gap:2px; }
+.ts-theme-source-title .ts-kicker { margin:0 0 1px; }
+.ts-theme-source-title > strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }
+.ts-theme-source-title > small { color:var(--ts-muted); font-size:8px; }
+.ts-source-meta { margin-top:2px; color:var(--ts-dim); font-size:7.5px; font-weight:700; letter-spacing:.02em; }
+.ts-source-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px; align-items:center; }
+.ts-code-fold { border:1px solid var(--ts-border); border-radius:8px; background:color-mix(in srgb,var(--ts-surface) 52%,transparent); overflow:hidden; }
+.ts-code-fold > summary { list-style:none; display:flex; justify-content:space-between; align-items:center; gap:8px; min-height:39px; padding:7px 9px; cursor:pointer; }
+.ts-code-fold > summary::-webkit-details-marker { display:none; }
+.ts-code-fold > summary > span:first-child { min-width:0; display:grid; gap:2px; }
+.ts-code-fold > summary strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ts-text); font-size:9px; }
+.ts-code-fold > summary small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ts-muted); font-size:7.5px; font-weight:600; }
+.ts-code-fold-arrow { flex:none; color:var(--ts-dim); font-size:10px; font-style:normal; transition:transform .12s ease; }
+.ts-code-fold[open] > summary .ts-code-fold-arrow { transform:rotate(180deg); }
+.ts-code-fold-body { display:grid; gap:7px; border-top:1px solid var(--ts-border); padding:8px; }
+.ts-source-global { margin-bottom:10px; }
+.ts-code-source { min-height:128px; max-height:38vh; }
+.ts-source-components { display:grid; gap:6px; }
+.ts-source-components-head { display:flex; justify-content:space-between; align-items:center; gap:8px; color:var(--ts-muted); font-size:8px; }
+.ts-source-components-head strong { color:var(--ts-text); font-size:9px; }
+.ts-source-component { border:1px solid var(--ts-border); border-radius:8px; background:color-mix(in srgb,var(--ts-surface) 58%,transparent); overflow:hidden; }
+.ts-source-component > summary { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 9px; cursor:pointer; list-style:none; }
+.ts-source-component > summary::-webkit-details-marker { display:none; }
+.ts-source-component > summary > span:first-child { min-width:0; display:grid; gap:2px; }
+.ts-source-component > summary strong,.ts-source-component > summary small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ts-source-component > summary strong { font-size:9px; }
+.ts-source-component > summary small { color:var(--ts-muted); font-size:7.5px; }
+.ts-source-summary-meta { display:flex; align-items:center; gap:6px; }
+.ts-source-component[open] > summary .ts-code-fold-arrow { transform:rotate(180deg); }
+.ts-source-component-body { display:grid; gap:7px; padding:0 8px 8px; border-top:1px solid var(--ts-border); }
+.ts-source-enabled { display:flex; gap:7px; align-items:center; padding-top:7px; color:var(--ts-muted); font-size:8px; }
+.ts-code-label-tight { margin:0; }
+.ts-code-source-component { min-height:190px; max-height:46vh; }
+.ts-source-tsx { margin-top:1px; }
+.ts-source-tsx .ts-code-source-component { min-height:150px; max-height:36vh; }
+.ts-theme-source-note { margin:8px 1px 0; }
+.ts-source-advanced { margin-top:8px; background:transparent; }
+.ts-source-advanced-body { grid-template-columns:auto minmax(0,1fr); align-items:center; }
+.ts-source-advanced-body .ts-note { margin:0; }
+.ts-code-output,.ts-code-custom-section { padding-block:4px; }
+.ts-code-output .ts-code-fold,.ts-code-custom-section .ts-code-fold { background:transparent; }
+.ts-code-generated { min-height:190px; max-height:42vh; }
+.ts-code-custom { min-height:180px; }
+.ts-code-handoff { padding-top:8px; border-top:1px solid var(--ts-border); }
 .ts-code-handoff .ts-code-label { align-items:flex-start; }
 
 /* Flatten routine editing chrome: packet cards stay cards; scope/state are toolbars. */
@@ -2683,6 +2728,9 @@ export const THEME_STUDIO_CSS = `
 @media (max-width:440px) {
   .ts-native-handoff-actions .ts-btn { flex-basis:100%; }
   .ts-save-style-menu > summary span { display:none; }
+  .ts-theme-source-head { grid-template-columns:1fr; }
+  .ts-source-actions { justify-content:flex-start; }
+  .ts-source-advanced-body { grid-template-columns:1fr; }
 }
 
 .ts-quick-palette-fold { margin:8px 0 10px; border:1px solid var(--ts-border); border-radius:9px; background:color-mix(in srgb,var(--ts-elevated) 92%,var(--ts-surface)); overflow:hidden; }

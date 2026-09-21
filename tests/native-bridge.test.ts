@@ -125,6 +125,40 @@ describe('public ctx.theme bridge', () => {
     expect(draft.globalCSS).not.toContain('Application-wide Palette Boost')
   })
 
+  test('preserves imported source structure and layers Palette edits over it without reviving disabled source components', () => {
+    const project = createProject('Forked Theme')
+    project.sourceTheme = {
+      origin: 'lumitheme', editable: true, previewEnabled: false, author: 'Original Author', description: 'Original description',
+      globalCSS: '.source-global { color: red; }',
+      components: {
+        BubbleMessage: { css: '.source-bubble { padding: 4px; }', tsx: 'export default function SourceBubble() {}', enabled: true },
+        Composer: { css: '.source-composer { opacity: .5; }', enabled: false },
+      },
+    }
+    project.customCss = '.custom-last { color: blue; }'
+    const background = createStylePacket('background')
+    project.componentOverrides.push(
+      { id: 'bubble', target: { selector: '[data-component="BubbleMessage"]', strategy: 'native-registry', stability: 'high', persistence: 'persistent', source: 'native-aware', nativeComponentId: 'BubbleMessage' }, states: { normal: [background] } },
+      { id: 'composer', target: { selector: '[data-component="Composer"]', strategy: 'native-registry', stability: 'high', persistence: 'persistent', source: 'native-aware', nativeComponentId: 'Composer' }, states: { normal: [createStylePacket('border')] } },
+    )
+    const components: Parameters<typeof projectToNativeDraft>[1] = [
+      { id: 'BubbleMessage', label: 'BubbleMessage', area: 'Chat', sources: ['css'], selectors: ['[data-component="BubbleMessage"]'], cssClasses: [], nativeKey: 'BubbleMessage' },
+      { id: 'Composer', label: 'Composer', area: 'Chat', sources: ['css'], selectors: ['[data-component="Composer"]'], cssClasses: [], nativeKey: 'Composer' },
+    ]
+    const draft = projectToNativeDraft(project, components, [])
+
+    expect(draft.author).toBe('Original Author')
+    expect(draft.description).toBe('Original description')
+    expect(draft.globalCSS.indexOf('.source-global')).toBeLessThan(draft.globalCSS.indexOf('.custom-last'))
+    expect(draft.components?.BubbleMessage?.css).toContain('.source-bubble')
+    expect(draft.components?.BubbleMessage?.css).toContain('[data-component="BubbleMessage"]')
+    expect((draft.components?.BubbleMessage as unknown as { tsx?: string })?.tsx).toContain('SourceBubble')
+    expect(draft.components?.Composer?.enabled).toBe(false)
+    expect(draft.components?.Composer?.css).toContain('.source-composer')
+    expect(draft.globalCSS).toContain('[data-component="Composer"]')
+    expect(draft.components?.Composer?.css).not.toContain('border:')
+  })
+
   test('bakes enabled Boost into native Global from the canonical handoff baseline', () => {
     const project = createProject('Boost Export')
     project.boost.enabled = true

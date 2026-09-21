@@ -1,6 +1,6 @@
 import { portableRandomUUID } from '../utils/random-id'
-export const PROJECT_VERSION = 43 as const
-export const STATE_VERSION = 43 as const
+export const PROJECT_VERSION = 46 as const
+export const STATE_VERSION = 46 as const
 
 export type SelectorStrategy = 'semantic' | 'native-context-local' | 'native-registry' | 'studio-registry' | 'css-module' | 'exact-class' | 'structural' | 'volatile'
 export type SelectorStability = 'high' | 'medium' | 'low'
@@ -376,12 +376,46 @@ export interface ProjectBoost {
   shuffleSeed: number
 }
 
+export interface ThemeSourceComponent { css: string; tsx?: string; enabled: boolean }
+export interface ThemeSourceAssetManifest { slug: string; originalFilename?: string; mimeType?: string; archivePath: string }
+export interface ThemeSourceSnapshot {
+  origin: 'lumitheme'
+  /** Protected by default. Unlocking only permits explicit source edits in this local Palette project. */
+  editable: boolean
+  /** Import is inert by default. This opt-in preview overlays the source on the currently active Lumiverse theme. */
+  previewEnabled: boolean
+  archiveName?: string
+  /** Archive source is read directly from theme.json; host-draft is the v45 compatibility path. */
+  fidelity?: 'archive' | 'host-draft'
+  archiveFormat?: number
+  archiveBundleId?: string
+  archiveCreatedAt?: number
+  archiveAssets?: ThemeSourceAssetManifest[]
+  name?: string
+  author?: string
+  description?: string
+  globalCSS: string
+  components: Record<string, ThemeSourceComponent>
+}
+
 export interface ThemeStudioProject {
   version: typeof PROJECT_VERSION; id: string; name: string; tokens: ThemeTokenOverride[]; componentOverrides: ComponentOverride[]; layoutGroups: LayoutGroup[]
   /** Persistent recipe layer ledger. Reset Pack/Recipe survives reloads and only peels the layers it owns. */
   recipeSlots: RecipePacketSlot[]
+  /** Optional authored baseline imported from a native theme. Visual Design remains a separate override layer. */
+  sourceTheme?: ThemeSourceSnapshot
   customCss: string; assets: ThemeAssetReference[]; nativeAssetBundleId?: string; fonts: StudioFontFace[]; presets: StylePreset[]; svgAssets: StudioSvgAsset[]; boost: ProjectBoost
   createdAt: number; updatedAt: number
+}
+
+export function themeSourcePreviewCss(source?: ThemeSourceSnapshot): string {
+  if (!source?.previewEnabled) return ''
+  const parts = [source.globalCSS]
+  for (const [id, component] of Object.entries(source.components)) {
+    if (!component.enabled || !component.css.trim()) continue
+    parts.push(`/* Imported native component · ${id} */\n${component.css}`)
+  }
+  return parts.map((value) => value.trim()).filter(Boolean).join('\n\n')
 }
 export interface ThemeStudioState { version: typeof STATE_VERSION; activeProjectId: string; projects: ThemeStudioProject[]; savedStyles: SavedStyleBundle[] }
 
@@ -423,7 +457,7 @@ export function createStylePacket(type: PacketType): StylePacket {
 export function createBoost(): ProjectBoost { return { enabled: false, colorsEnabled: false, typographyEnabled: false, canvasEnabled: false, mode: 'recolor', primary: { color: '#9370db', alpha: 1 }, secondary: { color: '#786bf0', alpha: 1 }, textMode: 'auto', text: { color: '#f4eef8', alpha: 1 }, contrast: 0, brightness: 0, originalSaturation: 0.2, canvasOpacity: 1, wallpaperTreatmentEnabled: false, wallpaperOpacity: 1, wallpaperBlur: 0, wallpaperSaturation: 1, wallpaperContrast: 1, wallpaperBrightness: 1, protectControls: true, typography: {}, shuffleSeed: 1 } }
 export function createProject(name = 'Untitled Theme'): ThemeStudioProject {
   const now = Date.now()
-  return { version: PROJECT_VERSION, id: newId('project'), name, tokens: [], componentOverrides: [], layoutGroups: [], recipeSlots: [], customCss: '', assets: [], nativeAssetBundleId: undefined, fonts: [], presets: [], svgAssets: [], boost: createBoost(), createdAt: now, updatedAt: now }
+  return { version: PROJECT_VERSION, id: newId('project'), name, tokens: [], componentOverrides: [], layoutGroups: [], recipeSlots: [], sourceTheme: undefined, customCss: '', assets: [], nativeAssetBundleId: undefined, fonts: [], presets: [], svgAssets: [], boost: createBoost(), createdAt: now, updatedAt: now }
 }
 export function createInitialState(): ThemeStudioState { const project = createProject('My Theme'); return { version: STATE_VERSION, activeProjectId: project.id, projects: [project], savedStyles: [] } }
 export function clonePacketStack(packets: StylePacket[]): StylePacket[] { return structuredClone(packets).map((packet) => ({ ...packet, id: newId('packet') })) }

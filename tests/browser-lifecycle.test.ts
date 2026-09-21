@@ -10,6 +10,7 @@ import { createStylePacket } from '../src/project/model'
 import { resolveElement } from '../src/registry/selector-resolver'
 import type { NativeThemeComponent } from '../src/registry/types'
 import { ThemeStudioUI } from '../src/ui/studio'
+import { ancestorUiScale, applyDockUiScaleIsolation, applyPortalUiScaleIsolation, measurePortalPositionScale, nativeUiScale, portalDragPosition } from '../src/ui/host-scale'
 import { THEME_STUDIO_CSS } from '../src/ui/styles'
 import { KNOWN_PART_ROLES } from '../src/presets/common-parts'
 import { reverseEngineerElement } from '../src/project/reverse-engineer'
@@ -65,6 +66,26 @@ function mockContext(): SpindleFrontendContext {
         const element = document.createElement(tag)
         for (const [key, value] of Object.entries(attrs ?? {})) element.setAttribute(key, value)
         return element
+      },
+    },
+    ui: {
+      createFloatWidget: (options: { width: number; height: number }) => {
+        const root = document.createElement('div')
+        root.dataset.testSpindleFloatWidget = 'true'
+        root.style.width = `${options.width}px`
+        root.style.height = `${options.height}px`
+        document.body.append(root)
+        let position = { x: 0, y: 0 }
+        let dragEnd: ((next: { x: number; y: number }) => void) | null = null
+        return {
+          root,
+          destroy: () => root.remove(),
+          setSize: (width: number, height: number) => { root.style.width = `${width}px`; root.style.height = `${height}px` },
+          moveTo: (x: number, y: number) => { position = { x, y }; root.style.left = `${x}px`; root.style.top = `${y}px` },
+          getPosition: () => ({ ...position }),
+          onDragEnd: (callback: (next: { x: number; y: number }) => void) => { dragEnd = callback; return () => { dragEnd = null } },
+          __dragTo: (x: number, y: number) => { position = { x, y }; dragEnd?.(position) },
+        }
       },
     },
   } as unknown as SpindleFrontendContext
@@ -170,6 +191,158 @@ describe('browser-owned lifecycle', () => {
     picker.destroy()
   })
 
+  test('docked Palette cancels Lumiverse UI zoom without shrinking its layout box or cancelling independent font scale', () => {
+    document.documentElement.style.setProperty('--lumiverse-ui-scale', '0.8')
+    document.documentElement.style.setProperty('--lumiverse-font-scale', '1.15')
+    const root = document.createElement('div'); document.body.append(root)
+    // Simulate the stale v45 footprint so the new helper also proves it heals
+    // an already-mounted editor instead of requiring a full page reload.
+    root.style.width = '80%'; root.style.height = '80%'; root.style.maxHeight = '80%'
+    expect(nativeUiScale(root)).toBeCloseTo(0.8)
+    applyDockUiScaleIsolation(root, nativeUiScale(root))
+    expect(root.style.getPropertyValue('zoom')).toBe('1.25')
+    expect(root.style.width).toBe('')
+    expect(root.style.height).toBe('')
+    expect(root.style.maxHeight).toBe('')
+    expect(getComputedStyle(document.documentElement).getPropertyValue('--lumiverse-font-scale')).toBe('1.15')
+    applyDockUiScaleIsolation(root, nativeUiScale(root), false)
+    expect(root.style.getPropertyValue('zoom')).toBe('')
+    expect(root.style.width).toBe('')
+    expect(root.style.height).toBe('')
+    document.documentElement.style.removeProperty('--lumiverse-ui-scale')
+    document.documentElement.style.removeProperty('--lumiverse-font-scale')
+  })
+
+  test('body-portalled Palette chrome cancels only its real ancestor CSS zoom', () => {
+    document.documentElement.style.setProperty('--lumiverse-ui-scale', '0.8')
+
+    const unscaledPortal = document.createElement('div')
+    document.body.append(unscaledPortal)
+    expect(ancestorUiScale(unscaledPortal)).toBeCloseTo(1)
+    applyPortalUiScaleIsolation(unscaledPortal, ancestorUiScale(unscaledPortal))
+    expect(unscaledPortal.style.getPropertyValue('zoom')).toBe('')
+
+    const scaledHost = document.createElement('div')
+    const scaledPortal = document.createElement('div')
+    Object.defineProperty(scaledHost, 'currentCSSZoom', { configurable: true, value: 0.8 })
+    scaledHost.append(scaledPortal)
+    document.body.append(scaledHost)
+    expect(ancestorUiScale(scaledPortal)).toBeCloseTo(0.8)
+    applyPortalUiScaleIsolation(scaledPortal, ancestorUiScale(scaledPortal))
+    expect(scaledPortal.style.getPropertyValue('zoom')).toBe('1.25')
+
+    // Re-reading the parent keeps synchronization stable after the child gains
+    // its inverse zoom; it must not see its own compensation and oscillate.
+    expect(ancestorUiScale(scaledPortal)).toBeCloseTo(0.8)
+
+    document.documentElement.style.removeProperty('--lumiverse-ui-scale')
+  })
+
+  test('floating editor clamps against rendered geometry and converts viewport drag deltas through host UI scale', () => {
+    const next = portalDragPosition({
+      // The rendered editor is 430×680 even though zoomed layout metrics may be
+      // much larger.  Bounds must use this rect or the window stops early.
+      startRect: { left: 64, top: 40, width: 430, height: 680 },
+      // Under a 0.8 ancestor zoom these authored offsets render at 64/40.
+      startLeft: 80,
+      startTop: 50,
+      deltaX: 4000,
+      deltaY: 4000,
+      ancestorScale: 0.8,
+      viewportWidth: 1200,
+      viewportHeight: 900,
+      padding: 8,
+    })
+    // Rendered maxima are x=762 and y=212. Converting those viewport deltas
+    // back to authored coordinates requires dividing by the ancestor zoom.
+    expect(next.left).toBeCloseTo(952.5)
+    expect(next.top).toBeCloseTo(265)
+    expect(64 + (next.left - 80) * 0.8).toBeCloseTo(762)
+    expect(40 + (next.top - 50) * 0.8).toBeCloseTo(212)
+  })
+
+  test('floating editor measures its real positional scale so one drag reaches the viewport edge without ratcheting', () => {
+    const frame = document.createElement('section')
+    frame.style.left = '100px'
+    frame.style.top = '50px'
+    document.body.append(frame)
+
+    // Model Chromium/Lumiverse nested zoom where the host reports 0.8 but this
+    // counter-zoomed fixed surface actually moves 0.64/0.72 rendered px for
+    // each authored left/top px. The old ancestor-only conversion stopped
+    // short, then each release/re-grab moved another fraction toward the edge.
+    Object.defineProperty(frame, 'getBoundingClientRect', { configurable: true, value: () => {
+      const left = (Number.parseFloat(frame.style.left) || 0) * 0.64
+      const top = (Number.parseFloat(frame.style.top) || 0) * 0.72
+      return { left, top, width: 430, height: 680, right: left + 430, bottom: top + 680, x: left, y: top, toJSON: () => ({}) } as DOMRect
+    } })
+
+    const measured = measurePortalPositionScale(frame, 0.8)
+    expect(measured.x).toBeCloseTo(0.64)
+    expect(measured.y).toBeCloseTo(0.72)
+
+    const startRect = frame.getBoundingClientRect()
+    const first = portalDragPosition({
+      startRect,
+      startLeft: 100,
+      startTop: 50,
+      deltaX: 4000,
+      deltaY: 4000,
+      ancestorScale: 0.8,
+      positionScaleX: measured.x,
+      positionScaleY: measured.y,
+      viewportWidth: 1200,
+      viewportHeight: 900,
+      padding: 8,
+    })
+    frame.style.left = `${first.left}px`
+    frame.style.top = `${first.top}px`
+    expect(frame.getBoundingClientRect().left).toBeCloseTo(762)
+    expect(frame.getBoundingClientRect().top).toBeCloseTo(212)
+
+    const secondStart = frame.getBoundingClientRect()
+    const second = portalDragPosition({
+      startRect: secondStart,
+      startLeft: first.left,
+      startTop: first.top,
+      deltaX: 4000,
+      deltaY: 4000,
+      ancestorScale: 0.8,
+      positionScaleX: measured.x,
+      positionScaleY: measured.y,
+      viewportWidth: 1200,
+      viewportHeight: 900,
+      padding: 8,
+    })
+    expect(second.left).toBeCloseTo(first.left)
+    expect(second.top).toBeCloseTo(first.top)
+  })
+
+  test('mini widget delegates scaled placement and hit testing to Spindle instead of counter-zooming its content', () => {
+    document.documentElement.style.setProperty('--lumiverse-ui-scale', '0.8')
+    Object.defineProperty(document.body, 'currentCSSZoom', { configurable: true, value: 0.8 })
+    const root = document.createElement('div'); document.body.append(root)
+    const context = mockContext(), store = new ProjectStore(), preview = new LiveStylesheet(context), picker = new ElementPicker(context)
+    const studio = new ThemeStudioUI(context, root, store, picker, preview)
+    const access = studio as unknown as { mountWidget(): void; syncHostUiScaleIsolation(): void; widgetRoot: HTMLElement | null; widgetHost: { root: HTMLElement; __dragTo?: (x: number, y: number) => void } | null; floatingFrame: HTMLElement | null }
+
+    access.mountWidget()
+    access.syncHostUiScaleIsolation()
+
+    expect(access.widgetHost?.root.dataset.testSpindleFloatWidget).toBe('true')
+    expect(access.widgetRoot?.parentElement).toBe(access.widgetHost?.root)
+    expect(access.widgetRoot?.style.getPropertyValue('zoom')).toBe('')
+    expect(access.widgetHost?.root.style.getPropertyValue('zoom')).toBe('')
+    access.widgetHost?.__dragTo?.(123, 456)
+    expect(JSON.parse(localStorage.getItem('theme-studio:widget-position') ?? '{}')).toEqual({ x: 123, y: 456 })
+    // The separate full editor is still a body portal and keeps its existing
+    // isolation behavior; only the mini widget is now natively hosted.
+    expect(access.floatingFrame?.style.getPropertyValue('zoom')).toBe('1.25')
+
+    studio.destroy(); picker.destroy(); preview.destroy(); root.remove()
+    document.documentElement.style.removeProperty('--lumiverse-ui-scale')
+  })
+
   test('picker honors Lumiverse native UI scale when fixed-probe geometry reports 1:1', () => {
     document.documentElement.style.setProperty('--lumiverse-ui-scale', '0.8')
     const picker = new ElementPicker(mockContext()), target = document.createElement('button'); document.body.append(target)
@@ -237,11 +410,80 @@ describe('browser-owned lifecycle', () => {
     picker.destroy()
   })
 
+  test('Theme Source stays inert through the Studio render pipeline until overlay preview is explicitly enabled', () => {
+    const context = mockContext()
+    const root = document.createElement('div'); document.body.append(root)
+    const store = new ProjectStore()
+    store.setSourceTheme({
+      origin: 'lumitheme', editable: false, previewEnabled: false,
+      globalCSS: '.imported-global { color: pink; }',
+      components: { MinimalMessage: { css: '.imported-minimal { padding: 8px; }', enabled: true } },
+    })
+    const preview = new LiveStylesheet(context)
+    const picker = new ElementPicker(context)
+    const studio = new ThemeStudioUI(context, root, store, picker, preview)
+
+    studio.render()
+    const sourceStyle = document.querySelector<HTMLStyleElement>('[data-theme-studio-preview="source"]')!
+    expect(sourceStyle.textContent).toBe('')
+
+    // Theme Source controls live in Code. Exercise the real workspace switch
+    // instead of asserting against UI that Design intentionally does not render.
+    root.querySelector<HTMLButtonElement>('[data-workspace="code"]')!.click()
+    expect(root.textContent).toContain('CSS overlay · Off')
+    expect(root.querySelector<HTMLDetailsElement>('.ts-source-global')?.open).toBe(true)
+    expect(root.querySelector<HTMLDetailsElement>('.ts-source-component')?.open).toBe(true)
+    expect(root.querySelector<HTMLDetailsElement>('.ts-code-output .ts-code-fold')?.open).toBe(false)
+    expect(root.querySelector<HTMLDetailsElement>('.ts-code-custom-section .ts-code-fold')?.open).toBe(false)
+
+    store.setSourceThemePreviewEnabled(true)
+    expect(sourceStyle.textContent).toContain('.imported-global')
+    expect(sourceStyle.textContent).toContain('.imported-minimal')
+    expect(root.textContent).toContain('CSS overlay · On')
+    expect(root.querySelector<HTMLDetailsElement>('.ts-source-advanced')?.open).toBe(true)
+
+    studio.destroy(); picker.destroy(); preview.destroy(); root.remove()
+  })
+
+  test('Code prioritizes the real imported component and keeps empty source/output chrome folded', () => {
+    const context = mockContext()
+    const root = document.createElement('div'); document.body.append(root)
+    const store = new ProjectStore()
+    store.setSourceTheme({
+      origin: 'lumitheme', editable: true, previewEnabled: false, fidelity: 'archive', archiveFormat: 3,
+      name: 'Slate', archiveAssets: [{ slug: 'asset', archivePath: 'assets/asset.png', mimeType: 'image/png', originalFilename: 'asset.png' }],
+      globalCSS: '', components: { MinimalMessage: { css: '.minimal { display: grid; }', tsx: '', enabled: true } },
+    })
+    const preview = new LiveStylesheet(context)
+    const picker = new ElementPicker(context)
+    const studio = new ThemeStudioUI(context, root, store, picker, preview)
+
+    studio.render()
+    root.querySelector<HTMLButtonElement>('[data-workspace="code"]')!.click()
+
+    const global = root.querySelector<HTMLDetailsElement>('.ts-source-global')!
+    const component = root.querySelector<HTMLDetailsElement>('.ts-source-component')!
+    const tsx = root.querySelector<HTMLDetailsElement>('.ts-source-tsx')!
+    expect(global.open).toBe(false)
+    expect(global.querySelector('summary')?.textContent).toContain('Empty')
+    expect(component.open).toBe(true)
+    expect(component.textContent).toContain('MinimalMessage')
+    expect(tsx.open).toBe(false)
+    expect(tsx.querySelector('summary')?.textContent).toContain('Empty')
+    expect(root.querySelector<HTMLDetailsElement>('.ts-code-output .ts-code-fold')?.open).toBe(false)
+    expect(root.querySelector<HTMLDetailsElement>('.ts-code-custom-section .ts-code-fold')?.open).toBe(false)
+
+    studio.destroy(); picker.destroy(); preview.destroy(); root.remove()
+  })
+
   test('preview stylesheets update in place and are removed on teardown', () => {
     const preview = new LiveStylesheet(mockContext())
-    expect(document.querySelectorAll('[data-theme-studio-preview]')).toHaveLength(3)
+    expect(document.querySelectorAll('[data-theme-studio-preview]')).toHaveLength(4)
+    expect(preview.updateSource('@import url("https://example.com/source.css"); .target { color: pink; }').valid).toBe(true)
     expect(preview.updateGenerated('.target { background: #123456; }').valid).toBe(true)
     expect(preview.updateCustom('@import url("https://example.com/a.css"); .target { color: red; }').valid).toBe(true)
+    expect(document.querySelector('[data-theme-studio-preview="source"]')?.textContent).toContain('color: pink')
+    expect(document.querySelector('[data-theme-studio-preview="source"]')?.textContent).not.toContain('https://example.com')
     expect(document.querySelector('[data-theme-studio-preview="generated"]')?.textContent).toContain('#123456')
     expect(document.querySelector('[data-theme-studio-preview="custom"]')?.textContent).toContain('@import stripped')
     expect(document.querySelector('[data-theme-studio-preview="custom"]')?.textContent).not.toContain('https://example.com')
@@ -307,7 +549,7 @@ describe('browser-owned lifecycle', () => {
     // Spindle collapses by unmounting its content host. The extension root is
     // intentionally detached during that time and must remain live state.
     contentHost.remove()
-    await new Promise((resolve) => window.setTimeout(resolve, 0))
+    await testWindow.happyDOM.waitUntilComplete()
     expect(panelRoot.isConnected).toBe(false)
     expect(hostPanel.isConnected).toBe(true)
     expect(access.styleLibraryPresentation).toBe('dock')
@@ -319,14 +561,14 @@ describe('browser-owned lifecycle', () => {
     contentHost = document.createElement('div')
     hostPanel.append(contentHost)
     contentHost.append(panelRoot)
-    await new Promise((resolve) => window.setTimeout(resolve, 0))
+    await testWindow.happyDOM.waitUntilComplete()
     expect(panelRoot.isConnected).toBe(true)
     expect(libraryRoot?.isConnected).toBe(true)
     expect(access.styleLibraryPresentation).toBe('dock')
 
     // Removing the native shell is the real close signal.
     hostPanel.remove()
-    await new Promise((resolve) => window.setTimeout(resolve, 0))
+    await testWindow.happyDOM.waitUntilComplete()
     expect(access.styleLibraryPresentation).toBe('fullscreen')
     expect(access.styleLibraryOpen).toBe(false)
 
@@ -563,6 +805,31 @@ describe('browser-owned lifecycle', () => {
     const accent = root.querySelector<HTMLInputElement>('input[type="color"][data-quick-color="accent"]')!
     accent.value = '#00ff00'; accent.dispatchEvent(new window.Event('input')); accent.dispatchEvent(new window.Event('change'))
     expect(localStorage.getItem('theme-studio:recent-colors')).toBe(JSON.stringify(['#112233']))
+    studio.destroy(); picker.destroy(); preview.destroy()
+  })
+
+  test('new native edits default to Strong authority while an explicit Normal choice stays sticky', () => {
+    const context = mockContext(); const root = document.createElement('div'); document.body.append(root)
+    const native = document.createElement('div'); native.dataset.component = 'MinimalMessage'; native.className = '_card_native_1'; document.body.append(native)
+    const component: NativeThemeComponent = { id: 'src/MinimalMessage', label: 'MinimalMessage', area: 'Messages', sources: ['css', 'tsx'], selectors: ['[data-component="MinimalMessage"]'], cssClasses: ['card'], nativeKey: 'src/MinimalMessage' }
+    const selection = resolveElement(native, [component])
+    expect(selection.nativeContext?.component.label).toBe('MinimalMessage')
+
+    const store = new ProjectStore(); const preview = new LiveStylesheet(context); const picker = new ElementPicker(context); const studio = new ThemeStudioUI(context, root, store, picker, preview)
+    const access = studio as unknown as { selection: ReturnType<typeof resolveElement>; targetForSelection(): { selector: string; overrideStrength?: 'normal' | 'strong'; strategy: any; stability: any; persistence: any; source: any; label?: string; nativeComponentId?: string; nativeContextSelector?: string; localSelector?: string } }
+    access.selection = selection
+
+    const fresh = access.targetForSelection()
+    expect(fresh.overrideStrength).toBe('strong')
+
+    const packet = createStylePacket('corners')
+    store.upsertPacket({ ...fresh, overrideStrength: 'normal' }, packet)
+    expect(access.targetForSelection().overrideStrength).toBe('normal')
+
+    const loose = document.createElement('div'); loose.className = '_loose_surface_1'; document.body.append(loose)
+    access.selection = resolveElement(loose, [])
+    expect(access.targetForSelection().overrideStrength).toBe('normal')
+
     studio.destroy(); picker.destroy(); preview.destroy()
   })
 
