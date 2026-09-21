@@ -88,6 +88,47 @@ export function applyPortalUiScaleIsolation(root: HTMLElement, scale: number, en
   applyInverseUiZoom(root, scale, enabled)
 }
 
+
+export type PortalDragGeometry = {
+  startRect: { left: number; top: number; width: number; height: number }
+  startLeft: number
+  startTop: number
+  deltaX: number
+  deltaY: number
+  ancestorScale: number
+  viewportWidth: number
+  viewportHeight: number
+  padding?: number
+}
+
+/**
+ * Convert viewport pointer movement into the local CSS coordinates used by a
+ * body-portalled fixed surface whose parent chain may be CSS-zoomed.
+ *
+ * Pointer/client coordinates and getBoundingClientRect() are rendered viewport
+ * pixels, while `left` / `top` are authored in the containing block's local
+ * coordinate space.  Under Lumiverse UI scale those spaces diverge.  Clamp in
+ * rendered space (using the rendered rect, never offsetWidth/offsetHeight), then
+ * divide only the positional correction by the ancestor zoom before writing the
+ * local CSS offsets.
+ */
+export function portalDragPosition(input: PortalDragGeometry): { left: number; top: number } {
+  const padding = Number.isFinite(input.padding) ? Math.max(0, Number(input.padding)) : 8
+  const scale = Number.isFinite(input.ancestorScale) && input.ancestorScale > 0.001 ? input.ancestorScale : 1
+  const viewportWidth = Math.max(0, Number.isFinite(input.viewportWidth) ? input.viewportWidth : 0)
+  const viewportHeight = Math.max(0, Number.isFinite(input.viewportHeight) ? input.viewportHeight : 0)
+  const renderedWidth = Math.max(0, Number.isFinite(input.startRect.width) ? input.startRect.width : 0)
+  const renderedHeight = Math.max(0, Number.isFinite(input.startRect.height) ? input.startRect.height : 0)
+  const maxRenderedLeft = Math.max(padding, viewportWidth - renderedWidth - padding)
+  const maxRenderedTop = Math.max(padding, viewportHeight - renderedHeight - padding)
+  const desiredRenderedLeft = Math.max(padding, Math.min(maxRenderedLeft, input.startRect.left + input.deltaX))
+  const desiredRenderedTop = Math.max(padding, Math.min(maxRenderedTop, input.startRect.top + input.deltaY))
+  return {
+    left: input.startLeft + (desiredRenderedLeft - input.startRect.left) / scale,
+    top: input.startTop + (desiredRenderedTop - input.startRect.top) / scale,
+  }
+}
+
 /**
  * Lumiverse's app shell is zoomed by native UI scale. Palette is a tooling
  * surface, so cancel that visual zoom for the docked editor without shrinking

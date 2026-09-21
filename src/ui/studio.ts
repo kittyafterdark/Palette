@@ -14,7 +14,7 @@ import { inspectLayoutContext } from '../registry/layout-context'
 import type { MessageSideName, NativeThemeAsset, NativeThemeCapabilities, NativeThemeComponent, NativeThemeVariable, ResolvedSelection, SelectionScope } from '../registry/types'
 import { appendPseudoToSelectorList, evaluateSelectorHealth } from '../registry/selector-utils'
 import type { ThemeRuntimeBridge } from '../nativeBridge/theme-runtime'
-import { ancestorUiScale, applyDockUiScaleIsolation, applyPortalUiScaleIsolation, nativeUiScale } from './host-scale'
+import { ancestorUiScale, applyDockUiScaleIsolation, applyPortalUiScaleIsolation, nativeUiScale, portalDragPosition } from './host-scale'
 import { knownTypographyChoices } from '../nativeBridge/fonts'
 import { COMMON_PART_PRESETS, KNOWN_PART_ROLES, applyTextInkPolicyForRole, presetRoles, targetForKnownRole, type CommonPartPreset, type KnownPartRoleId } from '../presets/common-parts'
 import { STYLE_LIBRARY_AREAS, STYLE_LIBRARY_PACKS, STYLE_LIBRARY_RECIPES, packCompatiblePresetIds, packDefaultPresetIds, packDefaultPresetIdsForLayout, packForId, packPresetIds, recipeMetaForId, styleLibraryFamilies, styleLibraryPackSearchText, styleLibrarySearchText, type MessageLayoutSupport, type PackWorkbenchLayout, type StyleLibraryArea, type StyleLibraryItemKey, type StyleLibraryPack, type StyleLibraryRecipeMeta } from '../presets/style-library'
@@ -544,7 +544,10 @@ export class ThemeStudioUI {
     // createFloatWidget surface owns its placement, hit testing, and host UI-scale
     // coordinate space (the same contract used by SpotifyControls). Counter-zooming
     // Palette's inner content separates the visual from the native drag/hit box.
-    if (this.floatingFrame) applyPortalUiScaleIsolation(this.floatingFrame, ancestorUiScale(this.floatingFrame))
+    if (this.floatingFrame) {
+      applyPortalUiScaleIsolation(this.floatingFrame, ancestorUiScale(this.floatingFrame))
+      this.clampFloatingFrameToViewport()
+    }
   }
 
   private observeHostUiScale(): void {
@@ -1594,6 +1597,44 @@ export class ThemeStudioUI {
     else this.syncSelectionHighlight()
   }
 
+  private floatingViewportSize(): { width: number; height: number } {
+    if (typeof window === 'undefined') return { width: 0, height: 0 }
+    const viewport = window.visualViewport
+    return {
+      width: viewport?.width ?? window.innerWidth,
+      height: viewport?.height ?? window.innerHeight,
+    }
+  }
+
+  private clampFloatingFrameToViewport(): void {
+    const frame = this.floatingFrame
+    if (!frame || frame.hidden || typeof window === 'undefined' || window.matchMedia?.('(max-width: 600px)').matches) return
+    const rect = frame.getBoundingClientRect()
+    if (!rect.width || !rect.height) return
+    const scale = ancestorUiScale(frame)
+    const viewport = this.floatingViewportSize()
+    const authoredLeft = Number.parseFloat(frame.style.left)
+    const authoredTop = Number.parseFloat(frame.style.top)
+    const startLeft = Number.isFinite(authoredLeft) ? authoredLeft : frame.offsetLeft
+    const startTop = Number.isFinite(authoredTop) ? authoredTop : frame.offsetTop
+    const next = portalDragPosition({
+      startRect: rect,
+      startLeft,
+      startTop,
+      deltaX: 0,
+      deltaY: 0,
+      ancestorScale: scale,
+      viewportWidth: viewport.width,
+      viewportHeight: viewport.height,
+    })
+    if (Math.abs(next.left - startLeft) > .01) frame.style.left = `${next.left}px`
+    if (Math.abs(next.top - startTop) > .01) frame.style.top = `${next.top}px`
+    if (Math.abs(next.left - startLeft) > .01 || Math.abs(next.top - startTop) > .01) {
+      frame.style.right = 'auto'
+      frame.style.bottom = 'auto'
+    }
+  }
+
   private bindFloatingDrag(): void {
     const frame = this.floatingFrame
     const desktopHandle = frame?.querySelector<HTMLElement>('[data-widget-drag-handle]')
@@ -1606,12 +1647,26 @@ export class ThemeStudioUI {
       if (mobile) return
       const start = frame.getBoundingClientRect()
       const startX = event.clientX, startY = event.clientY
+      const authoredLeft = Number.parseFloat(frame.style.left)
+      const authoredTop = Number.parseFloat(frame.style.top)
+      const startLeft = Number.isFinite(authoredLeft) ? authoredLeft : frame.offsetLeft
+      const startTop = Number.isFinite(authoredTop) ? authoredTop : frame.offsetTop
+      const scale = ancestorUiScale(frame)
+      const viewport = this.floatingViewportSize()
       desktopHandle.setPointerCapture?.(event.pointerId)
       const move = (moveEvent: PointerEvent) => {
-        const maxLeft = Math.max(8, window.innerWidth - frame.offsetWidth - 8)
-        const maxTop = Math.max(8, window.innerHeight - Math.min(frame.offsetHeight, window.innerHeight - 16) - 8)
-        frame.style.left = `${Math.max(8, Math.min(maxLeft, start.left + moveEvent.clientX - startX))}px`
-        frame.style.top = `${Math.max(8, Math.min(maxTop, start.top + moveEvent.clientY - startY))}px`
+        const next = portalDragPosition({
+          startRect: start,
+          startLeft,
+          startTop,
+          deltaX: moveEvent.clientX - startX,
+          deltaY: moveEvent.clientY - startY,
+          ancestorScale: scale,
+          viewportWidth: viewport.width,
+          viewportHeight: viewport.height,
+        })
+        frame.style.left = `${next.left}px`
+        frame.style.top = `${next.top}px`
         frame.style.right = 'auto'; frame.style.bottom = 'auto'
       }
       const up = (upEvent: PointerEvent) => {

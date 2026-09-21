@@ -10,7 +10,7 @@ import { createStylePacket } from '../src/project/model'
 import { resolveElement } from '../src/registry/selector-resolver'
 import type { NativeThemeComponent } from '../src/registry/types'
 import { ThemeStudioUI } from '../src/ui/studio'
-import { ancestorUiScale, applyDockUiScaleIsolation, applyPortalUiScaleIsolation, nativeUiScale } from '../src/ui/host-scale'
+import { ancestorUiScale, applyDockUiScaleIsolation, applyPortalUiScaleIsolation, nativeUiScale, portalDragPosition } from '../src/ui/host-scale'
 import { THEME_STUDIO_CSS } from '../src/ui/styles'
 import { KNOWN_PART_ROLES } from '../src/presets/common-parts'
 import { reverseEngineerElement } from '../src/project/reverse-engineer'
@@ -236,6 +236,29 @@ describe('browser-owned lifecycle', () => {
     expect(ancestorUiScale(scaledPortal)).toBeCloseTo(0.8)
 
     document.documentElement.style.removeProperty('--lumiverse-ui-scale')
+  })
+
+  test('floating editor clamps against rendered geometry and converts viewport drag deltas through host UI scale', () => {
+    const next = portalDragPosition({
+      // The rendered editor is 430×680 even though zoomed layout metrics may be
+      // much larger.  Bounds must use this rect or the window stops early.
+      startRect: { left: 64, top: 40, width: 430, height: 680 },
+      // Under a 0.8 ancestor zoom these authored offsets render at 64/40.
+      startLeft: 80,
+      startTop: 50,
+      deltaX: 4000,
+      deltaY: 4000,
+      ancestorScale: 0.8,
+      viewportWidth: 1200,
+      viewportHeight: 900,
+      padding: 8,
+    })
+    // Rendered maxima are x=762 and y=212. Converting those viewport deltas
+    // back to authored coordinates requires dividing by the ancestor zoom.
+    expect(next.left).toBeCloseTo(952.5)
+    expect(next.top).toBeCloseTo(265)
+    expect(64 + (next.left - 80) * 0.8).toBeCloseTo(762)
+    expect(40 + (next.top - 50) * 0.8).toBeCloseTo(212)
   })
 
   test('mini widget delegates scaled placement and hit testing to Spindle instead of counter-zooming its content', () => {

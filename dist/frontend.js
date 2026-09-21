@@ -5487,6 +5487,22 @@ function applyInverseUiZoom(root, scale, enabled) {
 function applyPortalUiScaleIsolation(root, scale, enabled = true) {
   applyInverseUiZoom(root, scale, enabled);
 }
+function portalDragPosition(input) {
+  const padding = Number.isFinite(input.padding) ? Math.max(0, Number(input.padding)) : 8;
+  const scale = Number.isFinite(input.ancestorScale) && input.ancestorScale > 1e-3 ? input.ancestorScale : 1;
+  const viewportWidth = Math.max(0, Number.isFinite(input.viewportWidth) ? input.viewportWidth : 0);
+  const viewportHeight = Math.max(0, Number.isFinite(input.viewportHeight) ? input.viewportHeight : 0);
+  const renderedWidth = Math.max(0, Number.isFinite(input.startRect.width) ? input.startRect.width : 0);
+  const renderedHeight = Math.max(0, Number.isFinite(input.startRect.height) ? input.startRect.height : 0);
+  const maxRenderedLeft = Math.max(padding, viewportWidth - renderedWidth - padding);
+  const maxRenderedTop = Math.max(padding, viewportHeight - renderedHeight - padding);
+  const desiredRenderedLeft = Math.max(padding, Math.min(maxRenderedLeft, input.startRect.left + input.deltaX));
+  const desiredRenderedTop = Math.max(padding, Math.min(maxRenderedTop, input.startRect.top + input.deltaY));
+  return {
+    left: input.startLeft + (desiredRenderedLeft - input.startRect.left) / scale,
+    top: input.startTop + (desiredRenderedTop - input.startRect.top) / scale
+  };
+}
 function applyDockUiScaleIsolation(root, scale, enabled = true) {
   root.style.removeProperty("width");
   root.style.removeProperty("height");
@@ -19555,7 +19571,10 @@ var ThemeStudioUI = class {
   }
   syncHostUiScaleIsolation() {
     applyDockUiScaleIsolation(this.root, nativeUiScale2(this.root), !this.editorFloating);
-    if (this.floatingFrame) applyPortalUiScaleIsolation(this.floatingFrame, ancestorUiScale(this.floatingFrame));
+    if (this.floatingFrame) {
+      applyPortalUiScaleIsolation(this.floatingFrame, ancestorUiScale(this.floatingFrame));
+      this.clampFloatingFrameToViewport();
+    }
   }
   observeHostUiScale() {
     if (typeof MutationObserver === "undefined" || typeof document === "undefined") return;
@@ -20731,6 +20750,42 @@ var ThemeStudioUI = class {
     if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => requestAnimationFrame(() => this.syncSelectionHighlight()));
     else this.syncSelectionHighlight();
   }
+  floatingViewportSize() {
+    if (typeof window === "undefined") return { width: 0, height: 0 };
+    const viewport = window.visualViewport;
+    return {
+      width: viewport?.width ?? window.innerWidth,
+      height: viewport?.height ?? window.innerHeight
+    };
+  }
+  clampFloatingFrameToViewport() {
+    const frame = this.floatingFrame;
+    if (!frame || frame.hidden || typeof window === "undefined" || window.matchMedia?.("(max-width: 600px)").matches) return;
+    const rect2 = frame.getBoundingClientRect();
+    if (!rect2.width || !rect2.height) return;
+    const scale = ancestorUiScale(frame);
+    const viewport = this.floatingViewportSize();
+    const authoredLeft = Number.parseFloat(frame.style.left);
+    const authoredTop = Number.parseFloat(frame.style.top);
+    const startLeft = Number.isFinite(authoredLeft) ? authoredLeft : frame.offsetLeft;
+    const startTop = Number.isFinite(authoredTop) ? authoredTop : frame.offsetTop;
+    const next = portalDragPosition({
+      startRect: rect2,
+      startLeft,
+      startTop,
+      deltaX: 0,
+      deltaY: 0,
+      ancestorScale: scale,
+      viewportWidth: viewport.width,
+      viewportHeight: viewport.height
+    });
+    if (Math.abs(next.left - startLeft) > 0.01) frame.style.left = `${next.left}px`;
+    if (Math.abs(next.top - startTop) > 0.01) frame.style.top = `${next.top}px`;
+    if (Math.abs(next.left - startLeft) > 0.01 || Math.abs(next.top - startTop) > 0.01) {
+      frame.style.right = "auto";
+      frame.style.bottom = "auto";
+    }
+  }
   bindFloatingDrag() {
     const frame = this.floatingFrame;
     const desktopHandle = frame?.querySelector("[data-widget-drag-handle]");
@@ -20742,12 +20797,26 @@ var ThemeStudioUI = class {
       if (mobile) return;
       const start = frame.getBoundingClientRect();
       const startX = event.clientX, startY = event.clientY;
+      const authoredLeft = Number.parseFloat(frame.style.left);
+      const authoredTop = Number.parseFloat(frame.style.top);
+      const startLeft = Number.isFinite(authoredLeft) ? authoredLeft : frame.offsetLeft;
+      const startTop = Number.isFinite(authoredTop) ? authoredTop : frame.offsetTop;
+      const scale = ancestorUiScale(frame);
+      const viewport = this.floatingViewportSize();
       desktopHandle.setPointerCapture?.(event.pointerId);
       const move = (moveEvent) => {
-        const maxLeft = Math.max(8, window.innerWidth - frame.offsetWidth - 8);
-        const maxTop = Math.max(8, window.innerHeight - Math.min(frame.offsetHeight, window.innerHeight - 16) - 8);
-        frame.style.left = `${Math.max(8, Math.min(maxLeft, start.left + moveEvent.clientX - startX))}px`;
-        frame.style.top = `${Math.max(8, Math.min(maxTop, start.top + moveEvent.clientY - startY))}px`;
+        const next = portalDragPosition({
+          startRect: start,
+          startLeft,
+          startTop,
+          deltaX: moveEvent.clientX - startX,
+          deltaY: moveEvent.clientY - startY,
+          ancestorScale: scale,
+          viewportWidth: viewport.width,
+          viewportHeight: viewport.height
+        });
+        frame.style.left = `${next.left}px`;
+        frame.style.top = `${next.top}px`;
         frame.style.right = "auto";
         frame.style.bottom = "auto";
       };
