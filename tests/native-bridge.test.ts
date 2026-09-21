@@ -131,7 +131,7 @@ describe('public ctx.theme bridge', () => {
       origin: 'lumitheme', editable: true, previewEnabled: false, author: 'Original Author', description: 'Original description',
       globalCSS: '.source-global { color: red; }',
       components: {
-        BubbleMessage: { css: '.source-bubble { padding: 4px; }', enabled: true },
+        BubbleMessage: { css: '.source-bubble { padding: 4px; }', tsx: 'export default function SourceBubble() {}', enabled: true },
         Composer: { css: '.source-composer { opacity: .5; }', enabled: false },
       },
     }
@@ -152,6 +152,7 @@ describe('public ctx.theme bridge', () => {
     expect(draft.globalCSS.indexOf('.source-global')).toBeLessThan(draft.globalCSS.indexOf('.custom-last'))
     expect(draft.components?.BubbleMessage?.css).toContain('.source-bubble')
     expect(draft.components?.BubbleMessage?.css).toContain('[data-component="BubbleMessage"]')
+    expect((draft.components?.BubbleMessage as unknown as { tsx?: string })?.tsx).toContain('SourceBubble')
     expect(draft.components?.Composer?.enabled).toBe(false)
     expect(draft.components?.Composer?.css).toContain('.source-composer')
     expect(draft.globalCSS).toContain('[data-component="Composer"]')

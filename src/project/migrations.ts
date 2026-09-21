@@ -527,13 +527,22 @@ function themeSource(value: unknown): ThemeSourceSnapshot | undefined {
   const components: ThemeSourceSnapshot['components'] = {}
   for (const [id, componentValue] of Object.entries(componentsValue)) {
     if (!id.trim() || !record(componentValue) || typeof componentValue.css !== 'string') continue
-    components[id] = { css: componentValue.css, enabled: componentValue.enabled !== false }
+    components[id] = { css: componentValue.css, tsx: typeof componentValue.tsx === 'string' ? componentValue.tsx : undefined, enabled: componentValue.enabled !== false }
   }
+  const archiveAssets = Array.isArray(value.archiveAssets) ? value.archiveAssets.flatMap((assetValue) => {
+    if (!record(assetValue) || typeof assetValue.slug !== 'string' || typeof assetValue.archivePath !== 'string' || !assetValue.slug.trim() || !assetValue.archivePath.trim()) return []
+    return [{ slug: assetValue.slug, originalFilename: string(assetValue.originalFilename).trim() || undefined, mimeType: string(assetValue.mimeType).trim() || undefined, archivePath: assetValue.archivePath }]
+  }) : undefined
   return {
     origin: 'lumitheme',
     editable: value.editable === true,
     previewEnabled: value.previewEnabled === true,
     archiveName: string(value.archiveName).trim().slice(0, 240) || undefined,
+    fidelity: value.fidelity === 'archive' ? 'archive' : 'host-draft',
+    archiveFormat: typeof value.archiveFormat === 'number' && Number.isFinite(value.archiveFormat) ? value.archiveFormat : undefined,
+    archiveBundleId: string(value.archiveBundleId).trim().slice(0, 240) || undefined,
+    archiveCreatedAt: typeof value.archiveCreatedAt === 'number' && Number.isFinite(value.archiveCreatedAt) ? value.archiveCreatedAt : undefined,
+    archiveAssets,
     name: string(value.name).trim().slice(0, 240) || undefined,
     author: string(value.author).trim().slice(0, 240) || undefined,
     description: string(value.description).slice(0, 4000) || undefined,

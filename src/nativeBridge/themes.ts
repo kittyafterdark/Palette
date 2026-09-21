@@ -9,8 +9,8 @@ function joinCss(parts: string[]): string { return parts.map((value) => value.tr
 export function projectToNativeDraft(project: ThemeStudioProject, components: NativeThemeComponent[], variables: NativeThemeVariable[], boostBaseline?: Record<string, string>): SpindleThemePackDraft {
   const componentIds = new Set(components.map((component) => component.id))
   const sourceComponents = project.sourceTheme?.components ?? {}
-  const grouped = new Map<string, { css: string[]; enabled: boolean }>()
-  for (const [id, component] of Object.entries(sourceComponents)) grouped.set(id, { css: component.css.trim() ? [component.css] : [], enabled: component.enabled })
+  const grouped = new Map<string, { css: string[]; tsx?: string; enabled: boolean }>()
+  for (const [id, component] of Object.entries(sourceComponents)) grouped.set(id, { css: component.css.trim() ? [component.css] : [], tsx: component.tsx, enabled: component.enabled })
 
   // Source CSS is the immutable-by-default baseline. Palette's global compiler
   // layers come afterward, followed by generated target rules and handwritten
@@ -39,7 +39,7 @@ export function projectToNativeDraft(project: ThemeStudioProject, components: Na
         globalParts.push(css)
         continue
       }
-      const bucket = grouped.get(nativeId) ?? { css: [], enabled: true }
+      const bucket = grouped.get(nativeId) ?? { css: [], tsx: undefined, enabled: true }
       bucket.css.push(css)
       bucket.enabled = true
       grouped.set(nativeId, bucket)
@@ -51,7 +51,7 @@ export function projectToNativeDraft(project: ThemeStudioProject, components: Na
     author: project.sourceTheme?.author?.trim() || 'Palette',
     description: project.sourceTheme?.description?.trim() || 'Authored visually in Lumiverse Palette.',
     globalCSS: joinCss(globalParts),
-    components: Object.fromEntries([...grouped].map(([id, value]) => [id, { css: joinCss(value.css), enabled: value.enabled }])),
+    components: Object.fromEntries([...grouped].map(([id, value]) => [id, { css: joinCss(value.css), ...(value.tsx !== undefined ? { tsx: value.tsx } : {}), enabled: value.enabled }])),
     assetBundleId: project.nativeAssetBundleId ?? null,
   }
 }

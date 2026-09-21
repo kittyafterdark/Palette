@@ -1,6 +1,6 @@
 import { portableRandomUUID } from '../utils/random-id'
-export const PROJECT_VERSION = 45 as const
-export const STATE_VERSION = 45 as const
+export const PROJECT_VERSION = 46 as const
+export const STATE_VERSION = 46 as const
 
 export type SelectorStrategy = 'semantic' | 'native-context-local' | 'native-registry' | 'studio-registry' | 'css-module' | 'exact-class' | 'structural' | 'volatile'
 export type SelectorStability = 'high' | 'medium' | 'low'
@@ -376,7 +376,8 @@ export interface ProjectBoost {
   shuffleSeed: number
 }
 
-export interface ThemeSourceComponent { css: string; enabled: boolean }
+export interface ThemeSourceComponent { css: string; tsx?: string; enabled: boolean }
+export interface ThemeSourceAssetManifest { slug: string; originalFilename?: string; mimeType?: string; archivePath: string }
 export interface ThemeSourceSnapshot {
   origin: 'lumitheme'
   /** Protected by default. Unlocking only permits explicit source edits in this local Palette project. */
@@ -384,6 +385,12 @@ export interface ThemeSourceSnapshot {
   /** Import is inert by default. This opt-in preview overlays the source on the currently active Lumiverse theme. */
   previewEnabled: boolean
   archiveName?: string
+  /** Archive source is read directly from theme.json; host-draft is the v45 compatibility path. */
+  fidelity?: 'archive' | 'host-draft'
+  archiveFormat?: number
+  archiveBundleId?: string
+  archiveCreatedAt?: number
+  archiveAssets?: ThemeSourceAssetManifest[]
   name?: string
   author?: string
   description?: string

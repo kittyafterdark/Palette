@@ -110,6 +110,14 @@ export class ProjectStore {
       return { ...project, sourceTheme: { ...source, components: { ...source.components, [componentId]: { ...component, css: value } } } }
     })
   }
+  setSourceComponentTsx(componentId: string, value: string): void {
+    this.updateActive((project) => {
+      const source = project.sourceTheme
+      const component = source?.components[componentId]
+      if (!source?.editable || !component) return project
+      return { ...project, sourceTheme: { ...source, components: { ...source.components, [componentId]: { ...component, tsx: value } } } }
+    })
+  }
   setSourceComponentEnabled(componentId: string, enabled: boolean): void {
     this.updateActive((project) => {
       const source = project.sourceTheme
