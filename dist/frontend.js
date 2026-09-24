@@ -19604,17 +19604,16 @@ var ThemeStudioUI = class {
   /** Persistent recipe layers let Reset reveal the style underneath instead of deleting unrelated/manual packets, even after reload. */
   quickStyleSlots = /* @__PURE__ */ new Map();
   hydratedRecipeProjects = /* @__PURE__ */ new Set();
-  /** Palette's authored widget content. When available, Spindle owns the outer
-   * float widget shell, placement, drag geometry, and UI-scale coordinate space. */
+  /** Palette's persistent mini utility surface. It intentionally lives at
+   * document.body so mobile route/tab stacking contexts cannot cover it. */
   widgetRoot = null;
-  widgetHost = null;
-  widgetHostDragCleanup;
   floatingFrame = null;
   floatingBody = null;
   drawerHost = null;
   drawerPlaceholder = null;
   widgetExpanded = false;
   widgetHidden = false;
+  widgetTopLayerOpen = false;
   widgetPopover = null;
   widgetContextMenuOpen = false;
   widgetContextDismissBound = false;
@@ -19692,10 +19691,7 @@ var ThemeStudioUI = class {
     this.root.removeEventListener("wheel", this.handleDrawerWheel);
     this.dockEditor();
     applyDockUiScaleIsolation(this.root, 1, false);
-    this.widgetHostDragCleanup?.();
-    this.widgetHostDragCleanup = void 0;
-    this.widgetHost?.destroy();
-    this.widgetHost = null;
+    if (this.widgetRoot) applyPortalUiScaleIsolation(this.widgetRoot, 1, false);
     this.widgetRoot?.remove();
     this.floatingFrame?.remove();
     this.drawerPlaceholder?.remove();
@@ -19751,6 +19747,9 @@ var ThemeStudioUI = class {
   }
   syncHostUiScaleIsolation() {
     applyDockUiScaleIsolation(this.root, nativeUiScale2(this.root), !this.editorFloating);
+    if (this.widgetRoot) {
+      this.clampWidgetToViewport();
+    }
     if (this.floatingFrame) {
       applyPortalUiScaleIsolation(this.floatingFrame, ancestorUiScale(this.floatingFrame));
       this.clampFloatingFrameToViewport();
@@ -19833,20 +19832,9 @@ var ThemeStudioUI = class {
     this.widgetRoot.className = "ts-widget-root";
     this.widgetRoot.setAttribute("data-theme-studio-widget", "dock");
     this.widgetRoot.setAttribute("aria-live", "polite");
-    const createFloatWidget = this.ctx.ui.createFloatWidget;
-    if (createFloatWidget) {
-      try {
-        this.widgetHost = createFloatWidget.call(this.ctx.ui, { width: 60, height: 44, tooltip: "Palette", chromeless: true });
-        this.widgetHost.root.setAttribute("data-theme-studio-widget", "host");
-        this.widgetHost.root.setAttribute("data-theme-studio-widget-host", "palette");
-        this.widgetHost.root.append(this.widgetRoot);
-        const cleanup = this.widgetHost.onDragEnd((position) => this.saveWidgetPosition(position));
-        if (typeof cleanup === "function") this.widgetHostDragCleanup = cleanup;
-      } catch (error) {
-        console.warn("[Palette] Native float widget unavailable; falling back to a local fixed surface.", error);
-        this.widgetHost = null;
-      }
-    }
+    this.widgetRoot.setAttribute("popover", "manual");
+    Object.assign(this.widgetRoot.style, { position: "fixed", left: "18px", bottom: "72px", zIndex: "2147483638" });
+    document.body.append(this.widgetRoot);
     this.floatingFrame = document.createElement("section");
     this.floatingFrame.className = "ts-floating-editor";
     this.floatingFrame.setAttribute("data-theme-studio-widget", "editor");
@@ -19859,10 +19847,6 @@ var ThemeStudioUI = class {
     this.drawerPlaceholder.setAttribute("data-theme-studio-widget", "placeholder");
     this.drawerPlaceholder.innerHTML = `<strong>Palette is floating.</strong><span>The live editor is detached so you can style drawers, popovers, and modals without losing access to it.</span><button type="button" data-widget-action="dock-placeholder">Return editor here</button>`;
     this.drawerHost?.append(this.drawerPlaceholder);
-    if (!this.widgetHost) {
-      Object.assign(this.widgetRoot.style, { position: "fixed", left: "18px", bottom: "72px", zIndex: "2147483638" });
-      document.body.append(this.widgetRoot);
-    }
     document.body.append(this.floatingFrame);
     try {
       const saved = JSON.parse(localStorage.getItem("theme-studio:widget-position") ?? "null");
@@ -19871,13 +19855,10 @@ var ThemeStudioUI = class {
       const x = Number.isFinite(saved?.x) ? Number(saved?.x) : legacyX;
       const y = Number.isFinite(saved?.y) ? Number(saved?.y) : legacyY;
       if (Number.isFinite(x) && Number.isFinite(y)) {
-        if (this.widgetHost) this.widgetHost.moveTo(x, y);
-        else {
-          this.widgetRoot.style.left = `${x}px`;
-          this.widgetRoot.style.top = `${y}px`;
-          this.widgetRoot.style.right = "auto";
-          this.widgetRoot.style.bottom = "auto";
-        }
+        this.widgetRoot.style.left = `${x}px`;
+        this.widgetRoot.style.top = `${y}px`;
+        this.widgetRoot.style.right = "auto";
+        this.widgetRoot.style.bottom = "auto";
       }
     } catch {
     }
@@ -19886,6 +19867,7 @@ var ThemeStudioUI = class {
     } catch {
       this.widgetHidden = false;
     }
+    this.syncWidgetTopLayer();
     try {
       const savedFloat = JSON.parse(localStorage.getItem("theme-studio:floating-editor") ?? "null");
       if (savedFloat?.mobileSnap) this.mobileFloatSnap = savedFloat.mobileSnap;
@@ -19921,37 +19903,79 @@ var ThemeStudioUI = class {
     this.syncMobileDensityControl();
     this.bindFloatingDrag();
   }
-  saveWidgetPosition(position) {
-    const current = position ?? this.widgetHost?.getPosition();
-    if (current && Number.isFinite(current.x) && Number.isFinite(current.y)) {
-      try {
-        localStorage.setItem("theme-studio:widget-position", JSON.stringify({ x: current.x, y: current.y }));
-      } catch {
-      }
+  syncWidgetTopLayer() {
+    const root = this.widgetRoot;
+    if (!root) return;
+    root.hidden = this.widgetHidden;
+    if (typeof root.showPopover !== "function") {
+      root.removeAttribute("popover");
+      this.widgetTopLayerOpen = false;
       return;
     }
-    if (!this.widgetRoot) return;
-    const rect2 = this.widgetRoot.getBoundingClientRect();
+    if (!root.hasAttribute("popover")) root.setAttribute("popover", "manual");
     try {
-      localStorage.setItem("theme-studio:widget-position", JSON.stringify({ x: rect2.left, y: rect2.top }));
+      if (this.widgetHidden) {
+        if (this.widgetTopLayerOpen) root.hidePopover?.();
+        this.widgetTopLayerOpen = false;
+      } else if (!this.widgetTopLayerOpen) {
+        root.showPopover();
+        this.widgetTopLayerOpen = true;
+      }
+    } catch {
+      root.removeAttribute("popover");
+      this.widgetTopLayerOpen = false;
+    }
+  }
+  saveWidgetPosition() {
+    const root = this.widgetRoot;
+    if (!root) return;
+    const computed = typeof getComputedStyle === "function" ? getComputedStyle(root) : null;
+    const inlineLeft = Number.parseFloat(root.style.left);
+    const inlineTop = Number.parseFloat(root.style.top);
+    const computedLeft = Number.parseFloat(computed?.left ?? "");
+    const computedTop = Number.parseFloat(computed?.top ?? "");
+    const x = Number.isFinite(inlineLeft) ? inlineLeft : Number.isFinite(computedLeft) ? computedLeft : root.offsetLeft;
+    const y = Number.isFinite(inlineTop) ? inlineTop : Number.isFinite(computedTop) ? computedTop : root.offsetTop;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    try {
+      localStorage.setItem("theme-studio:widget-position", JSON.stringify({ x, y }));
     } catch {
     }
   }
-  syncWidgetHostSize() {
-    const host = this.widgetHost;
+  clampWidgetToViewport() {
     const root = this.widgetRoot;
-    if (!host || !root || this.widgetHidden) return;
-    const content = root.firstElementChild;
-    if (!content) return;
-    const commit = () => {
-      if (!this.widgetHost || !content.isConnected) return;
-      const rect2 = content.getBoundingClientRect();
-      const width = Math.ceil(rect2.width || content.offsetWidth || (this.widgetExpanded ? 272 : 60));
-      const height = Math.ceil(rect2.height || content.offsetHeight || (this.widgetExpanded ? 220 : 44));
-      this.widgetHost.setSize(Math.max(1, width), Math.max(1, height));
-    };
-    commit();
-    if (typeof requestAnimationFrame === "function") requestAnimationFrame(commit);
+    if (!root || root.hidden || typeof window === "undefined") return;
+    const rect2 = root.getBoundingClientRect();
+    if (!rect2.width || !rect2.height) return;
+    const scale = ancestorUiScale(root);
+    const positionScale = measurePortalPositionScale(root, scale);
+    const viewport = this.floatingViewportSize();
+    const computed = typeof getComputedStyle === "function" ? getComputedStyle(root) : null;
+    const authoredLeft = Number.parseFloat(root.style.left);
+    const authoredTop = Number.parseFloat(root.style.top);
+    const computedLeft = Number.parseFloat(computed?.left ?? "");
+    const computedTop = Number.parseFloat(computed?.top ?? "");
+    const startLeft = Number.isFinite(authoredLeft) ? authoredLeft : Number.isFinite(computedLeft) ? computedLeft : root.offsetLeft;
+    const startTop = Number.isFinite(authoredTop) ? authoredTop : Number.isFinite(computedTop) ? computedTop : root.offsetTop;
+    const next = portalDragPosition({
+      startRect: rect2,
+      startLeft,
+      startTop,
+      deltaX: 0,
+      deltaY: 0,
+      ancestorScale: scale,
+      positionScaleX: positionScale.x,
+      positionScaleY: positionScale.y,
+      viewportWidth: viewport.width,
+      viewportHeight: viewport.height
+    });
+    const moved = Math.abs(next.left - startLeft) > 0.01 || Math.abs(next.top - startTop) > 0.01;
+    if (!moved) return;
+    root.style.left = `${next.left}px`;
+    root.style.top = `${next.top}px`;
+    root.style.right = "auto";
+    root.style.bottom = "auto";
+    this.saveWidgetPosition();
   }
   mountStyleMap() {
     if (this.styleMapRoot || typeof document === "undefined" || !document.body) return;
@@ -21317,7 +21341,7 @@ var ThemeStudioUI = class {
       localStorage.setItem("theme-studio:widget-hidden", hidden ? "1" : "0");
     } catch {
     }
-    if (this.widgetRoot) this.widgetRoot.hidden = hidden;
+    this.syncWidgetTopLayer();
     if (!hidden) this.renderWidget();
   }
   bindWidgetContextMenu() {
@@ -21376,8 +21400,7 @@ var ThemeStudioUI = class {
   }
   renderWidget() {
     if (!this.widgetRoot) return;
-    this.widgetRoot.hidden = this.widgetHidden;
-    if (this.widgetHost) this.widgetHost.root.style.display = this.widgetHidden ? "none" : "";
+    this.syncWidgetTopLayer();
     if (this.widgetHidden) return;
     const scope = this.selection ? activeScope(this.selection) : void 0;
     const label = scope?.label ?? "Pick something";
@@ -21392,7 +21415,7 @@ var ThemeStudioUI = class {
     }
     this.bindWidget();
     this.bindWidgetContextMenu();
-    this.syncWidgetHostSize();
+    this.clampWidgetToViewport();
   }
   bindWidget() {
     if (!this.widgetRoot) return;
@@ -21435,7 +21458,7 @@ var ThemeStudioUI = class {
       this.clearBoostPreview();
       this.store.shuffleBoost();
     });
-    if (!this.widgetHost) this.bindWidgetPanelDrag();
+    this.bindWidgetPanelDrag();
   }
   bindWidgetPanelDrag() {
     const root = this.widgetRoot;
@@ -21445,14 +21468,35 @@ var ThemeStudioUI = class {
       if (event.button !== 0) return;
       const eventTarget = event.target;
       if (eventTarget?.closest("button") && !eventTarget.closest("[data-widget-launch-drag-handle]")) return;
-      const start = root.getBoundingClientRect(), startX = event.clientX, startY = event.clientY;
+      const start = root.getBoundingClientRect();
+      const startX = event.clientX, startY = event.clientY;
+      const computed = typeof getComputedStyle === "function" ? getComputedStyle(root) : null;
+      const authoredLeft = Number.parseFloat(root.style.left);
+      const authoredTop = Number.parseFloat(root.style.top);
+      const computedLeft = Number.parseFloat(computed?.left ?? "");
+      const computedTop = Number.parseFloat(computed?.top ?? "");
+      const startLeft = Number.isFinite(authoredLeft) ? authoredLeft : Number.isFinite(computedLeft) ? computedLeft : root.offsetLeft;
+      const startTop = Number.isFinite(authoredTop) ? authoredTop : Number.isFinite(computedTop) ? computedTop : root.offsetTop;
+      const scale = ancestorUiScale(root);
+      const positionScale = measurePortalPositionScale(root, scale);
+      const viewport = this.floatingViewportSize();
       handle.setPointerCapture?.(event.pointerId);
+      event.preventDefault();
       const move = (moveEvent) => {
-        const width = Math.max(42, root.offsetWidth), height = Math.max(42, root.offsetHeight);
-        const left = Math.max(8, Math.min(Math.max(8, window.innerWidth - width - 8), start.left + moveEvent.clientX - startX));
-        const top = Math.max(8, Math.min(Math.max(8, window.innerHeight - height - 8), start.top + moveEvent.clientY - startY));
-        root.style.left = `${left}px`;
-        root.style.top = `${top}px`;
+        const next = portalDragPosition({
+          startRect: start,
+          startLeft,
+          startTop,
+          deltaX: moveEvent.clientX - startX,
+          deltaY: moveEvent.clientY - startY,
+          ancestorScale: scale,
+          positionScaleX: positionScale.x,
+          positionScaleY: positionScale.y,
+          viewportWidth: viewport.width,
+          viewportHeight: viewport.height
+        });
+        root.style.left = `${next.left}px`;
+        root.style.top = `${next.top}px`;
         root.style.right = "auto";
         root.style.bottom = "auto";
       };
@@ -21461,7 +21505,7 @@ var ThemeStudioUI = class {
         handle.removeEventListener("pointermove", move);
         handle.removeEventListener("pointerup", up);
         handle.removeEventListener("pointercancel", up);
-        this.saveWidgetPosition({ x: Number.parseFloat(root.style.left) || root.getBoundingClientRect().left, y: Number.parseFloat(root.style.top) || root.getBoundingClientRect().top });
+        this.saveWidgetPosition();
       };
       handle.addEventListener("pointermove", move);
       handle.addEventListener("pointerup", up);
@@ -25386,9 +25430,15 @@ var THEME_STUDIO_CSS = `
 
 /* Zen-ish floating bridge. It is intentionally small until the user undocks the real editor. */
 .ts-widget-root,.ts-floating-editor,.ts-drawer-placeholder { --ts-surface:var(--lumiverse-bg,#1c1826); --ts-elevated:var(--lumiverse-bg-elevated,#231e30); --ts-hover:var(--lumiverse-bg-hover,#2d283a); --ts-border:var(--lumiverse-border,rgba(147,112,219,.18)); --ts-text:var(--lumiverse-text,rgba(255,255,255,.9)); --ts-muted:var(--lumiverse-text-muted,rgba(255,255,255,.62)); --ts-dim:var(--lumiverse-text-dim,rgba(255,255,255,.4)); --ts-accent:var(--lumiverse-primary,#9370db); --ts-accent-soft:var(--lumiverse-primary-015,rgba(147,112,219,.15)); font-family:var(--lumiverse-font-family,system-ui,sans-serif); color:var(--ts-text); }
-/* Spindle owns the mini widget's outer fixed-position surface, drag hitbox, and
-   host UI-scale coordinate space. Palette only owns the content inside it. */
-.ts-widget-root { position:relative; width:max-content; height:max-content; overflow:visible; pointer-events:auto; }
+/* The mini widget is a body-direct viewport utility. Lumiverse scales every
+   direct body child, including arbitrary extension portals, so explicitly opt
+   this one surface out instead of counter-zooming a property applied to the
+   same element. scale:none also cancels the Linux WebKit body-child fallback. */
+.ts-widget-root { position:relative; width:max-content; height:max-content; overflow:visible; pointer-events:auto; zoom:1!important; scale:none!important; }
+/* Manual popover promotion gives the widget browser top-layer stacking while
+   keeping the page fully interactive. Strip UA popover box/centering defaults;
+   Palette's fixed left/top/bottom geometry remains authoritative. */
+.ts-widget-root[popover] { inset:auto; margin:0; padding:0; border:0; background:transparent; color:inherit; overflow:visible; }
 .ts-widget-launch { appearance:none; display:flex; align-items:center; gap:6px; min-width:42px; height:42px; border:1px solid var(--ts-border); border-radius:14px; padding:0 11px; background:color-mix(in srgb,var(--ts-elevated) 92%,transparent); color:var(--ts-text); box-shadow:0 12px 36px rgba(0,0,0,.36),inset 0 1px rgba(255,255,255,.06); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); cursor:pointer; }
 .ts-widget-launch span { color:var(--ts-accent); font-size:17px; }
 .ts-widget-launch i { border-radius:99px; padding:2px 5px; background:var(--ts-accent-soft); color:var(--ts-accent); font-size:8px; font-style:normal; font-weight:800; text-transform:uppercase; }

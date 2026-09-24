@@ -318,22 +318,6 @@ function matchingOverridesForSelection(selection: ResolvedSelection | null, over
   return matches
 }
 
-type PaletteFloatWidgetHandle = {
-  root: HTMLElement
-  destroy(): void
-  setSize(width: number, height: number): void
-  moveTo(x: number, y: number): void
-  getPosition(): { x: number; y: number }
-  onDragEnd(callback: (position: { x: number; y: number }) => void): void | (() => void)
-}
-
-type PaletteFloatWidgetFactory = (options: {
-  width: number
-  height: number
-  tooltip?: string
-  chromeless?: boolean
-}) => PaletteFloatWidgetHandle
-
 export class ThemeStudioUI {
   private components: NativeThemeComponent[] = []
   private variables: NativeThemeVariable[] = []
@@ -411,17 +395,16 @@ export class ThemeStudioUI {
   /** Persistent recipe layers let Reset reveal the style underneath instead of deleting unrelated/manual packets, even after reload. */
   private readonly quickStyleSlots = new Map<string, QuickStyleSlot>()
   private readonly hydratedRecipeProjects = new Set<string>()
-  /** Palette's authored widget content. When available, Spindle owns the outer
-   * float widget shell, placement, drag geometry, and UI-scale coordinate space. */
+  /** Palette's persistent mini utility surface. It intentionally lives at
+   * document.body so mobile route/tab stacking contexts cannot cover it. */
   private widgetRoot: HTMLElement | null = null
-  private widgetHost: PaletteFloatWidgetHandle | null = null
-  private widgetHostDragCleanup?: () => void
   private floatingFrame: HTMLElement | null = null
   private floatingBody: HTMLElement | null = null
   private drawerHost: HTMLElement | null = null
   private drawerPlaceholder: HTMLElement | null = null
   private widgetExpanded = false
   private widgetHidden = false
+  private widgetTopLayerOpen = false
   private widgetPopover: 'zap' | 'code' | null = null
   private widgetContextMenuOpen = false
   private widgetContextDismissBound = false
@@ -495,7 +478,7 @@ export class ThemeStudioUI {
     await this.refreshAssets()
     this.render()
   }
-  destroy(): void { this.clearBoostPreview(); this.clearPreviewMarker(); this.picker.clearHighlight(); this.unsubscribeStore(); this.scrollResizeObserver?.disconnect(); this.hostScaleMutationObserver?.disconnect(); applyDockUiScaleIsolation(this.root, 1, false); if (typeof window !== 'undefined') window.removeEventListener('resize', this.handleViewportResize); this.root.removeEventListener('wheel', this.handleDrawerWheel); this.dockEditor(); applyDockUiScaleIsolation(this.root, 1, false); this.widgetHostDragCleanup?.(); this.widgetHostDragCleanup = undefined; this.widgetHost?.destroy(); this.widgetHost = null; this.widgetRoot?.remove(); this.floatingFrame?.remove(); this.drawerPlaceholder?.remove(); this.destroyStyleLibraryDock(); this.styleLibraryOverlayRoot?.remove(); this.styleLibraryRoot = null; this.styleMapRoot?.remove(); this.root.replaceChildren() }
+  destroy(): void { this.clearBoostPreview(); this.clearPreviewMarker(); this.picker.clearHighlight(); this.unsubscribeStore(); this.scrollResizeObserver?.disconnect(); this.hostScaleMutationObserver?.disconnect(); applyDockUiScaleIsolation(this.root, 1, false); if (typeof window !== 'undefined') window.removeEventListener('resize', this.handleViewportResize); this.root.removeEventListener('wheel', this.handleDrawerWheel); this.dockEditor(); applyDockUiScaleIsolation(this.root, 1, false); if (this.widgetRoot) applyPortalUiScaleIsolation(this.widgetRoot, 1, false); this.widgetRoot?.remove(); this.floatingFrame?.remove(); this.drawerPlaceholder?.remove(); this.destroyStyleLibraryDock(); this.styleLibraryOverlayRoot?.remove(); this.styleLibraryRoot = null; this.styleMapRoot?.remove(); this.root.replaceChildren() }
 
   render(): void {
     this.ensureQuickStyleSlotsHydrated()
@@ -540,10 +523,14 @@ export class ThemeStudioUI {
 
   private syncHostUiScaleIsolation(): void {
     applyDockUiScaleIsolation(this.root, nativeUiScale(this.root), !this.editorFloating)
-    // The mini widget deliberately does NOT participate here. Spindle's native
-    // createFloatWidget surface owns its placement, hit testing, and host UI-scale
-    // coordinate space (the same contract used by SpotifyControls). Counter-zooming
-    // Palette's inner content separates the visual from the native drag/hit box.
+    if (this.widgetRoot) {
+      // The mini widget is a direct body child, so Lumiverse's `body > *` rule
+      // applies UI scale to the widget itself rather than to an ancestor. Its
+      // stylesheet explicitly opts this one utility surface out of host zoom;
+      // geometry can therefore stay in viewport pixels without inverse-zooming
+      // the same element that owns its authored left/top coordinates.
+      this.clampWidgetToViewport()
+    }
     if (this.floatingFrame) {
       applyPortalUiScaleIsolation(this.floatingFrame, ancestorUiScale(this.floatingFrame))
       this.clampFloatingFrameToViewport()
@@ -615,24 +602,17 @@ export class ThemeStudioUI {
     this.widgetRoot.className = 'ts-widget-root'
     this.widgetRoot.setAttribute('data-theme-studio-widget', 'dock')
     this.widgetRoot.setAttribute('aria-live', 'polite')
+    // A manual popover promotes the mini widget into the browser top layer
+    // without modal/inert behavior. This is intentionally independent of
+    // Lumiverse's drawer z-index and survives every ordinary stacking context.
+    // Older WebViews simply ignore the promotion and retain the high-z body
+    // portal fallback.
+    this.widgetRoot.setAttribute('popover', 'manual')
 
-    // Use the exact Spindle float-widget primitive used by SpotifyControls. The
-    // host now owns position, drag capture, hit testing, and UI-scale geometry;
-    // Palette is only the content rendered inside that native floating surface.
-    const createFloatWidget = (this.ctx.ui as unknown as { createFloatWidget?: PaletteFloatWidgetFactory }).createFloatWidget
-    if (createFloatWidget) {
-      try {
-        this.widgetHost = createFloatWidget.call(this.ctx.ui, { width: 60, height: 44, tooltip: 'Palette', chromeless: true })
-        this.widgetHost.root.setAttribute('data-theme-studio-widget', 'host')
-        this.widgetHost.root.setAttribute('data-theme-studio-widget-host', 'palette')
-        this.widgetHost.root.append(this.widgetRoot)
-        const cleanup = this.widgetHost.onDragEnd((position) => this.saveWidgetPosition(position))
-        if (typeof cleanup === 'function') this.widgetHostDragCleanup = cleanup
-      } catch (error) {
-        console.warn('[Palette] Native float widget unavailable; falling back to a local fixed surface.', error)
-        this.widgetHost = null
-      }
-    }
+    // This utility must outlive route/tab surface swaps. Palette owns this tiny
+    // window's position; the shared viewport geometry keeps drag/clamp stable.
+    Object.assign(this.widgetRoot.style, { position: 'fixed', left: '18px', bottom: '72px', zIndex: '2147483638' })
+    document.body.append(this.widgetRoot)
 
     this.floatingFrame = document.createElement('section')
     this.floatingFrame.className = 'ts-floating-editor'
@@ -647,11 +627,6 @@ export class ThemeStudioUI {
     this.drawerPlaceholder.setAttribute('data-theme-studio-widget', 'placeholder')
     this.drawerPlaceholder.innerHTML = `<strong>Palette is floating.</strong><span>The live editor is detached so you can style drawers, popovers, and modals without losing access to it.</span><button type="button" data-widget-action="dock-placeholder">Return editor here</button>`
     this.drawerHost?.append(this.drawerPlaceholder)
-    if (!this.widgetHost) {
-      // Compatibility fallback for older hosts without createFloatWidget().
-      Object.assign(this.widgetRoot.style, { position: 'fixed', left: '18px', bottom: '72px', zIndex: '2147483638' })
-      document.body.append(this.widgetRoot)
-    }
     document.body.append(this.floatingFrame)
 
     try {
@@ -661,11 +636,11 @@ export class ThemeStudioUI {
       const x = Number.isFinite(saved?.x) ? Number(saved?.x) : legacyX
       const y = Number.isFinite(saved?.y) ? Number(saved?.y) : legacyY
       if (Number.isFinite(x) && Number.isFinite(y)) {
-        if (this.widgetHost) this.widgetHost.moveTo(x, y)
-        else { this.widgetRoot.style.left = `${x}px`; this.widgetRoot.style.top = `${y}px`; this.widgetRoot.style.right = 'auto'; this.widgetRoot.style.bottom = 'auto' }
+        this.widgetRoot.style.left = `${x}px`; this.widgetRoot.style.top = `${y}px`; this.widgetRoot.style.right = 'auto'; this.widgetRoot.style.bottom = 'auto'
       }
     } catch { /* local widget position is best-effort */ }
     try { this.widgetHidden = localStorage.getItem('theme-studio:widget-hidden') === '1' } catch { this.widgetHidden = false }
+    this.syncWidgetTopLayer()
 
     try {
       const savedFloat = JSON.parse(localStorage.getItem('theme-studio:floating-editor') ?? 'null') as { left?: string; top?: string; mobileSnap?: 'peek' | 'work' | 'full'; mobileEdge?: 'top' | 'bottom'; mobileDensity?: 100 | 80 | 60 } | null
@@ -689,32 +664,82 @@ export class ThemeStudioUI {
     this.bindFloatingDrag()
   }
 
-  private saveWidgetPosition(position?: { x: number; y: number }): void {
-    const current = position ?? this.widgetHost?.getPosition()
-    if (current && Number.isFinite(current.x) && Number.isFinite(current.y)) {
-      try { localStorage.setItem('theme-studio:widget-position', JSON.stringify({ x: current.x, y: current.y })) } catch { /* best effort */ }
+  private syncWidgetTopLayer(): void {
+    const root = this.widgetRoot as (HTMLElement & { showPopover?: () => void; hidePopover?: () => void }) | null
+    if (!root) return
+    root.hidden = this.widgetHidden
+    if (typeof root.showPopover !== 'function') {
+      // Unsupported WebView: an unknown popover attribute would be harmless,
+      // but removing it makes the fixed high-z body portal fallback explicit.
+      root.removeAttribute('popover')
+      this.widgetTopLayerOpen = false
       return
     }
-    if (!this.widgetRoot) return
-    const rect = this.widgetRoot.getBoundingClientRect()
-    try { localStorage.setItem('theme-studio:widget-position', JSON.stringify({ x: rect.left, y: rect.top })) } catch { /* best effort */ }
+    if (!root.hasAttribute('popover')) root.setAttribute('popover', 'manual')
+    try {
+      if (this.widgetHidden) {
+        if (this.widgetTopLayerOpen) root.hidePopover?.()
+        this.widgetTopLayerOpen = false
+      } else if (!this.widgetTopLayerOpen) {
+        root.showPopover()
+        this.widgetTopLayerOpen = true
+      }
+    } catch {
+      // If a partially-supported WebView rejects the popover transition, remove
+      // the attribute so the widget remains visible as an ordinary body portal.
+      root.removeAttribute('popover')
+      this.widgetTopLayerOpen = false
+    }
   }
 
-  private syncWidgetHostSize(): void {
-    const host = this.widgetHost
+  private saveWidgetPosition(): void {
     const root = this.widgetRoot
-    if (!host || !root || this.widgetHidden) return
-    const content = root.firstElementChild as HTMLElement | null
-    if (!content) return
-    const commit = () => {
-      if (!this.widgetHost || !content.isConnected) return
-      const rect = content.getBoundingClientRect()
-      const width = Math.ceil(rect.width || content.offsetWidth || (this.widgetExpanded ? 272 : 60))
-      const height = Math.ceil(rect.height || content.offsetHeight || (this.widgetExpanded ? 220 : 44))
-      this.widgetHost.setSize(Math.max(1, width), Math.max(1, height))
-    }
-    commit()
-    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(commit)
+    if (!root) return
+    const computed = typeof getComputedStyle === 'function' ? getComputedStyle(root) : null
+    const inlineLeft = Number.parseFloat(root.style.left)
+    const inlineTop = Number.parseFloat(root.style.top)
+    const computedLeft = Number.parseFloat(computed?.left ?? '')
+    const computedTop = Number.parseFloat(computed?.top ?? '')
+    const x = Number.isFinite(inlineLeft) ? inlineLeft : Number.isFinite(computedLeft) ? computedLeft : root.offsetLeft
+    const y = Number.isFinite(inlineTop) ? inlineTop : Number.isFinite(computedTop) ? computedTop : root.offsetTop
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return
+    try { localStorage.setItem('theme-studio:widget-position', JSON.stringify({ x, y })) } catch { /* best effort */ }
+  }
+
+  private clampWidgetToViewport(): void {
+    const root = this.widgetRoot
+    if (!root || root.hidden || typeof window === 'undefined') return
+    const rect = root.getBoundingClientRect()
+    if (!rect.width || !rect.height) return
+    const scale = ancestorUiScale(root)
+    const positionScale = measurePortalPositionScale(root, scale)
+    const viewport = this.floatingViewportSize()
+    const computed = typeof getComputedStyle === 'function' ? getComputedStyle(root) : null
+    const authoredLeft = Number.parseFloat(root.style.left)
+    const authoredTop = Number.parseFloat(root.style.top)
+    const computedLeft = Number.parseFloat(computed?.left ?? '')
+    const computedTop = Number.parseFloat(computed?.top ?? '')
+    const startLeft = Number.isFinite(authoredLeft) ? authoredLeft : Number.isFinite(computedLeft) ? computedLeft : root.offsetLeft
+    const startTop = Number.isFinite(authoredTop) ? authoredTop : Number.isFinite(computedTop) ? computedTop : root.offsetTop
+    const next = portalDragPosition({
+      startRect: rect,
+      startLeft,
+      startTop,
+      deltaX: 0,
+      deltaY: 0,
+      ancestorScale: scale,
+      positionScaleX: positionScale.x,
+      positionScaleY: positionScale.y,
+      viewportWidth: viewport.width,
+      viewportHeight: viewport.height,
+    })
+    const moved = Math.abs(next.left - startLeft) > .01 || Math.abs(next.top - startTop) > .01
+    if (!moved) return
+    root.style.left = `${next.left}px`
+    root.style.top = `${next.top}px`
+    root.style.right = 'auto'
+    root.style.bottom = 'auto'
+    this.saveWidgetPosition()
   }
 
   private mountStyleMap(): void {
@@ -1979,7 +2004,7 @@ export class ThemeStudioUI {
     this.widgetContextMenuOpen = false
     if (hidden) { this.widgetExpanded = false; this.widgetPopover = null }
     try { localStorage.setItem('theme-studio:widget-hidden', hidden ? '1' : '0') } catch { /* best effort */ }
-    if (this.widgetRoot) this.widgetRoot.hidden = hidden
+    this.syncWidgetTopLayer()
     if (!hidden) this.renderWidget()
   }
 
@@ -2022,8 +2047,7 @@ export class ThemeStudioUI {
 
   private renderWidget(): void {
     if (!this.widgetRoot) return
-    this.widgetRoot.hidden = this.widgetHidden
-    if (this.widgetHost) this.widgetHost.root.style.display = this.widgetHidden ? 'none' : ''
+    this.syncWidgetTopLayer()
     if (this.widgetHidden) return
     const scope = this.selection ? activeScope(this.selection) : undefined
     const label = scope?.label ?? 'Pick something'
@@ -2038,7 +2062,7 @@ export class ThemeStudioUI {
     }
     this.bindWidget()
     this.bindWidgetContextMenu()
-    this.syncWidgetHostSize()
+    this.clampWidgetToViewport()
   }
 
   private bindWidget(): void {
@@ -2058,9 +2082,7 @@ export class ThemeStudioUI {
     this.widgetRoot.querySelector('[data-widget-insert="related"]')?.addEventListener('click', () => this.insertSelectorIntoCustomCss(this.widgetRelatedScope()))
     this.widgetRoot.querySelector('[data-widget-action="float-themes"]')?.addEventListener('click', () => this.floatEditor('themes'))
     this.widgetRoot.querySelector('[data-widget-action="shuffle-boost"]')?.addEventListener('click', () => { this.clearBoostPreview(); this.store.shuffleBoost() })
-    // Native Spindle widgets own drag behavior. Only the compatibility fallback
-    // needs Palette's legacy manual pointer-move implementation.
-    if (!this.widgetHost) this.bindWidgetPanelDrag()
+    this.bindWidgetPanelDrag()
   }
 
   private bindWidgetPanelDrag(): void {
@@ -2071,20 +2093,48 @@ export class ThemeStudioUI {
       if (event.button !== 0) return
       const eventTarget = event.target as Element | null
       if (eventTarget?.closest('button') && !eventTarget.closest('[data-widget-launch-drag-handle]')) return
-      const start = root.getBoundingClientRect(), startX = event.clientX, startY = event.clientY
+      const start = root.getBoundingClientRect()
+      const startX = event.clientX, startY = event.clientY
+      const computed = typeof getComputedStyle === 'function' ? getComputedStyle(root) : null
+      const authoredLeft = Number.parseFloat(root.style.left)
+      const authoredTop = Number.parseFloat(root.style.top)
+      const computedLeft = Number.parseFloat(computed?.left ?? '')
+      const computedTop = Number.parseFloat(computed?.top ?? '')
+      const startLeft = Number.isFinite(authoredLeft) ? authoredLeft : Number.isFinite(computedLeft) ? computedLeft : root.offsetLeft
+      const startTop = Number.isFinite(authoredTop) ? authoredTop : Number.isFinite(computedTop) ? computedTop : root.offsetTop
+      const scale = ancestorUiScale(root)
+      const positionScale = measurePortalPositionScale(root, scale)
+      const viewport = this.floatingViewportSize()
       handle.setPointerCapture?.(event.pointerId)
+      event.preventDefault()
       const move = (moveEvent: PointerEvent) => {
-        const width = Math.max(42, root.offsetWidth), height = Math.max(42, root.offsetHeight)
-        const left = Math.max(8, Math.min(Math.max(8, window.innerWidth - width - 8), start.left + moveEvent.clientX - startX))
-        const top = Math.max(8, Math.min(Math.max(8, window.innerHeight - height - 8), start.top + moveEvent.clientY - startY))
-        root.style.left = `${left}px`; root.style.top = `${top}px`; root.style.right = 'auto'; root.style.bottom = 'auto'
+        const next = portalDragPosition({
+          startRect: start,
+          startLeft,
+          startTop,
+          deltaX: moveEvent.clientX - startX,
+          deltaY: moveEvent.clientY - startY,
+          ancestorScale: scale,
+          positionScaleX: positionScale.x,
+          positionScaleY: positionScale.y,
+          viewportWidth: viewport.width,
+          viewportHeight: viewport.height,
+        })
+        root.style.left = `${next.left}px`
+        root.style.top = `${next.top}px`
+        root.style.right = 'auto'
+        root.style.bottom = 'auto'
       }
       const up = (upEvent: PointerEvent) => {
         handle.releasePointerCapture?.(upEvent.pointerId)
-        handle.removeEventListener('pointermove', move); handle.removeEventListener('pointerup', up); handle.removeEventListener('pointercancel', up)
-        this.saveWidgetPosition({ x: Number.parseFloat(root.style.left) || root.getBoundingClientRect().left, y: Number.parseFloat(root.style.top) || root.getBoundingClientRect().top })
+        handle.removeEventListener('pointermove', move)
+        handle.removeEventListener('pointerup', up)
+        handle.removeEventListener('pointercancel', up)
+        this.saveWidgetPosition()
       }
-      handle.addEventListener('pointermove', move); handle.addEventListener('pointerup', up); handle.addEventListener('pointercancel', up)
+      handle.addEventListener('pointermove', move)
+      handle.addEventListener('pointerup', up)
+      handle.addEventListener('pointercancel', up)
     })
   }
 

@@ -70,18 +70,27 @@ function mockContext(): SpindleFrontendContext {
     },
     ui: {
       createFloatWidget: (options: { width: number; height: number }) => {
+        // Mirror the real Spindle shape: the handle root is extension content
+        // nested inside a native fixed-position widget shell.
+        const shell = document.createElement('div')
+        shell.dataset.testSpindleFloatShell = 'true'
+        shell.style.position = 'fixed'
+        shell.style.zIndex = '9980'
+        shell.style.width = `${options.width}px`
+        shell.style.height = `${options.height}px`
+        const content = document.createElement('div')
         const root = document.createElement('div')
         root.dataset.testSpindleFloatWidget = 'true'
-        root.style.width = `${options.width}px`
-        root.style.height = `${options.height}px`
-        document.body.append(root)
+        content.append(root)
+        shell.append(content)
+        document.body.append(shell)
         let position = { x: 0, y: 0 }
         let dragEnd: ((next: { x: number; y: number }) => void) | null = null
         return {
           root,
-          destroy: () => root.remove(),
-          setSize: (width: number, height: number) => { root.style.width = `${width}px`; root.style.height = `${height}px` },
-          moveTo: (x: number, y: number) => { position = { x, y }; root.style.left = `${x}px`; root.style.top = `${y}px` },
+          destroy: () => shell.remove(),
+          setSize: (width: number, height: number) => { shell.style.width = `${width}px`; shell.style.height = `${height}px` },
+          moveTo: (x: number, y: number) => { position = { x, y }; shell.style.left = `${x}px`; shell.style.top = `${y}px` },
           getPosition: () => ({ ...position }),
           onDragEnd: (callback: (next: { x: number; y: number }) => void) => { dragEnd = callback; return () => { dragEnd = null } },
           __dragTo: (x: number, y: number) => { position = { x, y }; dragEnd?.(position) },
@@ -318,26 +327,39 @@ describe('browser-owned lifecycle', () => {
     expect(second.top).toBeCloseTo(first.top)
   })
 
-  test('mini widget delegates scaled placement and hit testing to Spindle instead of counter-zooming its content', () => {
+  test('mini widget uses a body portal plus manual top-layer promotion instead of Spindle drawer stacking', () => {
     document.documentElement.style.setProperty('--lumiverse-ui-scale', '0.8')
-    Object.defineProperty(document.body, 'currentCSSZoom', { configurable: true, value: 0.8 })
     const root = document.createElement('div'); document.body.append(root)
     const context = mockContext(), store = new ProjectStore(), preview = new LiveStylesheet(context), picker = new ElementPicker(context)
     const studio = new ThemeStudioUI(context, root, store, picker, preview)
-    const access = studio as unknown as { mountWidget(): void; syncHostUiScaleIsolation(): void; widgetRoot: HTMLElement | null; widgetHost: { root: HTMLElement; __dragTo?: (x: number, y: number) => void } | null; floatingFrame: HTMLElement | null }
+    const access = studio as unknown as { mountWidget(): void; syncHostUiScaleIsolation(): void; syncWidgetTopLayer(): void; setWidgetHidden(hidden: boolean): void; saveWidgetPosition(): void; widgetRoot: (HTMLElement & { showPopover?: () => void; hidePopover?: () => void }) | null }
 
     access.mountWidget()
+    let shown = 0, hidden = 0
+    access.widgetRoot!.showPopover = () => { shown += 1 }
+    access.widgetRoot!.hidePopover = () => { hidden += 1 }
+    access.syncWidgetTopLayer()
     access.syncHostUiScaleIsolation()
 
-    expect(access.widgetHost?.root.dataset.testSpindleFloatWidget).toBe('true')
-    expect(access.widgetRoot?.parentElement).toBe(access.widgetHost?.root)
-    expect(access.widgetRoot?.style.getPropertyValue('zoom')).toBe('')
-    expect(access.widgetHost?.root.style.getPropertyValue('zoom')).toBe('')
-    access.widgetHost?.__dragTo?.(123, 456)
+    expect(access.widgetRoot?.parentElement).toBe(document.body)
+    expect(access.widgetRoot?.getAttribute('popover')).toBe('manual')
+    expect(access.widgetRoot?.style.position).toBe('fixed')
+    expect(access.widgetRoot?.style.zIndex).toBe('2147483638')
+    expect(shown).toBe(1)
+    expect(hidden).toBe(0)
+    expect(document.querySelector('[data-test-spindle-float-shell]')).toBeNull()
+    access.widgetRoot!.style.left = '123px'
+    access.widgetRoot!.style.top = '456px'
+    access.widgetRoot!.style.right = 'auto'
+    access.widgetRoot!.style.bottom = 'auto'
+    access.saveWidgetPosition()
     expect(JSON.parse(localStorage.getItem('theme-studio:widget-position') ?? '{}')).toEqual({ x: 123, y: 456 })
-    // The separate full editor is still a body portal and keeps its existing
-    // isolation behavior; only the mini widget is now natively hosted.
-    expect(access.floatingFrame?.style.getPropertyValue('zoom')).toBe('1.25')
+    access.setWidgetHidden(true)
+    expect(hidden).toBe(1)
+    expect(access.widgetRoot?.hidden).toBe(true)
+    access.setWidgetHidden(false)
+    expect(shown).toBe(2)
+    expect(access.widgetRoot?.hidden).toBe(false)
 
     studio.destroy(); picker.destroy(); preview.destroy(); root.remove()
     document.documentElement.style.removeProperty('--lumiverse-ui-scale')

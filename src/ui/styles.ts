@@ -520,9 +520,15 @@ export const THEME_STUDIO_CSS = `
 
 /* Zen-ish floating bridge. It is intentionally small until the user undocks the real editor. */
 .ts-widget-root,.ts-floating-editor,.ts-drawer-placeholder { --ts-surface:var(--lumiverse-bg,#1c1826); --ts-elevated:var(--lumiverse-bg-elevated,#231e30); --ts-hover:var(--lumiverse-bg-hover,#2d283a); --ts-border:var(--lumiverse-border,rgba(147,112,219,.18)); --ts-text:var(--lumiverse-text,rgba(255,255,255,.9)); --ts-muted:var(--lumiverse-text-muted,rgba(255,255,255,.62)); --ts-dim:var(--lumiverse-text-dim,rgba(255,255,255,.4)); --ts-accent:var(--lumiverse-primary,#9370db); --ts-accent-soft:var(--lumiverse-primary-015,rgba(147,112,219,.15)); font-family:var(--lumiverse-font-family,system-ui,sans-serif); color:var(--ts-text); }
-/* Spindle owns the mini widget's outer fixed-position surface, drag hitbox, and
-   host UI-scale coordinate space. Palette only owns the content inside it. */
-.ts-widget-root { position:relative; width:max-content; height:max-content; overflow:visible; pointer-events:auto; }
+/* The mini widget is a body-direct viewport utility. Lumiverse scales every
+   direct body child, including arbitrary extension portals, so explicitly opt
+   this one surface out instead of counter-zooming a property applied to the
+   same element. scale:none also cancels the Linux WebKit body-child fallback. */
+.ts-widget-root { position:relative; width:max-content; height:max-content; overflow:visible; pointer-events:auto; zoom:1!important; scale:none!important; }
+/* Manual popover promotion gives the widget browser top-layer stacking while
+   keeping the page fully interactive. Strip UA popover box/centering defaults;
+   Palette's fixed left/top/bottom geometry remains authoritative. */
+.ts-widget-root[popover] { inset:auto; margin:0; padding:0; border:0; background:transparent; color:inherit; overflow:visible; }
 .ts-widget-launch { appearance:none; display:flex; align-items:center; gap:6px; min-width:42px; height:42px; border:1px solid var(--ts-border); border-radius:14px; padding:0 11px; background:color-mix(in srgb,var(--ts-elevated) 92%,transparent); color:var(--ts-text); box-shadow:0 12px 36px rgba(0,0,0,.36),inset 0 1px rgba(255,255,255,.06); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); cursor:pointer; }
 .ts-widget-launch span { color:var(--ts-accent); font-size:17px; }
 .ts-widget-launch i { border-radius:99px; padding:2px 5px; background:var(--ts-accent-soft); color:var(--ts-accent); font-size:8px; font-style:normal; font-weight:800; text-transform:uppercase; }
