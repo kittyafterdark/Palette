@@ -21,7 +21,7 @@ Compact widget:
 
 **Float** physically reparents the same live Theme Studio mount into a high-z draggable editor window. It does not clone the editor. This matters because users can pick and edit modal content without closing the modal just to reach the Spindle drawer. **Return** moves that exact mount back to its original Spindle sidebar host. The word Dock is reserved for Lumiverse’s persistent dock UI.
 
-The picker treats both the compact widget and floating editor as Theme Studio-owned UI, so neither can accidentally become the selected page target. The compact widget is rendered inside Spindle's native float-widget surface, which owns drag capture, placement, hit testing, and host UI-scale geometry; Palette keeps the explicit grip/header affordance and persists the host-reported position locally. Native reference catalogs stay hidden while the full editor is floated; they remain available in the normal drawer.
+The picker treats both the compact widget and floating editor as Theme Studio-owned UI, so neither can accidentally become the selected page target. The compact widget is a persistent `document.body` portal so it stays above mobile route/tab chrome; Palette owns its fixed-position drag/persistence and uses the same measured zoom-aware viewport geometry as the detached editor to keep rendered controls and pointer hitboxes aligned. Native reference catalogs stay hidden while the full editor is floated; they remain available in the normal drawer.
 
 ## Direction
 

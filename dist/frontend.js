@@ -19604,15 +19604,9 @@ var ThemeStudioUI = class {
   /** Persistent recipe layers let Reset reveal the style underneath instead of deleting unrelated/manual packets, even after reload. */
   quickStyleSlots = /* @__PURE__ */ new Map();
   hydratedRecipeProjects = /* @__PURE__ */ new Set();
-  /** Palette's authored widget content. When available, Spindle owns the outer
-   * float widget shell, placement, drag geometry, and UI-scale coordinate space. */
+  /** Palette's persistent mini utility surface. It intentionally lives at
+   * document.body so mobile route/tab stacking contexts cannot cover it. */
   widgetRoot = null;
-  widgetHost = null;
-  widgetHostDragCleanup;
-  widgetHostLayerObserver;
-  widgetHostSurface = null;
-  widgetHostSurfaceZIndex = "";
-  widgetHostSurfaceZPriority = "";
   floatingFrame = null;
   floatingBody = null;
   drawerHost = null;
@@ -19696,13 +19690,7 @@ var ThemeStudioUI = class {
     this.root.removeEventListener("wheel", this.handleDrawerWheel);
     this.dockEditor();
     applyDockUiScaleIsolation(this.root, 1, false);
-    this.widgetHostLayerObserver?.disconnect();
-    this.widgetHostLayerObserver = void 0;
-    this.restoreWidgetHostLayer();
-    this.widgetHostDragCleanup?.();
-    this.widgetHostDragCleanup = void 0;
-    this.widgetHost?.destroy();
-    this.widgetHost = null;
+    if (this.widgetRoot) applyPortalUiScaleIsolation(this.widgetRoot, 1, false);
     this.widgetRoot?.remove();
     this.floatingFrame?.remove();
     this.drawerPlaceholder?.remove();
@@ -19757,8 +19745,11 @@ var ThemeStudioUI = class {
     this.renderStyleMap();
   }
   syncHostUiScaleIsolation() {
-    this.ensureWidgetHostLayer();
     applyDockUiScaleIsolation(this.root, nativeUiScale2(this.root), !this.editorFloating);
+    if (this.widgetRoot) {
+      applyPortalUiScaleIsolation(this.widgetRoot, ancestorUiScale(this.widgetRoot));
+      this.clampWidgetToViewport();
+    }
     if (this.floatingFrame) {
       applyPortalUiScaleIsolation(this.floatingFrame, ancestorUiScale(this.floatingFrame));
       this.clampFloatingFrameToViewport();
@@ -19841,21 +19832,8 @@ var ThemeStudioUI = class {
     this.widgetRoot.className = "ts-widget-root";
     this.widgetRoot.setAttribute("data-theme-studio-widget", "dock");
     this.widgetRoot.setAttribute("aria-live", "polite");
-    const createFloatWidget = this.ctx.ui.createFloatWidget;
-    if (createFloatWidget) {
-      try {
-        this.widgetHost = createFloatWidget.call(this.ctx.ui, { width: 60, height: 44, tooltip: "Palette", chromeless: true });
-        this.widgetHost.root.setAttribute("data-theme-studio-widget", "host");
-        this.widgetHost.root.setAttribute("data-theme-studio-widget-host", "palette");
-        this.widgetHost.root.append(this.widgetRoot);
-        const cleanup = this.widgetHost.onDragEnd((position) => this.saveWidgetPosition(position));
-        if (typeof cleanup === "function") this.widgetHostDragCleanup = cleanup;
-      } catch (error) {
-        console.warn("[Palette] Native float widget unavailable; falling back to a local fixed surface.", error);
-        this.widgetHost = null;
-      }
-    }
-    this.ensureWidgetHostLayer();
+    Object.assign(this.widgetRoot.style, { position: "fixed", left: "18px", bottom: "72px", zIndex: "2147483638" });
+    document.body.append(this.widgetRoot);
     this.floatingFrame = document.createElement("section");
     this.floatingFrame.className = "ts-floating-editor";
     this.floatingFrame.setAttribute("data-theme-studio-widget", "editor");
@@ -19868,10 +19846,6 @@ var ThemeStudioUI = class {
     this.drawerPlaceholder.setAttribute("data-theme-studio-widget", "placeholder");
     this.drawerPlaceholder.innerHTML = `<strong>Palette is floating.</strong><span>The live editor is detached so you can style drawers, popovers, and modals without losing access to it.</span><button type="button" data-widget-action="dock-placeholder">Return editor here</button>`;
     this.drawerHost?.append(this.drawerPlaceholder);
-    if (!this.widgetHost) {
-      Object.assign(this.widgetRoot.style, { position: "fixed", left: "18px", bottom: "72px", zIndex: "2147483638" });
-      document.body.append(this.widgetRoot);
-    }
     document.body.append(this.floatingFrame);
     try {
       const saved = JSON.parse(localStorage.getItem("theme-studio:widget-position") ?? "null");
@@ -19880,13 +19854,10 @@ var ThemeStudioUI = class {
       const x = Number.isFinite(saved?.x) ? Number(saved?.x) : legacyX;
       const y = Number.isFinite(saved?.y) ? Number(saved?.y) : legacyY;
       if (Number.isFinite(x) && Number.isFinite(y)) {
-        if (this.widgetHost) this.widgetHost.moveTo(x, y);
-        else {
-          this.widgetRoot.style.left = `${x}px`;
-          this.widgetRoot.style.top = `${y}px`;
-          this.widgetRoot.style.right = "auto";
-          this.widgetRoot.style.bottom = "auto";
-        }
+        this.widgetRoot.style.left = `${x}px`;
+        this.widgetRoot.style.top = `${y}px`;
+        this.widgetRoot.style.right = "auto";
+        this.widgetRoot.style.bottom = "auto";
       }
     } catch {
     }
@@ -19930,84 +19901,56 @@ var ThemeStudioUI = class {
     this.syncMobileDensityControl();
     this.bindFloatingDrag();
   }
-  restoreWidgetHostLayer() {
-    const surface = this.widgetHostSurface;
-    if (!surface) return;
-    if (this.widgetHostSurfaceZIndex) surface.style.setProperty("z-index", this.widgetHostSurfaceZIndex, this.widgetHostSurfaceZPriority);
-    else surface.style.removeProperty("z-index");
-    surface.removeAttribute("data-theme-studio-widget-surface");
-    this.widgetHostSurface = null;
-    this.widgetHostSurfaceZIndex = "";
-    this.widgetHostSurfaceZPriority = "";
-  }
-  promoteWidgetHostLayer() {
-    const root = this.widgetHost?.root;
-    if (!root?.isConnected || typeof document === "undefined") return false;
-    let current = root.parentElement;
-    while (current && current !== document.body) {
-      const position = typeof window !== "undefined" && typeof window.getComputedStyle === "function" ? window.getComputedStyle(current).position : current.style.position;
-      if (position === "fixed") {
-        if (this.widgetHostSurface !== current) {
-          this.restoreWidgetHostLayer();
-          this.widgetHostSurface = current;
-          this.widgetHostSurfaceZIndex = current.style.getPropertyValue("z-index");
-          this.widgetHostSurfaceZPriority = current.style.getPropertyPriority("z-index");
-        }
-        current.setAttribute("data-theme-studio-widget-surface", "palette");
-        current.style.setProperty("z-index", "2147483638", "important");
-        return true;
-      }
-      current = current.parentElement;
-    }
-    return false;
-  }
-  ensureWidgetHostLayer() {
-    if (!this.widgetHost || typeof document === "undefined") return;
-    if (this.promoteWidgetHostLayer()) {
-      this.widgetHostLayerObserver?.disconnect();
-      this.widgetHostLayerObserver = void 0;
-      return;
-    }
-    if (this.widgetHostLayerObserver || typeof MutationObserver === "undefined" || !document.body) return;
-    this.widgetHostLayerObserver = new MutationObserver(() => {
-      if (!this.promoteWidgetHostLayer()) return;
-      this.widgetHostLayerObserver?.disconnect();
-      this.widgetHostLayerObserver = void 0;
-    });
-    this.widgetHostLayerObserver.observe(document.body, { childList: true, subtree: true });
-  }
-  saveWidgetPosition(position) {
-    const current = position ?? this.widgetHost?.getPosition();
-    if (current && Number.isFinite(current.x) && Number.isFinite(current.y)) {
-      try {
-        localStorage.setItem("theme-studio:widget-position", JSON.stringify({ x: current.x, y: current.y }));
-      } catch {
-      }
-      return;
-    }
-    if (!this.widgetRoot) return;
-    const rect2 = this.widgetRoot.getBoundingClientRect();
+  saveWidgetPosition() {
+    const root = this.widgetRoot;
+    if (!root) return;
+    const computed = typeof getComputedStyle === "function" ? getComputedStyle(root) : null;
+    const inlineLeft = Number.parseFloat(root.style.left);
+    const inlineTop = Number.parseFloat(root.style.top);
+    const computedLeft = Number.parseFloat(computed?.left ?? "");
+    const computedTop = Number.parseFloat(computed?.top ?? "");
+    const x = Number.isFinite(inlineLeft) ? inlineLeft : Number.isFinite(computedLeft) ? computedLeft : root.offsetLeft;
+    const y = Number.isFinite(inlineTop) ? inlineTop : Number.isFinite(computedTop) ? computedTop : root.offsetTop;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
     try {
-      localStorage.setItem("theme-studio:widget-position", JSON.stringify({ x: rect2.left, y: rect2.top }));
+      localStorage.setItem("theme-studio:widget-position", JSON.stringify({ x, y }));
     } catch {
     }
   }
-  syncWidgetHostSize() {
-    this.ensureWidgetHostLayer();
-    const host = this.widgetHost;
+  clampWidgetToViewport() {
     const root = this.widgetRoot;
-    if (!host || !root || this.widgetHidden) return;
-    const content = root.firstElementChild;
-    if (!content) return;
-    const commit = () => {
-      if (!this.widgetHost || !content.isConnected) return;
-      const rect2 = content.getBoundingClientRect();
-      const width = Math.ceil(rect2.width || content.offsetWidth || (this.widgetExpanded ? 272 : 60));
-      const height = Math.ceil(rect2.height || content.offsetHeight || (this.widgetExpanded ? 220 : 44));
-      this.widgetHost.setSize(Math.max(1, width), Math.max(1, height));
-    };
-    commit();
-    if (typeof requestAnimationFrame === "function") requestAnimationFrame(commit);
+    if (!root || root.hidden || typeof window === "undefined") return;
+    const rect2 = root.getBoundingClientRect();
+    if (!rect2.width || !rect2.height) return;
+    const scale = ancestorUiScale(root);
+    const positionScale = measurePortalPositionScale(root, scale);
+    const viewport = this.floatingViewportSize();
+    const computed = typeof getComputedStyle === "function" ? getComputedStyle(root) : null;
+    const authoredLeft = Number.parseFloat(root.style.left);
+    const authoredTop = Number.parseFloat(root.style.top);
+    const computedLeft = Number.parseFloat(computed?.left ?? "");
+    const computedTop = Number.parseFloat(computed?.top ?? "");
+    const startLeft = Number.isFinite(authoredLeft) ? authoredLeft : Number.isFinite(computedLeft) ? computedLeft : root.offsetLeft;
+    const startTop = Number.isFinite(authoredTop) ? authoredTop : Number.isFinite(computedTop) ? computedTop : root.offsetTop;
+    const next = portalDragPosition({
+      startRect: rect2,
+      startLeft,
+      startTop,
+      deltaX: 0,
+      deltaY: 0,
+      ancestorScale: scale,
+      positionScaleX: positionScale.x,
+      positionScaleY: positionScale.y,
+      viewportWidth: viewport.width,
+      viewportHeight: viewport.height
+    });
+    const moved = Math.abs(next.left - startLeft) > 0.01 || Math.abs(next.top - startTop) > 0.01;
+    if (!moved) return;
+    root.style.left = `${next.left}px`;
+    root.style.top = `${next.top}px`;
+    root.style.right = "auto";
+    root.style.bottom = "auto";
+    this.saveWidgetPosition();
   }
   mountStyleMap() {
     if (this.styleMapRoot || typeof document === "undefined" || !document.body) return;
@@ -21433,7 +21376,6 @@ var ThemeStudioUI = class {
   renderWidget() {
     if (!this.widgetRoot) return;
     this.widgetRoot.hidden = this.widgetHidden;
-    if (this.widgetHost) this.widgetHost.root.style.display = this.widgetHidden ? "none" : "";
     if (this.widgetHidden) return;
     const scope = this.selection ? activeScope(this.selection) : void 0;
     const label = scope?.label ?? "Pick something";
@@ -21448,7 +21390,7 @@ var ThemeStudioUI = class {
     }
     this.bindWidget();
     this.bindWidgetContextMenu();
-    this.syncWidgetHostSize();
+    this.clampWidgetToViewport();
   }
   bindWidget() {
     if (!this.widgetRoot) return;
@@ -21491,7 +21433,7 @@ var ThemeStudioUI = class {
       this.clearBoostPreview();
       this.store.shuffleBoost();
     });
-    if (!this.widgetHost) this.bindWidgetPanelDrag();
+    this.bindWidgetPanelDrag();
   }
   bindWidgetPanelDrag() {
     const root = this.widgetRoot;
@@ -21501,14 +21443,35 @@ var ThemeStudioUI = class {
       if (event.button !== 0) return;
       const eventTarget = event.target;
       if (eventTarget?.closest("button") && !eventTarget.closest("[data-widget-launch-drag-handle]")) return;
-      const start = root.getBoundingClientRect(), startX = event.clientX, startY = event.clientY;
+      const start = root.getBoundingClientRect();
+      const startX = event.clientX, startY = event.clientY;
+      const computed = typeof getComputedStyle === "function" ? getComputedStyle(root) : null;
+      const authoredLeft = Number.parseFloat(root.style.left);
+      const authoredTop = Number.parseFloat(root.style.top);
+      const computedLeft = Number.parseFloat(computed?.left ?? "");
+      const computedTop = Number.parseFloat(computed?.top ?? "");
+      const startLeft = Number.isFinite(authoredLeft) ? authoredLeft : Number.isFinite(computedLeft) ? computedLeft : root.offsetLeft;
+      const startTop = Number.isFinite(authoredTop) ? authoredTop : Number.isFinite(computedTop) ? computedTop : root.offsetTop;
+      const scale = ancestorUiScale(root);
+      const positionScale = measurePortalPositionScale(root, scale);
+      const viewport = this.floatingViewportSize();
       handle.setPointerCapture?.(event.pointerId);
+      event.preventDefault();
       const move = (moveEvent) => {
-        const width = Math.max(42, root.offsetWidth), height = Math.max(42, root.offsetHeight);
-        const left = Math.max(8, Math.min(Math.max(8, window.innerWidth - width - 8), start.left + moveEvent.clientX - startX));
-        const top = Math.max(8, Math.min(Math.max(8, window.innerHeight - height - 8), start.top + moveEvent.clientY - startY));
-        root.style.left = `${left}px`;
-        root.style.top = `${top}px`;
+        const next = portalDragPosition({
+          startRect: start,
+          startLeft,
+          startTop,
+          deltaX: moveEvent.clientX - startX,
+          deltaY: moveEvent.clientY - startY,
+          ancestorScale: scale,
+          positionScaleX: positionScale.x,
+          positionScaleY: positionScale.y,
+          viewportWidth: viewport.width,
+          viewportHeight: viewport.height
+        });
+        root.style.left = `${next.left}px`;
+        root.style.top = `${next.top}px`;
         root.style.right = "auto";
         root.style.bottom = "auto";
       };
@@ -21517,7 +21480,7 @@ var ThemeStudioUI = class {
         handle.removeEventListener("pointermove", move);
         handle.removeEventListener("pointerup", up);
         handle.removeEventListener("pointercancel", up);
-        this.saveWidgetPosition({ x: Number.parseFloat(root.style.left) || root.getBoundingClientRect().left, y: Number.parseFloat(root.style.top) || root.getBoundingClientRect().top });
+        this.saveWidgetPosition();
       };
       handle.addEventListener("pointermove", move);
       handle.addEventListener("pointerup", up);

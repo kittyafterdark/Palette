@@ -327,30 +327,30 @@ describe('browser-owned lifecycle', () => {
     expect(second.top).toBeCloseTo(first.top)
   })
 
-  test('mini widget delegates scaled placement and hit testing to Spindle instead of counter-zooming its content', () => {
+  test('mini widget stays a zoom-isolated body portal instead of entering Spindle route/tab stacking contexts', () => {
     document.documentElement.style.setProperty('--lumiverse-ui-scale', '0.8')
     Object.defineProperty(document.body, 'currentCSSZoom', { configurable: true, value: 0.8 })
     const root = document.createElement('div'); document.body.append(root)
     const context = mockContext(), store = new ProjectStore(), preview = new LiveStylesheet(context), picker = new ElementPicker(context)
     const studio = new ThemeStudioUI(context, root, store, picker, preview)
-    const access = studio as unknown as { mountWidget(): void; syncHostUiScaleIsolation(): void; widgetRoot: HTMLElement | null; widgetHost: { root: HTMLElement; __dragTo?: (x: number, y: number) => void } | null; floatingFrame: HTMLElement | null }
+    const access = studio as unknown as { mountWidget(): void; syncHostUiScaleIsolation(): void; saveWidgetPosition(): void; widgetRoot: HTMLElement | null; floatingFrame: HTMLElement | null }
 
     access.mountWidget()
     access.syncHostUiScaleIsolation()
 
-    expect(access.widgetHost?.root.dataset.testSpindleFloatWidget).toBe('true')
-    expect(access.widgetRoot?.parentElement).toBe(access.widgetHost?.root)
-    expect(access.widgetRoot?.style.getPropertyValue('zoom')).toBe('')
-    expect(access.widgetHost?.root.style.getPropertyValue('zoom')).toBe('')
-    const nativeSurface = access.widgetHost?.root.closest<HTMLElement>('[data-test-spindle-float-shell]')
-    expect(nativeSurface?.getAttribute('data-theme-studio-widget-surface')).toBe('palette')
-    expect(nativeSurface?.style.getPropertyValue('z-index')).toBe('2147483638')
-    expect(nativeSurface?.style.getPropertyPriority('z-index')).toBe('important')
-    // Layer promotion must not steal geometry ownership back from Spindle.
-    access.widgetHost?.__dragTo?.(123, 456)
+    expect(access.widgetRoot?.parentElement).toBe(document.body)
+    expect(access.widgetRoot?.style.position).toBe('fixed')
+    expect(access.widgetRoot?.style.zIndex).toBe('2147483638')
+    expect(access.widgetRoot?.style.getPropertyValue('zoom')).toBe('1.25')
+    expect(document.querySelector('[data-test-spindle-float-shell]')).toBeNull()
+    access.widgetRoot!.style.left = '123px'
+    access.widgetRoot!.style.top = '456px'
+    access.widgetRoot!.style.right = 'auto'
+    access.widgetRoot!.style.bottom = 'auto'
+    access.saveWidgetPosition()
     expect(JSON.parse(localStorage.getItem('theme-studio:widget-position') ?? '{}')).toEqual({ x: 123, y: 456 })
-    // The separate full editor is still a body portal and keeps its existing
-    // isolation behavior; only the mini widget is now natively hosted.
+    // Both floating Palette surfaces use their actual body ancestry for zoom
+    // isolation; neither depends on the app shell's published scale alone.
     expect(access.floatingFrame?.style.getPropertyValue('zoom')).toBe('1.25')
 
     studio.destroy(); picker.destroy(); preview.destroy(); root.remove()
