@@ -404,6 +404,7 @@ export class ThemeStudioUI {
   private drawerPlaceholder: HTMLElement | null = null
   private widgetExpanded = false
   private widgetHidden = false
+  private widgetTopLayerOpen = false
   private widgetPopover: 'zap' | 'code' | null = null
   private widgetContextMenuOpen = false
   private widgetContextDismissBound = false
@@ -523,9 +524,11 @@ export class ThemeStudioUI {
   private syncHostUiScaleIsolation(): void {
     applyDockUiScaleIsolation(this.root, nativeUiScale(this.root), !this.editorFloating)
     if (this.widgetRoot) {
-      // Keep the mini widget in the body portal that can actually sit above
-      // mobile tab/route chrome. Counter only the CSS zoom on its real ancestry.
-      applyPortalUiScaleIsolation(this.widgetRoot, ancestorUiScale(this.widgetRoot))
+      // The mini widget is a direct body child, so Lumiverse's `body > *` rule
+      // applies UI scale to the widget itself rather than to an ancestor. Its
+      // stylesheet explicitly opts this one utility surface out of host zoom;
+      // geometry can therefore stay in viewport pixels without inverse-zooming
+      // the same element that owns its authored left/top coordinates.
       this.clampWidgetToViewport()
     }
     if (this.floatingFrame) {
@@ -599,10 +602,15 @@ export class ThemeStudioUI {
     this.widgetRoot.className = 'ts-widget-root'
     this.widgetRoot.setAttribute('data-theme-studio-widget', 'dock')
     this.widgetRoot.setAttribute('aria-live', 'polite')
+    // A manual popover promotes the mini widget into the browser top layer
+    // without modal/inert behavior. This is intentionally independent of
+    // Lumiverse's drawer z-index and survives every ordinary stacking context.
+    // Older WebViews simply ignore the promotion and retain the high-z body
+    // portal fallback.
+    this.widgetRoot.setAttribute('popover', 'manual')
 
-    // This utility must outlive route/tab surface swaps and remain above mobile
-    // chrome, so keep it as a direct body portal. Palette owns this tiny window's
-    // position; the shared zoom-aware geometry helpers keep hitboxes aligned.
+    // This utility must outlive route/tab surface swaps. Palette owns this tiny
+    // window's position; the shared viewport geometry keeps drag/clamp stable.
     Object.assign(this.widgetRoot.style, { position: 'fixed', left: '18px', bottom: '72px', zIndex: '2147483638' })
     document.body.append(this.widgetRoot)
 
@@ -632,6 +640,7 @@ export class ThemeStudioUI {
       }
     } catch { /* local widget position is best-effort */ }
     try { this.widgetHidden = localStorage.getItem('theme-studio:widget-hidden') === '1' } catch { this.widgetHidden = false }
+    this.syncWidgetTopLayer()
 
     try {
       const savedFloat = JSON.parse(localStorage.getItem('theme-studio:floating-editor') ?? 'null') as { left?: string; top?: string; mobileSnap?: 'peek' | 'work' | 'full'; mobileEdge?: 'top' | 'bottom'; mobileDensity?: 100 | 80 | 60 } | null
@@ -653,6 +662,34 @@ export class ThemeStudioUI {
     this.syncMobileEdgeControl()
     this.syncMobileDensityControl()
     this.bindFloatingDrag()
+  }
+
+  private syncWidgetTopLayer(): void {
+    const root = this.widgetRoot as (HTMLElement & { showPopover?: () => void; hidePopover?: () => void }) | null
+    if (!root) return
+    root.hidden = this.widgetHidden
+    if (typeof root.showPopover !== 'function') {
+      // Unsupported WebView: an unknown popover attribute would be harmless,
+      // but removing it makes the fixed high-z body portal fallback explicit.
+      root.removeAttribute('popover')
+      this.widgetTopLayerOpen = false
+      return
+    }
+    if (!root.hasAttribute('popover')) root.setAttribute('popover', 'manual')
+    try {
+      if (this.widgetHidden) {
+        if (this.widgetTopLayerOpen) root.hidePopover?.()
+        this.widgetTopLayerOpen = false
+      } else if (!this.widgetTopLayerOpen) {
+        root.showPopover()
+        this.widgetTopLayerOpen = true
+      }
+    } catch {
+      // If a partially-supported WebView rejects the popover transition, remove
+      // the attribute so the widget remains visible as an ordinary body portal.
+      root.removeAttribute('popover')
+      this.widgetTopLayerOpen = false
+    }
   }
 
   private saveWidgetPosition(): void {
@@ -1967,7 +2004,7 @@ export class ThemeStudioUI {
     this.widgetContextMenuOpen = false
     if (hidden) { this.widgetExpanded = false; this.widgetPopover = null }
     try { localStorage.setItem('theme-studio:widget-hidden', hidden ? '1' : '0') } catch { /* best effort */ }
-    if (this.widgetRoot) this.widgetRoot.hidden = hidden
+    this.syncWidgetTopLayer()
     if (!hidden) this.renderWidget()
   }
 
@@ -2010,7 +2047,7 @@ export class ThemeStudioUI {
 
   private renderWidget(): void {
     if (!this.widgetRoot) return
-    this.widgetRoot.hidden = this.widgetHidden
+    this.syncWidgetTopLayer()
     if (this.widgetHidden) return
     const scope = this.selection ? activeScope(this.selection) : undefined
     const label = scope?.label ?? 'Pick something'

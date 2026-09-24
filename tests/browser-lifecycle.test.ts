@@ -327,21 +327,26 @@ describe('browser-owned lifecycle', () => {
     expect(second.top).toBeCloseTo(first.top)
   })
 
-  test('mini widget stays a zoom-isolated body portal instead of entering Spindle route/tab stacking contexts', () => {
+  test('mini widget uses a body portal plus manual top-layer promotion instead of Spindle drawer stacking', () => {
     document.documentElement.style.setProperty('--lumiverse-ui-scale', '0.8')
-    Object.defineProperty(document.body, 'currentCSSZoom', { configurable: true, value: 0.8 })
     const root = document.createElement('div'); document.body.append(root)
     const context = mockContext(), store = new ProjectStore(), preview = new LiveStylesheet(context), picker = new ElementPicker(context)
     const studio = new ThemeStudioUI(context, root, store, picker, preview)
-    const access = studio as unknown as { mountWidget(): void; syncHostUiScaleIsolation(): void; saveWidgetPosition(): void; widgetRoot: HTMLElement | null; floatingFrame: HTMLElement | null }
+    const access = studio as unknown as { mountWidget(): void; syncHostUiScaleIsolation(): void; syncWidgetTopLayer(): void; setWidgetHidden(hidden: boolean): void; saveWidgetPosition(): void; widgetRoot: (HTMLElement & { showPopover?: () => void; hidePopover?: () => void }) | null }
 
     access.mountWidget()
+    let shown = 0, hidden = 0
+    access.widgetRoot!.showPopover = () => { shown += 1 }
+    access.widgetRoot!.hidePopover = () => { hidden += 1 }
+    access.syncWidgetTopLayer()
     access.syncHostUiScaleIsolation()
 
     expect(access.widgetRoot?.parentElement).toBe(document.body)
+    expect(access.widgetRoot?.getAttribute('popover')).toBe('manual')
     expect(access.widgetRoot?.style.position).toBe('fixed')
     expect(access.widgetRoot?.style.zIndex).toBe('2147483638')
-    expect(access.widgetRoot?.style.getPropertyValue('zoom')).toBe('1.25')
+    expect(shown).toBe(1)
+    expect(hidden).toBe(0)
     expect(document.querySelector('[data-test-spindle-float-shell]')).toBeNull()
     access.widgetRoot!.style.left = '123px'
     access.widgetRoot!.style.top = '456px'
@@ -349,9 +354,12 @@ describe('browser-owned lifecycle', () => {
     access.widgetRoot!.style.bottom = 'auto'
     access.saveWidgetPosition()
     expect(JSON.parse(localStorage.getItem('theme-studio:widget-position') ?? '{}')).toEqual({ x: 123, y: 456 })
-    // Both floating Palette surfaces use their actual body ancestry for zoom
-    // isolation; neither depends on the app shell's published scale alone.
-    expect(access.floatingFrame?.style.getPropertyValue('zoom')).toBe('1.25')
+    access.setWidgetHidden(true)
+    expect(hidden).toBe(1)
+    expect(access.widgetRoot?.hidden).toBe(true)
+    access.setWidgetHidden(false)
+    expect(shown).toBe(2)
+    expect(access.widgetRoot?.hidden).toBe(false)
 
     studio.destroy(); picker.destroy(); preview.destroy(); root.remove()
     document.documentElement.style.removeProperty('--lumiverse-ui-scale')
