@@ -70,18 +70,27 @@ function mockContext(): SpindleFrontendContext {
     },
     ui: {
       createFloatWidget: (options: { width: number; height: number }) => {
+        // Mirror the real Spindle shape: the handle root is extension content
+        // nested inside a native fixed-position widget shell.
+        const shell = document.createElement('div')
+        shell.dataset.testSpindleFloatShell = 'true'
+        shell.style.position = 'fixed'
+        shell.style.zIndex = '9980'
+        shell.style.width = `${options.width}px`
+        shell.style.height = `${options.height}px`
+        const content = document.createElement('div')
         const root = document.createElement('div')
         root.dataset.testSpindleFloatWidget = 'true'
-        root.style.width = `${options.width}px`
-        root.style.height = `${options.height}px`
-        document.body.append(root)
+        content.append(root)
+        shell.append(content)
+        document.body.append(shell)
         let position = { x: 0, y: 0 }
         let dragEnd: ((next: { x: number; y: number }) => void) | null = null
         return {
           root,
-          destroy: () => root.remove(),
-          setSize: (width: number, height: number) => { root.style.width = `${width}px`; root.style.height = `${height}px` },
-          moveTo: (x: number, y: number) => { position = { x, y }; root.style.left = `${x}px`; root.style.top = `${y}px` },
+          destroy: () => shell.remove(),
+          setSize: (width: number, height: number) => { shell.style.width = `${width}px`; shell.style.height = `${height}px` },
+          moveTo: (x: number, y: number) => { position = { x, y }; shell.style.left = `${x}px`; shell.style.top = `${y}px` },
           getPosition: () => ({ ...position }),
           onDragEnd: (callback: (next: { x: number; y: number }) => void) => { dragEnd = callback; return () => { dragEnd = null } },
           __dragTo: (x: number, y: number) => { position = { x, y }; dragEnd?.(position) },
@@ -333,6 +342,11 @@ describe('browser-owned lifecycle', () => {
     expect(access.widgetRoot?.parentElement).toBe(access.widgetHost?.root)
     expect(access.widgetRoot?.style.getPropertyValue('zoom')).toBe('')
     expect(access.widgetHost?.root.style.getPropertyValue('zoom')).toBe('')
+    const nativeSurface = access.widgetHost?.root.closest<HTMLElement>('[data-test-spindle-float-shell]')
+    expect(nativeSurface?.getAttribute('data-theme-studio-widget-surface')).toBe('palette')
+    expect(nativeSurface?.style.getPropertyValue('z-index')).toBe('2147483638')
+    expect(nativeSurface?.style.getPropertyPriority('z-index')).toBe('important')
+    // Layer promotion must not steal geometry ownership back from Spindle.
     access.widgetHost?.__dragTo?.(123, 456)
     expect(JSON.parse(localStorage.getItem('theme-studio:widget-position') ?? '{}')).toEqual({ x: 123, y: 456 })
     // The separate full editor is still a body portal and keeps its existing

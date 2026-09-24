@@ -416,6 +416,10 @@ export class ThemeStudioUI {
   private widgetRoot: HTMLElement | null = null
   private widgetHost: PaletteFloatWidgetHandle | null = null
   private widgetHostDragCleanup?: () => void
+  private widgetHostLayerObserver?: MutationObserver
+  private widgetHostSurface: HTMLElement | null = null
+  private widgetHostSurfaceZIndex = ''
+  private widgetHostSurfaceZPriority = ''
   private floatingFrame: HTMLElement | null = null
   private floatingBody: HTMLElement | null = null
   private drawerHost: HTMLElement | null = null
@@ -495,7 +499,7 @@ export class ThemeStudioUI {
     await this.refreshAssets()
     this.render()
   }
-  destroy(): void { this.clearBoostPreview(); this.clearPreviewMarker(); this.picker.clearHighlight(); this.unsubscribeStore(); this.scrollResizeObserver?.disconnect(); this.hostScaleMutationObserver?.disconnect(); applyDockUiScaleIsolation(this.root, 1, false); if (typeof window !== 'undefined') window.removeEventListener('resize', this.handleViewportResize); this.root.removeEventListener('wheel', this.handleDrawerWheel); this.dockEditor(); applyDockUiScaleIsolation(this.root, 1, false); this.widgetHostDragCleanup?.(); this.widgetHostDragCleanup = undefined; this.widgetHost?.destroy(); this.widgetHost = null; this.widgetRoot?.remove(); this.floatingFrame?.remove(); this.drawerPlaceholder?.remove(); this.destroyStyleLibraryDock(); this.styleLibraryOverlayRoot?.remove(); this.styleLibraryRoot = null; this.styleMapRoot?.remove(); this.root.replaceChildren() }
+  destroy(): void { this.clearBoostPreview(); this.clearPreviewMarker(); this.picker.clearHighlight(); this.unsubscribeStore(); this.scrollResizeObserver?.disconnect(); this.hostScaleMutationObserver?.disconnect(); applyDockUiScaleIsolation(this.root, 1, false); if (typeof window !== 'undefined') window.removeEventListener('resize', this.handleViewportResize); this.root.removeEventListener('wheel', this.handleDrawerWheel); this.dockEditor(); applyDockUiScaleIsolation(this.root, 1, false); this.widgetHostLayerObserver?.disconnect(); this.widgetHostLayerObserver = undefined; this.restoreWidgetHostLayer(); this.widgetHostDragCleanup?.(); this.widgetHostDragCleanup = undefined; this.widgetHost?.destroy(); this.widgetHost = null; this.widgetRoot?.remove(); this.floatingFrame?.remove(); this.drawerPlaceholder?.remove(); this.destroyStyleLibraryDock(); this.styleLibraryOverlayRoot?.remove(); this.styleLibraryRoot = null; this.styleMapRoot?.remove(); this.root.replaceChildren() }
 
   render(): void {
     this.ensureQuickStyleSlotsHydrated()
@@ -539,6 +543,7 @@ export class ThemeStudioUI {
   }
 
   private syncHostUiScaleIsolation(): void {
+    this.ensureWidgetHostLayer()
     applyDockUiScaleIsolation(this.root, nativeUiScale(this.root), !this.editorFloating)
     // The mini widget deliberately does NOT participate here. Spindle's native
     // createFloatWidget surface owns its placement, hit testing, and host UI-scale
@@ -634,6 +639,8 @@ export class ThemeStudioUI {
       }
     }
 
+    this.ensureWidgetHostLayer()
+
     this.floatingFrame = document.createElement('section')
     this.floatingFrame.className = 'ts-floating-editor'
     this.floatingFrame.setAttribute('data-theme-studio-widget', 'editor')
@@ -689,6 +696,63 @@ export class ThemeStudioUI {
     this.bindFloatingDrag()
   }
 
+  private restoreWidgetHostLayer(): void {
+    const surface = this.widgetHostSurface
+    if (!surface) return
+    if (this.widgetHostSurfaceZIndex) surface.style.setProperty('z-index', this.widgetHostSurfaceZIndex, this.widgetHostSurfaceZPriority)
+    else surface.style.removeProperty('z-index')
+    surface.removeAttribute('data-theme-studio-widget-surface')
+    this.widgetHostSurface = null
+    this.widgetHostSurfaceZIndex = ''
+    this.widgetHostSurfaceZPriority = ''
+  }
+
+  private promoteWidgetHostLayer(): boolean {
+    const root = this.widgetHost?.root
+    if (!root?.isConnected || typeof document === 'undefined') return false
+    let current = root.parentElement
+    while (current && current !== document.body) {
+      const position = typeof window !== 'undefined' && typeof window.getComputedStyle === 'function'
+        ? window.getComputedStyle(current).position
+        : current.style.position
+      if (position === 'fixed') {
+        if (this.widgetHostSurface !== current) {
+          this.restoreWidgetHostLayer()
+          this.widgetHostSurface = current
+          this.widgetHostSurfaceZIndex = current.style.getPropertyValue('z-index')
+          this.widgetHostSurfaceZPriority = current.style.getPropertyPriority('z-index')
+        }
+        // Spindle still owns fixed positioning, drag capture, clamping, and UI-scale
+        // coordinates. Palette only restores the old utility-layer contract so the
+        // mini widget stays above mobile tabs/docks instead of inheriting the host's
+        // generic float-widget z-index. Keep the detached full editor one layer up.
+        current.setAttribute('data-theme-studio-widget-surface', 'palette')
+        current.style.setProperty('z-index', '2147483638', 'important')
+        return true
+      }
+      current = current.parentElement
+    }
+    return false
+  }
+
+  private ensureWidgetHostLayer(): void {
+    if (!this.widgetHost || typeof document === 'undefined') return
+    if (this.promoteWidgetHostLayer()) {
+      this.widgetHostLayerObserver?.disconnect()
+      this.widgetHostLayerObserver = undefined
+      return
+    }
+    if (this.widgetHostLayerObserver || typeof MutationObserver === 'undefined' || !document.body) return
+    // createFloatWidget() registers immediately, but React mounts the native fixed
+    // shell on its own paint. Watch only until that shell exists, then get out.
+    this.widgetHostLayerObserver = new MutationObserver(() => {
+      if (!this.promoteWidgetHostLayer()) return
+      this.widgetHostLayerObserver?.disconnect()
+      this.widgetHostLayerObserver = undefined
+    })
+    this.widgetHostLayerObserver.observe(document.body, { childList: true, subtree: true })
+  }
+
   private saveWidgetPosition(position?: { x: number; y: number }): void {
     const current = position ?? this.widgetHost?.getPosition()
     if (current && Number.isFinite(current.x) && Number.isFinite(current.y)) {
@@ -701,6 +765,7 @@ export class ThemeStudioUI {
   }
 
   private syncWidgetHostSize(): void {
+    this.ensureWidgetHostLayer()
     const host = this.widgetHost
     const root = this.widgetRoot
     if (!host || !root || this.widgetHidden) return

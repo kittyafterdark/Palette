@@ -19609,6 +19609,10 @@ var ThemeStudioUI = class {
   widgetRoot = null;
   widgetHost = null;
   widgetHostDragCleanup;
+  widgetHostLayerObserver;
+  widgetHostSurface = null;
+  widgetHostSurfaceZIndex = "";
+  widgetHostSurfaceZPriority = "";
   floatingFrame = null;
   floatingBody = null;
   drawerHost = null;
@@ -19692,6 +19696,9 @@ var ThemeStudioUI = class {
     this.root.removeEventListener("wheel", this.handleDrawerWheel);
     this.dockEditor();
     applyDockUiScaleIsolation(this.root, 1, false);
+    this.widgetHostLayerObserver?.disconnect();
+    this.widgetHostLayerObserver = void 0;
+    this.restoreWidgetHostLayer();
     this.widgetHostDragCleanup?.();
     this.widgetHostDragCleanup = void 0;
     this.widgetHost?.destroy();
@@ -19750,6 +19757,7 @@ var ThemeStudioUI = class {
     this.renderStyleMap();
   }
   syncHostUiScaleIsolation() {
+    this.ensureWidgetHostLayer();
     applyDockUiScaleIsolation(this.root, nativeUiScale2(this.root), !this.editorFloating);
     if (this.floatingFrame) {
       applyPortalUiScaleIsolation(this.floatingFrame, ancestorUiScale(this.floatingFrame));
@@ -19847,6 +19855,7 @@ var ThemeStudioUI = class {
         this.widgetHost = null;
       }
     }
+    this.ensureWidgetHostLayer();
     this.floatingFrame = document.createElement("section");
     this.floatingFrame.className = "ts-floating-editor";
     this.floatingFrame.setAttribute("data-theme-studio-widget", "editor");
@@ -19921,6 +19930,52 @@ var ThemeStudioUI = class {
     this.syncMobileDensityControl();
     this.bindFloatingDrag();
   }
+  restoreWidgetHostLayer() {
+    const surface = this.widgetHostSurface;
+    if (!surface) return;
+    if (this.widgetHostSurfaceZIndex) surface.style.setProperty("z-index", this.widgetHostSurfaceZIndex, this.widgetHostSurfaceZPriority);
+    else surface.style.removeProperty("z-index");
+    surface.removeAttribute("data-theme-studio-widget-surface");
+    this.widgetHostSurface = null;
+    this.widgetHostSurfaceZIndex = "";
+    this.widgetHostSurfaceZPriority = "";
+  }
+  promoteWidgetHostLayer() {
+    const root = this.widgetHost?.root;
+    if (!root?.isConnected || typeof document === "undefined") return false;
+    let current = root.parentElement;
+    while (current && current !== document.body) {
+      const position = typeof window !== "undefined" && typeof window.getComputedStyle === "function" ? window.getComputedStyle(current).position : current.style.position;
+      if (position === "fixed") {
+        if (this.widgetHostSurface !== current) {
+          this.restoreWidgetHostLayer();
+          this.widgetHostSurface = current;
+          this.widgetHostSurfaceZIndex = current.style.getPropertyValue("z-index");
+          this.widgetHostSurfaceZPriority = current.style.getPropertyPriority("z-index");
+        }
+        current.setAttribute("data-theme-studio-widget-surface", "palette");
+        current.style.setProperty("z-index", "2147483638", "important");
+        return true;
+      }
+      current = current.parentElement;
+    }
+    return false;
+  }
+  ensureWidgetHostLayer() {
+    if (!this.widgetHost || typeof document === "undefined") return;
+    if (this.promoteWidgetHostLayer()) {
+      this.widgetHostLayerObserver?.disconnect();
+      this.widgetHostLayerObserver = void 0;
+      return;
+    }
+    if (this.widgetHostLayerObserver || typeof MutationObserver === "undefined" || !document.body) return;
+    this.widgetHostLayerObserver = new MutationObserver(() => {
+      if (!this.promoteWidgetHostLayer()) return;
+      this.widgetHostLayerObserver?.disconnect();
+      this.widgetHostLayerObserver = void 0;
+    });
+    this.widgetHostLayerObserver.observe(document.body, { childList: true, subtree: true });
+  }
   saveWidgetPosition(position) {
     const current = position ?? this.widgetHost?.getPosition();
     if (current && Number.isFinite(current.x) && Number.isFinite(current.y)) {
@@ -19938,6 +19993,7 @@ var ThemeStudioUI = class {
     }
   }
   syncWidgetHostSize() {
+    this.ensureWidgetHostLayer();
     const host = this.widgetHost;
     const root = this.widgetRoot;
     if (!host || !root || this.widgetHidden) return;
