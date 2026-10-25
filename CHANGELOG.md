@@ -1,3 +1,7 @@
+## Unreleased
+
+- Added **Full themes backup** in Code to download every Palette project, My Styles, and uploaded theme assets in one portable JSON file. Restore previews collection counts and adds independent copies alongside existing themes without switching the active theme.
+
 ## 1.0.5 — Semantic Boost
 
 - Renamed Boost’s app-wide **Smart Invert** mode to **Invert brightness** so the control describes what users actually see. **Shuffle colors** is now palette-only: it changes Primary/Secondary while preserving the active Recolor/Invert brightness mode, Brightness, Contrast, Original saturation, Text treatment, and Typography instead of silently snapping an inverted/light theme back to Recolor or retuning the sliders.

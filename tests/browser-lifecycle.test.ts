@@ -6,6 +6,7 @@ import { ElementPicker } from '../src/inspector/picker'
 import { compileThemeProject } from '../src/compiler/compiler'
 import { LiveStylesheet } from '../src/preview/live-stylesheet'
 import { ProjectStore } from '../src/project/store'
+import { createThemesBackup } from '../src/project/backup'
 import { createStylePacket } from '../src/project/model'
 import { resolveElement } from '../src/registry/selector-resolver'
 import type { NativeThemeComponent } from '../src/registry/types'
@@ -464,6 +465,53 @@ describe('browser-owned lifecycle', () => {
     expect(root.textContent).toContain('CSS overlay · On')
     expect(root.querySelector<HTMLDetailsElement>('.ts-source-advanced')?.open).toBe(true)
 
+    studio.destroy(); picker.destroy(); preview.destroy(); root.remove()
+  })
+
+  test('Code backs up the collection and previews additive restore with accessible controls and focus restoration', async () => {
+    const context = mockContext()
+    const root = document.createElement('div'); document.body.append(root)
+    const store = new ProjectStore()
+    store.rename(store.activeProject.id, 'Keep current')
+    const currentId = store.snapshot.activeProjectId
+    const source = new ProjectStore(); source.rename(source.activeProject.id, 'Restored theme'); source.create('Another restored theme')
+    const json = JSON.stringify(await createThemesBackup(context, source.snapshot))
+    const preview = new LiveStylesheet(context); const picker = new ElementPicker(context)
+    const studio = new ThemeStudioUI(context, root, store, picker, preview)
+    let downloaded = ''
+    const access = studio as unknown as {
+      readThemesBackup(file: File): Promise<void>
+      downloadBytes(bytes: Uint8Array, filename: string, mimeType: string): void
+      backupBusy: boolean
+    }
+    access.downloadBytes = (bytes, filename, mimeType) => {
+      downloaded = new TextDecoder().decode(bytes)
+      expect(filename).toMatch(/^palette-themes-.*\.json$/)
+      expect(mimeType).toBe('application/json')
+    }
+    const button = (name: string) => [...root.querySelectorAll<HTMLButtonElement>('button')].find((element) => element.textContent === name)!
+    const settle = async () => { for (let i = 0; i < 30 && access.backupBusy; i++) await new Promise((resolve) => setTimeout(resolve, 0)) }
+    studio.render(); root.querySelector<HTMLButtonElement>('[data-workspace="code"]')!.click()
+    expect(root.querySelector('section[aria-label="Full themes backup"]')).not.toBeNull()
+    button('Download full backup').click(); await settle()
+    expect(JSON.parse(downloaded).state.projects[0].name).toBe('Keep current')
+    expect(document.activeElement).toBe(button('Download full backup'))
+    await access.readThemesBackup({ text: async () => json } as File)
+    expect(store.snapshot.projects).toHaveLength(1)
+    expect(document.activeElement).toBe(button('Add themes from backup'))
+    button('Cancel restore').click()
+    expect(document.activeElement).toBe(button('Restore backup…'))
+    expect(button('Add themes from backup')).toBeUndefined()
+    await access.readThemesBackup({ text: async () => json } as File)
+    button('Add themes from backup').click(); await settle()
+    expect(store.snapshot.projects.map((project) => project.name)).toEqual(['Keep current', 'Restored theme', 'Another restored theme'])
+    expect(store.snapshot.activeProjectId).toBe(currentId)
+    expect(root.querySelector('[role="status"]')?.textContent).toContain('Added 2 theme(s)')
+    const reload = new ProjectStore(); reload.hydrate(JSON.parse(JSON.stringify(store.snapshot)))
+    expect(reload.snapshot.projects).toHaveLength(3)
+    await access.readThemesBackup({ text: async () => '{"unrelated":true}' } as File)
+    expect(store.snapshot.projects).toHaveLength(3)
+    expect(document.activeElement).toBe(button('Restore backup…'))
     studio.destroy(); picker.destroy(); preview.destroy(); root.remove()
   })
 

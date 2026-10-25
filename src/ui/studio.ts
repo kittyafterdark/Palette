@@ -8,6 +8,7 @@ import { COMPOSER_ICON_ACTIONS, MOBILE_BREAKPOINT_PX, STYLE_STATES, createStyleP
 import { isMediaElement } from '../project/smart-invert'
 import { reverseEngineerElement } from '../project/reverse-engineer'
 import { ProjectStore } from '../project/store'
+import { createThemesBackup, parseThemesBackup, restoreThemesBackup, type ThemesBackup } from '../project/backup'
 import { LiveStylesheet, type PreviewResult } from '../preview/live-stylesheet'
 import { normalizeCssModuleClass, reconcileSelectionWithOverrides, resolveCatalogComponent, resolveElement } from '../registry/selector-resolver'
 import { inspectLayoutContext } from '../registry/layout-context'
@@ -328,6 +329,9 @@ export class ThemeStudioUI {
   private sourceThemeBundleId: string | null = null
   private readonly capabilities: NativeThemeCapabilities
   private nativeActionStatus = ''
+  private backupStatus = ''
+  private backupBusy = false
+  private pendingBackup: ThemesBackup | null = null
   private selection: ResolvedSelection | null = null
   private designTool: 'pick' | 'group' = 'pick'
   private pickerMode: 'pick' | 'group' | null = null
@@ -2770,11 +2774,16 @@ export class ThemeStudioUI {
     const fallbackWarning = archiveSource ? '' : `<div class="ts-warning">This older/fallback project only contains Lumiverse's canonicalized draft; source removed before Palette received it cannot be recovered.</div>`
     return `<section class="ts-section ts-theme-source"><div class="ts-theme-source-head"><div class="ts-theme-source-title"><p class="ts-kicker">Theme Source</p><strong>${escapeHtml(displayName)}</strong>${author ? `<small>${escapeHtml(author)}</small>` : ''}<span class="ts-source-meta">${escapeHtml(fidelityLabel + archiveMeta)}</span></div><div class="ts-source-actions"><span class="ts-chip">${editable ? 'Local fork' : 'Protected'}</span><button class="ts-btn ${editable ? '' : 'ts-btn-primary'}" type="button" data-source-action="toggle-edit">${editable ? 'Protect source' : 'Fork & edit'}</button></div></div>${fallbackWarning}<details class="ts-code-fold ts-source-global"${globalCss ? ' open' : ''}><summary><span><strong>Global CSS</strong><small>${globalSummary}</small></span><span class="ts-code-fold-arrow" aria-hidden="true">⌄</span></summary><div class="ts-code-fold-body"><textarea class="ts-textarea ts-code ts-code-source" data-source-global-css ${editable ? '' : 'readonly'} spellcheck="false">${escapeHtml(source.globalCSS)}</textarea></div></details><div class="ts-source-components"><div class="ts-source-components-head"><strong>Components</strong><span>${components.length} section${components.length === 1 ? '' : 's'}</span></div>${componentMarkup}</div><p class="ts-note ts-theme-source-note">Palette Design stays separate and overrides this source non-destructively.</p><details class="ts-code-fold ts-source-advanced"${previewEnabled ? ' open' : ''}><summary><span><strong>Advanced</strong><small data-source-status class="${sourceStatusClass}">CSS overlay · ${sourceStatusText}</small></span><span class="ts-code-fold-arrow" aria-hidden="true">⌄</span></summary><div class="ts-code-fold-body ts-source-advanced-body"><button class="ts-btn" type="button" data-source-action="toggle-preview">${previewEnabled ? 'Stop CSS overlay' : 'Overlay CSS'}</button><p class="ts-note">Diagnostic only. Native theme rendering still belongs to Lumiverse; use Send to Lumiverse for the real apply path.</p></div></details></section>`
   }
+  private renderThemesBackup(): string {
+    const pending = this.pendingBackup
+    return `<section class="ts-section" aria-label="Full themes backup"><h3>Full themes backup</h3><p class="ts-note">Move your entire Palette collection to another Lumiverse instance: all themes, editable Design data, Theme Source, Boost, Custom CSS, My Styles, and uploaded theme assets. External image and font links remain links. Lumiverse's separate native theme library is not included.</p><div class="ts-actions"><button class="ts-btn" type="button" data-backup-action="export" ${this.backupBusy ? 'disabled' : ''}>Download full backup</button><button class="ts-btn" type="button" data-backup-action="choose" ${this.backupBusy ? 'disabled' : ''}>Restore backup…</button><input type="file" accept=".json,application/json" data-backup-file hidden></div>${pending ? `<p class="ts-note">Ready to add ${pending.state.projects.length} theme(s), ${pending.state.savedStyles.length} saved style(s), and ${pending.assets.length} uploaded asset(s). Existing themes and your current selection stay in place. Restoring again adds another copy.</p><div class="ts-actions"><button class="ts-btn ts-btn-primary" type="button" data-backup-action="restore" ${this.backupBusy ? 'disabled' : ''}>Add themes from backup</button><button class="ts-btn" type="button" data-backup-action="cancel" ${this.backupBusy ? 'disabled' : ''}>Cancel restore</button></div>` : ''}<p class="ts-note" role="status">${escapeHtml(this.backupStatus)}</p></section>`
+  }
+
   private renderCode(generatedCss: string): string {
     const customCss = this.store.activeProject.customCss
     const customOpen = customCss.trim() ? ' open' : ''
     const customSummary = customCss.trim() ? (this.previewResult.valid ? 'Active override layer' : escapeHtml(this.previewResult.error ?? 'Invalid CSS')) : 'Empty'
-    return `${this.renderThemeSource()}<section class="ts-section ts-code-output"><details class="ts-code-fold"><summary><span><strong>Palette output</strong><small>Generated CSS · compiler owned</small></span><span class="ts-code-fold-arrow" aria-hidden="true">⌄</span></summary><div class="ts-code-fold-body"><textarea class="ts-textarea ts-code ts-code-generated" readonly spellcheck="false">${escapeHtml(generatedCss)}</textarea><p class="ts-note">Generated from Palette Design and loaded after Theme Source. Edit the visual packets, not this output.</p></div></details></section><section class="ts-section ts-code-custom-section"><details class="ts-code-fold"${customOpen}><summary><span><strong>Custom CSS</strong><small data-custom-status class="${this.previewResult.valid ? (customCss.trim() ? 'ts-status-ok' : 'ts-status-muted') : 'ts-status-error'}">${customSummary}</small></span><span class="ts-code-fold-arrow" aria-hidden="true">⌄</span></summary><div class="ts-code-fold-body"><textarea class="ts-textarea ts-code ts-code-custom" data-custom-css spellcheck="false" placeholder="/* Advanced CSS stays separate from visual packets. */">${escapeHtml(customCss)}</textarea><p class="ts-note">Last in the cascade. Use this when you intentionally want to override both Theme Source and Palette Design.</p></div></details></section><section class="ts-section ts-code-handoff"><div class="ts-code-label"><div><p class="ts-kicker" style="margin:0">Native handoff</p><p class="ts-note">Lumiverse owns installation, native rendering, asset extraction, and .lumitheme encoding.</p></div><span class="ts-chip">ctx.theme</span></div><div class="ts-actions ts-native-handoff-actions"><button class="ts-btn ts-btn-primary" type="button" data-native-action="install" ${this.capabilities.applyTheme ? '' : 'disabled'}>Send to Lumiverse</button><button class="ts-btn" type="button" data-native-action="export" ${this.capabilities.exportLumitheme ? '' : 'disabled'}>Export .lumitheme</button><button class="ts-btn" type="button" data-native-action="import" ${this.capabilities.importTheme ? '' : 'disabled'}>Import .lumitheme</button><button class="ts-btn" type="button" data-native-action="editor" ${this.capabilities.openNativeEditor ? '' : 'disabled'}>Open native editor</button><input type="file" accept=".lumitheme,application/zip" data-native-theme-file hidden></div>${this.nativeActionStatus ? `<div class="ts-native-status">${escapeHtml(this.nativeActionStatus)}</div>` : ''}<p class="ts-note">Import creates a protected Palette source snapshot without applying it. Send installs a fresh native bundle and saves it to Lumiverse's theme library.</p></section>`
+    return `${this.renderThemesBackup()}${this.renderThemeSource()}<section class="ts-section ts-code-output"><details class="ts-code-fold"><summary><span><strong>Palette output</strong><small>Generated CSS · compiler owned</small></span><span class="ts-code-fold-arrow" aria-hidden="true">⌄</span></summary><div class="ts-code-fold-body"><textarea class="ts-textarea ts-code ts-code-generated" readonly spellcheck="false">${escapeHtml(generatedCss)}</textarea><p class="ts-note">Generated from Palette Design and loaded after Theme Source. Edit the visual packets, not this output.</p></div></details></section><section class="ts-section ts-code-custom-section"><details class="ts-code-fold"${customOpen}><summary><span><strong>Custom CSS</strong><small data-custom-status class="${this.previewResult.valid ? (customCss.trim() ? 'ts-status-ok' : 'ts-status-muted') : 'ts-status-error'}">${customSummary}</small></span><span class="ts-code-fold-arrow" aria-hidden="true">⌄</span></summary><div class="ts-code-fold-body"><textarea class="ts-textarea ts-code ts-code-custom" data-custom-css spellcheck="false" placeholder="/* Advanced CSS stays separate from visual packets. */">${escapeHtml(customCss)}</textarea><p class="ts-note">Last in the cascade. Use this when you intentionally want to override both Theme Source and Palette Design.</p></div></details></section><section class="ts-section ts-code-handoff"><div class="ts-code-label"><div><p class="ts-kicker" style="margin:0">Native handoff</p><p class="ts-note">Lumiverse owns installation, native rendering, asset extraction, and .lumitheme encoding.</p></div><span class="ts-chip">ctx.theme</span></div><div class="ts-actions ts-native-handoff-actions"><button class="ts-btn ts-btn-primary" type="button" data-native-action="install" ${this.capabilities.applyTheme ? '' : 'disabled'}>Send to Lumiverse</button><button class="ts-btn" type="button" data-native-action="export" ${this.capabilities.exportLumitheme ? '' : 'disabled'}>Export .lumitheme</button><button class="ts-btn" type="button" data-native-action="import" ${this.capabilities.importTheme ? '' : 'disabled'}>Import .lumitheme</button><button class="ts-btn" type="button" data-native-action="editor" ${this.capabilities.openNativeEditor ? '' : 'disabled'}>Open native editor</button><input type="file" accept=".lumitheme,application/zip" data-native-theme-file hidden></div>${this.nativeActionStatus ? `<div class="ts-native-status">${escapeHtml(this.nativeActionStatus)}</div>` : ''}<p class="ts-note">Import creates a protected Palette source snapshot without applying it. Send installs a fresh native bundle and saves it to Lumiverse's theme library.</p></section>`
   }
   private renderPresetPreview(preview: string): string {
     return `<div class="ts-preset-preview" data-preset-preview="${escapeHtml(preview)}" aria-hidden="true"><span class="ts-preview-avatar"></span><span class="ts-preview-name">Gabrielle</span><span class="ts-preview-line ts-preview-line-a"></span><span class="ts-preview-line ts-preview-line-b"></span><span class="ts-preview-meta">#0 · 5:23 PM</span></div>`
@@ -4180,6 +4189,18 @@ ${compileComponentOverride(draft, previewOptions)}`)
     this.root.querySelectorAll<HTMLInputElement>('[data-source-component-enabled]').forEach((checkbox) => checkbox.addEventListener('change', () => { const componentId = checkbox.dataset.sourceComponentEnabled; if (!componentId) return; this.store.setSourceComponentEnabled(componentId, checkbox.checked) }))
     const textarea = this.root.querySelector<HTMLTextAreaElement>('[data-custom-css]'); const status = this.root.querySelector<HTMLElement>('[data-custom-status]')
     textarea?.addEventListener('input', () => { this.suppressRender = true; this.store.setCustomCss(textarea.value); this.previewResult = this.preview.updateCustom(textarea.value); if (status) { status.className = this.previewResult.valid ? (textarea.value.trim() ? 'ts-status-ok' : 'ts-status-muted') : 'ts-status-error'; status.textContent = this.previewResult.valid ? (textarea.value.trim() ? 'Active override layer' : 'Empty') : this.previewResult.error ?? 'Invalid CSS' } })
+    this.root.querySelector<HTMLButtonElement>('[data-backup-action="export"]')?.addEventListener('click', () => void this.exportThemesBackup())
+    const backupFile = this.root.querySelector<HTMLInputElement>('[data-backup-file]')
+    this.root.querySelector<HTMLButtonElement>('[data-backup-action="choose"]')?.addEventListener('click', () => backupFile?.click())
+    backupFile?.addEventListener('change', () => {
+      const file = backupFile.files?.[0]
+      backupFile.value = ''
+      if (file) void this.readThemesBackup(file)
+    })
+    this.root.querySelector<HTMLButtonElement>('[data-backup-action="cancel"]')?.addEventListener('click', () => {
+      this.pendingBackup = null; this.backupStatus = 'Restore cancelled.'; this.render(); this.focusBackupAction('choose')
+    })
+    this.root.querySelector<HTMLButtonElement>('[data-backup-action="restore"]')?.addEventListener('click', () => void this.addThemesBackup())
     this.root.querySelector<HTMLButtonElement>('[data-native-action="export"]')?.addEventListener('click', () => void this.exportNativeTheme())
     this.root.querySelector<HTMLButtonElement>('[data-native-action="install"]')?.addEventListener('click', () => void this.installNativeTheme())
     this.root.querySelector<HTMLButtonElement>('[data-native-action="editor"]')?.addEventListener('click', () => { if (!this.capabilities.openNativeEditor) return; const opened = this.ctx.theme.openEditor({ target: 'global' }); this.nativeActionStatus = opened ? 'Opened Lumiverse Theme Editor.' : 'Lumiverse could not open the Theme Editor target.'; this.render() })
@@ -4779,12 +4800,49 @@ ${compileComponentOverride(draft, previewOptions)}`)
     return projectToNativeDraft(project, this.components, this.variables, boostBaseline)
   }
 
-  private downloadBytes(bytes: Uint8Array, filename: string): void {
+  private downloadBytes(bytes: Uint8Array, filename: string, mimeType = 'application/zip'): void {
     const owned = bytes.slice()
-    const blob = new Blob([owned.buffer], { type: 'application/zip' })
+    const blob = new Blob([owned.buffer], { type: mimeType })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a'); anchor.href = url; anchor.download = filename; anchor.style.display = 'none'
     document.body.append(anchor); anchor.click(); anchor.remove(); setTimeout(() => URL.revokeObjectURL(url), 0)
+  }
+
+  private focusBackupAction(action: string): void {
+    this.root.querySelector<HTMLButtonElement>(`[data-backup-action="${action}"]`)?.focus()
+  }
+
+  private async exportThemesBackup(): Promise<void> {
+    if (this.backupBusy) return
+    this.backupBusy = true; this.backupStatus = 'Preparing full backup…'; this.render()
+    try {
+      const backup = await createThemesBackup(this.ctx, this.store.snapshot)
+      this.downloadBytes(new TextEncoder().encode(JSON.stringify(backup)), `palette-themes-${new Date().toISOString().slice(0, 10)}.json`, 'application/json')
+      this.backupStatus = `Backed up ${backup.state.projects.length} theme(s), ${backup.state.savedStyles.length} saved style(s), and ${backup.assets.length} uploaded asset(s).`
+    } catch (error) { this.backupStatus = `Backup failed: ${error instanceof Error ? error.message : 'unknown error'}` }
+    finally { this.backupBusy = false; this.render(); this.focusBackupAction('export') }
+  }
+
+  private async readThemesBackup(file: File): Promise<void> {
+    if (this.backupBusy) return
+    this.backupBusy = true; this.pendingBackup = null; this.backupStatus = 'Reading backup…'; this.render()
+    try {
+      this.pendingBackup = parseThemesBackup(await file.text())
+      this.backupStatus = 'Backup validated. Review the counts before adding it.'
+    } catch (error) { this.backupStatus = `Restore failed: ${error instanceof Error ? error.message : 'unknown error'}` }
+    finally { this.backupBusy = false; this.render(); this.focusBackupAction(this.pendingBackup ? 'restore' : 'choose') }
+  }
+
+  private async addThemesBackup(): Promise<void> {
+    if (this.backupBusy || !this.pendingBackup) return
+    this.backupBusy = true; this.backupStatus = 'Restoring themes and assets…'; this.render()
+    try {
+      const restored = await restoreThemesBackup(this.ctx, this.pendingBackup)
+      this.store.appendCollection(restored)
+      this.pendingBackup = null
+      this.backupStatus = `Added ${restored.projects.length} theme(s) and ${restored.savedStyles.length} saved style(s). Select a restored theme in Themes to use it.`
+    } catch (error) { this.backupStatus = `Restore failed: ${error instanceof Error ? error.message : 'unknown error'}` }
+    finally { this.backupBusy = false; this.render(); this.focusBackupAction('choose') }
   }
 
   private async exportNativeTheme(): Promise<void> {

@@ -64,6 +64,10 @@ export class ProjectStore {
   get snapshot(): ThemeStudioState { return this.state }
   get activeProject(): ThemeStudioProject { return this.state.projects.find((project) => project.id === this.state.activeProjectId) ?? this.state.projects[0] }
   hydrate(value: unknown): void { this.state = normalizeState(value); this.emit() }
+  appendCollection(collection: Pick<ThemeStudioState, 'projects' | 'savedStyles'>): void {
+    this.state = { ...this.state, projects: [...this.state.projects, ...structuredClone(collection.projects)], savedStyles: [...this.state.savedStyles, ...structuredClone(collection.savedStyles)] }
+    this.emit()
+  }
   subscribe(listener: StoreListener): () => void { this.listeners.add(listener); return () => this.listeners.delete(listener) }
   selectProject(projectId: string): void { if (this.state.projects.some((project) => project.id === projectId)) { this.state = { ...this.state, activeProjectId: projectId }; this.emit() } }
   create(name?: string): ThemeStudioProject { const project = createProject(name ?? `Theme ${this.state.projects.length + 1}`); this.state = { ...this.state, activeProjectId: project.id, projects: [...this.state.projects, project] }; this.emit(); return project }

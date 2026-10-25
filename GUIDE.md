@@ -16,7 +16,7 @@ Palette is easiest to understand as **visual DevTools with memory**. It knows en
 | **Design** | Pick a real mounted element and author semantic style packets. |
 | **Themes** | App-wide Boost, Typography, Quick Looks, pack workbenches, and theme projects. |
 | **Style Library** | Browse reusable looks and your cross-project **My Styles**. |
-| **Code** | Inspect compiler-owned CSS, add Custom CSS, and use native `.lumitheme` handoff. |
+| **Code** | Inspect compiler-owned CSS, add Custom CSS, back up all Palette themes, and use native `.lumitheme` handoff. |
 
 A normal workflow is:
 
@@ -411,6 +411,14 @@ If you are developing Palette itself:
 - Wallpaper test — catches backdrop layers that remain hidden under a wash.
 
 ## Widget & Code
+
+### Moving your Palette collection
+
+In **Code → Full themes backup**, choose **Download full backup**. The JSON file includes all Palette projects with their editable Design data, Theme Source, Boost, Custom CSS, fonts, presets, SVGs, My Styles, and uploaded theme asset bytes.
+
+On the new instance, install Palette, open **Code**, choose **Restore backup…**, and select that JSON file. Review the theme, saved style, and asset counts, then choose **Add themes from backup**. Restore creates independent copies and uploads assets into new bundles; existing themes and the current selection stay in place. Select a restored project in **Themes** when ready. Restoring the same file again adds another copy.
+
+External image/font URLs remain external links. The separate Lumiverse native theme library, chats, and instance settings are not included. Use **Send to Lumiverse** on a restored project if you also want it in the new instance's native theme library. If an uploaded asset cannot be read, backup fails instead of producing an incomplete file.
 
 ### Floating mini-widget
 
